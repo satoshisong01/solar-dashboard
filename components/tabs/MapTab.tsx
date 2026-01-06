@@ -2,6 +2,29 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Script from 'next/script';
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+} from 'chart.js';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 declare global {
   interface Window {
@@ -21,24 +44,30 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
   const [isScriptLoaded, setIsScriptLoaded] = useState(false);
   const [mapError, setMapError] = useState(false);
 
-  // 🔴 [수정] 알림 카운트 로직 개선
-  // 1. Critical (빨간불): is_error가 true인 경우
+  // 1. 선택된 사이트 찾기 (없으면 첫 번째)
+  const selectedSite = sites.find((s) => s.id === selectedId) || sites[0];
+
+  // 2. 알림 카운트 로직 (Critical + Warning)
   const criticalCount = sites.filter((s) => s.is_error).length;
-  // 2. Warning (주황불): 에러는 아니지만 status가 warning인 경우
   const warningCount = sites.filter(
     (s) => !s.is_error && s.status === 'warning'
   ).length;
-  // 3. Total
   const totalAlerts = criticalCount + warningCount;
 
-  // 1. 카카오 스크립트 로드 확인
+  // 3. 차트 색상 설정 (에러 시 빨강, 정상 시 초록)
+  const chartColor = selectedSite?.is_error ? '#ef4444' : '#22c55e';
+  const chartBgColor = selectedSite?.is_error
+    ? 'rgba(239, 68, 68, 0.2)'
+    : 'rgba(34, 197, 94, 0.2)';
+
+  // 4. 지도 로드 여부 체크
   useEffect(() => {
     if (typeof window !== 'undefined' && window.kakao && window.kakao.maps) {
       setIsScriptLoaded(true);
     }
   }, []);
 
-  // 2. 지도 초기화 및 마커 렌더링
+  // 5. 지도 렌더링
   useEffect(() => {
     if (
       !isScriptLoaded ||
@@ -52,13 +81,13 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
       window.kakao.maps.load(() => {
         if (!mapRef.current) {
           const centerSite = sites.find((s) => s.id === selectedId) ||
-            sites[0] || { lat: 36.8, lng: 127.0 }; // 중심점 조정 (천안 부근)
+            sites[0] || { lat: 36.8, lng: 127.0 };
           const options = {
             center: new window.kakao.maps.LatLng(
               centerSite.lat,
               centerSite.lng
             ),
-            level: 10, // 레벨 조정 (지도가 넓게 보이도록)
+            level: 10,
           };
           mapRef.current = new window.kakao.maps.Map(
             mapContainerRef.current,
@@ -68,10 +97,9 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
 
         const map = mapRef.current;
 
-        // 마커(커스텀 오버레이) 그리기
+        // 마커 그리기
         sites.forEach((site) => {
           const position = new window.kakao.maps.LatLng(site.lat, site.lng);
-          // 색상 결정: 에러(빨강) > 경고(노랑) > 정상(초록)
           const color = site.is_error
             ? '#ef4444'
             : site.status === 'warning'
@@ -79,7 +107,6 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
             : '#22c55e';
 
           const content = document.createElement('div');
-          // 마커 디자인
           content.innerHTML = `
             <div style="position: relative; display: flex; flex-direction: column; align-items: center;">
               <div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10;">
@@ -104,7 +131,7 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
             position: position,
             content: content,
             map: map,
-            yAnchor: 0.5, // 마커 위치 미세 조정
+            yAnchor: 0.5,
           });
         });
       });
@@ -112,9 +139,9 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
       console.error('Kakao Map Error:', err);
       setMapError(true);
     }
-  }, [isScriptLoaded, sites]);
+  }, [isScriptLoaded, sites]); // selectedId는 의존성에서 제외 (지도 리렌더링 방지)
 
-  // 3. 선택 변경 시 이동
+  // 6. 선택 변경 시 지도 이동
   useEffect(() => {
     if (mapRef.current && selectedId && window.kakao && window.kakao.maps) {
       const site = sites.find((s) => s.id === selectedId);
@@ -134,52 +161,8 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
         strategy="afterInteractive"
       />
 
-      <div className="relative w-full h-full bg-slate-800">
-        {/* 🔴 [수정] 좌측 상단 상태 패널 업데이트 */}
-        <div className="absolute top-4 left-4 z-10 flex gap-4">
-          <div className="bg-slate-900/90 backdrop-blur border border-slate-700 p-4 rounded-xl shadow-xl flex items-center gap-4">
-            <div>
-              <div className="text-xs text-slate-400 font-bold mb-1">
-                SYSTEM STATUS
-              </div>
-              <div className="flex items-center gap-2">
-                <div
-                  className={`w-3 h-3 rounded-full ${
-                    totalAlerts > 0
-                      ? 'bg-red-500 animate-pulse'
-                      : 'bg-green-500'
-                  }`}
-                ></div>
-                <span className="text-white font-bold">
-                  {totalAlerts > 0
-                    ? '이상 감지 (Check Required)'
-                    : '정상 가동 중 (Normal)'}
-                </span>
-              </div>
-            </div>
-            <div className="w-px h-8 bg-slate-700"></div>
-            <div>
-              <div className="text-xs text-slate-400 font-bold mb-1">
-                ALERTS
-              </div>
-              <div className="text-white font-bold">
-                {/* 2 Critical, 2 Warning 형식으로 표시 */}
-                {totalAlerts === 0 ? (
-                  <span className="text-slate-500">None</span>
-                ) : (
-                  <span className="text-red-400">
-                    {totalAlerts} Issues{' '}
-                    <span className="text-xs text-slate-400 font-normal">
-                      ({criticalCount} Crit, {warningCount} Warn)
-                    </span>
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 지도 영역 */}
+      <div className="flex-1 relative w-full h-full bg-slate-800">
+        {/* 1. 지도 영역 (배경) */}
         <div
           ref={mapContainerRef}
           style={{ width: '100%', height: '100%', backgroundColor: '#1e293b' }}
@@ -189,9 +172,6 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
               {mapError ? (
                 <div className="text-red-400 text-center">
                   <p>지도 로딩 실패</p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    도메인 등록 여부를 확인하세요.
-                  </p>
                 </div>
               ) : (
                 <span className="animate-pulse">지도 로딩 중...</span>
@@ -199,6 +179,174 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
             </div>
           )}
         </div>
+
+        {/* 2. HUD (좌측 상단 시스템 상태창) - 카운트 로직 적용됨 */}
+        <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 pointer-events-none">
+          <div className="bg-slate-900/90 border border-slate-700 backdrop-blur-md rounded-lg p-3 shadow-xl flex items-center gap-6 pointer-events-auto">
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-3 h-3 rounded-full ${
+                  totalAlerts > 0
+                    ? 'bg-red-500 animate-pulse'
+                    : 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.8)]'
+                }`}
+              ></div>
+              <div>
+                <div className="text-[10px] text-slate-400 uppercase tracking-wider">
+                  System Status
+                </div>
+                <div className="text-sm font-bold text-white">
+                  {totalAlerts > 0 ? '이상 감지' : '정상 가동 중'}
+                </div>
+              </div>
+            </div>
+            <div className="h-8 w-px bg-slate-700"></div>
+            <div>
+              <div className="text-[10px] text-slate-400 uppercase tracking-wider">
+                Alerts
+              </div>
+              <div
+                className={`text-sm font-bold ${
+                  totalAlerts > 0
+                    ? 'text-red-400 animate-pulse'
+                    : 'text-slate-500'
+                }`}
+              >
+                {totalAlerts > 0
+                  ? `${totalAlerts} Issues (${criticalCount}C, ${warningCount}W)`
+                  : 'None'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. 우측 상세 패널 (복구됨!) */}
+        {selectedSite && (
+          <div className="absolute top-6 right-6 bottom-6 w-96 bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-xl p-6 flex flex-col gap-6 shadow-2xl z-10 overflow-y-auto">
+            {/* 헤더 */}
+            <div>
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-xl font-bold text-white">
+                  {selectedSite.name}
+                </h3>
+                <span
+                  className={`px-2 py-1 rounded text-xs font-bold text-white uppercase ${
+                    selectedSite.is_error
+                      ? 'bg-red-600'
+                      : selectedSite.status === 'warning'
+                      ? 'bg-yellow-600'
+                      : 'bg-green-600'
+                  }`}
+                >
+                  {selectedSite.status}
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mb-4">
+                지도상의 마커를 클릭하여 상세 정보를 확인하세요.
+              </p>
+
+              {/* 데이터 그리드 */}
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <div className="bg-slate-800/50 p-3 rounded border border-slate-700">
+                  <div className="text-xs text-slate-400">발전량 (Gen)</div>
+                  <div className="text-lg font-bold text-white">
+                    {selectedSite.gen}{' '}
+                    <span className="text-xs font-normal">kW</span>
+                  </div>
+                </div>
+                <div className="bg-slate-800/50 p-3 rounded border border-slate-700">
+                  <div className="text-xs text-slate-400">판매량 (Sale)</div>
+                  <div className="text-lg font-bold text-green-400">
+                    {selectedSite.sales}{' '}
+                    <span className="text-xs font-normal">kW</span>
+                  </div>
+                </div>
+                <div className="bg-slate-800/50 p-3 rounded border border-slate-700">
+                  <div className="text-xs text-slate-400">소비량 (Cons)</div>
+                  <div className="text-lg font-bold text-blue-400">
+                    {selectedSite.cons}{' '}
+                    <span className="text-xs font-normal">kW</span>
+                  </div>
+                </div>
+                <div className="bg-slate-800/50 p-3 rounded border border-slate-700">
+                  <div className="text-xs text-slate-400">발전 효율</div>
+                  <div className="text-lg font-bold text-white">
+                    {selectedSite.eff}{' '}
+                    <span className="text-xs font-normal">%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 차트 영역 */}
+            <div className="flex-1 flex flex-col gap-4">
+              <div className="bg-slate-800/80 rounded-lg p-4 border border-slate-700 h-48">
+                <Line
+                  data={{
+                    labels: ['10시', '11시', '12시', '13시', '14시', '15시'],
+                    datasets: [
+                      {
+                        label: '발전량',
+                        data: selectedSite.chartData,
+                        borderColor: chartColor,
+                        backgroundColor: chartBgColor,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 2,
+                      },
+                    ],
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                      x: { display: false },
+                      y: { display: false, grid: { color: '#334155' } },
+                    },
+                  }}
+                />
+              </div>
+
+              {/* AI 진단 리포트 */}
+              <div
+                className={`border rounded-lg p-4 ${
+                  selectedSite.is_error
+                    ? 'bg-red-900/30 border-red-500/30 animate-pulse'
+                    : 'bg-blue-900/30 border-blue-500/30'
+                }`}
+              >
+                <h4
+                  className={`text-sm font-bold mb-2 flex items-center gap-2 ${
+                    selectedSite.is_error ? 'text-red-400' : 'text-blue-400'
+                  }`}
+                >
+                  <i className="fas fa-brain"></i> AI 진단 리포트
+                </h4>
+                <p className="text-sm text-slate-300 leading-relaxed">
+                  {selectedSite.ai_msg}
+                </p>
+              </div>
+
+              {/* 조치 필요 사항 */}
+              {selectedSite.actions && selectedSite.actions.length > 0 && (
+                <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-4">
+                  <h4 className="text-sm font-bold text-red-400 mb-2">
+                    <i className="fas fa-wrench mr-2"></i>조치 필요
+                  </h4>
+                  <ul className="text-xs text-slate-300 space-y-2">
+                    {selectedSite.actions.map((act: string, idx: number) => (
+                      <li key={idx} className="flex items-center gap-2">
+                        <i className="fas fa-check-circle text-red-500"></i>{' '}
+                        {act}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
