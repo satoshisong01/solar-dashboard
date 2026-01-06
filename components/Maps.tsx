@@ -147,7 +147,7 @@ export default function Map({ sites, selectedId, onSelect }: MapProps) {
       >
         {!isScriptLoaded && (
           <div className="flex items-center justify-center h-full text-slate-400">
-            <span className="animate-pulse">지도 로딩 중....</span>
+            <span className="animate-pulse">지도 로딩 중...</span>
           </div>
         )}
       </div>
