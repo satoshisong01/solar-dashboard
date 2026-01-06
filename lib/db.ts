@@ -9,9 +9,8 @@ const pool = new Pool({
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
-  // ⭐ 아래 부분이 추가되었습니다!
   ssl: {
-    rejectUnauthorized: false,
+    rejectUnauthorized: false, // AWS RDS 접속 시 필수 설정
   },
 });
 

@@ -5,17 +5,11 @@ export async function GET() {
   try {
     const client = await pool.connect();
 
-    // 1. 발전소 목록
-    const siteQuery = `
-      SELECT s.id, s.name, s.lat, s.lng, s.capacity, 
-             l.gen, l.cons, l.sales, l.eff, l.status, l.ai_msg, l.is_error 
-      FROM solar_sites s 
-      LEFT JOIN LATERAL (SELECT * FROM solar_logs WHERE site_id = s.id ORDER BY recorded_at DESC LIMIT 1) l ON true
-      ORDER BY s.id ASC
-    `;
+    // 1. 발전소 목록 및 최신 로그
+    const siteQuery = `SELECT s.id, s.name, s.lat, s.lng, s.capacity, l.gen, l.cons, l.sales, l.eff, l.status, l.ai_msg, l.is_error FROM solar_sites s LEFT JOIN LATERAL (SELECT * FROM solar_logs WHERE site_id = s.id ORDER BY recorded_at DESC LIMIT 1) l ON true ORDER BY s.id ASC`;
     const { rows: sites } = await client.query(siteQuery);
 
-    // 2. 조치사항 병합
+    // 2. 조치사항 및 차트 데이터 병합
     for (let site of sites) {
       const { rows: actions } = await client.query(
         'SELECT action_text FROM solar_actions WHERE site_id = $1',
@@ -27,24 +21,20 @@ export async function GET() {
         : [100, 320, 500, 750, 850, 600];
     }
 
-    // 3. 수익 데이터
+    // 3. 기타 데이터 조회 (수익, 인버터, 통계, 시장가, 일정)
     const { rows: revenue } = await client.query(
       'SELECT month, amount FROM solar_revenue ORDER BY id ASC'
     );
-
-    // 4. 인버터 데이터
     const { rows: inverters } = await client.query(
       'SELECT * FROM solar_inverter_status ORDER BY id ASC'
     );
 
-    // 🌟 [핵심] 여기가 빠져있을 겁니다! 통계 데이터 가져오기 🌟
     const { rows: statsRows } = await client.query('SELECT * FROM solar_stats');
     const stats = statsRows.reduce((acc: any, cur: any) => {
-      acc[cur.key_name] = cur.val; // 배열을 객체로 변환 { sunlight_hours: 6.2, ... }
+      acc[cur.key_name] = cur.val;
       return acc;
     }, {});
 
-    // 6. 시장 가격
     const { rows: marketRows } = await client.query(
       'SELECT * FROM solar_market'
     );
@@ -53,14 +43,12 @@ export async function GET() {
       return acc;
     }, {});
 
-    // 7. 일정 데이터
     const { rows: schedule } = await client.query(
       'SELECT * FROM solar_schedule ORDER BY id ASC'
     );
 
     client.release();
 
-    // stats를 꼭 포함해서 리턴해야 합니다!
     return NextResponse.json({
       sites,
       revenue,
@@ -70,7 +58,7 @@ export async function GET() {
       schedule,
     });
   } catch (error) {
-    console.error('DB Error:', error);
+    console.error('DB Error:', error); // Vercel 로그 확인용
     return NextResponse.json({ error: 'Database Error' }, { status: 500 });
   }
 }
