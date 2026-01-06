@@ -81,7 +81,7 @@ export default function Home() {
           <MapTab
             sites={data.sites || []}
             selectedId={selectedId}
-            setSelectedId={setSelectedId}
+            onSelect={setSelectedId}
           />
         )}
 
