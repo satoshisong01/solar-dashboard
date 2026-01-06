@@ -1,223 +1,205 @@
 'use client';
-import dynamic from 'next/dynamic';
-import { Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-} from 'chart.js';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+import { useEffect, useRef, useState } from 'react';
+import Script from 'next/script';
 
-// 카카오맵 컴포넌트 불러오기 (SSR 방지)
-const MapComponent = dynamic(() => import('../Maps'), { ssr: false });
-
-interface MapTabProps {
-  sites: any[];
-  selectedId: number;
-  setSelectedId: (id: number) => void;
+declare global {
+  interface Window {
+    kakao: any;
+  }
 }
 
-export default function MapTab({
-  sites,
-  selectedId,
-  setSelectedId,
-}: MapTabProps) {
-  // 선택된 사이트가 없으면 첫 번째 사이트를 보여줌
-  const selectedSite = sites.find((s) => s.id === selectedId) || sites[0];
+interface MapProps {
+  sites: any[];
+  selectedId: number;
+  onSelect: (id: number) => void;
+}
 
-  // 차트 데이터 설정 (에러 상태일 때 빨간색, 정상일 때 초록색)
-  const chartColor = selectedSite?.is_error ? '#ef4444' : '#22c55e';
-  const chartBgColor = selectedSite?.is_error
-    ? 'rgba(239, 68, 68, 0.2)'
-    : 'rgba(34, 197, 94, 0.2)';
+export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
+  const [isScriptLoaded, setIsScriptLoaded] = useState(false);
+  const [mapError, setMapError] = useState(false);
+
+  // 🔴 [수정] 알림 카운트 로직 개선
+  // 1. Critical (빨간불): is_error가 true인 경우
+  const criticalCount = sites.filter((s) => s.is_error).length;
+  // 2. Warning (주황불): 에러는 아니지만 status가 warning인 경우
+  const warningCount = sites.filter(
+    (s) => !s.is_error && s.status === 'warning'
+  ).length;
+  // 3. Total
+  const totalAlerts = criticalCount + warningCount;
+
+  // 1. 카카오 스크립트 로드 확인
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.kakao && window.kakao.maps) {
+      setIsScriptLoaded(true);
+    }
+  }, []);
+
+  // 2. 지도 초기화 및 마커 렌더링
+  useEffect(() => {
+    if (
+      !isScriptLoaded ||
+      !window.kakao ||
+      !window.kakao.maps ||
+      !mapContainerRef.current
+    )
+      return;
+
+    try {
+      window.kakao.maps.load(() => {
+        if (!mapRef.current) {
+          const centerSite = sites.find((s) => s.id === selectedId) ||
+            sites[0] || { lat: 36.8, lng: 127.0 }; // 중심점 조정 (천안 부근)
+          const options = {
+            center: new window.kakao.maps.LatLng(
+              centerSite.lat,
+              centerSite.lng
+            ),
+            level: 10, // 레벨 조정 (지도가 넓게 보이도록)
+          };
+          mapRef.current = new window.kakao.maps.Map(
+            mapContainerRef.current,
+            options
+          );
+        }
+
+        const map = mapRef.current;
+
+        // 마커(커스텀 오버레이) 그리기
+        sites.forEach((site) => {
+          const position = new window.kakao.maps.LatLng(site.lat, site.lng);
+          // 색상 결정: 에러(빨강) > 경고(노랑) > 정상(초록)
+          const color = site.is_error
+            ? '#ef4444'
+            : site.status === 'warning'
+            ? '#f59e0b'
+            : '#22c55e';
+
+          const content = document.createElement('div');
+          // 마커 디자인
+          content.innerHTML = `
+            <div style="position: relative; display: flex; flex-direction: column; align-items: center;">
+              <div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10;">
+                ${
+                  site.is_error
+                    ? '<span style="font-weight:bold; color:white; font-size:14px;">!</span>'
+                    : ''
+                }
+              </div>
+              <div style="margin-top: 8px; background: rgba(15, 23, 42, 0.9); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap; font-weight: bold; border: 1px solid ${color}; z-index: 5;">
+                ${site.name}
+              </div>
+            </div>
+          `;
+
+          content.addEventListener('click', () => {
+            onSelect(site.id);
+            map.panTo(position);
+          });
+
+          new window.kakao.maps.CustomOverlay({
+            position: position,
+            content: content,
+            map: map,
+            yAnchor: 0.5, // 마커 위치 미세 조정
+          });
+        });
+      });
+    } catch (err) {
+      console.error('Kakao Map Error:', err);
+      setMapError(true);
+    }
+  }, [isScriptLoaded, sites]);
+
+  // 3. 선택 변경 시 이동
+  useEffect(() => {
+    if (mapRef.current && selectedId && window.kakao && window.kakao.maps) {
+      const site = sites.find((s) => s.id === selectedId);
+      if (site) {
+        const moveLatLon = new window.kakao.maps.LatLng(site.lat, site.lng);
+        mapRef.current.panTo(moveLatLon);
+      }
+    }
+  }, [selectedId, sites]);
 
   return (
-    <div className="flex-1 relative w-full h-full">
-      {/* 1. 지도 영역 (배경) */}
-      <MapComponent
-        sites={sites}
-        selectedId={selectedId}
-        onSelect={setSelectedId}
+    <>
+      <Script
+        src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_KEY}&autoload=false`}
+        onLoad={() => setIsScriptLoaded(true)}
+        onError={() => setMapError(true)}
+        strategy="afterInteractive"
       />
 
-      {/* 2. HUD (좌측 상단 시스템 상태창) */}
-      <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 pointer-events-none">
-        <div className="bg-slate-900/90 border border-slate-700 backdrop-blur-md rounded-lg p-3 shadow-xl flex items-center gap-6 pointer-events-auto">
-          <div className="flex items-center gap-3">
-            <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.8)]"></div>
+      <div className="relative w-full h-full bg-slate-800">
+        {/* 🔴 [수정] 좌측 상단 상태 패널 업데이트 */}
+        <div className="absolute top-4 left-4 z-10 flex gap-4">
+          <div className="bg-slate-900/90 backdrop-blur border border-slate-700 p-4 rounded-xl shadow-xl flex items-center gap-4">
             <div>
-              <div className="text-[10px] text-slate-400 uppercase tracking-wider">
-                System Status
+              <div className="text-xs text-slate-400 font-bold mb-1">
+                SYSTEM STATUS
               </div>
-              <div className="text-sm font-bold text-white">정상 가동 중</div>
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-3 h-3 rounded-full ${
+                    totalAlerts > 0
+                      ? 'bg-red-500 animate-pulse'
+                      : 'bg-green-500'
+                  }`}
+                ></div>
+                <span className="text-white font-bold">
+                  {totalAlerts > 0
+                    ? '이상 감지 (Check Required)'
+                    : '정상 가동 중 (Normal)'}
+                </span>
+              </div>
+            </div>
+            <div className="w-px h-8 bg-slate-700"></div>
+            <div>
+              <div className="text-xs text-slate-400 font-bold mb-1">
+                ALERTS
+              </div>
+              <div className="text-white font-bold">
+                {/* 2 Critical, 2 Warning 형식으로 표시 */}
+                {totalAlerts === 0 ? (
+                  <span className="text-slate-500">None</span>
+                ) : (
+                  <span className="text-red-400">
+                    {totalAlerts} Issues{' '}
+                    <span className="text-xs text-slate-400 font-normal">
+                      ({criticalCount} Crit, {warningCount} Warn)
+                    </span>
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-          <div className="h-8 w-px bg-slate-700"></div>
-          <div>
-            <div className="text-[10px] text-slate-400 uppercase tracking-wider">
-              Alerts
+        </div>
+
+        {/* 지도 영역 */}
+        <div
+          ref={mapContainerRef}
+          style={{ width: '100%', height: '100%', backgroundColor: '#1e293b' }}
+        >
+          {(!isScriptLoaded || mapError) && (
+            <div className="flex items-center justify-center h-full text-slate-400">
+              {mapError ? (
+                <div className="text-red-400 text-center">
+                  <p>지도 로딩 실패</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    도메인 등록 여부를 확인하세요.
+                  </p>
+                </div>
+              ) : (
+                <span className="animate-pulse">지도 로딩 중...</span>
+              )}
             </div>
-            <div className="text-sm font-bold text-red-400 animate-pulse">
-              1 Warning
-            </div>
-          </div>
+          )}
         </div>
       </div>
-
-      {/* 3. 우측 상세 패널 (Glassmorphism) - 여기가 핵심 수정 부분입니다 */}
-      {selectedSite && (
-        <div className="absolute top-6 right-6 bottom-6 w-96 bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-xl p-6 flex flex-col gap-6 shadow-2xl z-10 overflow-y-auto">
-          {/* (1) 헤더: 이름 및 상태 */}
-          <div>
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="text-xl font-bold text-white">
-                {selectedSite.name}
-              </h3>
-              <span
-                className={`px-2 py-1 rounded text-xs font-bold text-white uppercase
-                  ${
-                    selectedSite.is_error
-                      ? 'bg-red-600'
-                      : selectedSite.status === 'warning'
-                      ? 'bg-yellow-600'
-                      : 'bg-green-600'
-                  }
-                `}
-              >
-                {selectedSite.status}
-              </span>
-            </div>
-            <p className="text-xs text-slate-400 mb-4">
-              지도상의 마커를 클릭하여 상세 정보를 확인하세요.
-            </p>
-
-            {/* (2) 데이터 그리드 (4칸: 발전, 판매, 소비, 효율) */}
-            <div className="grid grid-cols-2 gap-3 mt-4">
-              {/* 발전량 */}
-              <div className="bg-slate-800/50 p-3 rounded border border-slate-700">
-                <div className="text-xs text-slate-400">발전량 (Gen)</div>
-                <div className="text-lg font-bold text-white">
-                  {selectedSite.gen}{' '}
-                  <span className="text-xs font-normal">kW</span>
-                </div>
-              </div>
-
-              {/* 판매량 (초록색 포인트) */}
-              <div className="bg-slate-800/50 p-3 rounded border border-slate-700">
-                <div className="text-xs text-slate-400">판매량 (Sale)</div>
-                <div className="text-lg font-bold text-green-400">
-                  {selectedSite.sales}{' '}
-                  <span className="text-xs font-normal">kW</span>
-                </div>
-              </div>
-
-              {/* 소비량 (파란색 포인트) */}
-              <div className="bg-slate-800/50 p-3 rounded border border-slate-700">
-                <div className="text-xs text-slate-400">소비량 (Cons)</div>
-                <div className="text-lg font-bold text-blue-400">
-                  {selectedSite.cons}{' '}
-                  <span className="text-xs font-normal">kW</span>
-                </div>
-              </div>
-
-              {/* 효율 */}
-              <div className="bg-slate-800/50 p-3 rounded border border-slate-700">
-                <div className="text-xs text-slate-400">발전 효율</div>
-                <div className="text-lg font-bold text-white">
-                  {selectedSite.eff}{' '}
-                  <span className="text-xs font-normal">%</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* (3) 차트 영역 */}
-          <div className="flex-1 flex flex-col gap-4">
-            <div className="bg-slate-800/80 rounded-lg p-4 border border-slate-700 h-48">
-              <Line
-                data={{
-                  labels: ['10시', '11시', '12시', '13시', '14시', '15시'],
-                  datasets: [
-                    {
-                      label: '발전량',
-                      data: selectedSite.chartData,
-                      borderColor: chartColor,
-                      backgroundColor: chartBgColor,
-                      fill: true,
-                      tension: 0.4, // 부드러운 곡선
-                      pointRadius: 2,
-                    },
-                  ],
-                }}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: { legend: { display: false } },
-                  scales: {
-                    x: { display: false },
-                    y: {
-                      display: false,
-                      grid: { color: '#334155' },
-                    },
-                  },
-                }}
-              />
-            </div>
-
-            {/* (4) AI 진단 리포트 */}
-            <div
-              className={`border rounded-lg p-4 
-                ${
-                  selectedSite.is_error
-                    ? 'bg-red-900/30 border-red-500/30 animate-pulse'
-                    : 'bg-blue-900/30 border-blue-500/30'
-                }`}
-            >
-              <h4
-                className={`text-sm font-bold mb-2 flex items-center gap-2
-                 ${selectedSite.is_error ? 'text-red-400' : 'text-blue-400'}`}
-              >
-                <i className="fas fa-brain"></i> AI 진단 리포트
-              </h4>
-              <p className="text-sm text-slate-300 leading-relaxed">
-                {selectedSite.ai_msg}
-              </p>
-            </div>
-
-            {/* (5) 조치 필요 사항 (에러 있거나 조치사항 있을 때만 표시) */}
-            {selectedSite.actions && selectedSite.actions.length > 0 && (
-              <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-4">
-                <h4 className="text-sm font-bold text-red-400 mb-2">
-                  <i className="fas fa-wrench mr-2"></i>조치 필요
-                </h4>
-                <ul className="text-xs text-slate-300 space-y-2">
-                  {selectedSite.actions.map((act: string, idx: number) => (
-                    <li key={idx} className="flex items-center gap-2">
-                      <i className="fas fa-check-circle text-red-500"></i> {act}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+    </>
   );
 }
