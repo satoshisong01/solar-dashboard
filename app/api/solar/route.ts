@@ -5,8 +5,9 @@ export async function GET() {
   try {
     const client = await pool.connect();
 
+    // ---------------------------------------------------------
     // 1. [Master Data] 발전소 및 로그 조회
-    // (여기서 가져온 gen, cons가 모든 계산의 기준이 됩니다)
+    // ---------------------------------------------------------
     const siteQuery = `
       SELECT s.id, s.name, s.lat, s.lng, s.capacity, 
              l.gen, l.cons, l.status, l.ai_msg, l.is_error,
@@ -17,24 +18,24 @@ export async function GET() {
     `;
     const { rows: sites } = await client.query(siteQuery);
 
-    // 🌟 실시간 집계 변수 (Real-time Aggregation)
-    let totalGen = 0;
-    let totalCapacity = 0;
-    let totalSales = 0;
-    let totalEffSum = 0;
-    let activeSiteCount = 0;
+    // 🌟 실시간 집계 변수 (계산용)
+    let totalGen = 0; // 총 발전량
+    let totalCapacity = 0; // 총 설비 용량
+    let totalSales = 0; // 총 매전량
+    let totalEffSum = 0; // 효율 합계
+    let activeSiteCount = 0; // 가동 중인 사이트 수
 
-    // 2. 사이트별 실시간 계산 (Calculations)
+    // 2. 사이트별 실시간 계산
     for (let site of sites) {
-      // (1) 매전량 자동 계산 (발전 - 소비)
+      // (1) 매전량 = 발전 - 소비
       const calculatedSales = (site.gen || 0) - (site.cons || 0);
       site.sales = calculatedSales > 0 ? calculatedSales : 0;
 
-      // (2) 효율 자동 계산 (발전량 / 설비용량)
+      // (2) 효율 = (발전 / 용량) * 100
       let rawEff = 0;
       if (site.capacity > 0) {
         rawEff = ((site.gen || 0) / site.capacity) * 100;
-        // 데모용 보정: 100% 넘어가면 99.9%로, 너무 낮으면 0
+        // 데모용 보정: 100% 넘으면 99.9%, 너무 낮으면 0
         site.eff = rawEff > 100 ? 99.9 : parseFloat(rawEff.toFixed(1));
       } else {
         site.eff = 0;
@@ -52,10 +53,10 @@ export async function GET() {
       totalSales += site.sales;
       if (site.capacity > 0) {
         totalEffSum += site.eff;
-        activeSiteCount++;
+        activeSiteCount++; // 설비가 있으면 일단 가동 모수로 봄
       }
 
-      // 부가 정보 조회
+      // 부가 정보
       const { rows: actions } = await client.query(
         'SELECT action_text FROM solar_actions WHERE site_id = $1',
         [site.id]
@@ -66,63 +67,70 @@ export async function GET() {
       site.chartLabels = site.chart_labels || ['-', '-', '-', '-', '-', '-'];
     }
 
-    // 🌟 전체 평균 효율 계산
+    // 전체 평균 효율 (Global Average Efficiency)
     const globalAvgEff =
       activeSiteCount > 0
         ? parseFloat((totalEffSum / activeSiteCount).toFixed(1))
         : 0;
 
     // ---------------------------------------------------------
-    // 3. [데이터 동기화] 다른 탭 데이터들도 Master Data(발전량) 따라가게 만들기
+    // 3. [데이터 동기화] 통계/수익/인버터 데이터를 실시간 발전량에 맞춤
     // ---------------------------------------------------------
 
-    // (A) 수익 데이터 (Revenue Tab)
-    // DB의 월별 수익 데이터를 가져오되, '이번 달' 예상 수익은 실시간 발전량 기반으로 덮어씌움
+    // (A) 수익 데이터 (이번 달 예측)
     const { rows: revenue } = await client.query(
       'SELECT id, month, amount FROM solar_revenue ORDER BY id ASC'
     );
     if (revenue.length > 0) {
-      // 단순 예측: 현재 시간당 매전량 * 24시간 * 30일 * SMP(대략 150원) / 10000(만원단위)
-      // 데모를 위해 적절히 큰 숫자로 뻥튀기해서 보여줍니다.
+      // 총 매전량 기반으로 이번 달 수익 뻥튀기 (데모용)
       const estimatedMonthlyRevenue = Math.floor((totalSales * 5.5) / 10);
-      // 마지막 데이터(이번달)를 실시간 예측치로 교체
       revenue[revenue.length - 1].amount = estimatedMonthlyRevenue;
     }
 
-    // (B) 인버터 데이터 (Efficiency Tab)
-    // DB의 인버터 목록을 가져오되, 효율(efficiency) 값은 사이트의 실시간 효율로 덮어씌움
+    // (B) 인버터 데이터 (효율 동기화)
     const { rows: inverters } = await client.query(
       'SELECT * FROM solar_inverter_status ORDER BY id ASC'
     );
-    // 사이트 개수만큼 인버터 효율 업데이트 (1:1 매핑 가정)
     inverters.forEach((inv, idx) => {
       if (sites[idx]) {
-        inv.efficiency = sites[idx].eff; // 사이트 효율을 인버터 효율로 복사
+        inv.efficiency = sites[idx].eff;
         inv.status =
-          sites[idx].status === 'danger' ? 'critical' : sites[idx].status; // 상태 동기화
+          sites[idx].status === 'danger' ? 'critical' : sites[idx].status;
       }
     });
 
-    // (C) 통계 데이터 (Header Stats)
+    // (C) ⭐ 통계 데이터 (여기가 질문하신 부분!)
     const { rows: statsRows } = await client.query('SELECT * FROM solar_stats');
     const stats = statsRows.reduce((acc: any, cur: any) => {
       acc[cur.key_name] = cur.val;
       return acc;
     }, {});
 
-    // 통계 수치도 실시간 데이터로 덮어씌움!
-    stats['health_score'] =
-      globalAvgEff > 90 ? 95 : globalAvgEff > 70 ? 85 : 60; // 평균 효율 기반 점수
-    stats['operation_rate'] =
-      activeSiteCount > 0
-        ? (
-            ((activeSiteCount - sites.filter((s: any) => s.is_error).length) /
-              activeSiteCount) *
-            100
-          ).toFixed(1)
-        : 0; // 가동률 재계산
+    // 1. 일조 시간 (Sunlight Hours)
+    // 평균 효율(%)을 시간으로 환산하는 로직 (예: 효율 80% -> 약 6.1시간)
+    // 발전량이 0이면 일조시간도 0이 됨
+    const calculatedSunlight =
+      globalAvgEff > 0 ? (globalAvgEff / 13).toFixed(1) : 0;
+    stats['sunlight_hours'] = calculatedSunlight;
 
-    // (D) 나머지 (시장가, 일정) - 얘는 고정값 유지
+    // 2. 탄소 저감량 (Carbon Reduction)
+    // 발전량(kWh) * 0.424kg (탄소배출계수) -> 톤(ton) 단위 변환
+    // 값이 너무 작게 나오지 않게 누적치 느낌으로 * 0.5 정도 가중치 줌
+    const calculatedCarbon =
+      totalGen > 0 ? (((totalGen * 0.424) / 1000) * 10).toFixed(2) : 0;
+    stats['carbon_reduction'] = calculatedCarbon;
+
+    // 3. 설비 가동률 (Operation Rate)
+    // (현재 총 발전량 / 총 설비 용량) * 100 -> 전체 설비가 얼마나 풀가동 중인지
+    const calculatedOpRate =
+      totalCapacity > 0 ? ((totalGen / totalCapacity) * 100).toFixed(1) : 0;
+    stats['operation_rate'] = calculatedOpRate;
+
+    // 4. 건강 점수 (Health Score)
+    stats['health_score'] =
+      globalAvgEff > 90 ? 98 : globalAvgEff > 70 ? 85 : 60;
+
+    // (D) 나머지 고정 데이터
     const { rows: marketRows } = await client.query(
       'SELECT * FROM solar_market'
     );
