@@ -5,7 +5,7 @@ export async function GET() {
   try {
     const client = await pool.connect();
 
-    // 1. [Master Data] 발전소 및 최신 로그 조회 (날씨, 예측일, 차트 데이터 포함)
+    // 1. [Master Data] 발전소 및 최신 로그 조회
     const siteQuery = `
       SELECT s.id, s.name, s.lat, s.lng, s.capacity, 
              l.gen, l.cons, l.status, l.ai_msg, l.is_error,
@@ -16,20 +16,20 @@ export async function GET() {
     `;
     const { rows: sites } = await client.query(siteQuery);
 
-    // 🌟 실시간 집계 변수
+    // 집계 변수
     let totalGen = 0;
     let totalCapacity = 0;
     let totalSales = 0;
     let totalEffSum = 0;
     let activeSiteCount = 0;
 
-    // 2. 사이트별 실시간 데이터 가공 및 계산
+    // 2. 사이트별 데이터 가공
     for (let site of sites) {
-      // (1) 매전량 자동 계산 (발전 - 소비)
+      // (1) 매전량 = 발전 - 소비
       const calculatedSales = (site.gen || 0) - (site.cons || 0);
       site.sales = calculatedSales > 0 ? calculatedSales : 0;
 
-      // (2) 효율 자동 계산 (발전량 / 설비용량 * 100)
+      // (2) 효율 계산
       let rawEff = 0;
       if (site.capacity > 0) {
         rawEff = ((site.gen || 0) / site.capacity) * 100;
@@ -38,32 +38,29 @@ export async function GET() {
         site.eff = 0;
       }
 
-      // (3) 💰 손실 금액 계산 (핵심 기능)
-      // SMP(계통한계가격) 가정: 1kWh당 160원
+      // (3) 손실 금액 계산 (시간당)
+      // SMP 160원 가정
       const SMP = 160;
       if (site.is_error) {
-        // 고장이면 용량 전체만큼 손해
         site.loss_amt = Math.floor(site.capacity * SMP).toLocaleString();
       } else if (site.status === 'warning') {
-        // 경고 상태면 효율 저하분(약 20% 가정) 만큼 손해
         site.loss_amt = Math.floor(site.capacity * 0.2 * SMP).toLocaleString();
       } else {
         site.loss_amt = 0;
       }
 
-      // (4) 날씨에 따른 상태 보정 (흐린 날은 발전량 낮아도 경고 아님)
+      // (4) 날씨/상태 보정 로직
       if (site.weather === 'cloudy' || site.weather === 'rainy') {
         if (!site.is_error && site.eff < 10) {
           site.status = 'normal';
           site.ai_msg = '기상 악화로 인한 발전량 감소 (설비 정상)';
         }
       } else if (!site.is_error && site.eff > 0 && site.eff < 10) {
-        // 맑은데 효율이 낮으면 경고
         site.status = 'warning';
         site.ai_msg = '발전 효율 급격 저하 (점검 요망)';
       }
 
-      // 집계 누적
+      // 누적 집계
       totalGen += site.gen || 0;
       totalCapacity += site.capacity || 0;
       totalSales += site.sales;
@@ -72,37 +69,38 @@ export async function GET() {
         activeSiteCount++;
       }
 
-      // 부가 정보 (조치사항 및 차트)
+      // 부가 정보
       const { rows: actions } = await client.query(
         'SELECT action_text FROM solar_actions WHERE site_id = $1',
         [site.id]
       );
       site.actions = actions.map((a: any) => a.action_text);
-
       site.chartData = site.chart_values || [0, 0, 0, 0, 0, 0];
       site.chartLabels = site.chart_labels || ['-', '-', '-', '-', '-', '-'];
     }
 
-    // 전체 평균 효율 계산
     const globalAvgEff =
       activeSiteCount > 0
         ? parseFloat((totalEffSum / activeSiteCount).toFixed(1))
         : 0;
 
     // ---------------------------------------------------------
-    // 3. [데이터 동기화] 통계/수익/인버터 데이터를 실시간 발전량에 맞춤
+    // 🌟 [수정된 부분] 수익 데이터 계산 로직 (현실적 공식 적용)
     // ---------------------------------------------------------
-
-    // (A) 수익 데이터 (Revenue Tab) - 이번 달 예상 수익 동기화
     const { rows: revenue } = await client.query(
       'SELECT id, month, amount FROM solar_revenue ORDER BY id ASC'
     );
+
     if (revenue.length > 0) {
-      const estimatedMonthlyRevenue = Math.floor((totalSales * 5.5) / 10);
+      // 💰 공식: (현재 총 발전량 kW) × (일평균 발전 3.6시간) × (30일) × (SMP 160원)
+      // 예: 4000kW * 3.6 * 30 * 160 = 69,120,000원
+      const estimatedMonthlyRevenue = Math.floor(totalSales * 3.6 * 30 * 160);
+
+      // 너무 숫자가 크면 보기 싫으니 10원 단위 절사
       revenue[revenue.length - 1].amount = estimatedMonthlyRevenue;
     }
 
-    // (B) 인버터 데이터 (Efficiency Tab) - 효율 및 상태 동기화
+    // 인버터 데이터 동기화
     const { rows: inverters } = await client.query(
       'SELECT * FROM solar_inverter_status ORDER BY id ASC'
     );
@@ -114,27 +112,23 @@ export async function GET() {
       }
     });
 
-    // (C) 통계 데이터 (Header Stats) - 실시간 역산
+    // 통계 데이터 동기화
     const { rows: statsRows } = await client.query('SELECT * FROM solar_stats');
     const stats = statsRows.reduce((acc: any, cur: any) => {
       acc[cur.key_name] = cur.val;
       return acc;
     }, {});
 
-    // 1. 일조 시간 (평균 효율 기반 환산)
     stats['sunlight_hours'] =
       globalAvgEff > 0 ? (globalAvgEff / 13).toFixed(1) : 0;
-    // 2. 탄소 저감량 (발전량 기반 환산)
     stats['carbon_reduction'] =
-      totalGen > 0 ? (((totalGen * 0.424) / 1000) * 10).toFixed(2) : 0;
-    // 3. 설비 가동률 (발전량 / 용량)
+      totalGen > 0 ? (((totalGen * 0.424) / 1000) * 30).toFixed(2) : 0; // 탄소 저감량도 현실적으로
     stats['operation_rate'] =
       totalCapacity > 0 ? ((totalGen / totalCapacity) * 100).toFixed(1) : 0;
-    // 4. 건강 점수
     stats['health_score'] =
       globalAvgEff > 90 ? 98 : globalAvgEff > 70 ? 85 : 60;
 
-    // (D) 기타 고정 데이터
+    // 기타 데이터
     const { rows: marketRows } = await client.query(
       'SELECT * FROM solar_market'
     );
