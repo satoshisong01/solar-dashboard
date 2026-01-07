@@ -41,33 +41,43 @@ interface MapProps {
 export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
+
+  // 🌟 [추가] 생성된 오버레이(마커)들을 담아둘 바구니 (청소용)
+  const overlaysRef = useRef<any[]>([]);
+
   const [isScriptLoaded, setIsScriptLoaded] = useState(false);
   const [mapError, setMapError] = useState(false);
 
-  // 1. 선택된 사이트 찾기 (없으면 첫 번째)
+  // 선택된 사이트 정보
   const selectedSite = sites.find((s) => s.id === selectedId) || sites[0];
 
-  // 2. 알림 카운트 로직 (Critical + Warning)
+  // 상단 HUD 카운트용
   const criticalCount = sites.filter((s) => s.is_error).length;
   const warningCount = sites.filter(
     (s) => !s.is_error && s.status === 'warning'
   ).length;
   const totalAlerts = criticalCount + warningCount;
 
-  // 3. 차트 색상 설정 (에러 시 빨강, 정상 시 초록)
-  const chartColor = selectedSite?.is_error ? '#ef4444' : '#22c55e';
+  // 차트 색상 설정
+  const chartColor = selectedSite?.is_error
+    ? '#ef4444'
+    : selectedSite?.status === 'warning'
+    ? '#eab308'
+    : '#22c55e';
   const chartBgColor = selectedSite?.is_error
     ? 'rgba(239, 68, 68, 0.2)'
+    : selectedSite?.status === 'warning'
+    ? 'rgba(234, 179, 8, 0.2)'
     : 'rgba(34, 197, 94, 0.2)';
 
-  // 4. 지도 로드 여부 체크
+  // 1. 스크립트 로드 확인
   useEffect(() => {
     if (typeof window !== 'undefined' && window.kakao && window.kakao.maps) {
       setIsScriptLoaded(true);
     }
   }, []);
 
-  // 5. 지도 렌더링
+  // 2. 지도 렌더링 및 마커 표시
   useEffect(() => {
     if (
       !isScriptLoaded ||
@@ -97,7 +107,14 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
 
         const map = mapRef.current;
 
-        // 마커 그리기
+        // 🌟 [핵심 수정] 기존에 그려진 마커가 있다면 싹 지운다! (Clean-up)
+        // 이걸 안 하면 계속 겹쳐서 쌓이게 됩니다.
+        if (overlaysRef.current.length > 0) {
+          overlaysRef.current.forEach((overlay) => overlay.setMap(null));
+          overlaysRef.current = []; // 바구니 비우기
+        }
+
+        // 마커(CustomOverlay) 그리기
         sites.forEach((site) => {
           const position = new window.kakao.maps.LatLng(site.lat, site.lng);
           const color = site.is_error
@@ -106,18 +123,86 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
             ? '#f59e0b'
             : '#22c55e';
 
+          const isSelected = site.id === selectedId;
+
+          // z-index: 선택된 건 맨 위(999), 나머지는 1
+          const zIndex = isSelected ? 999 : 1;
+
+          // transform: 선택된 건 확대
+          const transform = isSelected ? 'scale(1.1)' : 'scale(1.0)';
+
+          // opacity: 선택 안 된 건 살짝 투명
+          const opacity = isSelected ? '1' : '0.95';
+
+          const weatherIcon =
+            site.weather === 'rainy'
+              ? 'fa-cloud-showers-heavy'
+              : site.weather === 'cloudy'
+              ? 'fa-cloud'
+              : 'fa-sun';
+
           const content = document.createElement('div');
+
           content.innerHTML = `
-            <div style="position: relative; display: flex; flex-direction: column; align-items: center;">
-              <div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3); cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10;">
+            <div style="position: relative; display: flex; flex-direction: column; align-items: center; z-index: ${zIndex}; transform: ${transform}; opacity: ${opacity}; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+              
+              <div style="background-color: ${color}; width: 32px; height: 32px; border-radius: 50%; border: ${
+            isSelected ? '3px' : '2px'
+          } solid white; box-shadow: 0 4px 10px rgba(0,0,0,${
+            isSelected ? '0.6' : '0.3'
+          }); cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 10;">
                 ${
                   site.is_error
-                    ? '<span style="font-weight:bold; color:white; font-size:14px;">!</span>'
-                    : ''
+                    ? '<i class="fas fa-exclamation text-white"></i>'
+                    : `<i class="fas ${weatherIcon} text-white" style="font-size:14px;"></i>`
                 }
               </div>
-              <div style="margin-top: 8px; background: rgba(15, 23, 42, 0.9); color: white; padding: 4px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap; font-weight: bold; border: 1px solid ${color}; z-index: 5;">
-                ${site.name}
+
+              <div style="
+                  margin-top: 8px; 
+                  background: rgba(15, 23, 42, 0.95); 
+                  color: white; 
+                  padding: 8px 12px; 
+                  border-radius: 8px; 
+                  font-size: 12px; 
+                  border: ${
+                    isSelected ? '2px solid white' : `1px solid ${color}`
+                  };
+                  z-index: 5; 
+                  text-align: center; 
+                  min-width: 140px; 
+                  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+              ">
+                <div style="font-weight: bold; margin-bottom: 4px; font-size: 13px;">${
+                  site.name
+                }</div>
+                <div style="color: #cbd5e1; font-size: 11px; display: flex; justify-content: center; gap: 6px; margin-bottom: 4px;">
+                   <span><i class="fas ${weatherIcon}"></i> ${
+            site.weather === 'sunny'
+              ? '맑음'
+              : site.weather === 'cloudy'
+              ? '흐림'
+              : '비'
+          }</span>
+                   ${
+                     site.fail_date
+                       ? `<span style="color: #fbbf24;">(⚠ ${site.fail_date})</span>`
+                       : ''
+                   }
+                </div>
+                ${
+                  site.loss_amt && site.loss_amt !== 0 && site.loss_amt !== '0'
+                    ? `
+                  <div style="background-color: rgba(239, 68, 68, 0.2); color: #fca5a5; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-top: 2px;">
+                    💸 손실: -${site.loss_amt}원/h
+                  </div>
+                `
+                    : `
+                  <div style="color: #86efac; font-size: 11px;">
+                    정상 가동 중
+                  </div>
+                `
+                }
               </div>
             </div>
           `;
@@ -127,21 +212,25 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
             map.panTo(position);
           });
 
-          new window.kakao.maps.CustomOverlay({
+          const overlay = new window.kakao.maps.CustomOverlay({
             position: position,
             content: content,
             map: map,
-            yAnchor: 0.5,
+            yAnchor: 0.4,
+            zIndex: zIndex,
           });
+
+          // 🌟 [추가] 생성한 오버레이를 바구니에 담기 (나중에 지우려고)
+          overlaysRef.current.push(overlay);
         });
       });
     } catch (err) {
       console.error('Kakao Map Error:', err);
       setMapError(true);
     }
-  }, [isScriptLoaded, sites]); // selectedId는 의존성에서 제외 (지도 리렌더링 방지)
+  }, [isScriptLoaded, sites, selectedId]);
 
-  // 6. 선택 변경 시 지도 이동
+  // 3. 선택 변경 시 지도 이동
   useEffect(() => {
     if (mapRef.current && selectedId && window.kakao && window.kakao.maps) {
       const site = sites.find((s) => s.id === selectedId);
@@ -161,192 +250,239 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
         strategy="afterInteractive"
       />
 
-      <div className="flex-1 relative w-full h-full bg-slate-800">
-        {/* 1. 지도 영역 (배경) */}
-        <div
-          ref={mapContainerRef}
-          style={{ width: '100%', height: '100%', backgroundColor: '#1e293b' }}
-        >
-          {(!isScriptLoaded || mapError) && (
-            <div className="flex items-center justify-center h-full text-slate-400">
-              {mapError ? (
-                <div className="text-red-400 text-center">
-                  <p>지도 로딩 실패</p>
+      <div className="flex-1 w-full h-full bg-slate-900 p-6">
+        <div className="relative w-full h-full rounded-2xl overflow-hidden border border-slate-700 shadow-2xl">
+          {/* 지도 영역 */}
+          <div
+            ref={mapContainerRef}
+            style={{
+              width: '100%',
+              height: '100%',
+              backgroundColor: '#1e293b',
+            }}
+          >
+            {(!isScriptLoaded || mapError) && (
+              <div className="flex items-center justify-center h-full text-slate-400">
+                {mapError ? (
+                  <div className="text-red-400 text-center">
+                    <p>지도 로딩 실패</p>
+                  </div>
+                ) : (
+                  <span className="animate-pulse">지도 로딩 중...</span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* HUD (시스템 상태) */}
+          <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 pointer-events-none">
+            <div className="bg-slate-900/90 border border-slate-700 backdrop-blur-md rounded-lg p-3 shadow-xl flex items-center gap-6 pointer-events-auto">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-3 h-3 rounded-full ${
+                    totalAlerts > 0
+                      ? 'bg-red-500 animate-pulse'
+                      : 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.8)]'
+                  }`}
+                ></div>
+                <div>
+                  <div className="text-[10px] text-slate-400 uppercase tracking-wider">
+                    System Status
+                  </div>
+                  <div className="text-sm font-bold text-white">
+                    {totalAlerts > 0 ? '이상 감지' : '정상 가동 중'}
+                  </div>
                 </div>
-              ) : (
-                <span className="animate-pulse">지도 로딩 중...</span>
-              )}
+              </div>
+              <div className="h-8 w-px bg-slate-700"></div>
+              <div>
+                <div className="text-[10px] text-slate-400 uppercase tracking-wider">
+                  Alerts
+                </div>
+                <div
+                  className={`text-sm font-bold ${
+                    totalAlerts > 0
+                      ? 'text-red-400 animate-pulse'
+                      : 'text-slate-500'
+                  }`}
+                >
+                  {totalAlerts > 0
+                    ? `${totalAlerts} Issues (${criticalCount}C, ${warningCount}W)`
+                    : 'None'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 우측 패널 */}
+          {selectedSite && (
+            <div className="absolute top-6 right-6 bottom-6 w-96 bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-xl p-6 flex flex-col gap-6 shadow-2xl z-10 overflow-y-auto">
+              {/* 헤더 */}
+              <div>
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="text-xl font-bold text-white">
+                    {selectedSite.name}
+                  </h3>
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-bold text-white uppercase ${
+                      selectedSite.is_error
+                        ? 'bg-red-600'
+                        : selectedSite.status === 'warning'
+                        ? 'bg-yellow-600'
+                        : 'bg-green-600'
+                    }`}
+                  >
+                    {selectedSite.status}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mb-4 text-xs text-slate-400">
+                  <span>
+                    <i
+                      className={`fas ${
+                        selectedSite.weather === 'rainy'
+                          ? 'fa-cloud-showers-heavy'
+                          : selectedSite.weather === 'cloudy'
+                          ? 'fa-cloud'
+                          : 'fa-sun'
+                      } mr-1`}
+                    ></i>
+                    {selectedSite.weather === 'sunny'
+                      ? '맑음'
+                      : selectedSite.weather === 'cloudy'
+                      ? '흐림'
+                      : '비'}
+                  </span>
+                  {selectedSite.fail_date && (
+                    <span className="text-yellow-500 ml-2">
+                      ⚠ 고장 예측: {selectedSite.fail_date}
+                    </span>
+                  )}
+                </div>
+
+                {/* 그리드 데이터 */}
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  <div className="bg-slate-800/50 p-3 rounded border border-slate-700">
+                    <div className="text-xs text-slate-400">발전량 (Gen)</div>
+                    <div className="text-lg font-bold text-white">
+                      {selectedSite.gen}{' '}
+                      <span className="text-xs font-normal">kW</span>
+                    </div>
+                  </div>
+                  <div className="bg-slate-800/50 p-3 rounded border border-slate-700">
+                    <div className="text-xs text-slate-400">판매량 (Sale)</div>
+                    <div className="text-lg font-bold text-green-400">
+                      {selectedSite.sales}{' '}
+                      <span className="text-xs font-normal">kW</span>
+                    </div>
+                  </div>
+                  <div className="bg-slate-800/50 p-3 rounded border border-slate-700">
+                    <div className="text-xs text-slate-400">소비량 (Cons)</div>
+                    <div className="text-lg font-bold text-blue-400">
+                      {selectedSite.cons}{' '}
+                      <span className="text-xs font-normal">kW</span>
+                    </div>
+                  </div>
+                  <div className="bg-slate-800/50 p-3 rounded border border-slate-700">
+                    <div className="text-xs text-slate-400">발전 효율</div>
+                    <div className="text-lg font-bold text-white">
+                      {selectedSite.eff}{' '}
+                      <span className="text-xs font-normal">%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 차트 영역 */}
+              <div className="flex-1 flex flex-col gap-4">
+                <div className="bg-slate-800/80 rounded-lg p-4 border border-slate-700 h-48">
+                  <Line
+                    data={{
+                      labels: selectedSite.chartLabels || [
+                        '10시',
+                        '11시',
+                        '12시',
+                        '13시',
+                        '14시',
+                        '15시',
+                      ],
+                      datasets: [
+                        {
+                          label: '발전량',
+                          data: selectedSite.chartData || [0, 0, 0, 0, 0, 0],
+                          borderColor: chartColor,
+                          backgroundColor: chartBgColor,
+                          fill: true,
+                          tension: 0.4,
+                          pointRadius: 2,
+                        },
+                      ],
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: { legend: { display: false } },
+                      scales: {
+                        x: { display: false },
+                        y: { display: false, grid: { color: '#334155' } },
+                      },
+                    }}
+                  />
+                </div>
+
+                {/* AI 리포트 */}
+                <div
+                  className={`border rounded-lg p-4 ${
+                    selectedSite.is_error
+                      ? 'bg-red-900/30 border-red-500/30 animate-pulse'
+                      : selectedSite.status === 'warning'
+                      ? 'bg-yellow-900/20 border-yellow-500/30'
+                      : 'bg-blue-900/30 border-blue-500/30'
+                  }`}
+                >
+                  <h4
+                    className={`text-sm font-bold mb-2 flex items-center gap-2 ${
+                      selectedSite.is_error
+                        ? 'text-red-400'
+                        : selectedSite.status === 'warning'
+                        ? 'text-yellow-400'
+                        : 'text-blue-400'
+                    }`}
+                  >
+                    <i className="fas fa-brain"></i> AI 진단 리포트
+                  </h4>
+                  <p className="text-sm text-slate-300 leading-relaxed">
+                    {selectedSite.ai_msg}
+                  </p>
+                  {selectedSite.loss_amt &&
+                    selectedSite.loss_amt !== 0 &&
+                    selectedSite.loss_amt !== '0' && (
+                      <div className="mt-3 pt-3 border-t border-white/10 text-red-300 font-bold text-sm">
+                        <i className="fas fa-coins mr-2"></i> 예상 손실:{' '}
+                        {selectedSite.loss_amt}원/h
+                      </div>
+                    )}
+                </div>
+
+                {/* 조치 필요 */}
+                {selectedSite.actions && selectedSite.actions.length > 0 && (
+                  <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-4">
+                    <h4 className="text-sm font-bold text-slate-300 mb-2">
+                      <i className="fas fa-wrench mr-2"></i>조치 필요
+                    </h4>
+                    <ul className="text-xs text-slate-400 space-y-2">
+                      {selectedSite.actions.map((act: string, idx: number) => (
+                        <li key={idx} className="flex items-center gap-2">
+                          <i className="fas fa-check-circle text-blue-500"></i>{' '}
+                          {act}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
-
-        {/* 2. HUD (좌측 상단 시스템 상태창) - 카운트 로직 적용됨 */}
-        <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 pointer-events-none">
-          <div className="bg-slate-900/90 border border-slate-700 backdrop-blur-md rounded-lg p-3 shadow-xl flex items-center gap-6 pointer-events-auto">
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-3 h-3 rounded-full ${
-                  totalAlerts > 0
-                    ? 'bg-red-500 animate-pulse'
-                    : 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.8)]'
-                }`}
-              ></div>
-              <div>
-                <div className="text-[10px] text-slate-400 uppercase tracking-wider">
-                  System Status
-                </div>
-                <div className="text-sm font-bold text-white">
-                  {totalAlerts > 0 ? '이상 감지' : '정상 가동 중'}
-                </div>
-              </div>
-            </div>
-            <div className="h-8 w-px bg-slate-700"></div>
-            <div>
-              <div className="text-[10px] text-slate-400 uppercase tracking-wider">
-                Alerts
-              </div>
-              <div
-                className={`text-sm font-bold ${
-                  totalAlerts > 0
-                    ? 'text-red-400 animate-pulse'
-                    : 'text-slate-500'
-                }`}
-              >
-                {totalAlerts > 0
-                  ? `${totalAlerts} Issues (${criticalCount}C, ${warningCount}W)`
-                  : 'None'}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* 3. 우측 상세 패널 (복구됨!) */}
-        {selectedSite && (
-          <div className="absolute top-6 right-6 bottom-6 w-96 bg-slate-900/90 backdrop-blur-md border border-slate-700 rounded-xl p-6 flex flex-col gap-6 shadow-2xl z-10 overflow-y-auto">
-            {/* 헤더 */}
-            <div>
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="text-xl font-bold text-white">
-                  {selectedSite.name}
-                </h3>
-                <span
-                  className={`px-2 py-1 rounded text-xs font-bold text-white uppercase ${
-                    selectedSite.is_error
-                      ? 'bg-red-600'
-                      : selectedSite.status === 'warning'
-                      ? 'bg-yellow-600'
-                      : 'bg-green-600'
-                  }`}
-                >
-                  {selectedSite.status}
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mb-4">
-                지도상의 마커를 클릭하여 상세 정보를 확인하세요.
-              </p>
-
-              {/* 데이터 그리드 */}
-              <div className="grid grid-cols-2 gap-3 mt-4">
-                <div className="bg-slate-800/50 p-3 rounded border border-slate-700">
-                  <div className="text-xs text-slate-400">발전량 (Gen)</div>
-                  <div className="text-lg font-bold text-white">
-                    {selectedSite.gen}{' '}
-                    <span className="text-xs font-normal">kW</span>
-                  </div>
-                </div>
-                <div className="bg-slate-800/50 p-3 rounded border border-slate-700">
-                  <div className="text-xs text-slate-400">판매량 (Sale)</div>
-                  <div className="text-lg font-bold text-green-400">
-                    {selectedSite.sales}{' '}
-                    <span className="text-xs font-normal">kW</span>
-                  </div>
-                </div>
-                <div className="bg-slate-800/50 p-3 rounded border border-slate-700">
-                  <div className="text-xs text-slate-400">소비량 (Cons)</div>
-                  <div className="text-lg font-bold text-blue-400">
-                    {selectedSite.cons}{' '}
-                    <span className="text-xs font-normal">kW</span>
-                  </div>
-                </div>
-                <div className="bg-slate-800/50 p-3 rounded border border-slate-700">
-                  <div className="text-xs text-slate-400">발전 효율</div>
-                  <div className="text-lg font-bold text-white">
-                    {selectedSite.eff}{' '}
-                    <span className="text-xs font-normal">%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 차트 영역 */}
-            <div className="flex-1 flex flex-col gap-4">
-              <div className="bg-slate-800/80 rounded-lg p-4 border border-slate-700 h-48">
-                <Line
-                  data={{
-                    labels: ['10시', '11시', '12시', '13시', '14시', '15시'],
-                    datasets: [
-                      {
-                        label: '발전량',
-                        data: selectedSite.chartData,
-                        borderColor: chartColor,
-                        backgroundColor: chartBgColor,
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 2,
-                      },
-                    ],
-                  }}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                      x: { display: false },
-                      y: { display: false, grid: { color: '#334155' } },
-                    },
-                  }}
-                />
-              </div>
-
-              {/* AI 진단 리포트 */}
-              <div
-                className={`border rounded-lg p-4 ${
-                  selectedSite.is_error
-                    ? 'bg-red-900/30 border-red-500/30 animate-pulse'
-                    : 'bg-blue-900/30 border-blue-500/30'
-                }`}
-              >
-                <h4
-                  className={`text-sm font-bold mb-2 flex items-center gap-2 ${
-                    selectedSite.is_error ? 'text-red-400' : 'text-blue-400'
-                  }`}
-                >
-                  <i className="fas fa-brain"></i> AI 진단 리포트
-                </h4>
-                <p className="text-sm text-slate-300 leading-relaxed">
-                  {selectedSite.ai_msg}
-                </p>
-              </div>
-
-              {/* 조치 필요 사항 */}
-              {selectedSite.actions && selectedSite.actions.length > 0 && (
-                <div className="bg-red-900/20 border border-red-500/50 rounded-lg p-4">
-                  <h4 className="text-sm font-bold text-red-400 mb-2">
-                    <i className="fas fa-wrench mr-2"></i>조치 필요
-                  </h4>
-                  <ul className="text-xs text-slate-300 space-y-2">
-                    {selectedSite.actions.map((act: string, idx: number) => (
-                      <li key={idx} className="flex items-center gap-2">
-                        <i className="fas fa-check-circle text-red-500"></i>{' '}
-                        {act}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </>
   );
