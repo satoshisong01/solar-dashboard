@@ -42,6 +42,26 @@ export default function MaintenanceTab({
     (s) => !s.is_error && s.status !== 'warning'
   );
 
+  // 🌟 [정렬 로직] 우선 점검 대상 (Priority Tasks)
+  // 1순위: 고장(Error) 상태, 2순위: 발생 시간(recorded_at) 최신순
+  const priorityTasks = [...errorSites, ...warningSites].sort((a, b) => {
+    // 1. 상태 비교 (Error가 Warning보다 위로)
+    if (a.is_error && !b.is_error) return -1;
+    if (!a.is_error && b.is_error) return 1;
+
+    // 2. 시간 비교 (최신순)
+    // recorded_at이 없으면 id 역순(최신 등록)으로 대체
+    const timeA = a.recorded_at ? new Date(a.recorded_at).getTime() : a.id;
+    const timeB = b.recorded_at ? new Date(b.recorded_at).getTime() : b.id;
+    return timeB - timeA; // 내림차순 (큰 숫자가 먼저 -> 최신)
+  });
+
+  // 🌟 [정렬 로직] 정기 점검 일정 (Schedule)
+  // 날짜가 가까운 순서대로 (오름차순)
+  const sortedSchedule = [...(schedule || [])].sort((a, b) => {
+    return new Date(a.date).getTime() - new Date(b.date).getTime();
+  });
+
   // 2. 도넛 차트 데이터
   const statusData = {
     labels: ['정상 가동', '점검 필요(Warn)', '고장/중단(Crit)'],
@@ -70,9 +90,8 @@ export default function MaintenanceTab({
   };
 
   return (
-    <div className="h-full flex flex-col p-4 md:p-6 gap-6 overflow-y-auto">
-      {/* 1. 상단 요약 카드 (반응형 그리드) */}
-      {/* 📱 모바일: 2열 / 💻 PC: 4열 */}
+    <div className="h-full flex flex-col p-4 md:p-6 gap-6 overflow-hidden">
+      {/* 1. 상단 요약 카드 (높이 고정) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 shrink-0">
         <div className="bg-slate-800 border border-slate-700 p-4 rounded-xl">
           <div className="text-slate-400 text-[10px] md:text-xs uppercase font-bold mb-1">
@@ -111,26 +130,26 @@ export default function MaintenanceTab({
         </div>
       </div>
 
-      {/* 2. 메인 컨텐츠 영역 (반응형 레이아웃) */}
-      {/* 📱 모바일: 세로 배치(flex-col) / 💻 PC: 3열 그리드 */}
-      <div className="flex flex-col md:grid md:grid-cols-3 gap-6 min-h-0">
-        {/* 왼쪽 2열: 점검 리스트 및 일정 */}
-        <div className="md:col-span-2 flex flex-col gap-6">
-          {/* (1) 긴급 조치 리스트 */}
-          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 md:p-5 flex flex-col min-h-[300px]">
-            <h3 className="text-base md:text-lg font-bold text-white mb-4 flex items-center gap-2">
+      {/* 2. 메인 컨텐츠 영역 (남은 높이 꽉 채움) */}
+      <div className="flex-1 flex flex-col md:grid md:grid-cols-3 gap-6 min-h-0">
+        {/* 왼쪽 2열: 리스트 영역 (위/아래 50:50 분할) */}
+        <div className="md:col-span-2 flex flex-col gap-6 h-full">
+          {/* (1) 긴급 조치 리스트 (flex-1로 절반 차지) */}
+          {/* 🌟 overflow-y-auto 덕분에 내용이 많아지면 여기서 스크롤 발생 */}
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 md:p-5 flex flex-col flex-1 min-h-0">
+            <h3 className="text-base md:text-lg font-bold text-white mb-4 flex items-center gap-2 shrink-0">
               <i className="fas fa-tools text-red-400"></i> 우선 점검 대상
               (Priority Tasks)
             </h3>
 
-            <div className="flex-1 overflow-y-auto pr-2 space-y-3">
-              {[...errorSites, ...warningSites].length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-slate-500 py-10">
+            <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar">
+              {priorityTasks.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-slate-500">
                   <i className="fas fa-check-circle text-4xl mb-2 text-slate-600"></i>
                   <p>현재 점검이 필요한 설비가 없습니다.</p>
                 </div>
               ) : (
-                [...errorSites, ...warningSites].map((site) => (
+                priorityTasks.map((site) => (
                   <div
                     key={site.id}
                     className={`p-3 md:p-4 rounded-lg border flex flex-col md:flex-row md:justify-between md:items-center gap-3 ${
@@ -178,17 +197,15 @@ export default function MaintenanceTab({
             </div>
           </div>
 
-          {/* (2) 정기 점검 일정 */}
-          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 md:p-5 h-64 flex flex-col">
-            <h3 className="text-base md:text-lg font-bold text-white mb-4 flex items-center gap-2">
+          {/* (2) 정기 점검 일정 (flex-1로 나머지 절반 차지) */}
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 md:p-5 flex flex-col flex-1 min-h-0">
+            <h3 className="text-base md:text-lg font-bold text-white mb-4 flex items-center gap-2 shrink-0">
               <i className="fas fa-calendar-alt text-blue-400"></i> 향후 정기
               점검 일정
             </h3>
-            <div className="flex-1 overflow-x-auto">
-              {' '}
-              {/* 📱 가로 스크롤 허용 */}
+            <div className="flex-1 overflow-auto custom-scrollbar">
               <table className="w-full text-xs md:text-sm text-left text-slate-400 min-w-[400px]">
-                <thead className="text-[10px] md:text-xs text-slate-500 uppercase bg-slate-900/50">
+                <thead className="text-[10px] md:text-xs text-slate-500 uppercase bg-slate-900/50 sticky top-0">
                   <tr>
                     <th className="px-2 py-2 md:px-4 md:py-3 whitespace-nowrap">
                       날짜
@@ -205,8 +222,8 @@ export default function MaintenanceTab({
                   </tr>
                 </thead>
                 <tbody>
-                  {schedule && schedule.length > 0 ? (
-                    schedule.map((item, idx) => (
+                  {sortedSchedule.length > 0 ? (
+                    sortedSchedule.map((item, idx) => (
                       <tr
                         key={idx}
                         className="border-b border-slate-700/50 hover:bg-slate-700/30"
@@ -238,14 +255,14 @@ export default function MaintenanceTab({
           </div>
         </div>
 
-        {/* 오른쪽 1열: 통계 차트 */}
-        <div className="md:col-span-1 flex flex-col gap-6">
-          {/* 상태 비율 (도넛) */}
-          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 md:p-5 h-64">
-            <h3 className="text-sm font-bold text-slate-300 mb-4">
+        {/* 오른쪽 1열: 차트 영역 */}
+        <div className="md:col-span-1 flex flex-col gap-6 h-full">
+          {/* (3) 상태 비율 (높이를 40% 정도로 크게 설정) */}
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 md:p-5 h-[40%] flex flex-col">
+            <h3 className="text-sm font-bold text-slate-300 mb-4 shrink-0">
               설비 상태 비율
             </h3>
-            <div className="relative h-40 w-full flex justify-center">
+            <div className="relative flex-1 w-full flex justify-center items-center min-h-0">
               <Doughnut
                 data={statusData}
                 options={{
@@ -256,8 +273,8 @@ export default function MaintenanceTab({
                       position: 'right',
                       labels: {
                         color: '#94a3b8',
-                        boxWidth: 10,
-                        font: { size: 10 },
+                        boxWidth: 12,
+                        font: { size: 11 },
                       },
                     },
                   },
@@ -266,12 +283,12 @@ export default function MaintenanceTab({
             </div>
           </div>
 
-          {/* 고장 유형 분석 (막대) */}
-          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 md:p-5 h-64 mb-5">
-            <h3 className="text-sm font-bold text-slate-300 mb-4">
+          {/* (4) 고장 유형 분석 (나머지 공간 flex-1로 꽉 채움) */}
+          <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 md:p-5 flex-1 flex flex-col min-h-0 mb-20 md:mb-0">
+            <h3 className="text-sm font-bold text-slate-300 mb-4 shrink-0">
               주요 고장 유형 분석
             </h3>
-            <div className="relative h-full w-full">
+            <div className="relative flex-1 w-full min-h-0">
               <Bar
                 data={failureTypeData}
                 options={{
@@ -281,11 +298,11 @@ export default function MaintenanceTab({
                   scales: {
                     y: {
                       grid: { color: '#334155' },
-                      ticks: { color: '#94a3b8', font: { size: 10 } },
+                      ticks: { color: '#94a3b8', font: { size: 11 } },
                     },
                     x: {
                       grid: { display: false },
-                      ticks: { color: '#94a3b8', font: { size: 10 } },
+                      ticks: { color: '#94a3b8', font: { size: 11 } },
                     },
                   },
                 }}
