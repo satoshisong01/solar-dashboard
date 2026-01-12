@@ -14,14 +14,14 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState(0);
 
-  // 1. 실제 날씨 상태 관리
+  // ☁️ 1. 실제 날씨 상태 관리
   const [realWeather, setRealWeather] = useState({
     temp: 20,
     humidity: 50,
     weather: 'Sunny',
   });
 
-  // 2. 화면 크기 감지
+  // 📏 2. 화면 크기 감지
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
@@ -29,16 +29,57 @@ export default function Home() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // 3. 실제 날씨 가져오기
+  // 🔄 3. 대시보드 데이터 폴링 (먼저 DB에서 발전소 정보를 가져옴)
   useEffect(() => {
-    const fetchRealWeather = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch('/api/weather');
-        const data = await res.json();
+        const res = await fetch('/api/solar');
+        if (!res.ok) throw new Error(`API Error: ${res.status}`);
+        const json = await res.json();
+
+        if (!json.sites) throw new Error('Invalid Data Format');
+
+        setData(json);
+        setLoading(false);
+      } catch (err) {
+        console.error('Failed to fetch data:', err);
+      }
+    };
+
+    fetchData();
+    const interval = setInterval(fetchData, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // 🌤️ 4. 실제 날씨 가져오기 (DB 좌표 연동)
+  useEffect(() => {
+    // 🌟 DB 데이터가 로딩되지 않았거나 사이트 정보가 없으면 실행하지 않음
+    if (!data || !data.sites || data.sites.length === 0) return;
+
+    const fetchRealWeather = async () => {
+      // 🌟 DB에 저장된 첫 번째 발전소의 좌표를 사용
+      // (DB 컬럼명이 lat, lng 인지 확인 필요, 보통 solar_sites 테이블 기준)
+      const site = data.sites[0];
+      const myLat = site.lat;
+      const myLon = site.lng;
+
+      if (!myLat || !myLon) return; // 좌표 없으면 중단
+
+      try {
+        const res = await fetch(`/api/weather?lat=${myLat}&lon=${myLon}`);
+        if (!res.ok) throw new Error('Weather API Failed');
+
+        const weatherData = await res.json();
+
+        console.log(
+          `📍 [${site.name}] 날씨 업데이트: ${weatherData.city} (${weatherData.weather}, ${weatherData.temp}°C)`
+        );
+
         setRealWeather({
-          temp: data.temp,
-          humidity: data.humidity,
-          weather: data.weather === 'Clear' ? 'Sunny' : data.weather,
+          temp: weatherData.temp,
+          humidity: weatherData.humidity,
+          weather:
+            weatherData.weather === 'Clear' ? 'Sunny' : weatherData.weather,
         });
       } catch (err) {
         console.error('날씨 정보 로딩 실패:', err);
@@ -46,11 +87,12 @@ export default function Home() {
     };
 
     fetchRealWeather();
+    // 30분마다 갱신
     const weatherInterval = setInterval(fetchRealWeather, 30 * 60 * 1000);
     return () => clearInterval(weatherInterval);
-  }, []);
+  }, [data]); // 🌟 data가 변경될 때(로딩 완료 시) 자동으로 실행됨
 
-  // 4. IoT 데이터 생성 및 DB 저장
+  // 🏭 5. IoT 데이터 생성 및 DB 저장 (실제 날씨 반영)
   useEffect(() => {
     const simulateIoT = async () => {
       const voltage = 220 + Math.random() * 10;
@@ -81,49 +123,13 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [realWeather]);
 
-  // 5. API 데이터 폴링
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch('/api/solar');
-
-        // 🌟 에러 응답일 경우 처리
-        if (!res.ok) {
-          throw new Error(`API Error: ${res.status}`);
-        }
-
-        const json = await res.json();
-
-        // 🌟 데이터 구조가 올바른지 확인 (sites가 없으면 에러로 간주)
-        if (!json.sites) {
-          throw new Error('Invalid Data Format');
-        }
-
-        setData(json);
-        setLoading(false);
-      } catch (err) {
-        console.error('Failed to fetch data:', err);
-        // 에러가 나도 로딩을 끄지 않거나, 에러 상태를 보여줄 수 있음
-        // 여기서는 기존 데이터를 유지하거나 재시도를 위해 놔둠
-      }
-    };
-
-    fetchData();
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // 🌟 로딩 중이거나 데이터가 깨졌을 때 보호 (reduce 에러 방지)
+  // 로딩 화면
   if (loading || !data || !data.sites) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-900 text-white">
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
           <p className="animate-pulse">시스템 데이터 로딩 중...</p>
-          {/* 혹시 에러가 있다면 화면에 표시 (개발용) */}
-          {data?.error && (
-            <p className="text-red-400 text-sm">Error: {data.error}</p>
-          )}
         </div>
       </div>
     );
@@ -138,7 +144,6 @@ export default function Home() {
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-slate-900 text-slate-100 overflow-hidden">
-      {/* 🟢 사이드바 */}
       <aside className="hidden md:flex w-64 flex-col bg-slate-900 border-r border-slate-800 shadow-xl z-20">
         <div className="p-6">
           <h1 className="text-2xl font-extrabold tracking-tight text-white">
@@ -181,7 +186,6 @@ export default function Home() {
           <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
             <div className="text-xs text-slate-400 mb-1">Total Power Gen</div>
             <div className="text-2xl font-bold text-green-400">
-              {/* 🌟 안전장치: data.sites가 있을 때만 reduce 실행 */}
               {data.sites && data.sites.length > 0
                 ? data.sites
                     .reduce((acc: number, cur: any) => acc + (cur.gen || 0), 0)
@@ -197,7 +201,6 @@ export default function Home() {
         </div>
       </aside>
 
-      {/* 🔴 메인 컨텐츠 영역 */}
       <main className="flex-1 flex flex-col relative h-full overflow-hidden bg-slate-900">
         <div className="md:hidden h-14 bg-slate-900 border-b border-slate-800 flex items-center px-4 justify-between z-20 shrink-0">
           <h1 className="text-lg font-bold text-white">
@@ -244,7 +247,6 @@ export default function Home() {
         </div>
       </main>
 
-      {/* 🟢 하단 탭 바 (모바일) */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 h-[60px] bg-slate-900 border-t border-slate-800 flex items-center justify-around z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.3)]">
         {menuItems.map((item) => (
           <button
