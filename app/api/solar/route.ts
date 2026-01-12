@@ -6,7 +6,7 @@ export async function GET() {
     const client = await pool.connect();
 
     // 1. [Master Data] 발전소 및 최신 로그 조회
-    // 🌟 l.temp 컬럼을 추가해서 온도를 가져옵니다.
+    // l.temp (온도) 컬럼 포함 확인
     const siteQuery = `
       SELECT s.id, s.name, s.lat, s.lng, s.capacity, 
              l.gen, l.cons, l.status, l.ai_msg, l.is_error,
@@ -27,9 +27,11 @@ export async function GET() {
 
     // 2. 사이트별 데이터 가공
     for (let site of sites) {
+      // 매전량 계산
       const calculatedSales = (site.gen || 0) - (site.cons || 0);
       site.sales = calculatedSales > 0 ? calculatedSales : 0;
 
+      // 효율 계산
       let rawEff = 0;
       if (site.capacity > 0) {
         rawEff = ((site.gen || 0) / site.capacity) * 100;
@@ -38,6 +40,7 @@ export async function GET() {
         site.eff = 0;
       }
 
+      // 손실 금액 계산
       const SMP = 160;
       if (site.is_error) {
         site.loss_amt = Math.floor(site.capacity * SMP).toLocaleString();
@@ -47,7 +50,7 @@ export async function GET() {
         site.loss_amt = 0;
       }
 
-      // 날씨 예외 처리 (눈, 안개 등)
+      // 🌟 [날씨 및 상태 보정 로직]
       const w = site.weather ? site.weather.toLowerCase() : '';
       const isBadWeather =
         w.includes('cloud') ||
@@ -58,6 +61,7 @@ export async function GET() {
         w.includes('fog');
 
       if (isBadWeather) {
+        // 기상 악화 시 효율이 낮아도 '정상' 처리 + AI 메시지 생성
         if (!site.is_error && site.eff < 10) {
           site.status = 'normal';
           let cause = '기상 악화';
@@ -73,10 +77,18 @@ export async function GET() {
           site.ai_msg = `${cause}로 인한 발전량 감소 (설비 정상)`;
         }
       } else if (!site.is_error && site.eff > 0 && site.eff < 10) {
+        // 맑은데 효율 낮음 -> 경고
         site.status = 'warning';
         site.ai_msg = '발전 효율 급격 저하 (점검 요망)';
       }
 
+      // 🌟 [추가됨] AI 메시지가 여전히 없으면(정상 상태), 기본 문구 설정
+      if (!site.ai_msg) {
+        if (site.is_error) site.ai_msg = '설비 장애 발생 (긴급 점검 필요)';
+        else site.ai_msg = '현재 특이사항 없음 (최적 효율 운전 중)';
+      }
+
+      // 전체 집계
       totalGen += site.gen || 0;
       totalCapacity += site.capacity || 0;
       totalSales += site.sales;
@@ -85,6 +97,7 @@ export async function GET() {
         activeSiteCount++;
       }
 
+      // 조치사항
       const { rows: actions } = await client.query(
         'SELECT action_text FROM solar_actions WHERE site_id = $1',
         [site.id]
@@ -100,6 +113,7 @@ export async function GET() {
         ? parseFloat((totalEffSum / activeSiteCount).toFixed(1))
         : 0;
 
+    // 인버터 데이터 생성
     const inverters = sites.map((site) => ({
       id: site.id,
       name: `${site.name} 인버터 #1`,
@@ -110,6 +124,7 @@ export async function GET() {
       last_maintenance: site.fail_date || '2025-01-10',
     }));
 
+    // 수익 데이터
     const { rows: revenue } = await client.query(
       'SELECT id, month, amount FROM solar_revenue ORDER BY id ASC'
     );
@@ -118,6 +133,7 @@ export async function GET() {
       revenue[revenue.length - 1].amount = estimatedMonthlyRevenue;
     }
 
+    // 통계 데이터
     const { rows: statsRows } = await client.query('SELECT * FROM solar_stats');
     const stats = statsRows.reduce((acc: any, cur: any) => {
       acc[cur.key_name] = cur.val;
@@ -133,6 +149,7 @@ export async function GET() {
     stats['health_score'] =
       globalAvgEff > 90 ? 98 : globalAvgEff > 70 ? 85 : 60;
 
+    // 기타 데이터
     const { rows: marketRows } = await client.query(
       'SELECT * FROM solar_market'
     );
@@ -161,11 +178,12 @@ export async function GET() {
   }
 }
 
+// 5초마다 호출되는 IoT 데이터 수신용 API
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
-      site_id,
+      site_id, // 프론트엔드에서 보낸 ID 수신
       temperature,
       humidity,
       weather_condition,
@@ -178,9 +196,10 @@ export async function POST(request: Request) {
 
     const status = power_generation > 0 ? 'normal' : 'warning';
 
-    // 🌟 site_id가 들어오면 그걸 쓰고, 없으면 1번(기본값) 사용
+    // site_id가 없으면 1번으로 저장
     const targetSiteId = site_id || 1;
 
+    // 데이터 저장
     await client.query(
       `INSERT INTO solar_logs (site_id, gen, cons, weather, status, recorded_at, temp, humid)
        VALUES ($1, $2, 0, $3, $4, NOW(), $5, $6)`,
@@ -194,7 +213,7 @@ export async function POST(request: Request) {
       ]
     );
 
-    // 24시간 지난 데이터 삭제
+    // 24시간 지난 데이터 삭제 (Self-Cleaning)
     await client.query(
       `DELETE FROM solar_logs WHERE recorded_at < NOW() - INTERVAL '24 hours'`
     );

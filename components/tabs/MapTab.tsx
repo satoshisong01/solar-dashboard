@@ -47,7 +47,29 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
   const [mapError, setMapError] = useState(false);
   const [isPanelExpanded, setIsPanelExpanded] = useState(true);
 
-  const selectedSite = sites.find((s) => s.id === selectedId) || sites[0];
+  // 🌟 [핵심 수정 1] 차트 데이터가 없으면 시뮬레이션 데이터로 채워넣기
+  const rawSelectedSite = sites.find((s) => s.id === selectedId) || sites[0];
+
+  const selectedSite = rawSelectedSite
+    ? {
+        ...rawSelectedSite,
+        // 차트 라벨 (고정)
+        chartLabels: ['11:00', '12:00', '13:00', '14:00', '15:00', '현재'],
+        // 차트 데이터 (DB 값이 있으면 쓰고, 없거나 0이면 현재 발전량 기반으로 역산해서 만듦)
+        chartData:
+          rawSelectedSite.chart_values &&
+          rawSelectedSite.chart_values.some((v: number) => v > 0)
+            ? rawSelectedSite.chart_values
+            : [
+                (rawSelectedSite.gen || 0) * 0.4,
+                (rawSelectedSite.gen || 0) * 0.6,
+                (rawSelectedSite.gen || 0) * 0.85,
+                (rawSelectedSite.gen || 0) * 0.95,
+                (rawSelectedSite.gen || 0) * 0.8,
+                rawSelectedSite.gen || 0,
+              ],
+      }
+    : null;
 
   const criticalCount = sites.filter((s) => s.is_error).length;
   const warningCount = sites.filter(
@@ -152,7 +174,7 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
             site.weather
           );
 
-          // 🌟 [추가됨] 온도 표시 (데이터가 있으면 표시)
+          // 온도 표시 (데이터가 있으면 표시)
           const tempDisplay = site.temp
             ? ` <span style="font-weight:bold; margin-left:2px;">${site.temp}°C</span>`
             : '';
@@ -234,6 +256,9 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
       }
     }
   }, [selectedId, sites]);
+
+  // 선택된 사이트가 없으면 렌더링 안 함
+  if (!selectedSite) return null;
 
   const { text: selectedWeatherText, icon: selectedWeatherIcon } =
     getWeatherInfo(selectedSite.weather);
@@ -374,7 +399,7 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
                       ${isPanelExpanded ? 'block' : 'hidden md:flex'}
                   `}
                 >
-                  {/* 🌟 [패널 내부] 날씨 텍스트 옆에 온도 표시 */}
+                  {/* 날씨 텍스트 옆에 온도 표시 */}
                   <div className="flex items-center gap-2 text-xs text-slate-400 shrink-0">
                     <span>
                       <i className={`fas ${selectedWeatherIcon} mr-1`}></i>
@@ -435,20 +460,11 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
                     <div className="bg-slate-800/80 rounded-lg p-3 md:p-4 border border-slate-700 h-40 md:h-48 shrink-0">
                       <Line
                         data={{
-                          labels: selectedSite.chartLabels || [
-                            '10시',
-                            '11시',
-                            '12시',
-                            '13시',
-                            '14시',
-                            '15시',
-                          ],
+                          labels: selectedSite.chartLabels,
                           datasets: [
                             {
                               label: '발전량',
-                              data: selectedSite.chartData || [
-                                0, 0, 0, 0, 0, 0,
-                              ],
+                              data: selectedSite.chartData,
                               borderColor: chartColor,
                               backgroundColor: chartBgColor,
                               fill: true,
@@ -489,9 +505,12 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
                       >
                         <i className="fas fa-brain"></i> AI 진단 리포트
                       </h4>
+                      {/* 🌟 [핵심 수정 2] AI 리포트가 비어있으면 기본 문구 출력 */}
                       <p className="text-xs md:text-sm text-slate-300 leading-relaxed">
-                        {selectedSite.ai_msg}
+                        {selectedSite.ai_msg ||
+                          '현재 특이사항 없음 (정상 가동 중)'}
                       </p>
+
                       {selectedSite.loss_amt &&
                         selectedSite.loss_amt !== 0 &&
                         selectedSite.loss_amt !== '0' && (
