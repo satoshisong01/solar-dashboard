@@ -45,7 +45,6 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
 
   const [isScriptLoaded, setIsScriptLoaded] = useState(false);
   const [mapError, setMapError] = useState(false);
-
   const [isPanelExpanded, setIsPanelExpanded] = useState(true);
 
   const selectedSite = sites.find((s) => s.id === selectedId) || sites[0];
@@ -67,7 +66,29 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
     ? 'rgba(234, 179, 8, 0.2)'
     : 'rgba(34, 197, 94, 0.2)';
 
-  // 마커 선택 시 패널 펼치기
+  // 날씨 정보 헬퍼 함수
+  const getWeatherInfo = (weather: string) => {
+    const w = weather ? weather.toLowerCase() : '';
+
+    if (w.includes('snow')) {
+      return { text: '눈', icon: 'fa-snowflake' };
+    } else if (
+      w.includes('rain') ||
+      w.includes('drizzle') ||
+      w.includes('thunder')
+    ) {
+      return { text: '비', icon: 'fa-cloud-showers-heavy' };
+    } else if (w.includes('mist') || w.includes('haze') || w.includes('fog')) {
+      return { text: '안개', icon: 'fa-smog' };
+    } else if (w.includes('cloud') || w.includes('overcast')) {
+      return { text: '흐림', icon: 'fa-cloud' };
+    } else if (w.includes('clear') || w.includes('sun')) {
+      return { text: '맑음', icon: 'fa-sun' };
+    } else {
+      return { text: '흐림', icon: 'fa-cloud' };
+    }
+  };
+
   useEffect(() => {
     if (selectedId) {
       setIsPanelExpanded(true);
@@ -100,7 +121,7 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
               centerSite.lng
             ),
             level: 10,
-            draggable: true, // 드래그 허용 명시
+            draggable: true,
           };
           mapRef.current = new window.kakao.maps.Map(
             mapContainerRef.current,
@@ -126,12 +147,15 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
           const zIndex = isSelected ? 999 : 1;
           const transform = isSelected ? 'scale(1.1)' : 'scale(1.0)';
           const opacity = isSelected ? '1' : '0.95';
-          const weatherIcon =
-            site.weather === 'rainy'
-              ? 'fa-cloud-showers-heavy'
-              : site.weather === 'cloudy'
-              ? 'fa-cloud'
-              : 'fa-sun';
+
+          const { text: weatherText, icon: weatherIcon } = getWeatherInfo(
+            site.weather
+          );
+
+          // 🌟 [추가됨] 온도 표시 (데이터가 있으면 표시)
+          const tempDisplay = site.temp
+            ? ` <span style="font-weight:bold; margin-left:2px;">${site.temp}°C</span>`
+            : '';
 
           const content = document.createElement('div');
 
@@ -155,13 +179,7 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
                   site.name
                 }</div>
                 <div style="color: #cbd5e1; font-size: 11px; display: flex; justify-content: center; gap: 6px; margin-bottom: 4px;">
-                   <span><i class="fas ${weatherIcon}"></i> ${
-            site.weather === 'sunny'
-              ? '맑음'
-              : site.weather === 'cloudy'
-              ? '흐림'
-              : '비'
-          }</span>
+                   <span><i class="fas ${weatherIcon}"></i> ${weatherText}${tempDisplay}</span>
                    ${
                      site.fail_date
                        ? `<span style="color: #fbbf24;">(⚠ ${site.fail_date})</span>`
@@ -217,6 +235,9 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
     }
   }, [selectedId, sites]);
 
+  const { text: selectedWeatherText, icon: selectedWeatherIcon } =
+    getWeatherInfo(selectedSite.weather);
+
   return (
     <>
       <Script
@@ -226,12 +247,8 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
         strategy="afterInteractive"
       />
 
-      {/* 🌟 [터치 액션 수정] touch-action: none 추가 
-         이게 있어야 모바일에서 지도를 드래그할 때 브라우저가 스크롤되지 않습니다.
-      */}
       <div className="flex-1 w-full h-full bg-slate-900 p-0 md:p-6 relative">
         <div className="relative w-full h-full md:rounded-2xl overflow-hidden md:border md:border-slate-700 md:shadow-2xl">
-          {/* 지도 영역 */}
           <div
             ref={mapContainerRef}
             style={{
@@ -254,7 +271,6 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
             )}
           </div>
 
-          {/* HUD - 터치 통과시키기 위해 pointer-events-none 추가하고, 내부 버튼만 auto로 켬 */}
           <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 pointer-events-none">
             <div className="bg-slate-900/90 border border-slate-700 backdrop-blur-md rounded-lg p-3 shadow-xl flex items-center gap-6 pointer-events-auto">
               <div className="flex items-center gap-3">
@@ -294,21 +310,14 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
             </div>
           </div>
 
-          {/* 🔴 [상세 패널 - 핵심 수정] */}
           {selectedSite && (
             <div
               className={`
                 z-20 flex flex-col transition-all duration-300 ease-in-out
-                
-                /* 🌟 [수정 1] 모바일: 하단에서 70px 띄움 (탭바가 60px이므로 가려지지 않음) */
-                /* 🌟 [수정 2] pointer-events-none: 패널 바깥 투명한 영역은 터치를 통과시켜서 지도가 드래그되게 함 */
                 absolute left-0 right-0 bottom-[70px] px-4 pointer-events-none
-                
-                /* PC 스타일: 우측 고정, 터치 자동 활성화 */
                 md:absolute md:top-6 md:right-6 md:bottom-6 md:left-auto md:w-96 md:px-0 md:pointer-events-auto
             `}
             >
-              {/* 실제 패널 박스 (여기만 터치 가능하게 pointer-events-auto 설정) */}
               <div
                 className={`
                   w-full bg-slate-900/95 backdrop-blur-md border border-slate-700 shadow-2xl rounded-2xl md:rounded-xl p-4 md:p-6
@@ -320,7 +329,6 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
                   }
               `}
               >
-                {/* 모바일용 토글 손잡이 */}
                 <div
                   className="md:hidden w-full flex justify-center mb-2 cursor-pointer pt-1 pb-3 hover:bg-white/5 rounded"
                   onClick={() => setIsPanelExpanded(!isPanelExpanded)}
@@ -328,7 +336,6 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
                   <div className="w-12 h-1.5 bg-slate-600 rounded-full"></div>
                 </div>
 
-                {/* 패널 헤더 */}
                 <div className="flex justify-between items-start mb-2 shrink-0">
                   <div className="flex-1">
                     <div className="flex justify-between items-center">
@@ -361,30 +368,22 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
                   </div>
                 </div>
 
-                {/* 상세 내용 (스크롤 가능) */}
                 <div
                   className={`
                       flex flex-col gap-4 overflow-y-auto custom-scrollbar
                       ${isPanelExpanded ? 'block' : 'hidden md:flex'}
                   `}
                 >
-                  {/* 날씨 정보 */}
+                  {/* 🌟 [패널 내부] 날씨 텍스트 옆에 온도 표시 */}
                   <div className="flex items-center gap-2 text-xs text-slate-400 shrink-0">
                     <span>
-                      <i
-                        className={`fas ${
-                          selectedSite.weather === 'rainy'
-                            ? 'fa-cloud-showers-heavy'
-                            : selectedSite.weather === 'cloudy'
-                            ? 'fa-cloud'
-                            : 'fa-sun'
-                        } mr-1`}
-                      ></i>
-                      {selectedSite.weather === 'sunny'
-                        ? '맑음'
-                        : selectedSite.weather === 'cloudy'
-                        ? '흐림'
-                        : '비'}
+                      <i className={`fas ${selectedWeatherIcon} mr-1`}></i>
+                      {selectedWeatherText}
+                      {selectedSite.temp && (
+                        <span className="font-bold ml-1">
+                          ({selectedSite.temp}°C)
+                        </span>
+                      )}
                     </span>
                     {selectedSite.fail_date && (
                       <span className="text-yellow-500 ml-2">
@@ -393,7 +392,6 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
                     )}
                   </div>
 
-                  {/* 그리드 데이터 */}
                   <div className="grid grid-cols-2 gap-3 mt-2 shrink-0">
                     <div className="bg-slate-800/50 p-2 md:p-3 rounded border border-slate-700">
                       <div className="text-[10px] md:text-xs text-slate-400">
@@ -433,7 +431,6 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
                     </div>
                   </div>
 
-                  {/* 차트 영역 */}
                   <div className="flex-1 flex flex-col gap-4 min-h-[200px]">
                     <div className="bg-slate-800/80 rounded-lg p-3 md:p-4 border border-slate-700 h-40 md:h-48 shrink-0">
                       <Line
@@ -472,7 +469,6 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
                       />
                     </div>
 
-                    {/* AI 리포트 */}
                     <div
                       className={`border rounded-lg p-3 md:p-4 ${
                         selectedSite.is_error
@@ -506,7 +502,6 @@ export default function MapTab({ sites, selectedId, onSelect }: MapProps) {
                         )}
                     </div>
 
-                    {/* 조치 필요 */}
                     {selectedSite.actions &&
                       selectedSite.actions.length > 0 && (
                         <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 md:p-4">

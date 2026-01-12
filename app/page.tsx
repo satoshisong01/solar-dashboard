@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import MapTab from '@/components/tabs/MapTab';
 import EfficiencyTab from '@/components/tabs/EfficiencyTab';
@@ -14,14 +14,10 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState(0);
 
-  // ☁️ 1. 실제 날씨 상태 관리
-  const [realWeather, setRealWeather] = useState({
-    temp: 20,
-    humidity: 50,
-    weather: 'Sunny',
-  });
+  // ☁️ 각 사이트별(ID) 최신 날씨를 저장하는 저장소
+  const weatherMap = useRef<Record<number, any>>({});
 
-  // 📏 2. 화면 크기 감지
+  // 📏 화면 크기 감지
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     handleResize();
@@ -29,7 +25,7 @@ export default function Home() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // 🔄 3. 대시보드 데이터 폴링 (먼저 DB에서 발전소 정보를 가져옴)
+  // 🔄 데이터 폴링 (사이트 목록 및 대시보드 데이터 가져오기)
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -51,77 +47,139 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // 🌤️ 4. 실제 날씨 가져오기 (DB 좌표 연동)
+  // 🌤️ 30분마다 모든 공장의 실제 날씨 조회 & weatherMap 업데이트
   useEffect(() => {
-    // 🌟 DB 데이터가 로딩되지 않았거나 사이트 정보가 없으면 실행하지 않음
+    // 사이트 정보가 로딩되지 않았으면 중단
     if (!data || !data.sites || data.sites.length === 0) return;
 
-    const fetchRealWeather = async () => {
-      // 🌟 DB에 저장된 첫 번째 발전소의 좌표를 사용
-      // (DB 컬럼명이 lat, lng 인지 확인 필요, 보통 solar_sites 테이블 기준)
-      const site = data.sites[0];
-      const myLat = site.lat;
-      const myLon = site.lng;
+    const recordAllSitesWeather = async () => {
+      console.log('🌦️ 30분 주기: 날씨 갱신 시작...');
 
-      if (!myLat || !myLon) return; // 좌표 없으면 중단
+      for (const site of data.sites) {
+        if (!site.lat || !site.lng) continue;
 
-      try {
-        const res = await fetch(`/api/weather?lat=${myLat}&lon=${myLon}`);
-        if (!res.ok) throw new Error('Weather API Failed');
+        try {
+          // (1) 오픈웨더 API로 해당 공장 위치 날씨 조회
+          const res = await fetch(
+            `/api/weather?lat=${site.lat}&lon=${site.lng}`
+          );
+          const wData = await res.json();
 
-        const weatherData = await res.json();
+          const weatherCondition = wData.weather;
 
-        console.log(
-          `📍 [${site.name}] 날씨 업데이트: ${weatherData.city} (${weatherData.weather}, ${weatherData.temp}°C)`
-        );
+          // (2) [메모리 저장] 시뮬레이션에서 쓰기 위해 저장
+          weatherMap.current[site.id] = {
+            temp: wData.temp,
+            humidity: wData.humidity,
+            weather: weatherCondition,
+          };
 
-        setRealWeather({
-          temp: weatherData.temp,
-          humidity: weatherData.humidity,
-          weather:
-            weatherData.weather === 'Clear' ? 'Sunny' : weatherData.weather,
-        });
-      } catch (err) {
-        console.error('날씨 정보 로딩 실패:', err);
+          // (3) [분석용 DB 저장] 이력 남기기
+          await fetch('/api/solar/weather-history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              site_id: site.id,
+              temp: wData.temp,
+              humidity: wData.humidity,
+              weather: weatherCondition,
+            }),
+          });
+
+          console.log(
+            `📍 [${site.name}] 업데이트: ${wData.temp}°C, ${weatherCondition}`
+          );
+        } catch (err) {
+          console.error(`❌ [${site.name}] 날씨 조회 실패:`, err);
+        }
       }
     };
 
-    fetchRealWeather();
-    // 30분마다 갱신
-    const weatherInterval = setInterval(fetchRealWeather, 30 * 60 * 1000);
+    recordAllSitesWeather();
+    const weatherInterval = setInterval(recordAllSitesWeather, 30 * 60 * 1000);
     return () => clearInterval(weatherInterval);
-  }, [data]); // 🌟 data가 변경될 때(로딩 완료 시) 자동으로 실행됨
+  }, [data?.sites?.length]);
 
-  // 🏭 5. IoT 데이터 생성 및 DB 저장 (실제 날씨 반영)
+  // 🏭 IoT 데이터 생성 (5초 주기) - 🌟 날씨 기반 발전량 계산 로직 적용 완료
   useEffect(() => {
+    if (!data || !data.sites) return;
+
     const simulateIoT = async () => {
-      const voltage = 220 + Math.random() * 10;
-      const current = 10 + Math.random() * 5;
-      const power = (voltage * current) / 1000;
+      for (const site of data.sites) {
+        // 1. 이 사이트의 최신 날씨 가져오기
+        const siteWeather = weatherMap.current[site.id] || {
+          temp: 20,
+          humidity: 50,
+          weather: 'Sunny',
+        };
 
-      const newData = {
-        temperature: realWeather.temp,
-        humidity: realWeather.humidity,
-        weather_condition: realWeather.weather,
-        voltage: parseFloat(voltage.toFixed(1)),
-        current: parseFloat(current.toFixed(1)),
-        power_generation: parseFloat(power.toFixed(2)),
-      };
+        const w = siteWeather.weather ? siteWeather.weather.toLowerCase() : '';
 
-      try {
-        await fetch('/api/solar', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newData),
-        });
-      } catch (error) {
-        console.error('데이터 저장 실패:', error);
+        // 2. 🌟 날씨에 따른 발전 효율 계수 설정 (0.0 ~ 1.0)
+        let weatherFactor = 0.9; // 기본 맑음 (90%)
+
+        if (w.includes('snow')) {
+          weatherFactor = 0.15; // 눈 오면 15% (폭망)
+        } else if (
+          w.includes('rain') ||
+          w.includes('thunder') ||
+          w.includes('drizzle')
+        ) {
+          weatherFactor = 0.25; // 비 오면 25%
+        } else if (w.includes('cloud') || w.includes('overcast')) {
+          weatherFactor = 0.5; // 흐리면 50%
+        } else if (
+          w.includes('mist') ||
+          w.includes('haze') ||
+          w.includes('fog')
+        ) {
+          weatherFactor = 0.4; // 안개 끼면 40%
+        } else {
+          weatherFactor = 0.85 + Math.random() * 0.1; // 맑으면 85~95%
+        }
+
+        // 3. 목표 발전량 계산 (설비 용량 * 날씨 계수)
+        // 예: 1000kW * 0.9(맑음) = 900kW 발전
+        const targetPower = (site.capacity || 100) * weatherFactor;
+
+        // 4. 전압/전류 역계산 (P = V * I)
+        // 전압은 220V ~ 240V 사이 랜덤
+        const voltage = 220 + Math.random() * 20;
+
+        // 전류 = 목표전력(W) / 전압(V)  (kW -> W 변환 위해 * 1000)
+        // 이렇게 해야 용량이 큰 발전소는 전류도 높게 나옵니다.
+        const current = (targetPower * 1000) / voltage;
+
+        // 약간의 랜덤 변동 추가 (자연스럽게 보이도록)
+        const finalPower = targetPower * (0.98 + Math.random() * 0.04);
+        const finalCurrent = (finalPower * 1000) / voltage;
+
+        const newData = {
+          site_id: site.id,
+          temperature: siteWeather.temp,
+          humidity: siteWeather.humidity,
+          weather_condition: siteWeather.weather,
+          voltage: parseFloat(voltage.toFixed(1)),
+          current: parseFloat(finalCurrent.toFixed(1)),
+          power_generation: parseFloat(finalPower.toFixed(2)),
+        };
+
+        try {
+          // 비동기 전송
+          fetch('/api/solar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newData),
+          });
+        } catch (error) {
+          console.error('IoT 저장 실패:', error);
+        }
       }
     };
 
     const interval = setInterval(simulateIoT, 5000);
     return () => clearInterval(interval);
-  }, [realWeather]);
+  }, [data]);
 
   // 로딩 화면
   if (loading || !data || !data.sites) {
@@ -144,6 +202,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-slate-900 text-slate-100 overflow-hidden">
+      {/* 🟢 사이드바 */}
       <aside className="hidden md:flex w-64 flex-col bg-slate-900 border-r border-slate-800 shadow-xl z-20">
         <div className="p-6">
           <h1 className="text-2xl font-extrabold tracking-tight text-white">
@@ -201,6 +260,7 @@ export default function Home() {
         </div>
       </aside>
 
+      {/* 🔴 메인 컨텐츠 */}
       <main className="flex-1 flex flex-col relative h-full overflow-hidden bg-slate-900">
         <div className="md:hidden h-14 bg-slate-900 border-b border-slate-800 flex items-center px-4 justify-between z-20 shrink-0">
           <h1 className="text-lg font-bold text-white">
@@ -247,6 +307,7 @@ export default function Home() {
         </div>
       </main>
 
+      {/* 🟢 모바일 탭 바 */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 h-[60px] bg-slate-900 border-t border-slate-800 flex items-center justify-around z-50 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.3)]">
         {menuItems.map((item) => (
           <button

@@ -6,11 +6,13 @@ export async function GET() {
     const client = await pool.connect();
 
     // 1. [Master Data] 발전소 및 최신 로그 조회
+    // 🌟 l.temp 컬럼을 추가해서 온도를 가져옵니다.
     const siteQuery = `
       SELECT s.id, s.name, s.lat, s.lng, s.capacity, 
              l.gen, l.cons, l.status, l.ai_msg, l.is_error,
              l.chart_labels, l.chart_values, l.weather, l.fail_date,
-             l.recorded_at
+             l.recorded_at,
+             l.temp
       FROM solar_sites s 
       LEFT JOIN LATERAL (SELECT * FROM solar_logs WHERE site_id = s.id ORDER BY recorded_at DESC LIMIT 1) l ON true
       ORDER BY s.id ASC
@@ -23,6 +25,7 @@ export async function GET() {
     let totalEffSum = 0;
     let activeSiteCount = 0;
 
+    // 2. 사이트별 데이터 가공
     for (let site of sites) {
       const calculatedSales = (site.gen || 0) - (site.cons || 0);
       site.sales = calculatedSales > 0 ? calculatedSales : 0;
@@ -44,10 +47,30 @@ export async function GET() {
         site.loss_amt = 0;
       }
 
-      if (site.weather === 'cloudy' || site.weather === 'rainy') {
+      // 날씨 예외 처리 (눈, 안개 등)
+      const w = site.weather ? site.weather.toLowerCase() : '';
+      const isBadWeather =
+        w.includes('cloud') ||
+        w.includes('rain') ||
+        w.includes('snow') ||
+        w.includes('mist') ||
+        w.includes('haze') ||
+        w.includes('fog');
+
+      if (isBadWeather) {
         if (!site.is_error && site.eff < 10) {
           site.status = 'normal';
-          site.ai_msg = '기상 악화로 인한 발전량 감소 (설비 정상)';
+          let cause = '기상 악화';
+          if (w.includes('snow')) cause = '폭설';
+          else if (w.includes('rain')) cause = '우천';
+          else if (
+            w.includes('mist') ||
+            w.includes('haze') ||
+            w.includes('fog')
+          )
+            cause = '안개/연무';
+
+          site.ai_msg = `${cause}로 인한 발전량 감소 (설비 정상)`;
         }
       } else if (!site.is_error && site.eff > 0 && site.eff < 10) {
         site.status = 'warning';
@@ -77,6 +100,16 @@ export async function GET() {
         ? parseFloat((totalEffSum / activeSiteCount).toFixed(1))
         : 0;
 
+    const inverters = sites.map((site) => ({
+      id: site.id,
+      name: `${site.name} 인버터 #1`,
+      efficiency: site.eff,
+      status: site.status === 'danger' ? 'critical' : site.status,
+      capacity: site.capacity,
+      install_date: '2023-01-15',
+      last_maintenance: site.fail_date || '2025-01-10',
+    }));
+
     const { rows: revenue } = await client.query(
       'SELECT id, month, amount FROM solar_revenue ORDER BY id ASC'
     );
@@ -84,17 +117,6 @@ export async function GET() {
       const estimatedMonthlyRevenue = Math.floor(totalSales * 3.6 * 30 * 160);
       revenue[revenue.length - 1].amount = estimatedMonthlyRevenue;
     }
-
-    const { rows: inverters } = await client.query(
-      'SELECT * FROM solar_inverter_status ORDER BY id ASC'
-    );
-    inverters.forEach((inv, idx) => {
-      if (sites[idx]) {
-        inv.efficiency = sites[idx].eff;
-        inv.status =
-          sites[idx].status === 'danger' ? 'critical' : sites[idx].status;
-      }
-    });
 
     const { rows: statsRows } = await client.query('SELECT * FROM solar_stats');
     const stats = statsRows.reduce((acc: any, cur: any) => {
@@ -118,6 +140,7 @@ export async function GET() {
       acc[cur.type] = cur;
       return acc;
     }, {});
+
     const { rows: schedule } = await client.query(
       'SELECT * FROM solar_schedule ORDER BY id ASC'
     );
@@ -133,16 +156,16 @@ export async function GET() {
       schedule,
     });
   } catch (error) {
-    console.error('DB Error:', error);
+    console.error('API Error:', error);
     return NextResponse.json({ error: 'Database Error' }, { status: 500 });
   }
 }
 
-// 👇 [추가됨] 이 POST 함수가 없어서 405 에러가 났던 것입니다.
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
+      site_id,
       temperature,
       humidity,
       weather_condition,
@@ -153,21 +176,33 @@ export async function POST(request: Request) {
 
     const client = await pool.connect();
 
-    // Site 1에 대해 시뮬레이션 데이터를 업데이트합니다. (데모용)
-    // 실제로는 각 사이트별로 데이터를 받아야 하지만, 여기서는 1번 발전소를 업데이트합니다.
     const status = power_generation > 0 ? 'normal' : 'warning';
 
-    // 로그 테이블에 새로운 데이터 삽입
+    // 🌟 site_id가 들어오면 그걸 쓰고, 없으면 1번(기본값) 사용
+    const targetSiteId = site_id || 1;
+
     await client.query(
       `INSERT INTO solar_logs (site_id, gen, cons, weather, status, recorded_at, temp, humid)
-       VALUES (1, $1, 0, $2, $3, NOW(), $4, $5)`,
-      [power_generation, weather_condition, status, temperature, humidity]
+       VALUES ($1, $2, 0, $3, $4, NOW(), $5, $6)`,
+      [
+        targetSiteId,
+        power_generation,
+        weather_condition,
+        status,
+        temperature,
+        humidity,
+      ]
+    );
+
+    // 24시간 지난 데이터 삭제
+    await client.query(
+      `DELETE FROM solar_logs WHERE recorded_at < NOW() - INTERVAL '24 hours'`
     );
 
     client.release();
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('POST Error:', error);
+    console.error('Post Error:', error);
     return NextResponse.json({ error: 'Save Failed' }, { status: 500 });
   }
 }
