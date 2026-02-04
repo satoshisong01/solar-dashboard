@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
 export async function GET() {
+  const client = await pool.connect();
   try {
-    const client = await pool.connect();
-
     // 1. [Master Data] 발전소 및 최신 로그 조회
     // l.temp (온도) 컬럼 포함 확인
     const siteQuery = `
@@ -18,6 +17,20 @@ export async function GET() {
       ORDER BY s.id ASC
     `;
     const { rows: sites } = await client.query(siteQuery);
+
+    // 2. 조치사항 한 번에 조회 (N+1 방지)
+    const { rows: allActions } = await client.query<{
+      site_id: number;
+      action_text: string;
+    }>('SELECT site_id, action_text FROM solar_actions');
+    const actionsBySiteId = allActions.reduce<Record<number, string[]>>(
+      (acc, row) => {
+        if (!acc[row.site_id]) acc[row.site_id] = [];
+        acc[row.site_id].push(row.action_text);
+        return acc;
+      },
+      {}
+    );
 
     let totalGen = 0;
     let totalCapacity = 0;
@@ -97,12 +110,8 @@ export async function GET() {
         activeSiteCount++;
       }
 
-      // 조치사항
-      const { rows: actions } = await client.query(
-        'SELECT action_text FROM solar_actions WHERE site_id = $1',
-        [site.id]
-      );
-      site.actions = actions.map((a: any) => a.action_text);
+      // 조치사항 (미리 조회한 맵에서 사용)
+      site.actions = actionsBySiteId[site.id] ?? [];
 
       site.chartData = site.chart_values || [0, 0, 0, 0, 0, 0];
       site.chartLabels = site.chart_labels || ['-', '-', '-', '-', '-', '-'];
@@ -162,8 +171,6 @@ export async function GET() {
       'SELECT * FROM solar_schedule ORDER BY id ASC'
     );
 
-    client.release();
-
     return NextResponse.json({
       sites,
       revenue,
@@ -175,31 +182,27 @@ export async function GET() {
   } catch (error) {
     console.error('API Error:', error);
     return NextResponse.json({ error: 'Database Error' }, { status: 500 });
+  } finally {
+    client.release();
   }
 }
 
-// 5초마다 호출되는 IoT 데이터 수신용 API
+// IoT 데이터 수신용 API (30분 주기 × 사이트 수)
 export async function POST(request: Request) {
+  const client = await pool.connect();
   try {
     const body = await request.json();
     const {
-      site_id, // 프론트엔드에서 보낸 ID 수신
+      site_id,
       temperature,
       humidity,
       weather_condition,
-      voltage,
-      current,
       power_generation,
     } = body;
 
-    const client = await pool.connect();
-
     const status = power_generation > 0 ? 'normal' : 'warning';
-
-    // site_id가 없으면 1번으로 저장
     const targetSiteId = site_id || 1;
 
-    // 데이터 저장
     await client.query(
       `INSERT INTO solar_logs (site_id, gen, cons, weather, status, recorded_at, temp, humid)
        VALUES ($1, $2, 0, $3, $4, NOW(), $5, $6)`,
@@ -213,15 +216,13 @@ export async function POST(request: Request) {
       ]
     );
 
-    // 24시간 지난 데이터 삭제 (Self-Cleaning)
-    await client.query(
-      `DELETE FROM solar_logs WHERE recorded_at < NOW() - INTERVAL '24 hours'`
-    );
-
-    client.release();
+    // 24시간 지난 로그 삭제는 매 요청마다 하지 않음 (CPU/DB 부담).
+    // Vercel Cron으로 /api/solar/cleanup 같은 전용 API를 하루 1회 호출해 정리 권장.
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Post Error:', error);
     return NextResponse.json({ error: 'Save Failed' }, { status: 500 });
+  } finally {
+    client.release();
   }
 }

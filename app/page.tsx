@@ -43,17 +43,17 @@ export default function Home() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 5000);
+    const interval = setInterval(fetchData, 30 * 60 * 1000); // 30분마다
     return () => clearInterval(interval);
   }, []);
 
-  // 🌤️ 30분마다 모든 공장의 실제 날씨 조회 & weatherMap 업데이트
+  // 🌤️ 1시간마다 모든 공장의 실제 날씨 조회 & weatherMap 업데이트
   useEffect(() => {
     // 사이트 정보가 로딩되지 않았으면 중단
     if (!data || !data.sites || data.sites.length === 0) return;
 
     const recordAllSitesWeather = async () => {
-      console.log('🌦️ 30분 주기: 날씨 갱신 시작...');
+      console.log('🌦️ 1시간 주기: 날씨 갱신 시작...');
 
       for (const site of data.sites) {
         if (!site.lat || !site.lng) continue;
@@ -96,11 +96,11 @@ export default function Home() {
     };
 
     recordAllSitesWeather();
-    const weatherInterval = setInterval(recordAllSitesWeather, 30 * 60 * 1000);
+    const weatherInterval = setInterval(recordAllSitesWeather, 60 * 60 * 1000); // 1시간마다
     return () => clearInterval(weatherInterval);
   }, [data?.sites?.length]);
 
-  // 🏭 IoT 데이터 생성 (5초 주기) - 🌟 날씨 기반 발전량 계산 로직 적용 완료
+  // 🏭 IoT 데이터 생성 (30분 주기) - 🌟 날씨 기반 발전량 계산 로직 적용 완료
   useEffect(() => {
     if (!data || !data.sites) return;
 
@@ -177,7 +177,7 @@ export default function Home() {
       }
     };
 
-    const interval = setInterval(simulateIoT, 5000);
+    const interval = setInterval(simulateIoT, 30 * 60 * 1000); // 30분마다
     return () => clearInterval(interval);
   }, [data]);
 
