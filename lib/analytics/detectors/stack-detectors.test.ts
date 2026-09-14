@@ -57,6 +57,19 @@ describe('fc.voltage_decay@1', () => {
     expect(finding?.summary).toContain('블로워 전력 증가 동반');
   });
 
+  it('정출력 운전으로 전압 감소와 함께 전류밀도·온도가 오르는 공선성에서도 −40 µV/h를 찾는다', () => {
+    const constantPower = fcRuns({ count: 300, startHours: 600, endHours: 1800, rateUvPerH: 0, seed: 9 }).map((e, i) => {
+      const drop = 40e-6 * (1200 * i) / 299;
+      const j = 0.7 + 0.8 * drop;
+      const v = 0.72 - drop - 0.2 * (j - 0.7);
+      return { ...e, features: { ...e.features, j_mean: j, v_cell_mean: v, v_cell_at_jref: v + 0.2 * (j - 0.6), t_stack_mean: 68 + 10 * drop }, conditions: { j_bin: Math.floor(j * 10) / 10, t_bin: 65 } };
+    });
+    const result = fcVoltageDecay.detect({ assetId: 41, episodes: constantPower }, ctx());
+    expect(result.status === 'ok' && result.findings[0]?.effect.value).toBeCloseTo(40, 0);
+    const legacy = fcVoltageDecay.detect({ assetId: 41, episodes: constantPower }, ctx(1, { params: { correctCurrentDensity: true, correctTemperature: true } }));
+    expect(legacy.status === 'ok' ? legacy.findings.length : 0).toBe(0);
+  });
+
   it('대조군(기본 감쇠 6 µV/h, 블로워 그대로)은 0건', () => {
     expect(fcVoltageDecay.detect({ assetId: 41, episodes: fcRuns({ count: 300, startHours: 600, endHours: 1800, rateUvPerH: -6, seed: 8 }) }, ctx())).toEqual({ status: 'ok', findings: [] });
   });

@@ -38,9 +38,10 @@ export const DEFAULT_STACK_EXTRACTOR_PARAMS: StackExtractorParams = Object.freez
   minCompleteness: 0.9,
   coldOffS: 7200,
   startSteadyLookupS: 7200,
-  jRefAcm2: 0.5,
-  polarizationSlopeVPerAcm2: 0.25,
-  jRefMaxDistanceAcm2: 0.25,
+  // 연료전지 정격(1 A/cm²급)의 부분부하 운전점 부근. 기울기는 옴·활성화 손실 구간의 일반적인 PEMFC 값 (실제 분극곡선이 오면 교체)
+  jRefAcm2: 0.6,
+  polarizationSlopeVPerAcm2: 0.2,
+  jRefMaxDistanceAcm2: 0.3,
 });
 
 type SteadyCommon = {

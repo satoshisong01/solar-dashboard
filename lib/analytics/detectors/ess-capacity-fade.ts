@@ -26,12 +26,17 @@ export interface EssCapacityInput {
 export interface EssCapacityParams extends CapacityCheckParams {
   readonly referenceSessions: number;
   readonly recentDays: number;
+  /** 같은 조건 bin 폭: C-rate [C]·셀 온도 [°C]. 에피소드 features(i_mean_c·t_cell_mean)로 다시 나누므로 재추출 없이 설정으로 바꿀 수 있다 */
+  readonly cRateBinWidth: number;
+  readonly tempBinWidthC: number;
   readonly minPerBin: number;
   readonly minTotal: number;
   readonly iterations: number;
   readonly minCompleteness: number;
   /** 앵커 세션이 모자라면 CC 구간 Ah 보조 용량(capacity_ah_cc)으로 비교 */
   readonly useCcAhFallback: boolean;
+  /** 그래도 모자라면 부분 충전 쿨롱 카운팅 용량(capacity_ah_soc = 충전 Ah ÷ SOC 변화)으로 비교 */
+  readonly useSocSpanFallback: boolean;
   readonly sev2Pct: number;
   readonly sev3Pct: number;
   readonly sev4Pct: number;
@@ -46,12 +51,16 @@ export interface EssCapacityParams extends CapacityCheckParams {
 
 export const ESS_CAPACITY_DEFAULTS: EssCapacityParams = Object.freeze({
   referenceSessions: 20,
-  recentDays: 30,
-  minPerBin: 5,
+  // sim:eval 게이트(5% 이상 탐지 지연 ≤ 21일)에 맞춰 30일 → 21일, bin당 5 → 3 (합계 15는 유지). 조정 근거는 scorecard.json params_note
+  recentDays: 21,
+  cRateBinWidth: 0.05,
+  tempBinWidthC: 5,
+  minPerBin: 3,
   minTotal: 15,
   iterations: 1000,
   minCompleteness: 0.95,
   useCcAhFallback: true,
+  useSocSpanFallback: true,
   sev2Pct: -3,
   sev3Pct: -5,
   sev4Pct: -10,
@@ -71,7 +80,13 @@ export const ESS_CAPACITY_DEFAULTS: EssCapacityParams = Object.freeze({
 
 const META = { id: 'ess.capacity_fade', version: '1', failureMode: 'ess.capacity_fade', category: 'degradation' } as const;
 
-type CapacityMetric = 'capacity_ah_anchored' | 'capacity_ah_cc';
+type CapacityMetric = 'capacity_ah_anchored' | 'capacity_ah_cc' | 'capacity_ah_soc';
+
+const METRIC_NOTES: Readonly<Record<CapacityMetric, string>> = {
+  capacity_ah_anchored: '',
+  capacity_ah_cc: ' 앵커 세션이 부족해 CC 구간 Ah 보조 지표로 비교했습니다.',
+  capacity_ah_soc: ' 앵커·CC 세션이 부족해 충전 Ah ÷ SOC 변화(부분 충전 쿨롱 카운팅)로 비교했습니다. BMS SOC 재보정 여부를 함께 확인하세요.',
+};
 
 interface Selection {
   readonly metric: CapacityMetric;
@@ -81,7 +96,9 @@ interface Selection {
 }
 
 const valueOf = (metric: CapacityMetric) => (s: EssChargeEpisode): number => s.features[metric] ?? Number.NaN;
-const binKey = (s: EssChargeEpisode): string => `${s.conditions.c_rate_bin}|${s.conditions.t_cell_bin ?? 'na'}`;
+const binOf = (value: number, width: number): number => Math.round(Math.floor(value / width + 1e-9) * width * 1e6) / 1e6;
+const binKeyOf = (p: Pick<EssCapacityParams, 'cRateBinWidth' | 'tempBinWidthC'>) => (s: EssChargeEpisode): string =>
+  `${binOf(s.features.i_mean_c, p.cRateBinWidth)}|${s.features.t_cell_mean === null ? 'na' : binOf(s.features.t_cell_mean, p.tempBinWidthC)}`;
 
 function baselineStart(input: EssCapacityInput, ctx: DetectorContext<EssCapacityParams>): number {
   const resets = input.events.filter((e) => e.resetsBaseline && e.ts <= ctx.now).map((e) => e.ts);
@@ -152,7 +169,7 @@ function buildFinding(input: EssCapacityInput, ctx: DetectorContext<EssCapacityP
   const since = sel.reference[sel.reference.length - 1]?.end ?? ctx.now;
   const checks = capacityChecks(sel.reference, sel.recent, input.events, since, p);
   const dq = median([...sel.reference, ...sel.recent].map((s) => s.dq.completeness));
-  const metricNote = sel.metric === 'capacity_ah_cc' ? ' 앵커 세션이 부족해 CC 구간 Ah 보조 지표로 비교했습니다.' : '';
+  const metricNote = METRIC_NOTES[sel.metric];
   const windowStart = sel.reference[0]?.start ?? ctx.now;
   const windowEnd = sel.recent[sel.recent.length - 1]?.end ?? ctx.now;
   const from = baselineStart(input, ctx);
@@ -189,8 +206,8 @@ function buildFinding(input: EssCapacityInput, ctx: DetectorContext<EssCapacityP
       detector: `${META.id}@${META.version}`,
       params: p,
       metric: sel.metric,
-      reference: sel.reference.map((s) => [s.start, valueOf(sel.metric)(s), binKey(s)]),
-      recent: sel.recent.map((s) => [s.start, valueOf(sel.metric)(s), binKey(s)]),
+      reference: sel.reference.map((s) => [s.start, valueOf(sel.metric)(s), binKeyOf(p)(s)]),
+      recent: sel.recent.map((s) => [s.start, valueOf(sel.metric)(s), binKeyOf(p)(s)]),
     }),
   };
 }
@@ -200,11 +217,12 @@ function detect(input: EssCapacityInput, ctx: DetectorContext<EssCapacityParams>
   if (!(input.ratedCapacityAh > 0)) return insufficient('랙 정격 용량이 없습니다');
   const enough = (s: Selection) => s.reference.length >= p.minTotal && s.recent.length >= p.minTotal;
   const anchored = select(input, ctx, p, 'capacity_ah_anchored');
-  const selection = enough(anchored) || !p.useCcAhFallback ? anchored : select(input, ctx, p, 'capacity_ah_cc');
+  const fallbacks: CapacityMetric[] = [...(p.useCcAhFallback ? (['capacity_ah_cc'] as const) : []), ...(p.useSocSpanFallback ? (['capacity_ah_soc'] as const) : [])];
+  const selection = enough(anchored) ? anchored : (fallbacks.map((metric) => select(input, ctx, p, metric)).find(enough) ?? anchored);
   if (!enough(selection)) {
     return insufficient(`유효 충전 세션 부족: 기준 ${anchored.reference.length}회·최근 ${p.recentDays}일 ${anchored.recent.length}회 (각 ${p.minTotal}회 필요)`);
   }
-  const matched = matchedRatio(selection.reference, selection.recent, binKey, valueOf(selection.metric), { minPerBin: p.minPerBin, minTotal: p.minTotal, iterations: p.iterations, rng: ctx.rng });
+  const matched = matchedRatio(selection.reference, selection.recent, binKeyOf(p), valueOf(selection.metric), { minPerBin: p.minPerBin, minTotal: p.minTotal, iterations: p.iterations, rng: ctx.rng });
   if (matched.status === 'insufficient') return insufficient(matched.reason);
   const finding = buildFinding(input, ctx, p, selection, matched);
   return { status: 'ok', findings: finding ? [finding] : [] };

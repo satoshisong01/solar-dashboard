@@ -26,6 +26,7 @@
     "sim:backfill": "dotenv -e .env.development.local -- tsx scripts/sim-backfill.ts",
     "sim:live": "dotenv -e .env.development.local -- tsx scripts/sim-live.ts",
     "verify:ingest": "dotenv -e .env.development.local -- tsx scripts/verify-ingest.ts",
+    "sim:eval": "dotenv -e .env.development.local -- tsx scripts/sim-eval.ts",
     "admin:create": "dotenv -e .env.development.local -- tsx scripts/admin-create.ts",
     "admin:create:test": "dotenv -e .env.test.local -- tsx scripts/admin-create.ts"
   },

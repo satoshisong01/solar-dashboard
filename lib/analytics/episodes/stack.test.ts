@@ -69,14 +69,14 @@ describe('fc.steady_run@1 / fc.start@1', () => {
   it('기준 전류밀도 환산 전압·kg/MWh·블로워 전력', () => {
     const runs = extractFcSteadyRuns(input);
     const first = runs[0];
-    // j = 550/800 = 0.6875, v = 1.6 + 0.2·j, 환산 = v + 0.25·(j − 0.5)
+    // j = 550/800 = 0.6875, v = 1.6 + 0.2·j, 환산 = v + 0.2·(j − 0.6)
     expect(first?.features.j_mean).toBeCloseTo(0.6875, 9);
-    expect(first?.features.v_cell_at_jref).toBeCloseTo(1.6 + 0.2 * 0.6875 + 0.25 * 0.1875, 6);
+    expect(first?.features.v_cell_at_jref).toBeCloseTo(1.6 + 0.2 * 0.6875 + 0.2 * 0.0875, 6);
     expect(first?.features.h2_kg).toBeCloseTo(24, 3);
     expect(first?.features.ac_kwh).toBeCloseTo(400, 3);
     expect(first?.features.kg_per_mwh).toBeCloseTo(60, 3);
     expect(first?.features.blower_power_mean).toBe(6);
-    // j = 880/800 = 1.1 → 기준에서 너무 멀어 환산하지 않는다
+    // j = 880/800 = 1.1 → 기준(0.6 ± 0.3)에서 너무 멀어 환산하지 않는다
     expect(runs[1]?.features.v_cell_at_jref).toBeNull();
     expect(extractFcStarts(input).map((s) => s.kind)).toEqual(['fc.start', 'fc.start']);
   });

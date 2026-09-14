@@ -33,6 +33,7 @@ describe('extractEssEpisodes: ess.charge@1', () => {
     expect(charge?.features.wh_in).toBeGreaterThan(0);
     expect(charge?.features.capacity_ah_anchored).toBeCloseTo(400 + taperAh, 6);
     expect(charge?.features.capacity_ah_cc).toBeGreaterThan(390);
+    expect(charge?.features.capacity_ah_soc).toBeCloseTo(400 + taperAh, 6);
     expect(charge?.conditions).toEqual({ c_rate_bin: 0.1, t_cell_bin: 25, anchor: true, pre_rest: true, cv_end: true, end_reason: 'rest' });
     expect(charge).toMatchObject({ open: false, valid: true, invalidReason: null });
     expect(charge?.dq.completeness).toBe(1);

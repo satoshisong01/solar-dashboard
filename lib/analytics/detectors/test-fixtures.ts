@@ -19,6 +19,8 @@ export interface SessionOptions {
   readonly dvMv?: number;
   readonly socEnd?: number;
   readonly anchored?: boolean;
+  /** CC 구간 Ah 보조 용량이 있는 세션 (기본 true) */
+  readonly ccCapacity?: boolean;
 }
 
 export function chargeSession(o: SessionOptions): EssChargeEpisode {
@@ -33,8 +35,8 @@ export function chargeSession(o: SessionOptions): EssChargeEpisode {
     features: {
       ah_in: o.capacityAh * 0.9,
       wh_in: null,
-      i_mean_c: 0.125,
-      t_cell_mean: o.tCell ?? 25,
+      i_mean_c: (o.cRateBin ?? 0.1) + 0.001,
+      t_cell_mean: o.tCell ?? (o.tBin ?? 25) + 1,
       soc_start: 10,
       soc_end: o.socEnd ?? 100,
       soc_ocv_start: 10,
@@ -44,7 +46,8 @@ export function chargeSession(o: SessionOptions): EssChargeEpisode {
       duration_s: 8 * 3600,
       cell_dv_end: o.dvMv ?? 8,
       capacity_ah_anchored: anchored ? o.capacityAh : null,
-      capacity_ah_cc: o.capacityAh * 0.99,
+      capacity_ah_cc: (o.ccCapacity ?? true) ? o.capacityAh * 0.99 : null,
+      capacity_ah_soc: o.capacityAh * 0.995,
     },
     conditions: { c_rate_bin: o.cRateBin ?? 0.1, t_cell_bin: o.tBin ?? 25, anchor: anchored, pre_rest: true, cv_end: true, end_reason: 'rest' },
     dq: DQ_FULL,
@@ -137,7 +140,7 @@ export function fcRuns(o: StackSeriesOptions): FcSteadyEpisode[] {
     extractorVersion: 'fc.steady_run@1',
     start: s.start,
     end: s.start + MS_PER_HOUR,
-    features: { j_mean: s.j, i_mean: s.j * 800, v_cell_mean: s.v, v_cell_at_jref: null, t_stack_mean: s.t, h2_kg: 12, op_hours_cum: s.hours, duration_s: 3600, ac_kwh: 200, kg_per_mwh: 60, blower_power_mean: s.blower },
+    features: { j_mean: s.j, i_mean: s.j * 800, v_cell_mean: s.v, v_cell_at_jref: s.v + 0.2 * (s.j - 0.6), t_stack_mean: s.t, h2_kg: 12, op_hours_cum: s.hours, duration_s: 3600, ac_kwh: 200, kg_per_mwh: 60, blower_power_mean: s.blower },
     conditions: { j_bin: binOf(s.j, 0.1), t_bin: binOf(s.t, 5) },
     dq: DQ_FULL,
     open: false,

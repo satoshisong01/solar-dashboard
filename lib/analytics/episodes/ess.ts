@@ -28,6 +28,8 @@ export interface EssExtractorParams {
   readonly anchorMinCompleteness: number;
   /** CC 구간 Ah 보조 용량: 테이퍼 시작 SOC − 시작 SOC가 이 폭 이상일 때만 */
   readonly minCcSocSpanPct: number;
+  /** 부분 충전 쿨롱 카운팅 용량(capacity_ah_soc): 충전 중 SOC 변화가 이 폭 이상일 때만 */
+  readonly minSocSpanPct: number;
   readonly cRateBinWidth: number;
   readonly tempBinWidthC: number;
   readonly minCompleteness: number;
@@ -47,6 +49,7 @@ export const DEFAULT_ESS_EXTRACTOR_PARAMS: EssExtractorParams = Object.freeze({
   anchorSocMaxPct: 20,
   anchorMinCompleteness: 0.95,
   minCcSocSpanPct: 40,
+  minSocSpanPct: 40,
   cRateBinWidth: 0.05,
   tempBinWidthC: 5,
   minCompleteness: 0.8,

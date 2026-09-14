@@ -32,7 +32,7 @@ describe('ess.capacity_fade@1', () => {
     expect(finding).toMatchObject({ detectorId: 'ess.capacity_fade', detectorVersion: '1', assetId: 7, failureMode: 'ess.capacity_fade', category: 'degradation', severity: 3 });
     expect(finding?.confidence).toBeGreaterThan(0.5);
     expect(finding?.title).toContain('유효용량');
-    expect(finding?.summary).toMatch(/같은 조건 충전 30회 비교: 유효용량 \d{3} Ah → 3\d\d Ah\(-[567]\.\d%, 95% CI -\d\.\d ~ -\d\.\d%\)/);
+    expect(finding?.summary).toMatch(/같은 조건 충전 \d+회 비교: 유효용량 \d{3} Ah → 3\d\d Ah\(-[567]\.\d%, 95% CI -\d\.\d ~ -\d\.\d%\)/);
     expect(finding?.summary).toMatch(/50 A 기준 충전시간 약 [78]시간 \d+분 → 7시간 \d+분\./);
     expect(finding?.inputHash).toMatch(/^[0-9a-f]{32}$/);
 
@@ -63,8 +63,19 @@ describe('ess.capacity_fade@1', () => {
       expect(fallback.findings[0]?.severity).toBe(4);
       expect(fallback.findings[0]?.summary).toContain('보조 지표');
     }
-    const strict = essCapacityFade.detect(input(sessions), ctx(1, { params: { useCcAhFallback: false } }));
+    const strict = essCapacityFade.detect(input(sessions), ctx(1, { params: { useCcAhFallback: false, useSocSpanFallback: false } }));
     expect(strict.status).toBe('insufficient');
+  });
+
+  it('앵커·CC 세션이 모두 없으면 충전 Ah ÷ SOC 변화 용량으로 비교한다', () => {
+    const sessions = capacityHistory(400, 370, 18, { anchored: false, ccCapacity: false });
+    const result = essCapacityFade.detect(input(sessions), ctx());
+    expect(result.status).toBe('ok');
+    if (result.status !== 'ok') return;
+    expect(result.findings[0]?.effect.metric).toBe('capacity_ah_soc');
+    expect(result.findings[0]?.effect.value).toBeCloseTo(-7.5, 0);
+    expect(result.findings[0]?.summary).toContain('SOC 변화');
+    expect(essCapacityFade.detect(input(sessions), ctx(1, { params: { useSocSpanFallback: false } })).status).toBe('insufficient');
   });
 
   it('세션이 부족하거나 정격이 없으면 insufficient와 이유', () => {
@@ -76,9 +87,10 @@ describe('ess.capacity_fade@1', () => {
 
   it('기준선 재설정(resets_baseline) 이후 데이터만 쓰므로 그 전의 감소는 사라진다', () => {
     const sessions = capacityHistory(400, 375, 16);
+    const findingsOf = (result: ReturnType<typeof essCapacityFade.detect>) => (result.status === 'ok' ? result.findings : []);
     const reset = essCapacityFade.detect(input(sessions, { events: [{ ts: DAY0 + 55 * MS_PER_DAY, kind: 'setpoint_change', resetsBaseline: true }] }), ctx());
-    expect(reset.status).toBe('insufficient');
-    const byContext = essCapacityFade.detect(input(sessions), ctx(1, { baselineResetAt: DAY0 + 55 * MS_PER_DAY }));
+    expect(findingsOf(reset)).toEqual([]);
+    const byContext = essCapacityFade.detect(input(sessions), ctx(1, { baselineResetAt: DAY0 + 65 * MS_PER_DAY }));
     expect(byContext.status).toBe('insufficient');
   });
 

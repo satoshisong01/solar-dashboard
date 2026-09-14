@@ -34,8 +34,12 @@ const BASE_DEFAULTS = {
   blowerRisePct: 10,
 } as const;
 
-export const EL_VOLTAGE_RISE_DEFAULTS: StackDetectorParams = Object.freeze({ ...BASE_DEFAULTS, breakInHours: 1000 });
-export const FC_VOLTAGE_DECAY_DEFAULTS: StackDetectorParams = Object.freeze({ ...BASE_DEFAULTS, breakInHours: 500 });
+export const EL_VOLTAGE_RISE_DEFAULTS: StackDetectorParams = Object.freeze({ ...BASE_DEFAULTS, breakInHours: 1000, correctCurrentDensity: true, correctTemperature: true });
+/**
+ * 연료전지는 정출력 지령으로 운전해 셀 전압이 떨어지면 전류밀도·발열(온도)이 함께 오른다. bin 안 회귀 보정이 이 공선성으로 열화를 지우므로
+ * 전류밀도 보정은 추출기의 기준 전류밀도 환산 전압(v_cell_at_jref)에 맡기고 bin 안 회귀는 끈다.
+ */
+export const FC_VOLTAGE_DECAY_DEFAULTS: StackDetectorParams = Object.freeze({ ...BASE_DEFAULTS, breakInHours: 500, correctCurrentDensity: false, correctTemperature: false });
 
 export interface StackVoltageInput<E> {
   readonly assetId: number;
@@ -150,5 +154,5 @@ export const fcVoltageDecay: Detector<StackVoltageInput<FcSteadyEpisode>, StackD
   category: 'degradation',
   requires: { assetClass: ['fc.stack'], metrics: ['stack.current', 'stack.voltage', 'stack.temp', 'run.hours', 'blower.power'] },
   defaultParams: FC_VOLTAGE_DECAY_DEFAULTS,
-  detect: runStack<FcSteadyEpisode>(FC_SPEC, FC_VOLTAGE_DECAY_DEFAULTS, (e) => e.features.v_cell_at_jref ?? e.features.v_cell_mean, (episodes, result, p) => [blowerCheck(episodes, result, p)]),
+  detect: runStack<FcSteadyEpisode>(FC_SPEC, FC_VOLTAGE_DECAY_DEFAULTS, (e) => e.features.v_cell_at_jref, (episodes, result, p) => [blowerCheck(episodes, result, p)]),
 };

@@ -1,0 +1,346 @@
+{
+  "version": 1,
+  "generated_at": "2026-09-15",
+  "mode": "memory",
+  "preset": {
+    "from": "2025-10-01T00:00:00+09:00",
+    "days": 365,
+    "fault_start_day": 120,
+    "capacity_fade_days": 30,
+    "seeds": [
+      101,
+      202,
+      303
+    ],
+    "runs": null,
+    "sweeps": {
+      "capacityFadePct": [
+        1,
+        3,
+        5,
+        7,
+        10
+      ],
+      "elzUvPerH": [
+        5,
+        10,
+        20,
+        40
+      ],
+      "fcUvPerH": [
+        5,
+        10,
+        20,
+        40
+      ],
+      "inverterDropPctPoints": [
+        0.5,
+        1,
+        2,
+        3
+      ]
+    }
+  },
+  "jobs": 33,
+  "elapsed_s": 207.9,
+  "not_evaluated": {
+    "dq.gap_flatline": "메모리 모드는 전송 계층(단절·지연·시계 오차)을 재현하지 않아 DB E2E 모드에서만 평가합니다"
+  },
+  "detectors": {
+    "ess.capacity_fade": {
+      "detector": "ess.capacity_fade@1",
+      "unit": "%",
+      "tp": 12,
+      "fp": 0,
+      "fn": 3,
+      "recall": 0.8,
+      "precision": 1,
+      "asset_months": 1062.8,
+      "fp_per_asset_month": 0,
+      "median_delay_days": 20.5,
+      "magnitude_mae": 0.138,
+      "min_detectable_magnitude": 3,
+      "curve": [
+        {
+          "magnitude": 1,
+          "injections": 3,
+          "detected": 0,
+          "recall": 0,
+          "median_delay_days": null,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 3,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 28,
+          "magnitude_mae": 0.15
+        },
+        {
+          "magnitude": 5,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 22,
+          "magnitude_mae": 0.128
+        },
+        {
+          "magnitude": 7,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 19,
+          "magnitude_mae": 0.133
+        },
+        {
+          "magnitude": 10,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 16,
+          "magnitude_mae": 0.14
+        }
+      ],
+      "params_note": "시뮬레이터 EMS가 SOC 90%에서 충전을 멈춰 앵커(CV 종료)·CC 보조 세션이 없으므로 부분 충전 쿨롱 카운팅 용량(capacity_ah_soc = 충전 Ah ÷ SOC 변화, SOC 변화 40% 이상) 보조 지표를 추가. 5% 이상 탐지 지연 중앙값 23일 → 19일: recentDays 30 → 21, minPerBin 5 → 3 (minTotal 15·심각도 임계 −3/−5/−10%·CI 상한 < 0 조건은 그대로). C-rate·셀 온도 bin 폭을 탐지기 설정(cRateBinWidth 0.05·tempBinWidthC 5, 값은 그대로)으로 옮겨 재추출 없이 조정 가능."
+    },
+    "ess.cell_imbalance": {
+      "detector": "ess.cell_imbalance@1",
+      "unit": null,
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "recall": null,
+      "precision": null,
+      "asset_months": 1062.8,
+      "fp_per_asset_month": 0,
+      "median_delay_days": null,
+      "magnitude_mae": null,
+      "min_detectable_magnitude": null,
+      "curve": [],
+      "params_note": "변경 없음. eval 프리셋에 셀 불균형 주입이 없어 오탐만 평가."
+    },
+    "pv.inverter_peer": {
+      "detector": "pv.inverter_peer@1",
+      "unit": "%p",
+      "tp": 3,
+      "fp": 0,
+      "fn": 9,
+      "recall": 0.25,
+      "precision": 1,
+      "asset_months": 1461.4,
+      "fp_per_asset_month": 0,
+      "median_delay_days": 5,
+      "magnitude_mae": 0.079,
+      "min_detectable_magnitude": 3,
+      "curve": [
+        {
+          "magnitude": 0.5,
+          "injections": 3,
+          "detected": 0,
+          "recall": 0,
+          "median_delay_days": null,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 1,
+          "injections": 3,
+          "detected": 0,
+          "recall": 0,
+          "median_delay_days": null,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 2,
+          "injections": 3,
+          "detected": 0,
+          "recall": 0,
+          "median_delay_days": null,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 3,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 5,
+          "magnitude_mae": 0.079
+        }
+      ],
+      "params_note": "변경 없음. MAD 하한(동종 중앙값 0.5%) 때문에 수정 z −3.5는 약 2.6% 이상 저하부터 잡는다(2%p 0/3, 3%p 3/3)."
+    },
+    "el.voltage_rise": {
+      "detector": "el.voltage_rise@1",
+      "unit": "µV/h",
+      "tp": 9,
+      "fp": 0,
+      "fn": 3,
+      "recall": 0.75,
+      "precision": 1,
+      "asset_months": 199.3,
+      "fp_per_asset_month": 0,
+      "median_delay_days": 41,
+      "magnitude_mae": 0.534,
+      "min_detectable_magnitude": 10,
+      "curve": [
+        {
+          "magnitude": 5,
+          "injections": 3,
+          "detected": 0,
+          "recall": 0,
+          "median_delay_days": null,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 10,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 46,
+          "magnitude_mae": 0.029
+        },
+        {
+          "magnitude": 20,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 41,
+          "magnitude_mae": 0.103
+        },
+        {
+          "magnitude": 40,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 41,
+          "magnitude_mae": 1.469
+        }
+      ],
+      "params_note": "변경 없음 (break-in 1,000 h 이후만 쓰므로 1년 평가에서 탐지 지연이 김)."
+    },
+    "fc.voltage_decay": {
+      "detector": "fc.voltage_decay@1",
+      "unit": "µV/h",
+      "tp": 6,
+      "fp": 0,
+      "fn": 6,
+      "recall": 0.5,
+      "precision": 1,
+      "asset_months": 199.3,
+      "fp_per_asset_month": 0,
+      "median_delay_days": 26,
+      "magnitude_mae": 1.04,
+      "min_detectable_magnitude": 20,
+      "curve": [
+        {
+          "magnitude": 5,
+          "injections": 3,
+          "detected": 0,
+          "recall": 0,
+          "median_delay_days": null,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 10,
+          "injections": 3,
+          "detected": 0,
+          "recall": 0,
+          "median_delay_days": null,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 20,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 30,
+          "magnitude_mae": 0.697
+        },
+        {
+          "magnitude": 40,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 21,
+          "magnitude_mae": 1.382
+        }
+      ],
+      "params_note": "정출력 운전에서 전압이 떨어지면 전류밀도·온도가 함께 올라 bin 안 회귀 보정이 열화를 지워 20·40 µV/h를 0/6 탐지. correctCurrentDensity·correctTemperature = false(전류밀도 bin·회귀 끔, 온도 bin 유지), 전압은 v_cell_at_jref만 사용(v_cell_mean 대체 제거). 추출기 기준 전류밀도 0.5 → 0.6 A/cm², 분극 기울기 0.25 → 0.2 V/(A/cm²), 환산 허용 거리 0.25 → 0.3. 심각도 임계(10/20/40 µV/h)는 그대로."
+    }
+  },
+  "gates": [
+    {
+      "id": "ess.capacity_fade.recall_5pct",
+      "description": "ess.capacity_fade 5% 이상 재현율 (주입 9건)",
+      "value": 1,
+      "comparator": ">=",
+      "threshold": 0.9,
+      "pass": true
+    },
+    {
+      "id": "ess.capacity_fade.mae_5pct",
+      "description": "ess.capacity_fade 5% 이상 크기 MAE [%p]",
+      "value": 0.1336,
+      "comparator": "<=",
+      "threshold": 1,
+      "pass": true
+    },
+    {
+      "id": "ess.capacity_fade.delay_5pct",
+      "description": "ess.capacity_fade 5% 이상 탐지 지연 중앙값 [일]",
+      "value": 19,
+      "comparator": "<=",
+      "threshold": 21,
+      "pass": true
+    },
+    {
+      "id": "ess.capacity_fade.fp_per_asset_month",
+      "description": "ess.capacity_fade 오탐 [건/자산·월] (대조군 포함, 1062.8 자산·월)",
+      "value": 0,
+      "comparator": "<=",
+      "threshold": 0.1,
+      "pass": true
+    },
+    {
+      "id": "ess.cell_imbalance.fp_per_asset_month",
+      "description": "ess.cell_imbalance 오탐 [건/자산·월] (대조군 포함, 1062.8 자산·월)",
+      "value": 0,
+      "comparator": "<=",
+      "threshold": 0.1,
+      "pass": true
+    },
+    {
+      "id": "pv.inverter_peer.fp_per_asset_month",
+      "description": "pv.inverter_peer 오탐 [건/자산·월] (대조군 포함, 1461.4 자산·월)",
+      "value": 0,
+      "comparator": "<=",
+      "threshold": 0.1,
+      "pass": true
+    },
+    {
+      "id": "el.voltage_rise.fp_per_asset_month",
+      "description": "el.voltage_rise 오탐 [건/자산·월] (대조군 포함, 199.3 자산·월)",
+      "value": 0,
+      "comparator": "<=",
+      "threshold": 0.1,
+      "pass": true
+    },
+    {
+      "id": "fc.voltage_decay.fp_per_asset_month",
+      "description": "fc.voltage_decay 오탐 [건/자산·월] (대조군 포함, 199.3 자산·월)",
+      "value": 0,
+      "comparator": "<=",
+      "threshold": 0.1,
+      "pass": true
+    },
+    {
+      "id": "el.voltage_rise.recall_20uvh",
+      "description": "el.voltage_rise 20 µV/h 이상 재현율 (주입 6건)",
+      "value": 1,
+      "comparator": ">=",
+      "threshold": 0.9,
+      "pass": true
+    }
+  ],
+  "pass": true
+}

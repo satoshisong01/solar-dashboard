@@ -1,6 +1,7 @@
 // ESS 에피소드 특징 계산 (순수). 적분은 0차 유지, 전류 부호는 충전 +.
 import { median } from '../stats/robust';
 import { MS_PER_HOUR, MS_PER_SECOND, type AssetSeries, type TimeWindow } from '../types';
+import type { Segment } from './ess-activity';
 import {
   downsample,
   goodPoints,
@@ -50,6 +51,8 @@ export type EssChargeFeatures = {
   readonly capacity_ah_anchored: number | null;
   /** CC 구간 Ah 보조 용량: cc_ah / ((soc_cv_start − soc_start)/100) */
   readonly capacity_ah_cc: number | null;
+  /** 부분 충전 쿨롱 카운팅 용량: ah_in / ((soc_end − soc_start)/100). SOC 변화가 minSocSpanPct 이상이고 휴지로 끝난 세션만 */
+  readonly capacity_ah_soc: number | null;
 };
 
 export type EssDischargeFeatures = {
@@ -77,6 +80,7 @@ interface TaperRules {
   readonly cellVoltageMaxV: number;
   readonly cellVoltageToleranceV: number;
   readonly minCcSocSpanPct: number;
+  readonly minSocSpanPct: number;
 }
 
 const toleranceOf = (signals: EssSignals): number => Math.max(2 * signals.periodMs, signals.maxGapMs);
@@ -111,7 +115,7 @@ function taperStart(points: readonly TimedValue[], taperFraction: number): numbe
   return points[lastHigh + 1]?.ts ?? null;
 }
 
-export function chargeFeatures(signals: EssSignals, segment: TimeWindow, rules: TaperRules): { features: EssChargeFeatures; cvEnd: boolean } {
+export function chargeFeatures(signals: EssSignals, segment: Segment, rules: TaperRules): { features: EssChargeFeatures; cvEnd: boolean } {
   const tolerance = toleranceOf(signals);
   const points = pointsIn(signals.current, segment);
   const socStart = valueAtOrAfter(signals.soc, segment.start, tolerance);
@@ -126,10 +130,12 @@ export function chargeFeatures(signals: EssSignals, segment: TimeWindow, rules: 
   const socCvStart = cvEnd ? valueNear(signals.soc, ccEnd, tolerance) : null;
   const span = socCvStart !== null && socStart !== null ? socCvStart - socStart : null;
   const ccMean = meanValue(pointsIn(signals.current, ccRange)) ?? meanValue(points) ?? 0;
+  const ahIn = ahOf(signals, segment);
+  const socSpan = socStart !== null && socEnd !== null ? socEnd - socStart : null;
   return {
     cvEnd,
     features: {
-      ah_in: ahOf(signals, segment),
+      ah_in: ahIn,
       wh_in: whOf(signals, segment),
       i_mean_c: ccMean / signals.capacityAh,
       t_cell_mean: meanValue(pointsIn(signals.cellTemp, segment)),
@@ -143,6 +149,7 @@ export function chargeFeatures(signals: EssSignals, segment: TimeWindow, rules: 
       cell_dv_end: cellDvMv(signals, segment.end),
       capacity_ah_anchored: null,
       capacity_ah_cc: span !== null && span >= rules.minCcSocSpanPct ? ccAh / (span / 100) : null,
+      capacity_ah_soc: socSpan !== null && socSpan >= rules.minSocSpanPct && segment.endReason === 'rest' ? ahIn / (socSpan / 100) : null,
     },
   };
 }

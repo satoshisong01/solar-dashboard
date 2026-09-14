@@ -1,6 +1,8 @@
 // 스택 셀 전압 운전시간 추세 엔진 (el.voltage_rise · fc.voltage_decay 공용, 설계 §4.1 운전시간 축 열화 추적).
 // 1) break-in 이후·유효 정상운전 구간을 전류밀도×온도 bin으로 나누고 bin별 중앙값을 빼서 조건 차이를 없앤다.
 // 2) bin 안에 남은 전류밀도·온도 차이를 Theil–Sen 기울기로 한 번 더 보정한다.
+//    정출력 운전(연료전지)처럼 열화 때문에 전류밀도·온도가 함께 움직이면 이 회귀가 열화 신호를 지우므로 끌 수 있다
+//    (correctCurrentDensity·correctTemperature = false → 전류밀도 bin도 쓰지 않고, 기준 전류밀도 환산 전압과 온도 bin만 쓴다).
 // 3) 보정한 전압 잔차 vs 누적 운전시간 Theil–Sen(µV/h) + CI, Mann–Kendall, CUSUM.
 import { downsample } from '../episodes/series';
 import { median, quantile } from '../stats/robust';
@@ -22,6 +24,10 @@ export interface StackPoint {
 
 export interface StackTrendParams {
   readonly breakInHours: number;
+  /** 전류밀도 bin과 bin 안 전류밀도 회귀 보정 */
+  readonly correctCurrentDensity: boolean;
+  /** bin 안 온도 회귀 보정 (온도 bin은 항상 쓴다) */
+  readonly correctTemperature: boolean;
   readonly minPerBin: number;
   readonly minTotal: number;
   readonly minSpanHours: number;
@@ -55,7 +61,7 @@ export interface StackTrendResult {
 
 export type StackTrendOutcome = { readonly ok: true; readonly result: StackTrendResult } | { readonly ok: false; readonly reason: string };
 
-const binKey = (pt: StackPoint): string => `${pt.jBin}|${pt.tBin ?? 'na'}`;
+const binKeyOf = (p: Pick<StackTrendParams, 'correctCurrentDensity'>) => (pt: StackPoint): string => `${p.correctCurrentDensity ? pt.jBin : 'na'}|${pt.tBin ?? 'na'}`;
 
 /** 분산이 있는 성분만 Theil–Sen 기울기 (x가 서로 다른 값 3개 미만이면 0). 쌍 수를 줄이려고 일정 간격으로 표본을 뽑는다 */
 function partialSlope(xs: readonly number[], ys: readonly number[], maxPoints: number): number {
@@ -64,7 +70,7 @@ function partialSlope(xs: readonly number[], ys: readonly number[], maxPoints: n
   return theilSen(pairs.map(([x]) => x), pairs.map(([, y]) => y)).slope;
 }
 
-function groupByBin(points: readonly StackPoint[], minPerBin: number): Map<string, StackPoint[]> {
+function groupByBin(points: readonly StackPoint[], binKey: (pt: StackPoint) => string, minPerBin: number): Map<string, StackPoint[]> {
   const groups = new Map<string, StackPoint[]>();
   for (const pt of points) groups.set(binKey(pt), [...(groups.get(binKey(pt)) ?? []), pt]);
   return new Map([...groups.entries()].filter(([, members]) => members.length >= minPerBin));
@@ -74,7 +80,8 @@ function groupByBin(points: readonly StackPoint[], minPerBin: number): Map<strin
 export function stackVoltageTrend(input: readonly StackPoint[], p: StackTrendParams, direction: 'up' | 'down'): StackTrendOutcome {
   const usable = input.filter((pt) => pt.completeness >= p.minCompleteness && Number.isFinite(pt.voltage) && Number.isFinite(pt.opHours));
   const afterBreakIn = usable.filter((pt) => pt.opHours >= p.breakInHours);
-  const groups = groupByBin(afterBreakIn, p.minPerBin);
+  const binKey = binKeyOf(p);
+  const groups = groupByBin(afterBreakIn, binKey, p.minPerBin);
   const points = [...groups.values()].flat().sort((a, b) => a.opHours - b.opHours);
   if (points.length < p.minTotal) return { ok: false, reason: `같은 조건 정상운전 구간 부족: ${points.length}개 (bin당 ${p.minPerBin}개, 합계 ${p.minTotal}개 필요, break-in ${p.breakInHours} h 이전 ${usable.length - afterBreakIn.length}개 제외)` };
   const span = (points[points.length - 1]?.opHours ?? 0) - (points[0]?.opHours ?? 0);
@@ -84,10 +91,10 @@ export function stackVoltageTrend(input: readonly StackPoint[], p: StackTrendPar
   const center = (pt: StackPoint) => centers.get(binKey(pt)) ?? { v: pt.voltage, j: pt.jMean, t: pt.tMean ?? 0 };
   const dv = points.map((pt) => pt.voltage - center(pt).v);
   const dj = points.map((pt) => pt.jMean - center(pt).j);
-  const slopeJ = partialSlope(dj, dv, p.maxPoints);
+  const slopeJ = p.correctCurrentDensity ? partialSlope(dj, dv, p.maxPoints) : 0;
   const afterJ = dv.map((v, i) => v - slopeJ * (dj[i] as number));
   const dt = points.map((pt) => (pt.tMean ?? center(pt).t) - center(pt).t);
-  const slopeT = partialSlope(dt, afterJ, p.maxPoints);
+  const slopeT = p.correctTemperature ? partialSlope(dt, afterJ, p.maxPoints) : 0;
   const residuals = afterJ.map((v, i) => v - slopeT * (dt[i] as number));
 
   const grouped = groupedMedians(points.map((pt) => pt.opHours), residuals, p.maxPoints);
