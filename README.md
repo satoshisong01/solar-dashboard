@@ -51,7 +51,7 @@
 |---|---|
 | `db:migrate` / `db:migrate:down` | 개발 DB에 남은 마이그레이션 전부 적용 / 마지막 1개 되돌리기. `scripts/db-migrate.ts`가 node-pg-migrate를 실행하며 `DATABASE_SSL`·`DATABASE_SSL_CA_PATH`를 앱과 같은 규칙으로 반영한다. 개수 지정: `npm run db:migrate:down -- 2` |
 | `db:migrate:test` | 테스트 DB 마이그레이션 (integration·e2e가 시작할 때 같은 작업을 자동으로 한다) |
-| `db:types` | DB에서 `lib/db/types.ts` 생성 (om, public 스키마. 파티션 자식 테이블은 제외) |
+| `db:types` | DB에서 `lib/db/types.ts` 생성 (om, public, sim 스키마. 파티션 자식 테이블은 제외) |
 | `db:seed` / `db:seed:test` | 개발 / 테스트 DB에 카탈로그·가상 사이트 멱등 upsert. 게이트웨이 개발용 비밀값이 없으면 해당 env 파일에 생성 |
 | `db:reset` | **로컬 전용.** 개발 DB 스키마를 모두 지우고 다시 migrate. `localhost:54320`이 아니면 중단 |
 | `db:rollup:rebuild` | **로컬 전용.** `om.m_1h`를 원시 측정값에서 UTC 하루 단위로 전부 다시 집계한다(롤업 규칙이 바뀐 뒤 과거분을 맞출 때). 끝나면 `n_good/n` 비율을 출력. `localhost:54320`이 아니면 중단 |
@@ -161,3 +161,4 @@ npx node-pg-migrate create <이름> -j sql -m db/migrations --migration-filename
    - 시작 줄에 접속 대상(비밀번호 제외)과 SSL 모드가 나옵니다. `verify-full`이면 CA 번들로 인증서 체인과 호스트 이름을 검증하고, CA 경로가 없거나 파일을 읽지 못하면 접속 전에 중단합니다.
    - `require`는 인증서를 검증하지 않아 운영에는 쓰지 않습니다.
    - 되돌리기: `... tsx scripts/db-migrate.ts down [개수]` (기본 1개)
+4. `sim` 스키마 마이그레이션(`*_sim-eval-schema.sql`)은 시뮬레이터 평가용이라 앱이 참조하지 않지만, 적용 순서 검사 때문에 건너뛰지 말고 함께 적용합니다(빈 테이블만 생깁니다).

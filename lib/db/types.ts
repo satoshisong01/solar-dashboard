@@ -85,6 +85,33 @@ export interface AuthVerification {
   value: string;
 }
 
+export interface OmActionVerification {
+  action_id: Int8;
+  after_stats: Generated<Json>;
+  after_window: string;
+  before_stats: Generated<Json>;
+  before_window: string;
+  ci_high: number | null;
+  ci_low: number | null;
+  computed_at: Generated<Timestamp>;
+  effect: number | null;
+  id: Generated<Int8>;
+  method: string;
+  run_id: Int8;
+  verdict: string;
+}
+
+export interface OmAnalysisRun {
+  error: string | null;
+  finished_at: Timestamp | null;
+  id: Generated<Int8>;
+  requested_by: string;
+  scope: Json;
+  started_at: Generated<Timestamp>;
+  stats: Generated<Json>;
+  status: Generated<string>;
+}
+
 export interface OmAsset {
   class_key: string;
   code: string;
@@ -119,6 +146,31 @@ export interface OmAssetEvent {
   ts: Timestamp;
 }
 
+export interface OmDetectorConfig {
+  active: Generated<boolean>;
+  created_at: Generated<Timestamp>;
+  created_by: string;
+  detector_id: string;
+  params: Generated<Json>;
+  reference_window: string | null;
+  scope: string;
+  version: number;
+}
+
+export interface OmEpisode {
+  asset_id: number;
+  conditions: Generated<Json>;
+  dq: Generated<Json>;
+  end_ts: Timestamp;
+  extractor_version: string;
+  features: Generated<Json>;
+  invalid_reason: string | null;
+  kind: string;
+  run_id: Int8 | null;
+  start_ts: Timestamp;
+  valid: boolean;
+}
+
 export interface OmEventLog {
   ack_note: string | null;
   acked_at: Timestamp | null;
@@ -134,6 +186,53 @@ export interface OmEventLog {
   source_key: string;
   text: string | null;
   ts: Timestamp;
+}
+
+export interface OmFinding {
+  asset_id: number | null;
+  category: string;
+  confidence: number;
+  created_at: Generated<Timestamp>;
+  dedup_key: string;
+  detection_count: Generated<number>;
+  detector_id: string;
+  detector_version: string;
+  dismiss_reason: string | null;
+  effect: Generated<Json>;
+  failure_mode: string;
+  first_detected_at: Timestamp;
+  id: Generated<Int8>;
+  last_detected_at: Timestamp;
+  latest_evidence_id: Int8 | null;
+  previous_finding_id: Int8 | null;
+  severity: number;
+  site_id: number;
+  status: Generated<string>;
+  summary: string;
+  suppressed_until: Timestamp | null;
+  title: string;
+  updated_at: Generated<Timestamp>;
+  window_end: Timestamp;
+  window_start: Timestamp;
+}
+
+export interface OmFindingEvidence {
+  computed_at: Generated<Timestamp>;
+  finding_id: Int8;
+  id: Generated<Int8>;
+  input_hash: string;
+  run_id: Int8;
+  snapshot: Json;
+}
+
+export interface OmFindingTransition {
+  actor: string;
+  at: Generated<Timestamp>;
+  finding_id: Int8;
+  from_status: string | null;
+  id: Generated<Int8>;
+  note: string | null;
+  to_status: string;
 }
 
 export interface OmGateway {
@@ -174,6 +273,18 @@ export interface OmIngestBatch {
   status: string;
 }
 
+export interface OmKpiDaily {
+  calc_version: string;
+  day: Timestamp;
+  dq_completeness: number | null;
+  kpi_key: string;
+  n: Generated<number>;
+  scope_id: number;
+  scope_type: string;
+  unit: string;
+  value: number | null;
+}
+
 export interface OmM1h {
   bucket: Timestamp;
   computed_at: Generated<Timestamp>;
@@ -186,6 +297,21 @@ export interface OmM1h {
   v_max: number | null;
   v_min: number | null;
   v_sum: number | null;
+}
+
+export interface OmMaintenanceAction {
+  action_type: string;
+  asset_id: number;
+  created_at: Generated<Timestamp>;
+  created_by: string;
+  expected_effect: Json | null;
+  finding_id: Int8 | null;
+  id: Generated<Int8>;
+  notes: string | null;
+  performed_at: Timestamp;
+  performed_by: string | null;
+  site_id: number;
+  source: string;
 }
 
 export interface OmMarketDaily {
@@ -234,6 +360,22 @@ export interface OmPoint {
   value_offset: Generated<number>;
 }
 
+export interface OmReport {
+  approved_at: Timestamp | null;
+  approved_by: string | null;
+  composer_id: string;
+  created_at: Generated<Timestamp>;
+  created_by: string;
+  draft: Json;
+  id: Generated<Int8>;
+  pack: Json;
+  pack_hash: string;
+  period: string;
+  site_id: number;
+  status: Generated<string>;
+  validation: Json;
+}
+
 export interface OmRollupDirty {
   bucket: Timestamp;
   gen: Generated<Int8>;
@@ -267,26 +409,73 @@ export interface Pgmigrations {
   run_on: Timestamp;
 }
 
+export interface SimEvalResult {
+  details: Generated<Json>;
+  detector_id: string;
+  fn: number;
+  fp: number;
+  fp_per_asset_month: number | null;
+  magnitude_mae: number | null;
+  median_delay_days: number | null;
+  precision: number | null;
+  recall: number | null;
+  run_id: Int8;
+  tp: number;
+}
+
+export interface SimInjection {
+  asset_path: string | null;
+  end_ts: Timestamp | null;
+  expected_failure_modes: Generated<string[]>;
+  id: Generated<Int8>;
+  kind: string;
+  params: Generated<Json>;
+  run_id: Int8;
+  site_code: string;
+  start_ts: Timestamp;
+}
+
+export interface SimRun {
+  config: Json;
+  created_at: Generated<Timestamp>;
+  engine_version: string;
+  id: Generated<Int8>;
+  seed: number;
+}
+
 export interface DB {
   auth_account: AuthAccount;
   auth_rate_limit: AuthRateLimit;
   auth_session: AuthSession;
   auth_user: AuthUser;
   auth_verification: AuthVerification;
+  "om.action_verification": OmActionVerification;
+  "om.analysis_run": OmAnalysisRun;
   "om.asset": OmAsset;
   "om.asset_class": OmAssetClass;
   "om.asset_event": OmAssetEvent;
+  "om.detector_config": OmDetectorConfig;
+  "om.episode": OmEpisode;
   "om.event_log": OmEventLog;
+  "om.finding": OmFinding;
+  "om.finding_evidence": OmFindingEvidence;
+  "om.finding_transition": OmFindingTransition;
   "om.gateway": OmGateway;
   "om.gateway_key": OmGatewayKey;
   "om.ingest_batch": OmIngestBatch;
+  "om.kpi_daily": OmKpiDaily;
   "om.m_1h": OmM1h;
+  "om.maintenance_action": OmMaintenanceAction;
   "om.market_daily": OmMarketDaily;
   "om.measurement": OmMeasurement;
   "om.metric_def": OmMetricDef;
   "om.point": OmPoint;
+  "om.report": OmReport;
   "om.rollup_dirty": OmRollupDirty;
   "om.site": OmSite;
   "om.unmapped_source": OmUnmappedSource;
   pgmigrations: Pgmigrations;
+  "sim.eval_result": SimEvalResult;
+  "sim.injection": SimInjection;
+  "sim.run": SimRun;
 }
