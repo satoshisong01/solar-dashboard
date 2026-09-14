@@ -128,8 +128,8 @@ export function RevenuePanel({ rows }: Readonly<{ rows: readonly MarketSummaryRo
       {rows.length === 0 ? (
         <div className="flex flex-col items-center gap-2">
           <EmptyNote>설정에서 SMP·REC를 입력하세요</EmptyNote>
-          <Link href="/settings" className={LINK_CLASS}>
-            설정으로 이동
+          <Link href="/settings/market" className={LINK_CLASS}>
+            시장가격 입력으로 이동
             <ArrowRight aria-hidden="true" className="size-4" />
           </Link>
         </div>
