@@ -195,6 +195,7 @@ function buildFinding(input: EssCapacityInput, ctx: DetectorContext<EssCapacityP
       reference: { n: sel.reference.length, from: windowStart, to: since },
       recent: { n: sel.recent.length, from: sel.recent[0]?.start ?? null, to: windowEnd },
       bins: matched.bins.map((b) => ({ key: b.key, n_ref: b.nRef, n_cur: b.nCur, med_ref: r(b.medRef, 2), med_cur: r(b.medCur, 2), ratio: r(b.ratio, 4), used: b.used })),
+      bin_widths: { c_rate: p.cRateBinWidth, temp_c: p.tempBinWidthC },
       trend: trend.json,
       charge_time: { reference_current_a: r(referenceA, 1), baseline_hours: r(baselineAh / referenceA, 3), current_hours: r(currentAh / referenceA, 3) },
       overlay: { reference: curveFor(input, sel.reference, sel.metric), recent: curveFor(input, sel.recent, sel.metric) },

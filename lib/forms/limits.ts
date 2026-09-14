@@ -29,3 +29,13 @@ export const ROLLUP_LABELS: Readonly<Record<RollupKind, string>> = {
 export function labelOf<K extends string>(labels: Readonly<Record<K, string>>, value: string): string {
   return Object.hasOwn(labels, value) ? labels[value as K] : value;
 }
+
+// 분석 데스크 (분석 실행·일괄 분류·기각·조치 기록)
+export const ANALYSIS_PERIOD_DAYS = [30, 90, 120] as const;
+export const BULK_FINDINGS_MAX = 200;
+export const DISMISS_NOTE_MAX = 500;
+export const ACTION_TYPE_MAX = 120;
+export const ACTION_NOTE_MAX = 1000;
+export const PERFORMED_BY_MAX = 60;
+/** 조치 수행일은 예정으로 이만큼 앞까지 입력할 수 있다 [일] */
+export const ACTION_FUTURE_DAYS_MAX = 366;

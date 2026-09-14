@@ -5,6 +5,7 @@ import { hashInput } from '../hash';
 import { bootstrapTwoSampleCI } from '../stats/bootstrap';
 import { relativeCiWidth, scoreConfidence } from '../stats/confidence';
 import { median, modifiedZ } from '../stats/robust';
+import { trendValueAt } from '../stats/trend';
 import { DAYS_PER_MONTH, MS_PER_DAY } from '../types';
 import { dailyMedians, fixed, insufficient, r, signed, summarizeTrend, withDefaults } from './common';
 import type { CandidateFinding, Detector, DetectorContext, DetectorResult, Severity } from './types';
@@ -124,6 +125,7 @@ function detect(input: EssCellImbalanceInput, ctx: DetectorContext<EssCellImbala
         mann_kendall_p: r(trend.mkPValue, 4),
         change_start: trend.changeStartIndex === null ? null : (daily[trend.changeStartIndex]?.ts ?? null),
         points: downsample(daily, 120).map((d) => ({ t: d.ts, dv_mv: r(d.value, 2) })),
+        line: [0, (daily[daily.length - 1]?.ts ?? t0) - t0].map((dx) => ({ t: t0 + dx, dv_mv: r(trendValueAt(trend.fit, dx / MS_PER_DAY), 3) })),
       },
       peers: { n: input.peers.length, modified_z: r(z, 2), values_mv: input.peers.map((peer) => ({ asset_id: peer.assetId, dv_mv: r(peer.recentDvMv, 2) })) },
     },
