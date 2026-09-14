@@ -119,11 +119,11 @@ integration·e2e는 `npm run db:up`이 떠 있어야 합니다. 꺼져 있으면
 |---|---|
 | `npm test` / `npm run test:unit` | Vitest unit (`lib/**`, `components/**`의 `*.test.ts`). DB 불필요 |
 | `npm run test:integration` | Vitest integration (`tests/integration`). 테스트 DB를 최신으로 migrate한 뒤 스키마·마이그레이션 왕복을 검사 |
-| `npm run test:e2e` | Playwright (`tests/e2e`, chromium). `next build` 후 `next start -p 3100`을 띄우고, 테스트 DB migrate와 테스트 관리자(`e2e-admin@hysol.local`) 재생성 후 실행 |
+| `npm run test:e2e` | Playwright (`tests/e2e`, chromium). `next build` 후 `next start -p 3100`을 띄우고, 테스트 DB 초기화(마이그레이션 down → up)·시드·테스트 관리자(`e2e-admin@hysol.local`) 생성, SIM-B 최근 2일을 실제 수집 API로 적재한 뒤 실행. 끝나면 테스트 DB를 migrate·seed 직후 상태로 되돌린다 |
 | `npm run test:all` | unit → integration → e2e 순서로 모두 실행 |
 | `npx vitest run --project unit --coverage` | `lib/**` 커버리지 (`coverage/`) |
 
-integration은 테스트 DB의 마이그레이션을 모두 되돌렸다가 다시 적용하므로 e2e와 동시에 실행하지 마세요.
+integration과 e2e는 둘 다 테스트 DB의 마이그레이션을 모두 되돌렸다가 다시 적용하므로 동시에 실행하지 마세요. e2e가 끝난 테스트 DB에는 수집 데이터·테스트 계정이 남지 않습니다.
 
 ## 인증
 

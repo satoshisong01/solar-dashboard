@@ -7,6 +7,9 @@ export const ADMIN_STORAGE_STATE = 'tests/e2e/.auth/admin.json';
 export const E2E_ADMIN_EMAIL = 'e2e-admin@hysol.local';
 export const E2E_ADMIN_NAME = 'E2E 관리자';
 
+/** globalSetup이 시뮬레이터로 최근 데이터를 적재하는 가상 사이트 (나머지 SIM 사이트는 수신 기록 없음) */
+export const E2E_INGEST_SITE = 'SIM-B';
+
 /** 로그인이 필요 없는 상태. test.use({ storageState: SIGNED_OUT })로 쓴다. */
 export const SIGNED_OUT = Object.freeze({ cookies: [], origins: [] });
 

@@ -7,6 +7,7 @@ const testEnv = readTestEnvFile();
 export default defineConfig({
   testDir: 'tests/e2e',
   globalSetup: './tests/e2e/global-setup.ts',
+  globalTeardown: './tests/e2e/global-teardown.ts',
   // 테스트 DB와 로그인 rate limit(Better Auth 기본값: 10초에 3회)을 공유하므로 순서대로 실행한다.
   workers: 1,
   fullyParallel: false,
