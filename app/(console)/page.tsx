@@ -1,28 +1,35 @@
 import type { Metadata } from 'next';
-import { EmptyState } from '@/components/console/empty-state';
 import { PageHeader } from '@/components/console/page-header';
+import { SafetyBanner } from '@/components/today/safety-banner';
+import { DataGapsPanel, EnergySummaryPanel, FindingsPlaceholder, RevenuePanel } from '@/components/today/today-panels';
 import { requireAdmin } from '@/lib/auth/dal';
+import { requestTimeMs } from '@/lib/data/time';
+import { getDataGaps, getEnergySummary, getMarketSummary, getSafetyBanner } from '@/lib/data/today';
+import { formatKstDateTime } from '@/lib/format';
 
 export const metadata: Metadata = { title: '오늘' };
 
 export default async function TodayPage() {
   await requireAdmin();
+  const nowMs = requestTimeMs();
+  const [safety, gaps, energy, market] = await Promise.all([
+    getSafetyBanner(),
+    getDataGaps(nowMs),
+    getEnergySummary(nowMs),
+    getMarketSummary(nowMs),
+  ]);
 
   return (
     <>
       <PageHeader title="오늘" purpose="출근 후 5분 안에 할 일과 밤사이 변화 파악" />
-      <EmptyState
-        phases={[
-          { code: 'P1', note: '골격' },
-          { code: 'P2', note: '완성' },
-        ]}
-        items={[
-          '안전 배너 — 확인(ack) 전까지 고정 표시',
-          '할 일 카운터 — 새 발견사항 · 조사 중 · 리포트 승인 대기 · 검증 결과 도착',
-          '신규·악화 발견사항 Top 10과 데이터 공백(끊긴 게이트웨이, 미매핑 태그)',
-          '수익 요약 — SMP·REC 수기 입력과 CSV 업로드',
-        ]}
-      />
+      <p className="-mt-3 text-xs text-muted">기준 시각 {formatKstDateTime(nowMs)} KST</p>
+      <SafetyBanner banner={safety} />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <DataGapsPanel gaps={gaps} nowMs={nowMs} />
+        <RevenuePanel rows={market} />
+      </div>
+      <EnergySummaryPanel rows={energy} />
+      <FindingsPlaceholder />
     </>
   );
 }
