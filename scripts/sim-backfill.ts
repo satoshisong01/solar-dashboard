@@ -95,7 +95,7 @@ function printSummary(summary: RunSummary, elapsedMs: number): void {
   }
   console.log(`[backfill] 기대 고유 샘플 수(미매핑 제외) 합계: ${formatCount(expectedTotal)}`);
   if (summary.results.conflict > 0) {
-    console.warn('[backfill] 409: 같은 기간·시드로 이미 적재한 배치가 있습니다(sent_at만 다름). 샘플은 이미 들어 있습니다. 처음부터 다시 만들려면 README "데모 데이터 만들기"를 보세요.');
+    console.warn('[backfill] 409: 같은 batch_id로 본문이 다른 배치가 이미 있습니다(sent_at을 전송 시각으로 바꿔 보내던 이전 전송기로 적재한 데이터일 수 있음). 샘플은 이미 들어 있습니다. 처음부터 다시 만들려면 README "데모 데이터 만들기"를 보세요.');
   }
   summary.failures.forEach((failure) => console.error(`[backfill] 실패: ${failure}`));
 }

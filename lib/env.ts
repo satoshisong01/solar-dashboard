@@ -27,25 +27,39 @@ const trustedOriginsSchema = z.preprocess(
     ),
 );
 
+// DB 연결 변수. 앱 전체 설정(serverEnvSchema)과 마이그레이션 스크립트(parseDatabaseEnv)가 함께 쓴다.
+const databaseEnvShape = {
+  DATABASE_URL: z
+    .url({
+      protocol: /^postgres(ql)?$/,
+      error: 'postgres:// 형식의 URL이어야 합니다',
+    })
+    // pg는 URL의 ssl 파라미터가 풀 설정의 ssl을 덮어쓴다. SSL은 DATABASE_SSL 한 곳에서만 정한다.
+    .refine((value) => !hasSslUrlParams(value), {
+      error: 'DATABASE_URL에 sslmode 등 SSL 파라미터를 넣지 말고 DATABASE_SSL을 사용하세요',
+    }),
+  DATABASE_SSL: z.preprocess(
+    emptyToUndefined,
+    z
+      .enum(['disable', 'require', 'verify-full'], { error: 'disable, require, verify-full 중 하나여야 합니다' })
+      .default('disable'),
+  ),
+  DATABASE_SSL_CA_PATH: z.preprocess(emptyToUndefined, z.string().optional()),
+};
+
+const hasCaPathForVerifyFull = (env: { readonly DATABASE_SSL: string; readonly DATABASE_SSL_CA_PATH?: string | undefined }) =>
+  env.DATABASE_SSL !== 'verify-full' || env.DATABASE_SSL_CA_PATH !== undefined;
+const CA_PATH_ISSUE = {
+  path: ['DATABASE_SSL_CA_PATH'],
+  error: 'DATABASE_SSL=verify-full이면 CA 번들 파일 경로가 필요합니다',
+};
+
+const databaseEnvSchema = z.object(databaseEnvShape).refine(hasCaPathForVerifyFull, CA_PATH_ISSUE);
+
 // 서버 전용 환경변수. 새 변수는 이 객체에 필드를 추가한다.
 const serverEnvSchema = z
   .object({
-    DATABASE_URL: z
-      .url({
-        protocol: /^postgres(ql)?$/,
-        error: 'postgres:// 형식의 URL이어야 합니다',
-      })
-      // pg는 URL의 ssl 파라미터가 풀 설정의 ssl을 덮어쓴다. SSL은 DATABASE_SSL 한 곳에서만 정한다.
-      .refine((value) => !hasSslUrlParams(value), {
-        error: 'DATABASE_URL에 sslmode 등 SSL 파라미터를 넣지 말고 DATABASE_SSL을 사용하세요',
-      }),
-    DATABASE_SSL: z.preprocess(
-      emptyToUndefined,
-      z
-        .enum(['disable', 'require', 'verify-full'], { error: 'disable, require, verify-full 중 하나여야 합니다' })
-        .default('disable'),
-    ),
-    DATABASE_SSL_CA_PATH: z.preprocess(emptyToUndefined, z.string().optional()),
+    ...databaseEnvShape,
     INGEST_KEY_ENC_KEY: z.string().regex(BASE64_32_BYTES, 'base64로 인코딩한 32바이트 키여야 합니다'),
     BETTER_AUTH_SECRET: z.string().min(32, '32자 이상의 랜덤 문자열이어야 합니다'),
     BETTER_AUTH_URL: z.url({
@@ -64,10 +78,21 @@ const serverEnvSchema = z
         .default(10),
     ),
   })
-  .refine((env) => env.DATABASE_SSL !== 'verify-full' || env.DATABASE_SSL_CA_PATH !== undefined, {
-    path: ['DATABASE_SSL_CA_PATH'],
-    error: 'DATABASE_SSL=verify-full이면 CA 번들 파일 경로가 필요합니다',
-  });
+  .refine(hasCaPathForVerifyFull, CA_PATH_ISSUE);
+
+export type DatabaseEnv = Readonly<z.infer<typeof databaseEnvSchema>>;
+
+/**
+ * DB 연결 변수(DATABASE_URL·DATABASE_SSL·DATABASE_SSL_CA_PATH)만 검증한다.
+ * 마이그레이션처럼 인증·수집 비밀값 없이 DB에만 접속하는 스크립트용 (캐시하지 않음).
+ */
+export function parseDatabaseEnv(source: Readonly<Record<string, string | undefined>> = process.env): DatabaseEnv {
+  const result = databaseEnvSchema.safeParse(source);
+  if (!result.success) {
+    throw new Error(`DB 환경변수 설정 오류\n${z.prettifyError(result.error)}`);
+  }
+  return Object.freeze(result.data);
+}
 
 type ParsedServerEnv = z.infer<typeof serverEnvSchema>;
 export type ServerEnv = Readonly<

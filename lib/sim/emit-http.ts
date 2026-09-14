@@ -1,5 +1,8 @@
 // 시뮬레이터 봉투를 게이트웨이처럼 gzip·HMAC 서명(lib/ingest/signature)해 POST /api/ingest/v1로 보낸다.
-// sent_at은 실제 전송 시각으로 다시 찍는다: 서버는 sent_at과 수신 시각 차이로 CLOCK_SUSPECT를 판정하기 때문이다.
+// 본문은 시뮬레이터가 만든 봉투 그대로다 (sent_at = 시뮬레이션 배치 전송 시각 + 시계 오차). 전송 시각에 따라 바꾸지 않으므로
+// 같은 시드·같은 창으로 다시 실행해도 본문이 같아 서버가 409가 아니라 200 duplicate로 답한다.
+// 서버는 서명 시각(X-OM-Timestamp)과 수신 시각의 차이로 CLOCK_SUSPECT를 판정하므로, 서명 시각은
+// 실제 전송 시각 + 시뮬레이션 시계 오차(sent_at − sentAtMs)로 찍는다.
 // 같은 봉투 객체(시뮬레이터의 중복 재전송)는 처음 만든 본문 바이트를 그대로 다시 보낸다 → 서버 200 duplicate.
 import { promisify } from 'node:util';
 import { gzip } from 'node:zlib';
@@ -65,11 +68,11 @@ interface PreparedBody {
   readonly skewMs: number;
 }
 
-/** 봉투의 sent_at을 nowMs 기준으로 다시 찍는다. 시뮬레이션 시계 오차(sent_at − sentAtMs)는 그대로 둔다. */
-export function rebaseEnvelope(batch: EmitBatch, nowMs: number): { readonly envelope: IngestEnvelope; readonly skewMs: number } {
+/** 시뮬레이션 게이트웨이 시계 오차 = 봉투 sent_at − 실제 전송 시각(sentAtMs) */
+export function simulatedClockSkewMs(batch: EmitBatch): number {
   const skewMs = Date.parse(batch.envelope.sent_at) - batch.sentAtMs;
   if (!Number.isFinite(skewMs)) throw new Error(`봉투 sent_at을 해석할 수 없습니다: ${batch.envelope.sent_at}`);
-  return { envelope: { ...batch.envelope, sent_at: new Date(nowMs + skewMs).toISOString() }, skewMs };
+  return skewMs;
 }
 
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -122,8 +125,8 @@ export function createHttpEmitter(options: HttpEmitterOptions): HttpEmitter {
   const prepare = (batch: EmitBatch): Promise<PreparedBody> => {
     const cached = prepared.get(batch.envelope);
     if (cached) return cached;
-    const { envelope, skewMs } = rebaseEnvelope(batch, nowMs());
-    const body = gzipAsync(Buffer.from(JSON.stringify(envelope), 'utf8')).then((bytes) => ({ body: new Uint8Array(bytes), skewMs }));
+    const skewMs = simulatedClockSkewMs(batch);
+    const body = gzipAsync(Buffer.from(JSON.stringify(batch.envelope), 'utf8')).then((bytes) => ({ body: new Uint8Array(bytes), skewMs }));
     prepared.set(batch.envelope, body);
     return body;
   };

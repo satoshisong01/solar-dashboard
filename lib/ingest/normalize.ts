@@ -24,6 +24,8 @@ export interface NormalizeOptions {
   readonly pointsBySource: ReadonlyMap<string, PointMapping>;
   /** 서버가 배치를 받은 시각 (재처리 때는 원래 수신 시각) */
   readonly receivedAtMs: number;
+  /** 게이트웨이 시계 − 서버 수신 시각 (ms). 수집은 clockSkewFromSignature로, 재처리는 기록된 ingest_batch.skew_ms를 쓴다 */
+  readonly clockSkewMs: number;
   /** 재처리(replay)면 모든 샘플에 REPROCESSED 비트를 붙인다 */
   readonly reprocessed?: boolean;
 }
@@ -58,15 +60,23 @@ export interface NormalizedBatch {
   readonly samples: readonly NormalizedSample[];
   readonly unmapped: readonly UnmappedSeries[];
   readonly stats: SampleStats;
-  /** sent_at − 수신 시각 (게이트웨이 시계가 빠르면 +) */
+  /** 게이트웨이 시계 − 수신 시각 (게이트웨이 시계가 빠르면 +). NormalizeOptions.clockSkewMs 그대로 */
   readonly skewMs: number;
   readonly clockSuspect: boolean;
 }
 
-/** sent_at 기준 게이트웨이 시계 오차와 CLOCK_SUSPECT 여부 */
-export function assessClock(envelope: Pick<IngestEnvelope, 'sent_at' | 'clock'>, receivedAtMs: number) {
-  const skewMs = Date.parse(envelope.sent_at) - receivedAtMs;
-  return { skewMs, clockSuspect: !envelope.clock.ntp_synced || Math.abs(skewMs) > CLOCK_SKEW_LIMIT_MS };
+/**
+ * 게이트웨이 시계 오차 = 서명 시각(X-OM-Timestamp, 초) − 서버 수신 시각(초). 초 해상도라 동기화된 게이트웨이는 0 또는 ±1000 ms.
+ * 봉투의 sent_at은 배치를 만든 시각이라, 같은 본문을 나중에 재전송하면(같은 batch_id → duplicate) 오래된 값이 된다.
+ * 서명 시각은 요청마다 게이트웨이 시계로 새로 찍으므로 시계 오차는 서명 시각으로 잰다.
+ */
+export function clockSkewFromSignature(timestampSec: number, receivedAtMs: number): number {
+  return (timestampSec - Math.floor(receivedAtMs / 1000)) * 1000;
+}
+
+/** NTP 미동기이거나 |시계 오차| > 120초면 CLOCK_SUSPECT */
+export function isClockSuspect(clock: IngestEnvelope['clock'], skewMs: number): boolean {
+  return !clock.ntp_synced || Math.abs(skewMs) > CLOCK_SKEW_LIMIT_MS;
 }
 
 /** 정규값 = 원본값 × scale + value_offset */
@@ -98,9 +108,9 @@ function mergeUnmapped(items: readonly UnmappedSeries[]): readonly UnmappedSerie
   return [...merged.values()];
 }
 
-export function normalizeSamples(envelope: Pick<IngestEnvelope, 'series' | 'sent_at' | 'clock'>, options: NormalizeOptions): NormalizedBatch {
-  const { pointsBySource, receivedAtMs } = options;
-  const { skewMs, clockSuspect } = assessClock(envelope, receivedAtMs);
+export function normalizeSamples(envelope: Pick<IngestEnvelope, 'series' | 'clock'>, options: NormalizeOptions): NormalizedBatch {
+  const { pointsBySource, receivedAtMs, clockSkewMs: skewMs } = options;
+  const clockSuspect = isClockSuspect(envelope.clock, skewMs);
   const base = (clockSuspect ? QUALITY.CLOCK_SUSPECT : 0) | (options.reprocessed ? QUALITY.REPROCESSED : 0);
 
   const samples: NormalizedSample[] = [];

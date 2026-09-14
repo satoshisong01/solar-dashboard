@@ -35,8 +35,8 @@
    ```bash
    npm run db:seed
    ```
-   - `om.asset_class`·`om.metric_def` 카탈로그와 가상 사이트 SIM-A(태양광+ESS)·SIM-B(연계형)·SIM-C(연계형 대조군)의 설비 트리·게이트웨이·포인트 매핑을 upsert합니다. 여러 번 실행해도 결과가 같습니다.
-   - 게이트웨이 개발용 HMAC 비밀값 `SIM_GATEWAY_SECRET_<게이트웨이 코드>`가 env 파일에 없으면 생성해 파일 끝에 추가하고, DB에는 `INGEST_KEY_ENC_KEY`로 암호화해 저장합니다. 비밀값은 출력하지 않습니다.
+   - `om.asset_class`·`om.metric_def` 카탈로그와 가상 사이트 SIM-A(태양광+ESS)·SIM-B(연계형)·SIM-C(연계형 대조군)의 설비 트리·게이트웨이·포인트 매핑을 upsert합니다. 여러 번 실행해도 결과가 같고, 이미 있는 설비·포인트는 UPDATE만 해서 id 시퀀스도 늘지 않습니다.
+   - 게이트웨이 개발용 HMAC 비밀값 `SIM_GATEWAY_SECRET_<게이트웨이 코드>`가 env 파일에 없으면 생성해 파일 끝에 추가하고, DB에는 `INGEST_KEY_ENC_KEY`로 암호화해 저장합니다. 이미 저장된 키는 현재 `INGEST_KEY_ENC_KEY`로 풀리고 비밀값이 같으면 다시 암호화하지 않습니다(키를 바꿨거나 비밀값이 달라졌을 때만 다시 암호화). 비밀값은 출력하지 않습니다.
    - 정의는 `db/seed/`(순수 데이터 모듈)에 있습니다. `db/seed/sites.ts`의 `UNMAPPED_SOURCE_TAGS`는 일부러 매핑하지 않는 태그라 DB에 넣지 않습니다(미매핑 인박스·재처리 시연용).
 6. 관리자 계정을 만듭니다. 가입이 비활성이라 계정은 이 스크립트로만 만듭니다.
    ```bash
@@ -49,7 +49,7 @@
 
 | 스크립트 | 설명 |
 |---|---|
-| `db:migrate:down` | 마지막 마이그레이션 1개 되돌리기 |
+| `db:migrate` / `db:migrate:down` | 개발 DB에 남은 마이그레이션 전부 적용 / 마지막 1개 되돌리기. `scripts/db-migrate.ts`가 node-pg-migrate를 실행하며 `DATABASE_SSL`·`DATABASE_SSL_CA_PATH`를 앱과 같은 규칙으로 반영한다. 개수 지정: `npm run db:migrate:down -- 2` |
 | `db:migrate:test` | 테스트 DB 마이그레이션 (integration·e2e가 시작할 때 같은 작업을 자동으로 한다) |
 | `db:types` | DB에서 `lib/db/types.ts` 생성 (om, public 스키마. 파티션 자식 테이블은 제외) |
 | `db:seed` / `db:seed:test` | 개발 / 테스트 DB에 카탈로그·가상 사이트 멱등 upsert. 게이트웨이 개발용 비밀값이 없으면 해당 env 파일에 생성 |
@@ -104,8 +104,8 @@
   - **BAD**(`DEVICE_BAD`·`HARD_RANGE`·`SPIKE`·`FLATLINE`): 값을 믿을 수 없음. `m_1h.n_good`에서 빠집니다.
   - **INFO**(`CLOCK_SUSPECT`·`LATE`·`REPROCESSED`): 값은 유효하고 수신·출처 상태만 표시. `n_good`에 포함됩니다. 시각 정확도가 중요한 분석은 `isGoodWithTrustedClock`으로 `CLOCK_SUSPECT`까지 뺄 수 있습니다(`lib/ingest/quality.ts`).
   - `n_good` = 값이 NULL이 아니고 BAD 비트가 없는 샘플 수입니다. 이 규칙 이전에 적재한 개발 DB는 `npm run db:rollup:rebuild`로 `m_1h`를 다시 집계하세요.
-- 봉투의 `sent_at`은 실제 전송 시각으로 찍습니다. 따라서 `CLOCK_SUSPECT`는 시계 오차 구간의 배치에만 붙습니다.
-- 같은 시간대에 같은 옵션으로 다시 실행하면 409(같은 `batch_id`에 `sent_at`만 다른 본문)가 나옵니다. 샘플은 이미 들어 있습니다. 다른 시각에 다시 실행하면 기간이 겹쳐 (a)가 맞지 않습니다. 처음부터 다시 만들려면 `npm run db:reset` → `npm run db:seed` → `npm run admin:create`(계정도 지워짐) 후 4~6단계를 반복하세요.
+- 봉투 본문은 시뮬레이터가 만든 그대로 보냅니다(`sent_at` = 시뮬레이션 배치 전송 시각). 서버는 `sent_at`이 아니라 **서명 시각(`X-OM-Timestamp`)과 수신 시각의 차이**로 시계 오차를 재므로(재전송 본문의 `sent_at`은 오래될 수 있음), `CLOCK_SUSPECT`는 시계 오차 구간의 배치에만 붙습니다.
+- 같은 시간대(같은 적재 창)에 같은 시드·옵션으로 다시 실행하면 본문이 같아 모든 배치가 200 duplicate가 되고 원시는 늘지 않습니다. 이 방식 이전 전송기(`sent_at`을 전송 시각으로 바꿔 보냄)로 적재한 데이터에 다시 보내면 409가 날 수 있습니다(샘플은 이미 들어 있음). 다른 시각에 다시 실행하면 기간이 겹쳐 (a)가 맞지 않습니다. 처음부터 다시 만들려면 `npm run db:reset` → `npm run db:seed` → `npm run admin:create`(계정도 지워짐) 후 4~6단계를 반복하세요.
 - 실시간 전송: `npm run sim:live -- --sites SIM-A,SIM-B,SIM-C` 는 현재 시각부터 5분 창마다 보냅니다(시나리오 없음, Ctrl+C로 종료). 설비 상태를 시작 시각으로 추정하므로 적재한 과거 데이터와 값이 이어지지는 않습니다.
 
 ### 테스트
@@ -142,3 +142,22 @@ Better Auth(이메일+비밀번호, 가입 비활성, admin 플러그인, DB 세
 ```bash
 npx node-pg-migrate create <이름> -j sql -m db/migrations --migration-filename-format utc
 ```
+
+## 운영 RDS에 마이그레이션 적용
+
+`npm run db:migrate`는 `.env.development.local`(로컬 DB)을 읽으므로 운영에는 쓰지 않습니다. `.env.local`의 옛 `DB_*` 변수는 읽지 않습니다. 운영용 env 파일을 따로 만들어(`.env*`는 git에 올라가지 않음, 예: `.env.rds.local`) 같은 스크립트를 실행합니다.
+
+1. RDS CA 번들을 받습니다: https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+2. env 파일에 연결 정보만 넣습니다 (마이그레이션은 인증·수집 비밀값이 필요 없습니다).
+   ```bash
+   DATABASE_URL=postgres://<user>:<password>@<rds-endpoint>:5432/<db>
+   DATABASE_SSL=verify-full
+   DATABASE_SSL_CA_PATH=<global-bundle.pem 경로>
+   ```
+3. 적용합니다. 셸에 `DATABASE_URL`이 남아 있으면 dotenv가 파일 값을 덮어쓰지 않으니 먼저 지우세요.
+   ```bash
+   npx dotenv -e .env.rds.local -- tsx scripts/db-migrate.ts up
+   ```
+   - 시작 줄에 접속 대상(비밀번호 제외)과 SSL 모드가 나옵니다. `verify-full`이면 CA 번들로 인증서 체인과 호스트 이름을 검증하고, CA 경로가 없거나 파일을 읽지 못하면 접속 전에 중단합니다.
+   - `require`는 인증서를 검증하지 않아 운영에는 쓰지 않습니다.
+   - 되돌리기: `... tsx scripts/db-migrate.ts down [개수]` (기본 1개)

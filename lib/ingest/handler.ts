@@ -6,6 +6,7 @@ import type { DB } from '@/lib/db/types';
 import { BodyTooLargeError, decodeGzipJson, InvalidBodyError, readBodyLimited } from './body';
 import { parseEnvelope } from './envelope';
 import { findActiveGatewayKey } from './keys';
+import { clockSkewFromSignature } from './normalize';
 import { ingestEnvelope } from './pipeline';
 import { drainDirty } from './rollup';
 import { checkTimestamp, readSignatureHeaders, verifySignature, type SignatureHeaderValues } from './signature';
@@ -131,6 +132,7 @@ async function processRequest(request: Request, deps: IngestDeps): Promise<Respo
     bodyGzip,
     bodyJson: raw,
     receivedAtMs,
+    clockSkewMs: clockSkewFromSignature(Number(signatureHeaders.timestamp), receivedAtMs),
   });
   if (result.kind === 'conflict') {
     throw new IngestHttpError(409, 'batch_conflict', '같은 batch_id로 다른 본문이 이미 수신됐습니다');

@@ -2,7 +2,7 @@ import { gunzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { parseEnvelope } from '@/lib/ingest/envelope';
 import { readSignatureHeaders, verifySignature } from '@/lib/ingest/signature';
-import { createHttpEmitter, rebaseEnvelope, type EmitBatch, type HttpEmitterOptions } from './emit-http';
+import { createHttpEmitter, simulatedClockSkewMs, type EmitBatch, type HttpEmitterOptions } from './emit-http';
 import { buildEnvelope } from './envelope';
 
 const SIM_SENT_AT = Date.parse('2026-08-20T01:05:00.500Z');
@@ -65,15 +65,10 @@ function emitterWith(responses: readonly (Response | Error)[], overrides: Partia
   return { emitter, requests, sleeps };
 }
 
-describe('rebaseEnvelope', () => {
-  it('sent_at을 실제 전송 시각으로 다시 찍고, 시뮬레이션 시계 오차는 유지한다', () => {
-    const normal = rebaseEnvelope(simBatch(), NOW);
-    const skewed = rebaseEnvelope(simBatch(200_000), NOW);
-
-    expect(normal).toMatchObject({ skewMs: 0, envelope: { sent_at: new Date(NOW).toISOString() } });
-    expect(skewed).toMatchObject({ skewMs: 200_000, envelope: { sent_at: new Date(NOW + 200_000).toISOString() } });
-    const original = simBatch(200_000).envelope;
-    expect({ ...skewed.envelope, sent_at: original.sent_at }).toEqual(original);
+describe('simulatedClockSkewMs', () => {
+  it('봉투 sent_at − 실제 전송 시각이다', () => {
+    expect(simulatedClockSkewMs(simBatch())).toBe(0);
+    expect(simulatedClockSkewMs(simBatch(200_000))).toBe(200_000);
   });
 });
 
@@ -93,7 +88,20 @@ describe('createHttpEmitter', () => {
     expect(headers.keyId).toBe('gk_sim-b_dev');
     expect(verifySignature({ headers, secret: SECRET, body: request.body, nowSec: NOW / 1000 })).toEqual({ ok: true });
     const parsed = parseEnvelope(JSON.parse(gunzipSync(request.body).toString('utf8')));
-    expect(parsed.ok && parsed.envelope).toMatchObject({ batch_id: batch.envelope.batch_id, sent_at: new Date(NOW).toISOString() });
+    expect(parsed.ok && parsed.envelope).toMatchObject({ batch_id: batch.envelope.batch_id, sent_at: new Date(SIM_SENT_AT).toISOString() });
+  });
+
+  it('본문은 시뮬레이터 봉투 그대로라, 다른 시각에 다시 실행해도(새 전송기) 서버가 해시하는 JSON이 같다', async () => {
+    const first = emitterWith([ok()]);
+    const rerun = emitterWith([ok('duplicate')], { nowMs: () => NOW + 3_600_000 });
+
+    await first.emitter.emit(simBatch());
+    await expect(rerun.emitter.emit(simBatch())).resolves.toMatchObject({ kind: 'duplicate' });
+
+    const json = (captured: { body: Buffer } | undefined) => gunzipSync(captured?.body ?? Buffer.alloc(0)).toString('utf8');
+    expect(json(rerun.requests[0])).toBe(json(first.requests[0]));
+    expect(json(first.requests[0])).toBe(JSON.stringify(simBatch().envelope));
+    expect(rerun.requests[0]?.headers.get('x-om-timestamp')).toBe(String((NOW + 3_600_000) / 1000));
   });
 
   it('시계 오차가 있는 배치는 게이트웨이 시계로 서명 시각을 찍는다', async () => {

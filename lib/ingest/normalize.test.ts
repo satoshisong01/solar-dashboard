@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { IngestEnvelope, IngestEvent, IngestSeries } from './envelope';
 import {
+  clockSkewFromSignature,
   normalizeEvents,
   normalizeSamples,
   sourceKeyPrefixes,
@@ -29,6 +30,7 @@ const POINTS: ReadonlyMap<string, PointMapping> = new Map([
 ]);
 
 type EnvelopePart = Pick<IngestEnvelope, 'series' | 'sent_at' | 'clock'>;
+const DAY = 24 * 60 * MINUTE;
 
 function envelope(series: readonly IngestSeries[], overrides: Partial<EnvelopePart> = {}): EnvelopePart {
   return {
@@ -40,7 +42,7 @@ function envelope(series: readonly IngestSeries[], overrides: Partial<EnvelopePa
 }
 
 function normalize(part: EnvelopePart, overrides: Partial<NormalizeOptions> = {}) {
-  return normalizeSamples(part, { pointsBySource: POINTS, receivedAtMs: RECEIVED_AT, ...overrides });
+  return normalizeSamples(part, { pointsBySource: POINTS, receivedAtMs: RECEIVED_AT, clockSkewMs: 0, ...overrides });
 }
 
 const regular = (src: string, t0: number, v: (number | null)[], q?: number[]): IngestSeries => ({ src, unit: '', t0, dt: MINUTE, v, q });
@@ -99,21 +101,24 @@ describe('normalizeSamples', () => {
   });
 
   it.each([
-    ['NTP 미동기', { clock: { ntp_synced: false, ntp_offset_ms: 0 } }, true],
-    ['게이트웨이 시계 +121초', { sent_at: new Date(RECEIVED_AT + 121_000).toISOString() }, true],
-    ['게이트웨이 시계 −121초', { sent_at: new Date(RECEIVED_AT - 121_000).toISOString() }, true],
-    ['게이트웨이 시계 +120초', { sent_at: new Date(RECEIVED_AT + 120_000).toISOString() }, false],
-  ])('%s → CLOCK_SUSPECT=%s', (_label, overrides, suspect) => {
-    const result = normalize(envelope([regular('ESS1/RACK01/I_DC', RECEIVED_AT - MINUTE, [1])], overrides));
+    ['NTP 미동기', { clock: { ntp_synced: false, ntp_offset_ms: 0 } }, 0, true],
+    ['게이트웨이 시계 +121초', {}, 121_000, true],
+    ['게이트웨이 시계 −121초', {}, -121_000, true],
+    ['게이트웨이 시계 +120초', {}, 120_000, false],
+  ])('%s → CLOCK_SUSPECT=%s', (_label, overrides, clockSkewMs, suspect) => {
+    const result = normalize(envelope([regular('ESS1/RACK01/I_DC', RECEIVED_AT - MINUTE, [1])], overrides), { clockSkewMs });
 
     expect(result.clockSuspect).toBe(suspect);
     expect(result.samples[0]?.quality).toBe(suspect ? QUALITY.CLOCK_SUSPECT : 0);
   });
 
-  it('skewMs는 sent_at − 수신 시각이다', () => {
-    const result = normalize(envelope([], { sent_at: new Date(RECEIVED_AT + 200_000).toISOString() }));
+  it('skewMs는 clockSkewMs 그대로이고, sent_at이 오래돼도(재전송) 시계 판정에 쓰지 않는다', () => {
+    const resent = normalize(envelope([regular('ESS1/RACK01/I_DC', RECEIVED_AT - 30 * DAY, [1])], { sent_at: new Date(RECEIVED_AT - 30 * DAY).toISOString() }));
+    const skewed = normalize(envelope([]), { clockSkewMs: 200_000 });
 
-    expect(result.skewMs).toBe(200_000);
+    expect(resent).toMatchObject({ skewMs: 0, clockSuspect: false });
+    expect(resent.samples[0]?.quality).toBe(QUALITY.LATE);
+    expect(skewed).toMatchObject({ skewMs: 200_000, clockSuspect: true });
   });
 
   it('매핑되지 않은 태그는 태그별로 합쳐 미매핑으로 분리한다', () => {
@@ -137,6 +142,17 @@ describe('normalizeSamples', () => {
     );
 
     expect(result.samples[0]?.quality).toBe(QUALITY.REPROCESSED | QUALITY.CLOCK_SUSPECT | QUALITY.HARD_RANGE | QUALITY.LATE);
+  });
+});
+
+describe('clockSkewFromSignature', () => {
+  it.each([
+    ['같은 초', Math.floor(RECEIVED_AT / 1000), RECEIVED_AT + 999, 0],
+    ['게이트웨이 +200초', Math.floor(RECEIVED_AT / 1000) + 200, RECEIVED_AT + 500, 200_000],
+    ['게이트웨이 −121초', Math.floor(RECEIVED_AT / 1000) - 121, RECEIVED_AT, -121_000],
+    ['수신이 1초 뒤로 넘어감', Math.floor(RECEIVED_AT / 1000), RECEIVED_AT + 1_000, -1_000],
+  ])('%s', (_label, timestampSec, receivedAtMs, expected) => {
+    expect(clockSkewFromSignature(timestampSec, receivedAtMs)).toBe(expected);
   });
 });
 

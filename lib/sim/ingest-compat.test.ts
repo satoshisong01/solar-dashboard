@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { METRIC_DEF_BY_KEY } from '@/db/seed/catalog';
 import { SIM_SITES } from '@/db/seed/sites';
 import { parseEnvelope } from '@/lib/ingest/envelope';
-import { normalizeSamples, type PointMapping } from '@/lib/ingest/normalize';
+import { clockSkewFromSignature, normalizeSamples, type PointMapping } from '@/lib/ingest/normalize';
 import { QUALITY } from '@/lib/ingest/quality';
 import { simulate, type SimulatedBatch } from './index';
 import { MS_PER_HOUR } from './math';
@@ -53,8 +53,9 @@ describe('시뮬레이터 봉투 ↔ lib/ingest 수집 규칙', () => {
     const parsed = parseEnvelope(JSON.parse(JSON.stringify(batch.envelope)));
     if (!parsed.ok) throw new Error(parsed.issues.join('\n'));
     const pointsBySource = mappings.get(batch.siteCode) ?? new Map<string, PointMapping>();
-    // 실시간 재생: 서버는 실제 전송 시각에 받는다
-    return normalizeSamples(parsed.envelope, { pointsBySource, receivedAtMs: batch.sentAtMs });
+    // 실시간 재생: 서버는 실제 전송 시각에 받고, 전송기(emit-http)는 게이트웨이 시계(sent_at과 같은 오차)로 서명 시각을 찍는다
+    const clockSkewMs = clockSkewFromSignature(Math.floor(Date.parse(parsed.envelope.sent_at) / 1000), batch.sentAtMs);
+    return normalizeSamples(parsed.envelope, { pointsBySource, receivedAtMs: batch.sentAtMs, clockSkewMs });
   };
 
   it('모든 봉투(재전송 포함)가 om.ingest.v1 zod 스키마를 통과한다', () => {

@@ -39,13 +39,9 @@ describe('시뮬레이터 적재와 검증 (hysol_test)', () => {
   let summary: RunSummary;
   let expectation: VerifyExpectation;
 
-  beforeAll(async () => {
+  /** 시뮬레이터 → 전송기 → 핸들러. 서버 시각 = 배치의 실제 전송 시각 + delayMs (0이면 실시간 재생) */
+  async function ingestRun(secrets: ReadonlyMap<string, string>, delayMs: number): Promise<RunSummary> {
     const encryptionKey = testEncryptionKey();
-    const secrets = new Map(SIM_SITES.map(({ gateway }) => [gateway.code, process.env[gateway.secretEnvVar] ?? randomBytes(32).toString('base64url')]));
-    await seedDatabase(db, { encryptionKey, gatewaySecrets: secrets });
-    await clearSimIngestData(db);
-
-    // 실시간 재생: 서버 시각 = 배치의 실제 전송 시각
     let nowMs = FROM;
     const scheduled: (() => Promise<void>)[] = [];
     const deps: IngestDeps = { db, encryptionKey: () => encryptionKey, nowMs: () => nowMs, isDbSaturated: () => false, schedule: (task) => void scheduled.push(task) };
@@ -69,15 +65,25 @@ describe('시뮬레이터 적재와 검증 (hysol_test)', () => {
         { kind: 'safety.h2_leak_alarm', site: 'SIM-B', at: FROM + 2.5 * HOUR },
       ],
     });
-    summary = await runBatches(batches, {
+    return runBatches(batches, {
       concurrency: 1,
       emit: async (batch) => {
-        nowMs = batch.sentAtMs;
+        nowMs = batch.sentAtMs + delayMs;
         const result = await emitter.emit(batch);
         for (const task of scheduled.splice(0)) await task(); // after() 대신
         return result;
       },
     });
+  }
+
+  let secrets: ReadonlyMap<string, string>;
+
+  beforeAll(async () => {
+    secrets = new Map(SIM_SITES.map(({ gateway }) => [gateway.code, process.env[gateway.secretEnvVar] ?? randomBytes(32).toString('base64url')]));
+    await seedDatabase(db, { encryptionKey: testEncryptionKey(), gatewaySecrets: secrets });
+    await clearSimIngestData(db);
+
+    summary = await ingestRun(secrets, 0);
     expectation = { sites: summary.sites, intendedUnmapped: new Map(SIM_SITES.map((site) => [site.code, site.unmappedTags.map((tag) => tag.sourceKey)])) };
   }, 120_000);
 
@@ -106,6 +112,15 @@ describe('시뮬레이터 적재와 검증 (hysol_test)', () => {
 
     expect(checks.map((check) => [check.id, check.status, check.details])).toEqual(checks.map((check) => [check.id, 'pass', check.details]));
   });
+
+  it('같은 시드·같은 창을 나중에 다시 보내면 모든 배치가 409 없이 duplicate이고 원시·판정이 그대로다', async () => {
+    const rerun = await ingestRun(secrets, 2 * HOUR);
+
+    expect(rerun.results).toEqual({ accepted: 0, duplicate: summary.batches, conflict: 0, failed: 0 });
+    expect(rerun.samples.accepted).toBe(0);
+    const checks = evaluateIngest(expectation, await observe());
+    expect(checks.map((check) => [check.id, check.status])).toEqual(checks.map((check) => [check.id, 'pass']));
+  }, 120_000);
 
   it('원시 행 하나가 사라지면 (a) 행 수와 (b) 롤업 비교가 실패한다', async () => {
     await sql`

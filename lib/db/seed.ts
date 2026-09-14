@@ -1,11 +1,11 @@
 // 카탈로그·가상 사이트 시드를 DB에 멱등 upsert한다 (npm run db:seed / db:seed:test).
 // 데이터 정의는 db/seed/*의 순수 모듈이고, 이 파일은 DB 쓰기만 담당한다.
 // 'server-only'를 넣지 않는다: tsx 스크립트와 integration 테스트에서 import한다.
-import type { Kysely, Transaction } from 'kysely';
+import { sql, type Kysely, type Transaction } from 'kysely';
 import { ASSET_CLASSES, METRIC_DEFS } from '@/db/seed/catalog';
 import { SIM_SITES } from '@/db/seed/sites';
 import type { AssetDef, GatewayDef, SiteDef } from '@/db/seed/types';
-import { encryptGatewaySecret } from '@/lib/ingest/key-crypto';
+import { decryptGatewaySecret, encryptGatewaySecret } from '@/lib/ingest/key-crypto';
 import type { DB } from './types';
 
 type Trx = Transaction<DB>;
@@ -124,86 +124,161 @@ async function upsertGateway(trx: Trx, siteId: number, gateway: GatewayDef): Pro
   return inserted.id;
 }
 
+/** 저장된 암호문이 현재 키로 복호화되고 비밀값이 같으면 true */
+function storesSecret(secretEnc: Uint8Array, secret: string, encryptionKey: Uint8Array, keyId: string): boolean {
+  try {
+    return decryptGatewaySecret(secretEnc, encryptionKey, keyId) === secret;
+  } catch {
+    return false;
+  }
+}
+
 async function upsertGatewayKey(trx: Trx, gatewayId: number, gateway: GatewayDef, options: SeedOptions): Promise<void> {
   const secret = options.gatewaySecrets.get(gateway.code);
   if (!secret) throw new Error(`${gateway.code}의 개발용 비밀값(${gateway.secretEnvVar})이 없습니다`);
 
-  // 매번 현재 INGEST_KEY_ENC_KEY로 다시 암호화한다 (키를 바꿨어도 시드를 다시 돌리면 맞춰진다).
+  const existing = await trx.selectFrom('om.gateway_key').select(['gateway_id', 'secret_enc']).where('key_id', '=', gateway.keyId).executeTakeFirst();
+  if (!existing) {
+    await trx
+      .insertInto('om.gateway_key')
+      .values({ key_id: gateway.keyId, gateway_id: gatewayId, secret_enc: encryptGatewaySecret(secret, options.encryptionKey, gateway.keyId) })
+      .execute();
+    return;
+  }
+
+  // 이미 있으면 암호문을 그대로 둔다. 현재 INGEST_KEY_ENC_KEY로 복호화되지 않거나(키 교체) 비밀값이 바뀐 경우에만 다시 암호화한다.
   // revoked_at은 건드리지 않는다.
+  const reencrypt = !storesSecret(existing.secret_enc, secret, options.encryptionKey, gateway.keyId);
+  if (existing.gateway_id === gatewayId && !reencrypt) return;
   await trx
-    .insertInto('om.gateway_key')
-    .values({
-      key_id: gateway.keyId,
-      gateway_id: gatewayId,
-      secret_enc: encryptGatewaySecret(secret, options.encryptionKey, gateway.keyId),
-    })
-    .onConflict((oc) =>
-      oc.column('key_id').doUpdateSet((eb) => ({
-        gateway_id: eb.ref('excluded.gateway_id'),
-        secret_enc: eb.ref('excluded.secret_enc'),
-      })),
-    )
+    .updateTable('om.gateway_key')
+    .set({ gateway_id: gatewayId, ...(reencrypt ? { secret_enc: encryptGatewaySecret(secret, options.encryptionKey, gateway.keyId) } : {}) })
+    .where('key_id', '=', gateway.keyId)
     .execute();
 }
 
 const depthOf = (asset: AssetDef) => asset.code.split('/').length;
 const parentCodeOf = (code: string) => (code.includes('/') ? code.slice(0, code.lastIndexOf('/')) : null);
 
-/** 깊이별로 한 번에 upsert한다 (부모 id가 먼저 있어야 자식의 parent_id를 채울 수 있다). 코드 → id */
+// om.asset·om.point id는 identity라 INSERT … ON CONFLICT를 반복하면 충돌한 행도 시퀀스 값을 소모한다.
+// 그래서 이미 있는 행은 한 문장으로 UPDATE(값이 달라진 행만)하고, 없는 행만 INSERT한다.
+
+interface AssetRow {
+  readonly site_id: number;
+  readonly parent_id: number | null;
+  readonly level: AssetDef['level'];
+  readonly class_key: string;
+  readonly code: string;
+  readonly path: string;
+  readonly name: string;
+  readonly nameplate: AssetDef['nameplate'];
+  readonly peer_group: string | null;
+  readonly criticality: number;
+  readonly commissioned_at: string;
+}
+
+/** 정의된 행 중 DB에 이미 있는 행(id를 붙여서)과 없는 행으로 나눈다 */
+function splitByExisting<T>(rows: readonly T[], idOf: (row: T) => number | undefined) {
+  const existing = rows.flatMap((row) => {
+    const id = idOf(row);
+    return id === undefined ? [] : [{ ...row, id }];
+  });
+  return { existing, missing: rows.filter((row) => idOf(row) === undefined) };
+}
+
+async function updateAssets(trx: Trx, rows: readonly (AssetRow & { readonly id: number })[]): Promise<void> {
+  if (rows.length === 0) return;
+  await sql`
+    UPDATE om.asset AS a SET
+      parent_id = v.parent_id, level = v.level, class_key = v.class_key, path = v.path, name = v.name,
+      nameplate = v.nameplate, peer_group = v.peer_group, criticality = v.criticality, commissioned_at = v.commissioned_at
+    FROM jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) AS v(
+      id int, parent_id int, level text, class_key text, path text, name text,
+      nameplate jsonb, peer_group text, criticality smallint, commissioned_at date
+    )
+    WHERE a.id = v.id
+      AND (a.parent_id, a.level, a.class_key, a.path, a.name, a.nameplate, a.peer_group, a.criticality, a.commissioned_at)
+        IS DISTINCT FROM (v.parent_id, v.level, v.class_key, v.path, v.name, v.nameplate, v.peer_group, v.criticality, v.commissioned_at)
+  `.execute(trx);
+}
+
+function assetRow(site: SiteDef, siteId: number, asset: AssetDef, ids: ReadonlyMap<string, number>): AssetRow {
+  const parentCode = parentCodeOf(asset.code);
+  const parentId = parentCode === null ? null : ids.get(parentCode);
+  if (parentId === undefined) throw new Error(`${site.code}/${asset.code}의 부모 설비(${parentCode})가 정의돼 있지 않습니다`);
+  return {
+    site_id: siteId,
+    parent_id: parentId,
+    level: asset.level,
+    class_key: asset.classKey,
+    code: asset.code,
+    path: `${site.code}/${asset.code}`,
+    name: asset.name,
+    nameplate: asset.nameplate,
+    peer_group: asset.peerGroup,
+    criticality: asset.criticality,
+    commissioned_at: asset.commissionedAt,
+  };
+}
+
+/** 깊이별로 처리한다 (부모 id가 먼저 있어야 자식의 parent_id를 채울 수 있다). 코드 → id */
 async function upsertAssets(trx: Trx, siteId: number, site: SiteDef): Promise<ReadonlyMap<string, number>> {
-  const ids = new Map<string, number>();
+  const stored = await trx.selectFrom('om.asset').select(['id', 'code']).where('site_id', '=', siteId).execute();
+  const ids = new Map(stored.map((row) => [row.code, row.id]));
   const depths = [...new Set(site.assets.map(depthOf))].sort((a, b) => a - b);
 
   for (const depth of depths) {
-    const rows = site.assets
-      .filter((asset) => depthOf(asset) === depth)
-      .map((asset) => {
-        const parentCode = parentCodeOf(asset.code);
-        const parentId = parentCode === null ? null : ids.get(parentCode);
-        if (parentId === undefined) throw new Error(`${site.code}/${asset.code}의 부모 설비(${parentCode})가 정의돼 있지 않습니다`);
-        return {
-          site_id: siteId,
-          parent_id: parentId,
-          level: asset.level,
-          class_key: asset.classKey,
-          code: asset.code,
-          path: `${site.code}/${asset.code}`,
-          name: asset.name,
-          nameplate: JSON.stringify(asset.nameplate),
-          peer_group: asset.peerGroup,
-          criticality: asset.criticality,
-          commissioned_at: asset.commissionedAt,
-        };
-      });
-
-    const upserted = await trx
+    const rows = site.assets.filter((asset) => depthOf(asset) === depth).map((asset) => assetRow(site, siteId, asset, ids));
+    const { existing, missing } = splitByExisting(rows, (row) => ids.get(row.code));
+    await updateAssets(trx, existing);
+    if (missing.length === 0) continue;
+    const inserted = await trx
       .insertInto('om.asset')
-      .values(rows)
-      .onConflict((oc) =>
-        oc.columns(['site_id', 'code']).doUpdateSet((eb) => ({
-          parent_id: eb.ref('excluded.parent_id'),
-          level: eb.ref('excluded.level'),
-          class_key: eb.ref('excluded.class_key'),
-          path: eb.ref('excluded.path'),
-          name: eb.ref('excluded.name'),
-          nameplate: eb.ref('excluded.nameplate'),
-          peer_group: eb.ref('excluded.peer_group'),
-          criticality: eb.ref('excluded.criticality'),
-          commissioned_at: eb.ref('excluded.commissioned_at'),
-        })),
-      )
+      .values(missing.map((row) => ({ ...row, nameplate: JSON.stringify(row.nameplate) })))
       .returning(['id', 'code'])
       .execute();
-    for (const { id, code } of upserted) ids.set(code, id);
+    for (const { id, code } of inserted) ids.set(code, id);
   }
-  return ids;
+  return new Map(site.assets.flatMap((asset) => {
+    const id = ids.get(asset.code);
+    return id === undefined ? [] : [[asset.code, id] as const];
+  }));
+}
+
+interface PointRow {
+  readonly asset_id: number;
+  readonly metric_key: string;
+  readonly qualifier: string;
+  readonly gateway_id: number;
+  readonly source_key: string;
+  readonly source_unit: string;
+  readonly scale: number;
+  readonly value_offset: number;
+  readonly period_s: number;
+}
+
+const pointKey = (row: Pick<PointRow, 'asset_id' | 'metric_key' | 'qualifier'>) => `${row.asset_id}|${row.metric_key}|${row.qualifier}`;
+
+async function updatePoints(trx: Trx, rows: readonly (PointRow & { readonly id: number })[]): Promise<void> {
+  if (rows.length === 0) return;
+  await sql`
+    UPDATE om.point AS p SET
+      gateway_id = v.gateway_id, source_key = v.source_key, source_unit = v.source_unit,
+      scale = v.scale, value_offset = v.value_offset, period_s = v.period_s
+    FROM jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) AS v(
+      id int, gateway_id smallint, source_key text, source_unit text, scale float8, value_offset float8, period_s int
+    )
+    WHERE p.id = v.id
+      AND (p.gateway_id, p.source_key, p.source_unit, p.scale, p.value_offset, p.period_s)
+        IS DISTINCT FROM (v.gateway_id, v.source_key, v.source_unit, v.scale, v.value_offset, v.period_s)
+  `.execute(trx);
 }
 
 async function upsertPoints(trx: Trx, gatewayId: number, assetIds: ReadonlyMap<string, number>, site: SiteDef): Promise<number> {
   const rows = site.assets.flatMap((asset) => {
     const assetId = assetIds.get(asset.code);
     if (assetId === undefined) throw new Error(`${site.code}/${asset.code} 설비 id를 찾지 못했습니다`);
-    return asset.points.map((point) => ({
+    return asset.points.map((point): PointRow => ({
       asset_id: assetId,
       metric_key: point.metricKey,
       qualifier: point.qualifier,
@@ -217,20 +292,15 @@ async function upsertPoints(trx: Trx, gatewayId: number, assetIds: ReadonlyMap<s
   });
   if (rows.length === 0) return 0;
 
-  await trx
-    .insertInto('om.point')
-    .values(rows)
-    .onConflict((oc) =>
-      oc.columns(['asset_id', 'metric_key', 'qualifier']).doUpdateSet((eb) => ({
-        gateway_id: eb.ref('excluded.gateway_id'),
-        source_key: eb.ref('excluded.source_key'),
-        source_unit: eb.ref('excluded.source_unit'),
-        scale: eb.ref('excluded.scale'),
-        value_offset: eb.ref('excluded.value_offset'),
-        period_s: eb.ref('excluded.period_s'),
-      })),
-    )
+  const stored = await trx
+    .selectFrom('om.point')
+    .select(['id', 'asset_id', 'metric_key', 'qualifier'])
+    .where('asset_id', 'in', [...new Set(rows.map((row) => row.asset_id))])
     .execute();
+  const ids = new Map(stored.map((row) => [pointKey(row), row.id]));
+  const { existing, missing } = splitByExisting(rows, (row) => ids.get(pointKey(row)));
+  await updatePoints(trx, existing);
+  if (missing.length > 0) await trx.insertInto('om.point').values(missing).execute();
   return rows.length;
 }
 

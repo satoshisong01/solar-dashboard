@@ -155,6 +155,29 @@ describe('POST /api/ingest/v1 처리 (hysol_test)', () => {
     expect(await countRows(BASE + 2 * HOUR, BASE + 3 * HOUR)).toBe(1);
   });
 
+  it('시계 오차는 서명 시각으로 잰다: sent_at이 오래된 재전송 본문도 서명 시각이 맞으면 정상, 서명 시각 +200초면 CLOCK_SUSPECT', async () => {
+    const now = BASE + 3 * HOUR + 5 * MINUTE;
+    const src = FIXTURE_POINTS.SOC.sourceKey;
+    const stale = fixtureEnvelope(now - 2 * HOUR, { series: [{ src, unit: '%', ts: [BASE + 3 * HOUR], v: [70] }] });
+    const skewed = fixtureEnvelope(now, { series: [{ src, unit: '%', ts: [BASE + 3 * HOUR + MINUTE], v: [71] }] });
+
+    expect((await post(stale, now)).response.status).toBe(200);
+    const { deps } = testDeps(db, fixture, now);
+    expect((await handleIngestRequest(signedRequest(skewed, sign(now + 200_000)), deps)).status).toBe(200);
+
+    const samples = await db
+      .selectFrom('om.measurement')
+      .select('quality')
+      .where('point_id', '=', fixture.pointIds.SOC)
+      .where('ts', '>=', new Date(BASE + 3 * HOUR))
+      .where('ts', '<', new Date(BASE + 4 * HOUR))
+      .orderBy('ts')
+      .execute();
+    expect(samples).toEqual([{ quality: 0 }, { quality: QUALITY.CLOCK_SUSPECT }]);
+    const batches = await db.selectFrom('om.ingest_batch').select(['batch_id', 'skew_ms']).where('batch_id', 'in', [stale.batch_id, skewed.batch_id]).execute();
+    expect(Object.fromEntries(batches.map((b) => [b.batch_id, b.skew_ms]))).toEqual({ [stale.batch_id]: 0, [skewed.batch_id]: 200_000 });
+  });
+
   it('샘플 달의 파티션이 없으면 만든 뒤 DEFAULT가 아니라 그 파티션에 적재한다', async () => {
     const future = Date.UTC(2028, 1, 10, 6); // 마이그레이션 사전 생성 범위 밖
     const envelope = fixtureEnvelope(future, { series: [{ src: FIXTURE_POINTS.SOC.sourceKey, unit: '%', ts: [future - MINUTE], v: [55] }] });

@@ -1,6 +1,6 @@
 // 보존한 원본 배치(bronze)를 다시 정규화해 원시에 채운다 (설계 §3 기둥 1, §5.1 규칙 5).
 // 미매핑 태그를 포인트로 매핑한 뒤 호출하면, 이미 있던 샘플은 ON CONFLICT로 건너뛰고 새로 매핑된 포인트 샘플만
-// REPROCESSED 비트와 함께 들어간다. LATE·CLOCK_SUSPECT·미래 거부는 원래 수신 시각 기준으로 다시 판정한다.
+// REPROCESSED 비트와 함께 들어간다. LATE·미래 거부는 원래 수신 시각, CLOCK_SUSPECT는 수신 때 기록한 시계 오차(skew_ms)로 다시 판정한다.
 // 미매핑 인박스·이벤트·게이트웨이 상태·배치 통계는 원래 수신 기록이므로 건드리지 않는다.
 // 'server-only'를 넣지 않는다: 관리 스크립트와 테스트에서도 쓴다.
 import type { Kysely } from 'kysely';
@@ -45,6 +45,8 @@ export interface ReplayResult extends ReplayTotals {
 interface BatchRow {
   readonly id: string;
   readonly received_at: Date;
+  /** 수신 때 서명 시각으로 잰 시계 오차 (수집 코드는 항상 기록한다) */
+  readonly skew_ms: number | null;
   readonly body_gzip: Buffer;
 }
 
@@ -64,7 +66,7 @@ async function listBatchIds(db: Kysely<DB>, gatewayId: number, from: Date | unde
 async function fetchBatches(db: Kysely<DB>, ids: readonly string[]): Promise<readonly BatchRow[]> {
   return db
     .selectFrom('om.ingest_batch')
-    .select(['id', 'received_at', 'body_gzip'])
+    .select(['id', 'received_at', 'skew_ms', 'body_gzip'])
     .where('id', 'in', [...ids])
     .orderBy('received_at')
     .orderBy('id')
@@ -100,7 +102,7 @@ async function replayChunk(
   const valid = decoded.flatMap(({ row, envelope }) => (envelope ? [{ row, envelope: onlySources(envelope, sourceKeys) }] : []));
   const pointsBySource = await loadPointMappings(db, gatewayId, valid.flatMap(({ envelope }) => envelope.series.map((s) => s.src)));
   const normalized: readonly NormalizedBatch[] = valid.map(({ row, envelope }) =>
-    normalizeSamples(envelope, { pointsBySource, receivedAtMs: row.received_at.getTime(), reprocessed: true }),
+    normalizeSamples(envelope, { pointsBySource, receivedAtMs: row.received_at.getTime(), clockSkewMs: row.skew_ms ?? 0, reprocessed: true }),
   );
   await ensurePartitionsFor(db, normalized.flatMap((batch) => batch.samples.map((sample) => sample.tsMs)));
 

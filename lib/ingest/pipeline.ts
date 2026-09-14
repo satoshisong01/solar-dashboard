@@ -16,12 +16,14 @@ export interface IngestEnvelopeInput {
   /** 압축을 푼 JSON 바이트 (같은 batch_id 재전송 판별용 해시) */
   readonly bodyJson: Uint8Array;
   readonly receivedAtMs: number;
+  /** 게이트웨이 시계 − 수신 시각 (ms). 서명 시각으로 잰다 (normalize.clockSkewFromSignature) */
+  readonly clockSkewMs: number;
 }
 
 export async function ingestEnvelope(db: Kysely<DB>, input: IngestEnvelopeInput): Promise<StoreBatchResult> {
-  const { envelope, gatewayId, siteId, receivedAtMs } = input;
+  const { envelope, gatewayId, siteId, receivedAtMs, clockSkewMs } = input;
   const pointsBySource = await loadPointMappings(db, gatewayId, envelope.series.map((series) => series.src));
-  const normalized = normalizeSamples(envelope, { pointsBySource, receivedAtMs });
+  const normalized = normalizeSamples(envelope, { pointsBySource, receivedAtMs, clockSkewMs });
   const eventContext = await loadEventContext(db, siteId, envelope.events.map((event) => event.src));
   const events = normalizeEvents(envelope.events, eventContext);
 

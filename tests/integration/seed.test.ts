@@ -6,7 +6,7 @@ import { ASSET_CLASSES, METRIC_DEFS } from '@/db/seed/catalog';
 import { SIM_SITES } from '@/db/seed/sites';
 import { seedDatabase, type SeedOptions } from '@/lib/db/seed';
 import type { DB } from '@/lib/db/types';
-import { decodeEncryptionKey, decryptGatewaySecret } from '@/lib/ingest/key-crypto';
+import { decodeEncryptionKey, decryptGatewaySecret, encryptGatewaySecret } from '@/lib/ingest/key-crypto';
 import { assertTestDatabaseUrl } from '../support/test-env';
 
 const databaseUrl = assertTestDatabaseUrl(process.env.DATABASE_URL);
@@ -25,6 +25,10 @@ interface Snapshot {
   readonly sites: readonly { id: number; code: string }[];
   readonly gateways: readonly { id: number; code: string }[];
   readonly counts: Readonly<Record<string, number>>;
+  /** om 스키마 identity 시퀀스의 마지막 값 (시드를 반복해도 늘지 않아야 한다) */
+  readonly sequences: Readonly<Record<string, string | null>>;
+  /** 게이트웨이 키 암호문 hex (이미 있으면 다시 암호화하지 않아야 한다) */
+  readonly keyCiphertexts: Readonly<Record<string, string>>;
 }
 
 describe('seedDatabase (hysol_test)', () => {
@@ -48,6 +52,19 @@ describe('seedDatabase (hysol_test)', () => {
         points: await count('om.point'),
         gatewayKeys: await count('om.gateway_key'),
       },
+      sequences: Object.fromEntries(
+        (
+          await sql<{ name: string; last_value: string | null }>`
+            SELECT sequencename AS name, last_value::text AS last_value FROM pg_sequences WHERE schemaname = 'om' ORDER BY 1
+          `.execute(db)
+        ).rows.map((row) => [row.name, row.last_value]),
+      ),
+      keyCiphertexts: Object.fromEntries(
+        (await db.selectFrom('om.gateway_key').select(['key_id', 'secret_enc']).where('key_id', 'like', 'gk_sim-%').orderBy('key_id').execute()).map((row) => [
+          row.key_id,
+          row.secret_enc.toString('hex'),
+        ]),
+      ),
     };
   }
 
@@ -70,7 +87,7 @@ describe('seedDatabase (hysol_test)', () => {
     });
   });
 
-  it('두 번 실행해도 행 수와 id가 그대로다 (멱등)', async () => {
+  it('두 번 실행해도 행 수·id·시퀀스 값·키 암호문이 그대로다 (멱등)', async () => {
     const summary = await seedDatabase(db, options);
 
     expect(summary).toEqual({
@@ -98,6 +115,20 @@ describe('seedDatabase (hysol_test)', () => {
       { child: 'SIM-B/ELZ1/STACK1', parent: 'SIM-B/ELZ1' },
       { child: 'SIM-C/H2BANK1/TANK4', parent: 'SIM-C/H2BANK1' },
     ]);
+  });
+
+  it('저장된 키를 현재 암호화 키로 풀 수 없으면(키 교체) 시드가 다시 암호화한다', async () => {
+    const otherKey = randomBytes(32);
+    await db
+      .updateTable('om.gateway_key')
+      .set({ secret_enc: encryptGatewaySecret(options.gatewaySecrets.get('GW-SIMA-01') ?? 'x', otherKey, 'gk_sim-a_dev') })
+      .where('key_id', '=', 'gk_sim-a_dev')
+      .execute();
+
+    await seedDatabase(db, options);
+
+    const row = await db.selectFrom('om.gateway_key').select('secret_enc').where('key_id', '=', 'gk_sim-a_dev').executeTakeFirstOrThrow();
+    expect(decryptGatewaySecret(row.secret_enc, options.encryptionKey, 'gk_sim-a_dev')).toBe(options.gatewaySecrets.get('GW-SIMA-01'));
   });
 
   it('게이트웨이 키는 암호화돼 저장되고 같은 키로 복호화된다', async () => {

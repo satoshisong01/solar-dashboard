@@ -173,3 +173,28 @@ describe('getServerEnv — SAFETY_SILENCE_MINUTES', () => {
     expect(() => getServerEnv()).toThrow(/SAFETY_SILENCE_MINUTES/);
   });
 });
+
+describe('parseDatabaseEnv (마이그레이션 스크립트용)', () => {
+  it('DB 변수만 있으면 통과하고 인증·수집 비밀값은 요구하지 않는다', async () => {
+    const { parseDatabaseEnv } = await import('./env');
+
+    expect(parseDatabaseEnv({ DATABASE_URL: VALID_ENV.DATABASE_URL, DB_HOST: 'should-not-leak' })).toEqual({
+      DATABASE_URL: VALID_ENV.DATABASE_URL,
+      DATABASE_SSL: 'disable',
+    });
+  });
+
+  it('verify-full이면 CA 경로를 함께 담고, 없으면 오류를 던진다', async () => {
+    const { parseDatabaseEnv } = await import('./env');
+    const rds = { DATABASE_URL: 'postgres://u:p@db.example.com:5432/hysol', DATABASE_SSL: 'verify-full' };
+
+    expect(parseDatabaseEnv({ ...rds, DATABASE_SSL_CA_PATH: 'certs/global-bundle.pem' })).toMatchObject({ DATABASE_SSL_CA_PATH: 'certs/global-bundle.pem' });
+    expect(() => parseDatabaseEnv(rds)).toThrow(/DB 환경변수 설정 오류[\s\S]*CA 번들 파일 경로가 필요합니다[\s\S]*DATABASE_SSL_CA_PATH/);
+  });
+
+  it('DATABASE_URL에 sslmode가 있으면 거부한다', async () => {
+    const { parseDatabaseEnv } = await import('./env');
+
+    expect(() => parseDatabaseEnv({ DATABASE_URL: 'postgres://u:p@db.example.com:5432/hysol?sslmode=require' })).toThrow(/DATABASE_SSL을 사용하세요/);
+  });
+});
