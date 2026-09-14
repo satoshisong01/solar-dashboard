@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { BRAND } from '@/lib/brand';
 import { BrandMark } from './brand-mark';
-import { NAV_GROUPS } from './nav-items';
+import { navGroupsFor } from './nav-items';
 import { NavLink } from './nav-link';
 
 const LINK_CLASS =
@@ -10,7 +10,7 @@ const LINK_CLASS =
   'aria-[current=page]:shadow-[inset_3px_0_0_var(--accent)]';
 
 /** md 이상에서만 보이는 좌측 사이드바. */
-export function Sidebar() {
+export function Sidebar({ showSim }: Readonly<{ showSim: boolean }>) {
   return (
     <div className="sticky top-0 hidden h-dvh flex-col gap-7 overflow-y-auto border-r border-rule bg-surface px-3 py-5 md:flex">
       <Link href="/" className="flex items-center gap-2.5 rounded-md px-2.5">
@@ -22,7 +22,7 @@ export function Sidebar() {
       </Link>
 
       <nav aria-label="주 메뉴" className="flex flex-col gap-5">
-        {NAV_GROUPS.map((group) => (
+        {navGroupsFor(showSim).map((group) => (
           <div key={group.id} className="flex flex-col gap-1.5">
             <p id={`nav-group-${group.id}`} className="px-2.5 font-mono text-[11px] tracking-wider text-muted">
               {group.label}

@@ -1,6 +1,5 @@
 // 플릿 매트릭스 셀(사이트 × 도메인) 상태 규칙. 순수 함수 (now 주입).
-// P1 신호: 데이터 신선도 · 최근 알람 · 미확인 안전 이벤트 · 데이터 품질 비트 비율.
-// P2에서 발견사항(finding) 기반 신호가 이 입력에 추가된다.
+// 신호: 데이터 신선도 · 최근 알람 · 미확인 안전 이벤트 · 데이터 품질 비트 비율 · (P2) 열린 발견사항 최고 심각도.
 import { formatDuration } from '@/lib/format';
 
 export type StatusLevel = 'ok' | 'warn' | 'crit' | 'unknown' | 'na';
@@ -18,6 +17,9 @@ export interface CellSignals {
   /** 최근 24시간 샘플 수와 그중 유효성 비트(INVALID_QUALITY_MASK)가 켜진 수 */
   readonly samples24h: number;
   readonly invalidSamples24h: number;
+  /** 이 셀에 속한 열린 발견사항(기각·효과 확인 제외) 수와 최고 심각도(없으면 null) */
+  readonly openFindings: number;
+  readonly maxFindingSeverity: number | null;
 }
 
 export interface CellStatus {
@@ -31,6 +33,8 @@ export const FLEET_THRESHOLDS = Object.freeze({
   staleCritMs: 60 * 60_000,
   dqWarnRatio: 0.01,
   dqCritRatio: 0.05,
+  findingWarnSeverity: 2,
+  findingCritSeverity: 4,
   alarmWindowMs: 24 * 3_600_000,
 });
 
@@ -62,6 +66,15 @@ function dataQuality(samples: number, invalid: number): Finding | null {
   return null;
 }
 
+/** 열린 발견사항: 최고 심각도 4 이상 위험, 2 이상 주의, 1(관찰)은 수준을 올리지 않고 사유만 남긴다 */
+function openFindings(count: number, maxSeverity: number | null): Finding | null {
+  if (count <= 0 || maxSeverity === null) return null;
+  const reason = `열린 발견사항 ${count}건 (최고 심각도 ${maxSeverity})`;
+  if (maxSeverity >= FLEET_THRESHOLDS.findingCritSeverity) return { level: 'crit', reason };
+  if (maxSeverity >= FLEET_THRESHOLDS.findingWarnSeverity) return { level: 'warn', reason };
+  return { level: 'ok', reason };
+}
+
 export function evaluateCell(signals: CellSignals, nowMs: number): CellStatus {
   if (!signals.hasAssets) return { level: 'na', reasons: [] };
 
@@ -70,6 +83,7 @@ export function evaluateCell(signals: CellSignals, nowMs: number): CellStatus {
     ...alarms(signals),
     signals.unackedSafety > 0 ? { level: 'crit', reason: `미확인 안전 이벤트 ${signals.unackedSafety}건` } : null,
     dataQuality(signals.samples24h, signals.invalidSamples24h),
+    openFindings(signals.openFindings, signals.maxFindingSeverity),
   ].filter((finding): finding is Finding => finding !== null);
 
   return {

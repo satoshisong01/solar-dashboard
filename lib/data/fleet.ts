@@ -2,6 +2,7 @@ import 'server-only';
 import { sql } from 'kysely';
 import { db } from '@/lib/db/kysely';
 import { FLEET_COLUMNS, domainOfClass, type FleetColumn } from './domains';
+import { getOpenFindingGroups, type OpenFindingGroup } from './findings';
 import { FLEET_THRESHOLDS, evaluateCell, worstLevel, type CellSignals, type CellStatus, type StatusLevel } from './fleet-status';
 import { getLatestSamples, type LatestSample } from './points';
 import { INVALID_QUALITY_MASK } from './quality';
@@ -34,11 +35,12 @@ interface FleetInputs {
   readonly latest: ReadonlyMap<number, LatestSample>;
   readonly events: readonly Readonly<{ site_id: number; class_key: string | null; is_safety: boolean; severity: string; n: number }>[];
   readonly quality: readonly (SiteClassRow & { readonly samples: number; readonly invalid: number })[];
+  readonly findings: readonly OpenFindingGroup[];
 }
 
 async function loadInputs(nowMs: number): Promise<FleetInputs> {
   const since = new Date(nowMs - FLEET_THRESHOLDS.alarmWindowMs).toISOString();
-  const [sites, classes, points, events, quality] = await Promise.all([
+  const [sites, classes, points, events, quality, findings] = await Promise.all([
     db.selectFrom('om.site').select(['id', 'code', 'name', 'lat', 'lon']).orderBy('code').execute(),
     db.selectFrom('om.asset').select(['site_id', 'class_key']).distinct().execute(),
     db.selectFrom('om.point as p').innerJoin('om.asset as a', 'a.id', 'p.asset_id').select(['p.id', 'a.site_id', 'a.class_key']).execute(),
@@ -58,9 +60,10 @@ async function loadInputs(nowMs: number): Promise<FleetInputs> {
       WHERE m.ts >= ${since}::timestamptz
       GROUP BY a.site_id, a.class_key
     `.execute(db),
+    getOpenFindingGroups(),
   ]);
   const latest = await getLatestSamples(points.map((p) => p.id));
-  return { sites, classes, points, latest, events: events.rows, quality: quality.rows };
+  return { sites, classes, points, latest, events: events.rows, quality: quality.rows, findings };
 }
 
 const maxNullable = (a: number | null, b: number | null): number | null => (a === null ? b : b === null ? a : Math.max(a, b));
@@ -86,7 +89,16 @@ function signalsFor(inputs: FleetInputs, siteId: number, column: FleetColumn): C
     unackedSafety: count((row) => row.is_safety),
     samples24h: sum(quality.map((row) => row.samples)),
     invalidSamples24h: sum(quality.map((row) => row.invalid)),
+    ...findingSignals(inputs.findings, siteId, column),
   };
+}
+
+/** 데이터 품질 카테고리 발견사항은 데이터품질 열, 나머지는 설비 종류의 도메인 열 (사이트 단위 발견사항은 어느 열에도 넣지 않는다) */
+function findingSignals(groups: readonly OpenFindingGroup[], siteId: number, column: FleetColumn): Pick<CellSignals, 'openFindings' | 'maxFindingSeverity'> {
+  const inCell = groups.filter(
+    (g) => g.siteId === siteId && (g.category === 'data_quality' ? column === 'dq' : column !== 'dq' && g.classKey !== null && domainOfClass(g.classKey) === column),
+  );
+  return { openFindings: sum(inCell.map((g) => g.count)), maxFindingSeverity: inCell.length === 0 ? null : Math.max(...inCell.map((g) => g.maxSeverity)) };
 }
 
 /** 플릿 매트릭스: 셀 상태는 lib/data/fleet-status.ts 규칙으로 계산한다 */

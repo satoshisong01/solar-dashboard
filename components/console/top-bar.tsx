@@ -5,14 +5,14 @@ import { signOutAction } from '@/lib/auth/actions';
 import { BRAND } from '@/lib/brand';
 import { BrandMark } from './brand-mark';
 import { CurrentTitle } from './current-title';
-import { NAV_GROUPS } from './nav-items';
+import { navGroupsFor } from './nav-items';
 import { NavLink } from './nav-link';
 
 const TAB_CLASS =
   'flex items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1.5 text-sm text-ink-2 hover:bg-sunken hover:text-ink ' +
   'aria-[current=page]:bg-hydrogen-fill aria-[current=page]:font-medium aria-[current=page]:text-ink';
 
-export function TopBar({ email }: { email: string }) {
+export function TopBar({ email, showSim }: Readonly<{ email: string; showSim: boolean }>) {
   return (
     <header className="border-b border-rule bg-surface md:sticky md:top-0 md:z-10">
       <div className="flex h-14 items-center gap-3 px-4 md:px-8">
@@ -21,7 +21,7 @@ export function TopBar({ email }: { email: string }) {
           {BRAND.name}
         </Link>
         <div className="hidden min-w-0 md:block">
-          <CurrentTitle />
+          <CurrentTitle showSim={showSim} />
         </div>
 
         <div className="ml-auto flex min-w-0 items-center gap-3">
@@ -41,7 +41,7 @@ export function TopBar({ email }: { email: string }) {
       {/* md 미만: 사이드바 대신 가로 스크롤 탭. 스크롤은 이 목록 안에서만 생긴다. */}
       <nav aria-label="주 메뉴" className="border-t border-rule md:hidden">
         <ul className="flex items-center gap-1 overflow-x-auto px-4 py-2">
-          {NAV_GROUPS.flatMap((group, groupIndex) =>
+          {navGroupsFor(showSim).flatMap((group, groupIndex) =>
             group.items.map(({ href, label, icon: Icon }, itemIndex) => (
               <li
                 key={href}

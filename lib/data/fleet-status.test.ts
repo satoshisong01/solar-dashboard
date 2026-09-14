@@ -12,6 +12,8 @@ const healthy: CellSignals = {
   unackedSafety: 0,
   samples24h: 10_000,
   invalidSamples24h: 0,
+  openFindings: 0,
+  maxFindingSeverity: null,
 };
 
 const signals = (patch: Partial<CellSignals>): CellSignals => ({ ...healthy, ...patch });
@@ -82,6 +84,20 @@ describe('evaluateCell', () => {
 
     it('24시간 샘플이 없으면 비율을 판정하지 않는다', () => {
       expect(evaluateCell(signals({ samples24h: 0, invalidSamples24h: 0 }), NOW).level).toBe('ok');
+    });
+  });
+
+  describe('열린 발견사항 최고 심각도 (P2)', () => {
+    it('경계값: 심각도 1은 사유만, 2~3은 warn, 4 이상은 crit', () => {
+      expect(evaluateCell(signals({ openFindings: 2, maxFindingSeverity: 1 }), NOW)).toEqual({ level: 'ok', reasons: ['열린 발견사항 2건 (최고 심각도 1)'] });
+      expect(evaluateCell(signals({ openFindings: 1, maxFindingSeverity: 2 }), NOW)).toEqual({ level: 'warn', reasons: ['열린 발견사항 1건 (최고 심각도 2)'] });
+      expect(evaluateCell(signals({ openFindings: 3, maxFindingSeverity: 3 }), NOW).level).toBe('warn');
+      expect(evaluateCell(signals({ openFindings: 1, maxFindingSeverity: 4 }), NOW)).toEqual({ level: 'crit', reasons: ['열린 발견사항 1건 (최고 심각도 4)'] });
+    });
+
+    it('열린 발견사항이 없으면 판정에 넣지 않고, 설비가 없는 셀은 na 그대로', () => {
+      expect(evaluateCell(signals({ openFindings: 0, maxFindingSeverity: null }), NOW)).toEqual({ level: 'ok', reasons: [] });
+      expect(evaluateCell(signals({ hasAssets: false, openFindings: 1, maxFindingSeverity: 5 }), NOW).level).toBe('na');
     });
   });
 

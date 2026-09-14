@@ -124,7 +124,7 @@ npm run analyze -- --sites SIM-A,SIM-B,SIM-C --days 120 --to <적재 끝 시각,
 
 ### 분석 실행 (`lib/analysis`)
 
-분석은 **수동 실행만** 있습니다(설계 §0). 관리자가 사이트·설비·기간을 고르면 `runAnalysis(db, { siteIds, assetIds?, from, to, requestedBy })`가 결과를 발견사항(finding)으로만 저장하고, 리포트는 만들지 않습니다. 콘솔 버튼(다음 단계)과 로컬 확인용 CLI가 같은 함수를 씁니다.
+분석은 **수동 실행만** 있습니다(설계 §0). 관리자가 사이트·설비·기간을 고르면 `runAnalysis(db, { siteIds, assetIds?, from, to, requestedBy })`가 결과를 발견사항(finding)으로만 저장하고, 리포트는 만들지 않습니다. 콘솔의 "분석 실행" 버튼(`/desk`)과 로컬 확인용 CLI가 같은 함수를 씁니다.
 
 ```bash
 npm run analyze -- --sites SIM-A,SIM-B,SIM-C --days 120        # 끝 시각 기본값 = 지금
@@ -141,6 +141,14 @@ npm run analyze -- --sites SIM-B --days 30 --to 2026-09-15T00:00:00+09:00 --asse
 8. 설비·탐지기 단위 오류와 시간 예산(기본 15분) 초과는 기록하고 계속해 `partial`, 실행 전체가 실패하면 `failed`로 끝납니다. `stats`에 사이트별 설비·에피소드·KPI 행·탐지기별 ok/부족/오류/finding·finding 생성·갱신·억제·재발·검증 결과·소요시간이 남습니다.
 
 상태 전이(`lib/analysis/transitions.ts`, 규칙은 `transition-rules.ts`): `triageFinding`(new·reopened → triaged), `dismissFinding`(사유 필수, 억제 기간, 사유가 '운영 조건 변경'이면 `resetBaseline`으로 기준선 분할 `asset_event` 생성), `reopenFinding`, `markFindingsInReport`(리포트 승인 시), `registerMaintenanceAction`(조치 기록 + `action_taken`). `verified`는 조치 검증(system)만 기록합니다.
+
+### 분석 데스크 화면 (`/desk`, `/desk/[findingId]`)
+
+- **분석 실행**: 사이트(여러 개)·설비(선택)·기간(최근 30/90/120일·사용자 지정)을 골라 Server Action이 `runAnalysis`를 부릅니다(화면 시간 예산 10분, 페이지 `maxDuration` 800초). 결과 요약(새 발견사항·갱신·판정 불가 탐지기·소요 시간)과 최근 실행 10건을 보여 주고, 리포트는 만들지 않습니다.
+- **인박스**: 필터(사이트·도메인·카테고리·최소 심각도·상태, URL 쿼리)와 정렬(심각도×신뢰도 → 심각도 → 최근 탐지)은 `lib/desk/inbox.ts` 순수 규칙입니다. 일괄 분류(triaged)와 일괄 기각(사유 필수, 억제 기간, '운영 조건 변경'이면 발생 시점에 기준선 분할 이벤트)을 합니다. 최근 탐지 500건 안에서 거릅니다.
+- **워크스페이스**: 탐지기 신뢰 배지(`lib/analytics/scorecard.json`), 효과 카드(효과 크기·95% CI·같은 조건 문장·기준 전류 환산 충전시간), 같은 조건 비교표, 에피소드 오버레이(경과시간/누적 Ah/SOC 축), 추세 산점도(Theil–Sen 선·기울기 CI 밴드·CUSUM 변화 시작·SOH 80% 도달 예상일), 원시 시계열(에피소드·결측 구간 밴드, 확대 시 `/api/series`), 동종 비교, 원인 후보 판별 체크와 플레이북, 권고 조치 기록(→ `maintenance_action`, `action_taken`), 활동 타임라인. 근거 스냅샷 jsonb는 `lib/desk/evidence.ts`가 표시 모델로 읽습니다.
+- **오늘**: 할 일 카운터(새 발견사항·조사 중·조치 후 검증 대기·최근 7일 검증 결과)와 새 발견·다시 열림 상위 10건. **플릿**: 열린 발견사항 최고 심각도 4 이상 위험, 2 이상 주의.
+- **시뮬레이터**(`/sim`): `HYSOL_SHOW_SIM=1`일 때만 메뉴·라우트가 열리며 스코어카드의 게이트·탐지기별 성능·최소 탐지 크기 곡선을 보여 줍니다.
 
 ### 시뮬레이터 평가 게이트 (`sim:eval`)
 

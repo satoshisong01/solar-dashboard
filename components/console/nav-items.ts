@@ -2,6 +2,7 @@ import {
   ChartSpline,
   Database,
   FileText,
+  FlaskConical,
   LayoutGrid,
   ListChecks,
   MapPin,
@@ -46,6 +47,15 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     ],
   },
 ];
+
+/** 시뮬레이터 스코어카드 (개발 플래그 HYSOL_SHOW_SIM=1일 때만 분석·코칭 그룹 끝에 붙인다) */
+export const SIM_NAV_ITEM: NavItem = { href: '/sim', label: '시뮬레이터', icon: FlaskConical };
+
+/** 메뉴 구성: showSim이면 분석·코칭 그룹에 시뮬레이터를 더한다 */
+export function navGroupsFor(showSim: boolean): readonly NavGroup[] {
+  if (!showSim) return NAV_GROUPS;
+  return NAV_GROUPS.map((group) => (group.id === 'analysis' ? { ...group, items: [...group.items, SIM_NAV_ITEM] } : group));
+}
 
 /** '/'는 정확히 일치할 때만, 나머지는 하위 경로(/sites/SIM-A 등)까지 활성으로 본다. */
 export function isActivePath(pathname: string, href: string): boolean {

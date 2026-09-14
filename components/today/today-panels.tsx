@@ -154,11 +154,3 @@ export function RevenuePanel({ rows }: Readonly<{ rows: readonly MarketSummaryRo
     </Panel>
   );
 }
-
-export function FindingsPlaceholder() {
-  return (
-    <Panel title="신규·악화 발견사항">
-      <EmptyNote>분석 데스크에서 분석을 실행하면 표시됩니다</EmptyNote>
-    </Panel>
-  );
-}

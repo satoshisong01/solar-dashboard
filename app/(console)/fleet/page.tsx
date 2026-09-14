@@ -29,7 +29,7 @@ export default async function FleetPage() {
       <Panel title="사이트 × 도메인 상태" meta={`기준 시각 ${formatKstDateTime(nowMs)} KST`}>
         <FleetView matrix={<FleetMatrix rows={rows} />} sites={sites} />
         <details className="text-xs text-muted">
-          <summary className="cursor-pointer">상태 판정 규칙 (P1)</summary>
+          <summary className="cursor-pointer">상태 판정 규칙</summary>
           <ul className="mt-2 flex list-disc flex-col gap-1 pl-5">
             <li>
               데이터 신선도: 마지막 샘플이 {formatDuration(FLEET_THRESHOLDS.staleWarnMs)} 넘게 없으면 주의,{' '}
@@ -41,7 +41,11 @@ export default async function FleetPage() {
               최근 24시간 품질 이상 비율(장치 불량·범위 밖·급변·고착·시계 의심): {FLEET_THRESHOLDS.dqWarnRatio * 100}% 이상 주의,{' '}
               {FLEET_THRESHOLDS.dqCritRatio * 100}% 이상 위험. 지연 도착·재처리 표시는 값 이상으로 보지 않습니다.
             </li>
-            <li>데이터품질 열은 사이트 전체 포인트의 신선도와 품질 이상 비율만 봅니다. 발견사항 기반 상태는 P2에서 더해집니다.</li>
+            <li>
+              열린 발견사항(기각·효과 확인 제외)의 최고 심각도: {FLEET_THRESHOLDS.findingCritSeverity} 이상 위험, {FLEET_THRESHOLDS.findingWarnSeverity} 이상 주의, 1(관찰)은 사유만 표시.
+              데이터 품질 발견사항은 데이터품질 열에, 나머지는 설비 종류의 도메인 열에 넣습니다.
+            </li>
+            <li>데이터품질 열의 신선도·품질 이상 비율은 사이트 전체 포인트를 봅니다.</li>
           </ul>
         </details>
       </Panel>
