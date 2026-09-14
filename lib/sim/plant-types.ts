@@ -21,6 +21,8 @@ export interface StepContext {
   readonly gridFrequencyHz: number;
   /** 계통 전압 배율 (1 = 정격) */
   readonly gridVoltageFactor: number;
+  /** 인버터 출력 제한 설정값 [%] (출력제어 중이 아니면 100) */
+  readonly pvLimitPct: number;
 }
 
 export interface InitContext {

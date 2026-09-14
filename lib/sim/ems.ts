@@ -2,6 +2,7 @@
 // SIM-A(pv_ess): PV → 보조부하 → 여유분 ESS 충전(SOC 90% 상한) → 계통 수출, 18~22시 ESS 방전.
 // SIM-B/C(integrated): PV → 보조부하 → 전해조(최소부하 이상일 때, 여유 부족 시 ESS 보조 후 정지)
 //   → ESS 충전 → 수출. 저장 압력 상한이면 전해조 정지, 17~22시 연료전지 150 kW(저장 하한 이상), 야간 ESS 방전.
+// 대조군 조건: 충전 SOC 상한 변경(socMax), 연료전지 잦은 기동·정지(fcCycling).
 import type { ElectrolyzerMode } from './models/electrolyzer';
 
 export type SiteLayout = 'pv_ess' | 'integrated';
@@ -26,6 +27,8 @@ export const EMS_SETTINGS = Object.freeze({
     fcAcKw: 150,
     fcStartBar: 80,
     fcStopBar: 50,
+    /** 잦은 기동·정지 운전: 9~22시 매시 처음 40분만 운전 */
+    fcCycling: { startH: 9, endH: 22, onFractionOfHour: 2 / 3 },
   },
 });
 
@@ -55,6 +58,10 @@ export interface EmsInput {
   readonly ess: EssView | null;
   readonly hydrogen: HydrogenView | null;
   readonly safetyLockout: boolean;
+  /** 충전 SOC 상한 (생략하면 EMS_SETTINGS.socMax) */
+  readonly socMax?: number;
+  /** 연료전지 잦은 기동·정지 일정으로 운전 */
+  readonly fcCycling?: boolean;
 }
 
 export interface EmsMemory {
@@ -95,9 +102,9 @@ function eveningDischargeKw(ess: EssView, hour: number, endH: number, socMin: nu
 }
 
 /** 남는 전력으로 SOC 상한까지 충전하는 PCS 지령(음수). 이번 스텝에 상한을 넘지 않게 제한한다. */
-function chargeCommandKw(ess: EssView, availableKw: number, dtS: number): number {
+function chargeCommandKw(ess: EssView, availableKw: number, dtS: number, socMax: number): number {
   if (availableKw <= 0) return 0;
-  const headroomKw = (Math.max(0, EMS_SETTINGS.socMax - ess.socFraction) * ess.usableEnergyKwh * 3_600) / dtS;
+  const headroomKw = (Math.max(0, socMax - ess.socFraction) * ess.usableEnergyKwh * 3_600) / dtS;
   const kw = Math.min(availableKw, ess.ratedKw, ess.chargeLimitKw, headroomKw);
   return kw > 0 ? -kw : 0;
 }
@@ -110,7 +117,7 @@ function dispatchPvEss(input: EmsInput, memory: EmsMemory): EmsDecision {
   if (ess && inWindow(input.localHour, dischargeStartH, dischargeEndH)) {
     essAcKw = eveningDischargeKw(ess, input.localHour, dischargeEndH, socMin, input.dtS);
   } else if (ess) {
-    essAcKw = chargeCommandKw(ess, surplus, input.dtS);
+    essAcKw = chargeCommandKw(ess, surplus, input.dtS, input.socMax ?? EMS_SETTINGS.socMax);
   }
   return { essAcKw, elz: STOPPED, fc: STOPPED, memory };
 }
@@ -152,7 +159,10 @@ function dispatchIntegrated(input: EmsInput, memory: EmsMemory, h2: HydrogenView
   const surplus = input.pvAcKw - input.auxKw - h2.compressorKw;
   const elzPlan = planElectrolyzer(input, h2, memory, surplus, !storageFull && !input.safetyLockout);
 
-  const fcRun = inWindow(input.localHour, s.fcStartH, s.fcEndH) && !fcBlocked && !input.safetyLockout;
+  const fcScheduled = input.fcCycling
+    ? inWindow(input.localHour, s.fcCycling.startH, s.fcCycling.endH) && input.localHour % 1 < s.fcCycling.onFractionOfHour
+    : inWindow(input.localHour, s.fcStartH, s.fcEndH);
+  const fcRun = fcScheduled && !fcBlocked && !input.safetyLockout;
   const fc: UnitCommand = fcRun ? { run: true, acKw: s.fcAcKw } : STOPPED;
 
   const ess = input.ess;
@@ -163,7 +173,7 @@ function dispatchIntegrated(input: EmsInput, memory: EmsMemory, h2: HydrogenView
     essAcKw = eveningDischargeKw(ess, input.localHour, s.dischargeEndH, s.socMin, input.dtS);
   } else if (ess) {
     const elzKw = elzPlan.command.run ? elzPlan.command.acKw : 0;
-    essAcKw = chargeCommandKw(ess, surplus - elzKw, input.dtS);
+    essAcKw = chargeCommandKw(ess, surplus - elzKw, input.dtS, input.socMax ?? EMS_SETTINGS.socMax);
   }
 
   return {

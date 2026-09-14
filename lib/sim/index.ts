@@ -7,7 +7,7 @@ import type { SimEvent } from './events';
 import { MS_PER_MINUTE, MS_PER_SECOND, toEpochMs, type TimeInput } from './math';
 import { createPlant, type Plant, type PlantSample } from './plant';
 import { deriveRng, type Rng } from './rng';
-import { clockSkewAt, EMPTY_PLAN, planScenarios, type Scenario, type SiteScenarioPlan } from './scenarios';
+import { clockSkewAt, EMPTY_PLAN, planScenarios, scenarioOriginMs, type Scenario, type SiteScenarioPlan } from './scenarios';
 import { createGatewayTransport, type GatewayTransport, type PendingBatch, type Transmission } from './transport';
 
 export const DEFAULT_STEP_S = 60;
@@ -176,12 +176,12 @@ const emptyBuffer = (): WindowBuffer => ({ samples: [], events: [] });
 
 /**
  * [from, to) 구간을 stepS 간격으로 시뮬레이션해 게이트웨이 봉투를 전송 순서대로 내보낸다.
- * 같은 옵션이면 같은 봉투(같은 batch_id)가 나온다.
+ * 같은 옵션이면 같은 봉투(같은 batch_id)가 나온다. 일수 기반 시나리오의 0일째는 scenarioOriginMs(from)이다.
  */
 export async function* simulate(options: SimulateOptions): AsyncGenerator<SimulatedBatch> {
   const config = normalizeOptions(options);
   const sites = config.siteCodes.map(findSite);
-  const plans = planScenarios(sites, options.scenarios ?? []);
+  const plans = planScenarios(sites, options.scenarios ?? [], { originMs: scenarioOriginMs(config.fromMs) });
   const stepMs = config.stepS * MS_PER_SECOND;
   const firstStepMs = Math.ceil(config.fromMs / stepMs) * stepMs;
   const runners = sites.map((site) => createRunner(site, plans.get(site.code) ?? EMPTY_PLAN, config, firstStepMs));
@@ -216,8 +216,14 @@ export async function* simulate(options: SimulateOptions): AsyncGenerator<Simula
 
 export { createPlant } from './plant';
 export type { Plant, PlantSample, PlantStep } from './plant';
-export { DEGRADATION_PARAMS, planScenarios } from './scenarios';
-export type { DegradationHook, DegradationParam, FaultScenario, Scenario, SiteScenarioPlan } from './scenarios';
+export { DEGRADATION_PARAMS, planScenarios, scenarioOriginMs } from './scenarios';
+export type { DegradationHook, DegradationParam, FaultScenario, PlanOptions, Scenario, SiteScenarioPlan } from './scenarios';
+export type { TypedFaultScenario } from './fault-scenarios';
+export type { ControlScenario } from './control-scenarios';
+export { buildTruth } from './truth';
+export type { AssetEventTruth, ControlEventTruth, InjectionTruth, SimulationTruth } from './truth';
+export { detectorPointFilter, DETECTOR_METRICS, pointKey, simulateMemory } from './memory';
+export type { MemoryPoint, MemorySeries, MemorySimulationOptions, MemorySimulationResult } from './memory';
 export { INGEST_SCHEMA } from './envelope';
 export type { IngestEnvelope, IngestEvent, IngestSeries } from './envelope';
 export type { SimEvent } from './events';

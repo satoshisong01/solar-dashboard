@@ -55,6 +55,24 @@ export function roundTo(value: number, decimals: number): number {
 
 export const kstDayIndex = (tMs: number): number => Math.floor((tMs + KST_OFFSET_MS) / MS_PER_DAY);
 
+/** 그 시각이 속한 KST 날짜의 0시 [epoch ms] */
+export const kstDayStartMs = (tMs: number): number => kstDayIndex(tMs) * MS_PER_DAY - KST_OFFSET_MS;
+
+/** [startMs, endMs) 시각 구간 */
+export interface TimeWindow {
+  readonly startMs: number;
+  readonly endMs: number;
+}
+
+export const isInWindow = (window: TimeWindow, tMs: number): boolean => tMs >= window.startMs && tMs < window.endMs;
+
+/** 구간 양끝 rampMs 동안 0→1→0으로 바뀌는 계수 (구간 밖 0). 날씨 편차처럼 계단 없이 넣고 뺄 때 쓴다. */
+export function edgeRampFraction(window: TimeWindow, tMs: number, rampMs: number): number {
+  if (!isInWindow(window, tMs)) return 0;
+  if (rampMs <= 0) return 1;
+  return clamp(Math.min(tMs - window.startMs, window.endMs - tMs) / rampMs, 0, 1);
+}
+
 /** KST 시각(0 이상 24 미만, 소수 포함) */
 export function kstHourOfDay(tMs: number): number {
   const msOfDay = (((tMs + KST_OFFSET_MS) % MS_PER_DAY) + MS_PER_DAY) % MS_PER_DAY;

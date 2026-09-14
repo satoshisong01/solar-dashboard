@@ -1,5 +1,6 @@
 // LFP 배터리 랙 근사 모델 (순수 함수).
 // SOC 적분 · OCV(SOC) · 내부저항(Arrhenius) · CC-CV · 저온 용량 감소 · 셀 통계(편차) · SOH(용량 감소율).
+// 셀 편차는 두 가지: SOC 차이(cellImbalance, OCV 곡선을 따라 SOC에 따라 달라짐)와 전압 산포 추가분(extraCellSpreadV, SOC와 무관).
 import { clamp, interpolate, lagToward, SECONDS_PER_DAY, SECONDS_PER_HOUR, type Table } from '../math';
 import { KELVIN_OFFSET } from './common';
 
@@ -55,6 +56,8 @@ export interface RackInput {
   readonly capacityFadePerDay: number;
   /** 최강·최약 셀 SOC 차이 (0.02 = 2%) */
   readonly cellImbalance: number;
+  /** 최고·최저 셀 전압 산포 추가분 [V] — 밸런싱 불량 고장 주입용. 최고 셀 +절반, 최저 셀 −절반 (생략 0) */
+  readonly extraCellSpreadV?: number;
   readonly dtS: number;
 }
 
@@ -154,12 +157,13 @@ export function stepRack(params: RackParams, state: RackState, input: RackInput)
   const resistance = cellResistanceOhm(params, state.tempC);
   const bundleResistance = resistance / params.cellsParallel; // 셀 전압 = OCV + I × R/Np
   const spread = clamp(input.cellImbalance, 0, 0.5);
+  const halfVoltageSpreadV = (CELL_BASE_SPREAD_V + Math.max(0, input.extraCellSpreadV ?? 0)) / 2;
   const ocvV = lfpOcvV(state.soc);
   const strongOcv = lfpOcvV(state.soc + spread / 2);
   const weakOcv = lfpOcvV(state.soc - spread / 2);
   // CV: 가장 높은 셀이 충전 상한에, 방전: 가장 낮은 셀이 방전 하한에 닿는 전류
-  const cvLimitA = Math.max(0, (params.cellVoltageMaxV - CELL_BASE_SPREAD_V / 2 - strongOcv) / bundleResistance);
-  const undervoltageLimitA = Math.max(0, (weakOcv - CELL_BASE_SPREAD_V / 2 - params.cellVoltageMinV) / bundleResistance);
+  const cvLimitA = Math.max(0, (params.cellVoltageMaxV - halfVoltageSpreadV - strongOcv) / bundleResistance);
+  const undervoltageLimitA = Math.max(0, (weakOcv - halfVoltageSpreadV - params.cellVoltageMinV) / bundleResistance);
   const requestedA = currentForPowerA(params, ocvV, resistance, input.powerKw);
   const { currentA, mode } = limitCurrent(requestedA, limits, cvLimitA, undervoltageLimitA);
 
@@ -184,8 +188,8 @@ export function stepRack(params: RackParams, state: RackState, input: RackInput)
     voltageV: params.cellsSeries * cellVoltageAvgV,
     powerKw: (params.cellsSeries * cellVoltageAvgV * currentA) / 1000,
     ocvV,
-    cellVoltageMaxV: Math.max(cellVoltageAvgV, strongOcv + irDropV) + CELL_BASE_SPREAD_V / 2,
-    cellVoltageMinV: Math.min(cellVoltageAvgV, weakOcv + irDropV) - CELL_BASE_SPREAD_V / 2,
+    cellVoltageMaxV: Math.max(cellVoltageAvgV, strongOcv + irDropV) + halfVoltageSpreadV,
+    cellVoltageMinV: Math.min(cellVoltageAvgV, weakOcv + irDropV) - halfVoltageSpreadV,
     cellVoltageAvgV,
     cellTempMaxC: nextState.tempC + 1.0 + 0.004 * absCurrent,
     cellTempMinC: nextState.tempC - 0.8 - 0.001 * absCurrent,

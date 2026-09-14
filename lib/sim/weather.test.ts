@@ -100,3 +100,31 @@ describe('seasonalMeanTempC', () => {
     expect(Math.abs(aug)).toBeLessThan(1.5);
   });
 });
+
+describe('createWeather — 편차 구간(대조군)', () => {
+  const start = kst('2026-04-10T00:00:00');
+  const cold = { startMs: start, endMs: start + 7 * MS_PER_DAY, ambientDeltaC: -10, cloudMin: 0, rampMs: 12 * 3_600_000 };
+  const cloudy = { startMs: start, endMs: start + 7 * MS_PER_DAY, ambientDeltaC: 0, cloudMin: 0.85, rampMs: 0 };
+
+  it('기온 편차는 양끝 램프를 거쳐 구간 안에서 그대로 더해지고, 구간 밖은 같다', () => {
+    const base = createWeather(SAEMANGEUM, 3);
+    const shifted = createWeather(SAEMANGEUM, 3, 30, [cold]);
+    const diff = (t: number) => shifted.sample(t).ambientC - base.sample(t).ambientC;
+
+    expect(diff(start - MS_PER_MINUTE)).toBe(0);
+    expect(diff(start + 6 * 3_600_000)).toBeCloseTo(-5, 9);
+    expect(diff(start + 3 * MS_PER_DAY)).toBeCloseTo(-10, 9);
+    expect(diff(start + 7 * MS_PER_DAY)).toBe(0);
+    expect(shifted.sample(start + 3 * MS_PER_DAY).poa).toBe(base.sample(start + 3 * MS_PER_DAY).poa);
+  });
+
+  it('운량 하한은 구간 동안 일사량을 줄인다', () => {
+    const base = createWeather(SAEMANGEUM, 3);
+    const dim = createWeather(SAEMANGEUM, 3, 30, [cloudy]);
+    const poaSum = (weather: ReturnType<typeof createWeather>) =>
+      Array.from({ length: 7 * 1_440 }, (_, i) => weather.sample(start + i * MS_PER_MINUTE).poa).reduce((a, b) => a + b, 0);
+
+    expect(dim.sample(start + 3 * MS_PER_DAY).cloud).toBeGreaterThanOrEqual(0.85);
+    expect(poaSum(dim) / poaSum(base)).toBeLessThan(0.75);
+  });
+});

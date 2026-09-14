@@ -1,10 +1,11 @@
 // 사이트 플랜트: 상태를 시간 스텝(기본 60초)으로 전진시키고, 포인트별 period_s에 맞춰 센서값을 샘플링한다.
 import { METRIC_DEF_BY_KEY } from '@/db/seed/catalog';
 import type { MetricDef, PointDef, SiteDef } from '@/db/seed/types';
-import { dispatch, INITIAL_EMS_MEMORY, type EmsMemory, type SiteLayout } from './ems';
+import { controlsAt, weatherWindowsOf, type StepControls } from './control-scenarios';
+import { dispatch, INITIAL_EMS_MEMORY, type EmsMemory, type HydrogenView, type SiteLayout } from './ems';
 import { EVENT_CODE, safetyAlarm, type SimEvent } from './events';
 import { kstDateToMs, kstHourOfDay, MS_PER_DAY, MS_PER_HOUR, MS_PER_MINUTE, MS_PER_SECOND, SECONDS_PER_DAY } from './math';
-import { batteryRoom, createEss, essReadings, essView, stepEss, type EssUnit } from './plant-ess';
+import { batteryRoom, createEss, essReadings, essView, stepEss, type EssUnit, type RoomClimate } from './plant-ess';
 import { createHydrogen, hydrogenReadings, hydrogenView, stepHydrogen, type HydrogenUnit } from './plant-hydrogen';
 import { createInverters, createMeter, inverterReadings, siteCommonReadings, stepInverters, stepMeter, type InverterUnit, type MeterUnit } from './plant-pv';
 import { assetsOfClass, readingKey, type AssetReadings, type StepContext } from './plant-types';
@@ -149,8 +150,25 @@ interface AdvanceDeps {
   readonly eventsRng: Rng;
 }
 
+/** 대조군 조건(한파 주간)의 배터리실 온도 편차를 반영한 배터리실 기후 */
+function roomClimate(ctx: StepContext, controls: StepControls): RoomClimate {
+  const room = batteryRoom(ctx.weather.ambientC, ctx.weather.humidityPct);
+  return { ...room, tempC: room.tempC + controls.roomDeltaC };
+}
+
+/** 전해조 부분부하 대조군: EMS가 보는 정격을 줄여 지령 상한을 낮춘다. */
+const capElectrolyzer = (view: HydrogenView, loadCap: number): HydrogenView =>
+  loadCap < 1 ? { ...view, elzRatedKw: view.elzRatedKw * loadCap } : view;
+
+interface StepConditions {
+  readonly lockout: boolean;
+  readonly controls: StepControls;
+  readonly room: RoomClimate;
+}
+
 /** 물리 상태를 한 스텝 전진: PV → EMS 지령 → ESS·수소 설비 → 계량기 */
-function advancePlant(state: PlantState, ctx: StepContext, deps: AdvanceDeps, lockout: boolean): { next: PlantState; events: readonly SimEvent[] } {
+function advancePlant(state: PlantState, ctx: StepContext, deps: AdvanceDeps, conditions: StepConditions): { next: PlantState; events: readonly SimEvent[] } {
+  const { lockout, controls, room } = conditions;
   const auxKw = AUX_KW[deps.layout];
   const pv = stepInverters(state.inverters, ctx, deps.eventsRng);
   const decision = dispatch(
@@ -161,12 +179,14 @@ function advancePlant(state: PlantState, ctx: StepContext, deps: AdvanceDeps, lo
       pvAcKw: pv.acKw,
       auxKw,
       ess: state.ess ? essView(state.ess) : null,
-      hydrogen: state.hydrogen ? hydrogenView(state.hydrogen) : null,
+      hydrogen: state.hydrogen ? capElectrolyzer(hydrogenView(state.hydrogen), controls.elzLoadCap) : null,
       safetyLockout: lockout,
+      socMax: controls.socMax,
+      fcCycling: controls.fcCycling,
     },
     state.ems,
   );
-  const ess = state.ess ? stepEss(state.ess, decision.essAcKw, batteryRoom(ctx.weather.ambientC, ctx.weather.humidityPct), ctx) : null;
+  const ess = state.ess ? stepEss(state.ess, decision.essAcKw, room, ctx) : null;
   const h2 = state.hydrogen ? stepHydrogen(state.hydrogen, decision, ctx, lockout) : null;
   const hydrogenNetKw = h2 ? h2.fcAcKw - h2.elzAcKw - h2.compressorKw : 0;
   const netKw = pv.acKw + (ess?.acKw ?? 0) + hydrogenNetKw - auxKw;
@@ -181,12 +201,12 @@ function advancePlant(state: PlantState, ctx: StepContext, deps: AdvanceDeps, lo
   return { next, events: [...pv.events, ...(h2?.events ?? [])] };
 }
 
-function plantReadings(site: SiteDef, plan: SiteScenarioPlan, state: PlantState, ctx: StepContext): ReadonlyMap<string, AssetReadings> {
+function plantReadings(site: SiteDef, plan: SiteScenarioPlan, state: PlantState, ctx: StepContext, room: RoomClimate): ReadonlyMap<string, AssetReadings> {
   const extraPpm = (detector: string) =>
     plan.leakAlarms.filter((a) => a.detector === detector).reduce((sum, a) => sum + leakExtraPpm(ctx.tMs, a.atMs), 0);
   return new Map([
     ...inverterReadings(state.inverters, ctx),
-    ...(state.ess ? essReadings(state.ess, batteryRoom(ctx.weather.ambientC, ctx.weather.humidityPct)) : []),
+    ...(state.ess ? essReadings(state.ess, room) : []),
     ...(state.hydrogen ? hydrogenReadings(state.hydrogen, ctx, extraPpm) : []),
     ...siteCommonReadings(site, state.meter, ctx),
   ]);
@@ -235,7 +255,7 @@ export function createPlant(options: PlantOptions): Plant {
   const points = sampledPoints(site, stepS);
   const degradation = createDegradationResolver(plan.faults);
   const tiltDeg = assetsOfClass(site, 'pv.plant')[0]?.nameplate.tilt_deg;
-  const weather = createWeather(site, seed, typeof tiltDeg === 'number' ? tiltDeg : undefined);
+  const weather = createWeather(site, seed, typeof tiltDeg === 'number' ? tiltDeg : undefined, weatherWindowsOf(plan));
   const deps: AdvanceDeps = { layout: siteLayout(site), eventsRng: deriveRng(seed, site.code, 'events') };
   const sensor = createSensor(seed, site, plan);
   let state = initialState(site, seed, startMs);
@@ -245,14 +265,16 @@ export function createPlant(options: PlantOptions): Plant {
     stepS,
     step(tMs: number): PlantStep {
       if (tMs !== state.tMs + stepMs) throw new Error(`${site.code} 스텝 순서 오류: ${state.tMs} 다음은 ${state.tMs + stepMs}인데 ${tMs}`);
-      const ctx: StepContext = { tMs, dtS: stepS, weather: weather.sample(tMs), degradation, ...gridConditions(tMs) };
+      const controls = controlsAt(plan, tMs);
+      const ctx: StepContext = { tMs, dtS: stepS, weather: weather.sample(tMs), degradation, ...gridConditions(tMs), pvLimitPct: controls.pvLimitPct };
       const lockout = plan.leakAlarms.some((a) => tMs >= a.atMs && tMs < a.atMs + SAFETY_LOCKOUT_MS);
-      const { next, events } = advancePlant(state, ctx, deps, lockout);
+      const room = roomClimate(ctx, controls);
+      const { next, events } = advancePlant(state, ctx, deps, { lockout, controls, room });
       state = next;
       const alarms = plan.leakAlarms
         .filter((a) => a.atMs > tMs - stepMs && a.atMs <= tMs)
         .map((a) => safetyAlarm(a.detector, tMs, EVENT_CODE.H2_LEAK_L1, '수소 누출 1차 경보 (4,000 ppm 이상)'));
-      const readings = plantReadings(site, plan, next, ctx);
+      const readings = plantReadings(site, plan, next, ctx, room);
       return { tMs, samples: samplePoints(site, points, readings, tMs, sensor), events: [...events, ...alarms], readings };
     },
   };

@@ -1,36 +1,15 @@
 // 시뮬레이션 시나리오 타입과 적용기.
-// P1: healthy · 데이터 품질(dq.*) · 안전 경보. P2용 고장 주입은 인터페이스(열화 파라미터 hook)와 파라미터 반영까지만 둔다.
+// P1: healthy · 데이터 품질(dq.*) · 안전 경보 · 열화 파라미터 hook(fault).
+// P2: 고장(fault.*, fault-scenarios.ts) · 음성 대조군(control.*, control-scenarios.ts). 일수 기반이라 실행 기준일이 필요하다.
 import type { AssetDef, SiteDef } from '@/db/seed/types';
-import { MS_PER_SECOND, toEpochMs, type TimeInput } from './math';
+import { applyControl, EMPTY_CONTROL_PLAN, isControl, type ControlPlan, type ControlScenario } from './control-scenarios';
+import { DEGRADATION_PARAMS, type FaultScenario } from './degradation';
+import { isTypedFault, resolveFault, type TypedFaultScenario } from './fault-scenarios';
+import { kstDayStartMs, MS_PER_SECOND, toEpochMs, type TimeInput, type TimeWindow } from './math';
 
-/**
- * 열화 파라미터. baseline은 건강한 설비의 기본값이다.
- * - 비율/일, µV/h, kg/일 같은 "율"은 모델이 시간에 따라 적분한다.
- * - cellImbalance·efficiencyDrop·wear 같은 "수준"은 그 시각 값을 그대로 쓴다.
- */
-export const DEGRADATION_PARAMS = Object.freeze({
-  /** 랙 용량 감소율 [비율/일] (0.00005 ≈ 연 1.8%) */
-  'battery.capacityFadePerDay': { classKey: 'ess.rack', baseline: 0.000_05 },
-  /** 최강·최약 셀 SOC 차이 [비율] */
-  'battery.cellImbalance': { classKey: 'ess.rack', baseline: 0.01 },
-  /** 인버터 효율 절대 저하 [비율, 0.01 = 1%p] */
-  'inverter.efficiencyDrop': { classKey: 'pv.inverter', baseline: 0 },
-  /** 전해 스택 셀당 전압 상승률 [µV/h] */
-  'elz.degradationUvPerH': { classKey: 'h2.elz.stack', baseline: 4 },
-  /** 연료전지 셀당 전압 감쇠율 [µV/h] */
-  'fc.voltageDecayUvPerH': { classKey: 'fc.stack', baseline: 6 },
-  /** 저장뱅크 누설 [kg/일] */
-  'storage.leakKgPerDay': { classKey: 'h2.storage.bank', baseline: 0 },
-  /** 인버터 어레이 오염 누적률 [비율/일] (강우 시 초기화) */
-  'pv.soilingPerDay': { classKey: 'pv.inverter', baseline: 0.001 },
-  /** 블로워 마모 [0~0.9] — 같은 유량에 전력 1/(1−wear)배 */
-  'blower.wear': { classKey: 'fc.blower', baseline: 0 },
-});
-
-export type DegradationParam = keyof typeof DEGRADATION_PARAMS;
-
-/** 시각 [epoch ms]과 기본값을 받아 그 시각의 파라미터 값을 돌려준다. */
-export type DegradationHook = (tMs: number, baseline: number) => number;
+export { createDegradationResolver, DEGRADATION_PARAMS } from './degradation';
+export type { DegradationHook, DegradationParam, DegradationResolver, FaultScenario } from './degradation';
+export type { TimeWindow } from './math';
 
 export interface HealthyScenario {
   readonly kind: 'healthy';
@@ -79,16 +58,6 @@ export interface H2LeakAlarmScenario {
   /** 수소 검지기 설비 코드. 생략하면 저장뱅크(H2BANK1) 위치 검지기 */
   readonly detector?: string;
 }
-/** P2 고장 주입 인터페이스: 열화 파라미터를 시간 함수로 덮어쓴다. */
-export interface FaultScenario {
-  readonly kind: 'fault';
-  readonly site: string;
-  readonly param: DegradationParam;
-  /** 설비 코드. 생략하면 사이트 안 해당 종류 설비 전부 */
-  readonly asset?: string;
-  readonly value: DegradationHook;
-}
-
 export type Scenario =
   | HealthyScenario
   | GatewayOutageScenario
@@ -97,14 +66,11 @@ export type Scenario =
   | SpikeScenario
   | ClockSkewScenario
   | H2LeakAlarmScenario
-  | FaultScenario;
+  | FaultScenario
+  | TypedFaultScenario
+  | ControlScenario;
 
-export interface TimeWindow {
-  readonly startMs: number;
-  readonly endMs: number;
-}
-
-export interface SiteScenarioPlan {
+export interface SiteScenarioPlan extends ControlPlan {
   readonly outages: readonly TimeWindow[];
   readonly duplicateRatio: number;
   readonly clockSkewMs: number;
@@ -125,6 +91,7 @@ export const EMPTY_PLAN: SiteScenarioPlan = Object.freeze({
   spikes: [],
   leakAlarms: [],
   faults: [],
+  ...EMPTY_CONTROL_PLAN,
 });
 
 const DEFAULT_SPIKE_MAGNITUDE = 3;
@@ -162,8 +129,18 @@ function validateFault(site: SiteDef, fault: FaultScenario): FaultScenario {
   return fault;
 }
 
-function applyScenario(plan: SiteScenarioPlan, site: SiteDef, scenario: Exclude<Scenario, HealthyScenario>): SiteScenarioPlan {
+function requireOrigin(originMs: number | undefined, label: string): number {
+  if (originMs === undefined || !Number.isFinite(originMs)) throw new Error(`${label}: 일수 기반 시나리오에는 실행 기준일(originMs)이 필요합니다`);
+  return originMs;
+}
+
+function applyScenario(plan: SiteScenarioPlan, site: SiteDef, scenario: Exclude<Scenario, HealthyScenario>, originMs: number | undefined): SiteScenarioPlan {
   const label = `${scenario.kind}(${site.code})`;
+  if (isTypedFault(scenario)) {
+    const { hook } = resolveFault(site, scenario, requireOrigin(originMs, label));
+    return { ...plan, faults: [...plan.faults, validateFault(site, hook)] };
+  }
+  if (isControl(scenario)) return applyControl(plan, site, scenario, requireOrigin(originMs, label));
   switch (scenario.kind) {
     case 'dq.gateway_outage':
       return { ...plan, outages: [...plan.outages, windowOf(scenario.start, scenario.durationS, label)] };
@@ -197,35 +174,23 @@ export function clockSkewAt(plan: Pick<SiteScenarioPlan, 'clockSkewMs' | 'clockS
   return sentAtMs >= window.startMs && sentAtMs < window.endMs ? plan.clockSkewMs : 0;
 }
 
+/** 실행 기준일: 실행 시작 시각이 속한 KST 날짜 0시. 일수 기반 시나리오(fault.* · control.*)의 0일째 */
+export const scenarioOriginMs = (from: TimeInput): number => kstDayStartMs(toEpochMs(from, 'from'));
+
+export interface PlanOptions {
+  /** 일수 기반 시나리오의 기준 시각 (보통 scenarioOriginMs(실행 시작)) */
+  readonly originMs?: number;
+}
+
 /** 시나리오를 검증하고 사이트별 계획으로 모은다. 모르는 사이트를 가리키면 오류. */
-export function planScenarios(sites: readonly SiteDef[], scenarios: readonly Scenario[]): ReadonlyMap<string, SiteScenarioPlan> {
+export function planScenarios(sites: readonly SiteDef[], scenarios: readonly Scenario[], options: PlanOptions = {}): ReadonlyMap<string, SiteScenarioPlan> {
   const plans = new Map<string, SiteScenarioPlan>(sites.map((s) => [s.code, EMPTY_PLAN]));
   for (const scenario of scenarios) {
     if (scenario.kind === 'healthy') continue;
     const site = sites.find((s) => s.code === scenario.site);
     const current = plans.get(scenario.site);
     if (!site || !current) throw new Error(`시뮬레이션 대상이 아닌 사이트의 시나리오: ${scenario.kind} → ${scenario.site}`);
-    plans.set(site.code, applyScenario(current, site, scenario));
+    plans.set(site.code, applyScenario(current, site, scenario, options.originMs));
   }
   return plans;
-}
-
-export interface DegradationResolver {
-  value(param: DegradationParam, assetCode: string, tMs: number): number;
-}
-
-/** 설비 지정 hook > 사이트 전체 hook > 기본값. 같은 대상이 여럿이면 나중 것이 이긴다. */
-export function createDegradationResolver(faults: readonly FaultScenario[]): DegradationResolver {
-  return {
-    value(param, assetCode, tMs) {
-      const baseline = DEGRADATION_PARAMS[param].baseline;
-      const hook =
-        faults.findLast((f) => f.param === param && f.asset === assetCode) ??
-        faults.findLast((f) => f.param === param && f.asset === undefined);
-      if (!hook) return baseline;
-      const value = hook.value(tMs, baseline);
-      if (!Number.isFinite(value) || value < 0) throw new Error(`${param}(${assetCode}) hook이 잘못된 값을 돌려줬습니다: ${value}`);
-      return value;
-    },
-  };
 }

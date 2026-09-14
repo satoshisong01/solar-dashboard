@@ -100,3 +100,23 @@ describe('stepRack', () => {
     expect(result.last.cellVoltageMinV).toBeLessThanOrEqual(result.last.cellVoltageAvgV);
   });
 });
+
+describe('셀 전압 산포 추가분 (extraCellSpreadV)', () => {
+  it('SOC·전류와 무관하게 최고·최저 셀 차이를 그만큼 벌리고 평균·전류는 그대로 둔다', () => {
+    for (const [soc, powerKw] of [[0.15, 0], [0.5, 200], [0.88, -200]] as const) {
+      const state = { soc, soh: 1, tempC: 25 };
+      const base = stepRack(PARAMS, state, input(powerKw));
+      const spread = stepRack(PARAMS, state, input(powerKw, { extraCellSpreadV: 0.03 }));
+
+      expect(spread.cellVoltageMaxV - spread.cellVoltageMinV - (base.cellVoltageMaxV - base.cellVoltageMinV)).toBeCloseTo(0.03, 12);
+      expect(spread.cellVoltageAvgV).toBe(base.cellVoltageAvgV);
+      expect(spread.currentA).toBe(base.currentA);
+    }
+  });
+
+  it('최고 셀이 충전 상한에 먼저 닿아 CV 전환이 빨라진다', () => {
+    const state = { soc: 0.8, soh: 1, tempC: 25 };
+
+    expect(stepRack(PARAMS, state, input(300, { extraCellSpreadV: 0.4 })).currentA).toBeLessThan(stepRack(PARAMS, state, input(300)).currentA);
+  });
+});

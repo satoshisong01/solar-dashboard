@@ -112,3 +112,19 @@ describe('SIM-B/C (integrated)', () => {
     expect(() => dispatch(integrated({ hydrogen: null }), INITIAL_EMS_MEMORY)).toThrow('수소 설비');
   });
 });
+
+describe('대조군 조건', () => {
+  it('socMax: 충전 SOC 상한을 바꾸면 그 상한까지만 충전한다', () => {
+    const ess = { ...ESS, socFraction: 0.85 };
+
+    expect(dispatch(pvEss({ ess, socMax: 0.8 }), INITIAL_EMS_MEMORY).essAcKw).toBe(0);
+    expect(dispatch(pvEss({ ess }), INITIAL_EMS_MEMORY).essAcKw).toBeLessThan(0);
+    expect(dispatch(integrated({ ess: { ...ESS, socFraction: 0.85, ratedKw: 500, chargeLimitKw: 500 }, socMax: 0.8 }, { storagePressureBar: 441 }), INITIAL_EMS_MEMORY).essAcKw).toBe(0);
+  });
+
+  it('fcCycling: 9~22시 매시 처음 40분만 연료전지를 돌린다', () => {
+    const fcRun = (localHour: number) => dispatch(integrated({ localHour, fcCycling: true }), INITIAL_EMS_MEMORY).fc.run;
+
+    expect([8.5, 9, 9.6, 9.7, 12.2, 21.5, 22].map(fcRun)).toEqual([false, true, true, false, true, true, false]);
+  });
+});

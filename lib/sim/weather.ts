@@ -1,7 +1,9 @@
 // 합성 기상: 간이 천문식 태양고도 → Haurwitz 청천 일사 × 운량 AR(1), 계절·일변화 기온, 강우일.
 // 하루(KST) 단위로 시드를 파생하므로 시작 시각이 달라도 같은 날의 날씨는 같다.
+// 대조군 시나리오(한파·흐린 주)는 편차 구간(WeatherWindow)으로 기온·운량을 덮어쓴다.
 import {
   clamp,
+  edgeRampFraction,
   interpolate,
   kstDayIndex,
   kstDayOfYear,
@@ -12,6 +14,7 @@ import {
   MS_PER_MINUTE,
   KST_OFFSET_MS,
   type Table,
+  type TimeWindow,
 } from './math';
 import { createRng, hashSeed } from './rng';
 
@@ -71,6 +74,13 @@ export interface WeatherSample extends Irradiance {
 
 export interface Weather {
   sample(tMs: number): WeatherSample;
+}
+
+/** 기상 편차 구간: 운량 하한과 기온 편차(양끝 rampMs 램프). 겹치면 운량은 최대, 기온 편차는 합. */
+export interface WeatherWindow extends TimeWindow {
+  readonly cloudMin: number;
+  readonly ambientDeltaC: number;
+  readonly rampMs: number;
 }
 
 /** 간이 천문식: 적위(Cooper), 균시차, 시간각 → 천정각 코사인 */
@@ -204,7 +214,7 @@ function buildDayProfile(location: SiteLocation, seed: number, dayIndex: number)
   };
 }
 
-export function createWeather(location: SiteLocation, seed: number, tiltDeg = DEFAULT_TILT_DEG): Weather {
+export function createWeather(location: SiteLocation, seed: number, tiltDeg = DEFAULT_TILT_DEG, windows: readonly WeatherWindow[] = []): Weather {
   let cached: DayProfile | null = null;
   const profileFor = (dayIndex: number): DayProfile => {
     const profile = cached !== null && cached.dayIndex === dayIndex ? cached : buildDayProfile(location, seed, dayIndex);
@@ -217,7 +227,10 @@ export function createWeather(location: SiteLocation, seed: number, tiltDeg = DE
       const day = profileFor(kstDayIndex(tMs));
       const minute = Math.floor((tMs + KST_OFFSET_MS - day.dayIndex * MS_PER_DAY) / MS_PER_MINUTE);
       const raining = minute >= day.rainStartMin && minute < day.rainEndMin;
-      const cloud = raining ? Math.max(day.cloud[minute] ?? 1, 0.92) : (day.cloud[minute] ?? day.cloudMean);
+      const baseCloud = raining ? Math.max(day.cloud[minute] ?? 1, 0.92) : (day.cloud[minute] ?? day.cloudMean);
+      const active = windows.filter((w) => tMs >= w.startMs && tMs < w.endMs);
+      const cloud = active.reduce((c, w) => Math.max(c, w.cloudMin), baseCloud);
+      const deltaC = active.reduce((sum, w) => sum + w.ambientDeltaC * edgeRampFraction(w, tMs, w.rampMs), 0);
 
       const position = solarPosition(location.lat, location.lon, tMs);
       const ghi = haurwitzGhi(position.cosZenith) * cloudTransmittance(cloud);
@@ -226,7 +239,7 @@ export function createWeather(location: SiteLocation, seed: number, tiltDeg = DE
       const hour = kstHourOfDay(tMs);
       const diurnal = 4.5 * (1 - 0.5 * day.cloudMean) * Math.cos((2 * Math.PI * (hour - 15)) / 24);
       const anomaly = lerp(day.anomalyStartC, day.anomalyEndC, hour / 24);
-      const ambientC = seasonalMeanTempC(location.lat, kstDayOfYear(tMs)) + anomaly + diurnal - (raining ? 1.5 : 0);
+      const ambientC = seasonalMeanTempC(location.lat, kstDayOfYear(tMs)) + anomaly + diurnal - (raining ? 1.5 : 0) + deltaC;
       const baseHumidity = MONTHLY_HUMIDITY[day.month] ?? 70;
       const humidityPct = raining ? 97 : clamp(baseHumidity + 18 * (cloud - 0.5) - 2.5 * diurnal, 20, 100);
 

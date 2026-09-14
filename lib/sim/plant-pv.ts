@@ -76,7 +76,7 @@ function stepInverter(unit: InverterUnit, ctx: StepContext, rng: Rng, events: Si
     ambientC: weather.ambientC,
     soiling,
     efficiencyDrop: degradation.value('inverter.efficiencyDrop', unit.code, tMs),
-    limitPct: 100,
+    limitPct: ctx.pvLimitPct,
     tripped: stillTripped,
   };
   const normal = simulateInverter(unit.rating, conditions);
@@ -114,7 +114,7 @@ export function inverterReadings(units: readonly InverterUnit[], ctx: StepContex
         'ac.frequency': ctx.gridFrequencyHz,
         'heatsink.temp': weather.ambientC + 5 + 30 * load,
         'insulation.resistance': insulationKohm,
-        'ac.power.limit': 100,
+        'ac.power.limit': ctx.pvLimitPct,
         'op.state': opStateCode(op.mode),
         'dc.voltage': op.dcVoltageV,
         'dc.current': op.dcCurrentA,
