@@ -45,6 +45,7 @@ export default defineConfig({
       DATABASE_URL: testEnv.DATABASE_URL ?? '',
       BETTER_AUTH_SECRET: testEnv.BETTER_AUTH_SECRET ?? '',
       BETTER_AUTH_URL: E2E_BASE_URL,
+      INGEST_KEY_ENC_KEY: testEnv.INGEST_KEY_ENC_KEY ?? '',
     },
   },
 });

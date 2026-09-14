@@ -11,6 +11,20 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
 
 export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
 
+export type Json = JsonValue;
+
+export type JsonArray = JsonValue[];
+
+export type JsonObject = {
+  [x: string]: JsonValue | undefined;
+};
+
+export type JsonPrimitive = boolean | number | string | null;
+
+export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
+
+export type Numeric = ColumnType<string, number | string, number | string>;
+
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export interface AuthAccount {
@@ -71,6 +85,181 @@ export interface AuthVerification {
   value: string;
 }
 
+export interface OmAsset {
+  class_key: string;
+  code: string;
+  commissioned_at: Timestamp | null;
+  criticality: Generated<number>;
+  id: Generated<number>;
+  level: string;
+  name: string;
+  nameplate: Generated<Json>;
+  parent_id: number | null;
+  path: string;
+  peer_group: string | null;
+  site_id: number;
+}
+
+export interface OmAssetClass {
+  key: string;
+  level: string;
+  name_ko: string;
+  nameplate_schema: Generated<Json>;
+  parent_key: string | null;
+  safety_event_codes: Generated<string[]>;
+}
+
+export interface OmAssetEvent {
+  asset_id: number;
+  created_by: string | null;
+  id: Generated<Int8>;
+  kind: string;
+  note: string | null;
+  resets_baseline: Generated<boolean>;
+  ts: Timestamp;
+}
+
+export interface OmEventLog {
+  ack_note: string | null;
+  acked_at: Timestamp | null;
+  acked_by: string | null;
+  asset_id: number | null;
+  code: string;
+  gateway_id: number;
+  id: Generated<Int8>;
+  is_safety: Generated<boolean>;
+  severity: string;
+  site_id: number;
+  source_key: string;
+  text: string | null;
+  ts: Timestamp;
+}
+
+export interface OmGateway {
+  clock_offset_ms: number | null;
+  code: string;
+  created_at: Generated<Timestamp>;
+  id: Generated<number>;
+  last_seen_at: Timestamp | null;
+  last_seq: Int8 | null;
+  site_id: number;
+  status: Generated<string>;
+}
+
+export interface OmGatewayKey {
+  created_at: Generated<Timestamp>;
+  gateway_id: number;
+  key_id: string;
+  revoked_at: Timestamp | null;
+  secret_enc: Buffer;
+}
+
+export interface OmIngestBatch {
+  batch_id: string;
+  body_gzip: Buffer;
+  body_sha256: Buffer;
+  gateway_id: number;
+  id: Generated<Int8>;
+  n_accepted: Generated<number>;
+  n_duplicate: Generated<number>;
+  n_events: Generated<number>;
+  n_rejected: Generated<number>;
+  n_samples: Generated<number>;
+  n_unmapped: Generated<number>;
+  received_at: Generated<Timestamp>;
+  sent_at: Timestamp | null;
+  seq: Int8 | null;
+  skew_ms: number | null;
+  status: string;
+}
+
+export interface OmM1h {
+  bucket: Timestamp;
+  computed_at: Generated<Timestamp>;
+  n: number;
+  n_good: number;
+  point_id: number;
+  v_avg: number | null;
+  v_first: number | null;
+  v_last: number | null;
+  v_max: number | null;
+  v_min: number | null;
+  v_sum: number | null;
+}
+
+export interface OmMarketDaily {
+  day: Timestamp;
+  market_key: string;
+  source: string;
+  unit: string;
+  updated_at: Generated<Timestamp>;
+  updated_by: string | null;
+  value: Numeric;
+}
+
+export interface OmMeasurement {
+  point_id: number;
+  quality: Generated<number>;
+  ts: Timestamp;
+  value: number | null;
+}
+
+export interface OmMetricDef {
+  aliases: Generated<Json>;
+  expected_max: number | null;
+  expected_min: number | null;
+  flatline_max_s: number | null;
+  hard_max: number | null;
+  hard_min: number | null;
+  key: string;
+  name_ko: string;
+  quantity: string;
+  rollup: string;
+  unit: string;
+  value_kind: string;
+}
+
+export interface OmPoint {
+  asset_id: number;
+  created_at: Generated<Timestamp>;
+  gateway_id: number;
+  id: Generated<number>;
+  metric_key: string;
+  period_s: number | null;
+  qualifier: Generated<string>;
+  scale: Generated<number>;
+  source_key: string;
+  source_unit: string | null;
+  value_offset: Generated<number>;
+}
+
+export interface OmRollupDirty {
+  bucket: Timestamp;
+  gen: Generated<Int8>;
+  point_id: number;
+  touched_at: Generated<Timestamp>;
+}
+
+export interface OmSite {
+  attributes: Generated<Json>;
+  code: string;
+  created_at: Generated<Timestamp>;
+  id: Generated<number>;
+  lat: number | null;
+  lon: number | null;
+  name: string;
+  timezone: Generated<string>;
+}
+
+export interface OmUnmappedSource {
+  first_seen_at: Generated<Timestamp>;
+  gateway_id: number;
+  last_seen_at: Generated<Timestamp>;
+  sample_count: Generated<Int8>;
+  source_key: string;
+  unit: string | null;
+}
+
 export interface Pgmigrations {
   id: Generated<number>;
   name: string;
@@ -83,5 +272,20 @@ export interface DB {
   auth_session: AuthSession;
   auth_user: AuthUser;
   auth_verification: AuthVerification;
+  "om.asset": OmAsset;
+  "om.asset_class": OmAssetClass;
+  "om.asset_event": OmAssetEvent;
+  "om.event_log": OmEventLog;
+  "om.gateway": OmGateway;
+  "om.gateway_key": OmGatewayKey;
+  "om.ingest_batch": OmIngestBatch;
+  "om.m_1h": OmM1h;
+  "om.market_daily": OmMarketDaily;
+  "om.measurement": OmMeasurement;
+  "om.metric_def": OmMetricDef;
+  "om.point": OmPoint;
+  "om.rollup_dirty": OmRollupDirty;
+  "om.site": OmSite;
+  "om.unmapped_source": OmUnmappedSource;
   pgmigrations: Pgmigrations;
 }

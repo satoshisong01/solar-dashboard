@@ -14,6 +14,8 @@ export function createAuth() {
 
   return betterAuth({
     baseURL: env.BETTER_AUTH_URL,
+    // baseURL은 자동으로 신뢰한다. 프리뷰 도메인 등 추가 origin만 환경변수로 받는다.
+    trustedOrigins: [...env.BETTER_AUTH_TRUSTED_ORIGINS],
     secret: env.BETTER_AUTH_SECRET,
     database: getPool(),
     emailAndPassword: {
