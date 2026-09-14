@@ -35,6 +35,11 @@ export function buildSslOptions(env: SslEnv, readCaFile: ReadCaFile = (path) => 
   }
 }
 
+/** 연결을 기다리는 요청이 풀 크기만큼 쌓였으면 true (수집 API가 429로 부하를 돌려보낸다) */
+export function isPoolSaturated(pool: Pick<Pool, 'waitingCount'>): boolean {
+  return pool.waitingCount >= POOL_MAX;
+}
+
 // 개발 중 HMR로 모듈이 다시 평가돼도 풀은 하나만 유지한다.
 const globalForPool = globalThis as typeof globalThis & {
   __hysolPool?: Pool;
