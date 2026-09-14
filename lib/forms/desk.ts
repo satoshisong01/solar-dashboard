@@ -14,12 +14,12 @@ const DAY_MS = 86_400_000;
 const BIGINT_ID = /^[1-9]\d{0,17}$/;
 const OTHER_REASON = '기타';
 
-function parseWith<T>(schema: z.ZodType<T>, values: unknown): ParseResult<T> {
+export function parseWith<T>(schema: z.ZodType<T>, values: unknown): ParseResult<T> {
   const result = schema.safeParse(values);
   return result.success ? { ok: true, input: result.data } : { ok: false, fieldErrors: fieldErrorsOf(result.error) };
 }
 
-const kstDateTime = (message: string) =>
+export const kstDateTime = (message: string) =>
   z
     .string()
     .trim()
@@ -30,7 +30,7 @@ const kstDateTime = (message: string) =>
       return z.NEVER;
     });
 
-const optionalText = (max: number, label: string) =>
+export const optionalText = (max: number, label: string) =>
   z
     .string()
     .trim()
@@ -133,14 +133,14 @@ export interface ActionFormInput {
   readonly expectedEffect: { metric: string; direction: 'increase' | 'decrease'; min_delta: number; stabilization_days: number } | null;
 }
 
-const effectFields = z.object({
+export const effectFields = z.object({
   effectMetric: z.string().trim(),
   direction: z.string(),
   minDelta: z.string().trim(),
   stabilizationDays: z.string().trim(),
 });
 
-function parseExpectedEffect(v: z.output<typeof effectFields>, allowedMetrics: readonly string[], ctx: z.core.$RefinementCtx): ActionFormInput['expectedEffect'] {
+export function parseExpectedEffect(v: z.output<typeof effectFields>, allowedMetrics: readonly string[], ctx: z.core.$RefinementCtx): ActionFormInput['expectedEffect'] {
   if (v.effectMetric === '') return null;
   if (!allowedMetrics.includes(v.effectMetric)) ctx.addIssue({ code: 'custom', path: ['effectMetric'], message: '검증 지표가 올바르지 않습니다' });
   if (v.direction !== 'increase' && v.direction !== 'decrease') ctx.addIssue({ code: 'custom', path: ['direction'], message: '기대 방향을 고르세요' });

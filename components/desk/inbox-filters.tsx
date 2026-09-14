@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CONTROL_CLASS } from '@/components/forms/controls';
+import { CONTROL_CLASS } from '@/components/ui/form-styles';
 import { statusLabel } from '@/lib/analysis/transition-rules';
 import { FLEET_COLUMNS } from '@/lib/data/domains';
 import { STATUS_FILTER_OPTIONS, type InboxFilter, type StatusFilter } from '@/lib/desk/inbox';

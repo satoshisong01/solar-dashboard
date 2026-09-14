@@ -125,3 +125,55 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* 코칭 리포트 인쇄 화면 (/reports/[id]/print): 화면 테마와 상관없이 밝은 종이 색, A4 */
+.print-root {
+  color-scheme: light;
+  --ground: #f2f5f4;
+  --surface: #ffffff;
+  --sunken: #eef2f1;
+  --ink: #13201c;
+  --ink-2: #33433e;
+  --muted: #5d6d68;
+  --rule: #d2dbd7;
+  --rule-strong: #7f8d88;
+  --accent: #0c6674;
+  --accent-ink: #ffffff;
+  --hydrogen-fill: #cfe8ec;
+  --ok: #2f6b3a;
+  --ok-fill: #dcefdf;
+  --warn: #7a5a00;
+  --warn-fill: #f5e7b5;
+  --crit: #a8321e;
+  --crit-fill: #f8ded7;
+  background-color: var(--ground);
+  color: var(--ink);
+}
+
+@page {
+  size: A4;
+  margin: 14mm 12mm;
+}
+
+@media print {
+  body,
+  .print-root {
+    background: #ffffff !important;
+  }
+  .print-hidden {
+    display: none !important;
+  }
+  .print-sheet {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+  .print-keep {
+    break-inside: avoid;
+  }
+  .print-section-title {
+    break-after: avoid;
+  }
+}

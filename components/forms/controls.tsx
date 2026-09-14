@@ -3,10 +3,10 @@
 import { CircleAlert, CircleCheck, LoaderCircle } from 'lucide-react';
 import { useId, type ComponentProps, type ReactNode } from 'react';
 import { useFormStatus } from 'react-dom';
+import { buttonClass, CONTROL_CLASS, type ButtonVariant } from '@/components/ui/form-styles';
 import type { ActionState } from '@/lib/forms/action-state';
 
-export const CONTROL_CLASS =
-  'w-full rounded-md border border-rule-strong bg-surface px-2.5 py-1.5 text-sm text-ink placeholder:text-muted disabled:opacity-60 aria-[invalid=true]:border-crit';
+export { buttonClass, CONTROL_CLASS, type ButtonVariant };
 
 type FieldProps = Readonly<{
   label: string;
@@ -66,18 +66,6 @@ export function SelectField({ label, error, hint, className, children, ...select
       )}
     </Field>
   );
-}
-
-const BUTTON_VARIANTS = {
-  primary: 'border-transparent bg-accent text-accent-ink hover:bg-accent/90',
-  secondary: 'border-rule bg-surface text-ink-2 hover:bg-sunken hover:text-ink',
-  danger: 'border-crit/50 bg-surface text-crit hover:bg-crit-fill',
-} as const;
-
-export type ButtonVariant = keyof typeof BUTTON_VARIANTS;
-
-export function buttonClass(variant: ButtonVariant = 'primary'): string {
-  return `inline-flex items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${BUTTON_VARIANTS[variant]}`;
 }
 
 type SubmitButtonProps = Readonly<{ children: ReactNode; pendingText: string; variant?: ButtonVariant; disabled?: boolean; name?: string; value?: string }>;

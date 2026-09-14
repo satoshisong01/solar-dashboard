@@ -3,4 +3,6 @@ export const BRAND = {
   name: 'HySol Desk',
   nameKo: '하이솔 데스크',
   tagline: '태양광·수소 O&M 분석 콘솔',
+  /** 코칭 리포트 인쇄 화면 머리말의 발행 회사 */
+  company: '주식회사 퍼스트씨앤디',
 } as const;
