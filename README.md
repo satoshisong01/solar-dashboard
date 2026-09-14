@@ -135,7 +135,8 @@ npm run analyze -- --sites SIM-B --days 30 --to 2026-09-15T00:00:00+09:00 --asse
 2. 대상 사이트 포인트의 남은 dirty 롤업을 처리합니다.
 3. 설비별 에피소드 추출: `[from − 6시간의 KST 0시, to)`(앞 실행이 끝에 걸려 `open`으로 저장한 에피소드가 있으면 그 시작부터)를 다시 뽑아, 그 구간의 기존 에피소드를 지우고 새로 넣습니다. 전해조·연료전지 스택은 창 시작 전 마지막 운전 샘플을 따로 조회해(기본키 인덱스 역순) 창 첫 기동의 꺼짐 시간·냉간 여부를 전체 추출과 같게 잽니다.
 4. `om.kpi_daily` upsert (인버터 발전량·비발전량·동종 비율·가용률, 사이트 합계, 랙 왕복효율, 전해조 SEC, 연료전지 원단위·기준 전류밀도 전압).
-5. 탐지기 6종: 저장된 에피소드 전체 이력(기준선부터)과 `om.asset_event`(설비·상위 설비, `resets_baseline` 반영), 활성 `om.detector_config`(default < class < asset)로 `lib/analytics/pipeline`이 입력을 조립합니다. `dq.gap_flatline`은 1시간 롤업 공백과 원시 고착 구간을 SQL로 요약합니다(사이트에 데이터가 있는 구간만). 용량 감소 finding이 나면 대표 세션 충전 곡선을 읽어 오버레이를 채웁니다.
+5. 탐지기 6종: 저장된 에피소드 전체 이력(기준선부터)과 `om.asset_event`(설비·상위 설비, `resets_baseline` 반영), 활성 `om.detector_config`(default < class < asset)로 `lib/analytics/pipeline`이 입력을 조립합니다. `dq.gap_flatline`은 1시간 롤업 공백과 원시 고착 구간을 SQL로 요약합니다(사이트에 데이터가 있는 구간만). 고착 구간 끝은 마지막 샘플 + 주기이고 길이가 `metric_def.flatline_max_s` 이상이면 고착이며, 일사량(POA·GHI, 기준 2시간)은 야간 |값| ≤ 5 W/m² 구간을 뺍니다. 같은 규칙을 `lib/analytics/dq/summary.ts`(메모리 평가 경로)가 순수 함수로 갖고 integration 테스트가 두 경로 결과가 같은지 확인합니다. 용량 감소 finding이 나면 대표 세션 충전 곡선을 읽어 오버레이를 채웁니다.
+   - `el.voltage_rise`·`fc.voltage_decay`: CUSUM 변화 시작점 뒤 누적 운전시간이 300 h(`minHoursAfterChange`) 이상이고 변화 전·후 기울기 95% CI가 겹치지 않으면 변화점 이후 기울기를 효과로 쓰고, 전체·변화 전 기울기는 근거에 남깁니다(열화율이 도중에 바뀐 스택의 크기 과소 추정 방지).
    - `ess.capacity_fade` 방식 우선순위: CV 종료 앵커 > 휴지 앵커(`rest_anchored`: 30분 이상 휴지 끝 SOC 두 점 사이 순 Ah ÷ ΔSOC, |ΔSOC| ≥ 25%, 중간 충방전 허용, 불확실도 역분산 가중) > CC 구간 Ah > 부분 충전 SOC 변화. 앞 방식이 판정 불능이면 다음 방식을 씁니다. SOC 기반 방식은 근거에 "BMS SOC 재보정 품질에 의존" 주의 코드를 남기고 화면·리포트가 문구로 보여 줍니다.
    - 기준은 bin별로 고릅니다: 기준선 재설정 이후 조건 bin마다 가장 이른 5개(`referencePerBin`)가 그 bin의 기준이고, 주 bin(최근 가중치 최대) 기준 시점과 120일(`maxReferenceSpreadDays`) 넘게 떨어진 bin은 결합에서 뺍니다(근거 bin 표에 기준 기간·제외 이유). `detector_config.reference_window`가 있으면 그 창이 우선입니다. 휴지 앵커는 `ess.rest@2` 에피소드(휴지 끝 SOC·휴지 중 순 Ah)가 필요합니다.
 6. finding upsert: `dedup_key = 탐지기|설비|고장모드`. 열린 건은 갱신(`last_detected_at`·`detection_count`·심각도·신뢰도·효과, 조치 이후 악화면 system이 `reopened`), 없으면 억제 기간 안의 기각 건이면 건너뛰고 아니면 새로 만듭니다(닫힌 이전 건은 `previous_finding_id`). 근거는 매번 `finding_evidence`에 추가합니다(`input_hash`).
@@ -184,7 +185,7 @@ npm run sim:eval -- --cache .data/sim-eval        # 시뮬레이션·추출 결�
 - 잡은 자식 프로세스 N개(`--concurrency`, 기본 min(8, CPU−1))로 나눠 돌립니다. 이 PC(16코어)에서 전체 약 3분 30초, `--runs 3,4,5` 축소는 약 2분 15초입니다. 시드 하나만 고르면 게이트 주입이 2~3건이라 한 건의 지연이 중앙값을 좌우합니다(예: `--seeds 101 --runs 3,4`는 용량 5% 주입 지연 43일이 섞여 중앙값 31일로 미달). CI 코어가 적으면 `--runs 3,4,5`를 쓰고 `--concurrency`를 코어 수에 맞추세요.
 - 주 단위 점검 시각마다 탐지기를 실행하고, 주입 설비는 하루 단위로 첫 탐지를 좁힙니다. 판정 규칙은 `lib/sim/eval/score.ts` 머리 주석에 있습니다: TP = 주입 설비·기대 고장모드 finding이 주입 시작~종료+7일에 나옴, FP = 그 밖의 finding(연속 점검은 한 건), 크기 오차 = 마지막 탐지 효과와 같은 창의 참값 차이(용량은 시뮬레이터 참 SOH 비율).
 - 게이트: `ess.capacity_fade` 5% 이상 재현율 ≥ 0.9·크기 MAE ≤ 1%p·지연 중앙값 ≤ 21일 / 5종 오탐 ≤ 0.1건/자산·월 / `el.voltage_rise` 20 µV/h 이상 재현율 ≥ 0.9. 하나라도 미달이면 종료 코드 1입니다. 평가할 주입이 없으면(축소 선택에서 빠짐) 미달로 봅니다.
-- `dq.gap_flatline`은 메모리 모드가 전송 계층(단절·지연·시계 오차)을 재현하지 않아 평가하지 않습니다.
+- `dq.gap_flatline`은 저장값 수준 주입만 평가합니다: 결측(`dq.sample_loss`, 메모리 모드 값 NaN = 저장되지 않은 샘플, HTTP 적재에서는 보내지 않음)·고착(`dq.stuck_sensor`) 3·6·12시간을 SIM-A·SIM-B에 넣고 주 단위 점검마다 최근 7일 창을 DB 경로와 같은 요약 규칙으로 평가합니다. 전송 계층 단절 후 백필·지연·시계 오차는 메모리 모드가 재현하지 않아 DB E2E 모드에서 확인합니다.
 - 전체 프리셋이면 `lib/analytics/scorecard.json`(탐지기별 재현율·정밀도·오탐률·지연·크기 오차·최소 탐지 크기 곡선, 게이트, 파라미터 조정 내역)을 갱신합니다. 일부만 돌리면 `--out`을 준 경우에만 씁니다. `npm run db:up`으로 로컬 DB가 떠 있으면 `sim.run`·`sim.injection`·`sim.eval_result`에도 기록합니다(`--no-db`로 끔).
 
 ### 테스트

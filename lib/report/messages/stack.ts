@@ -29,6 +29,9 @@ export function stackVoltageMessage(s: Scope, f: PackFinding, wording: StackWord
     ciNote(s, 'effect.ciLow', 'effect.ciHigh', 1, false),
     `로 ${wording.verb}하고 있습니다.`,
     when(s.has('evidence.opHoursSpan') && s.has('evidence.deltaMv'), () => seq(' 운전 ', s.num('evidence.opHoursSpan'), ' h 동안 셀당 약 ', s.num('evidence.deltaMv', 1), ` mV ${wording.verb}.`)),
+    when(e.slopeBasis === 'post_change' && s.has('evidence.opHoursFirst') && s.has('evidence.fullSlopeUvPerH'), () =>
+      seq(' 기울기가 바뀐 변화점(누적 ', s.num('evidence.opHoursFirst'), ' h) 이후 구간의 값이며, 전체 구간 기울기는 ', s.num('evidence.fullSlopeUvPerH', 1, true), ' µV/h입니다.'),
+    ),
     supportsNote(s, e.checks),
   );
 }

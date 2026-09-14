@@ -23,6 +23,33 @@ describe('el.voltage_rise@1', () => {
     expect(JSON.stringify(finding?.evidence).length).toBeLessThan(20_000);
   });
 
+  it('변화점 이후 운전시간이 충분하면 변화점 이후 기울기를 효과로 쓴다 (기본 4 µV/h 600 h 뒤 25 µV/h 주입: 전체 기울기 편향 해소)', () => {
+    const kinkHours = 1800;
+    const base = elRuns({ count: 420, startHours: 1200, endHours: 3000, rateUvPerH: 0, seed: 12, noiseMv: 0.2 });
+    const episodes = base.map((e) => {
+      const h = e.features.op_hours_cum ?? 0;
+      const drift = 4e-6 * (Math.min(h, kinkHours) - 1200) + 25e-6 * Math.max(0, h - kinkHours);
+      return { ...e, features: { ...e.features, v_cell_mean: (e.features.v_cell_mean ?? 0) + drift } };
+    });
+    const result = elVoltageRise.detect({ assetId: 31, episodes }, ctx());
+    expect(result.status).toBe('ok');
+    if (result.status !== 'ok') return;
+    const [finding] = result.findings;
+    const trend = (finding?.evidence as Record<string, Record<string, unknown>>).trend ?? {};
+    // 전체 기울기는 앞 600 h의 4 µV/h가 섞여 25보다 작다 (P2에서 21.4 vs 25로 보고된 편향)
+    expect((trend.full as Record<string, number>).slope_uv_per_h).toBeLessThan(22.5);
+    expect(trend.basis).toBe('post_change');
+    expect(finding?.effect.value).toBeGreaterThan(22.5);
+    expect(finding?.effect.value).toBeLessThan(27.5);
+    expect((trend.pre_change as Record<string, number>).slope_uv_per_h).toBeLessThan(12);
+    expect(Number(trend.change_start_op_h)).toBeGreaterThan(1500);
+    expect(finding?.summary).toContain('변화점');
+    // 변화점 이후 운전시간이 모자라면(minHoursAfterChange) 전체 기울기
+    const short = elVoltageRise.detect({ assetId: 31, episodes }, ctx(1, { params: { minHoursAfterChange: 5000 } }));
+    const shortTrend = short.status === 'ok' ? ((short.findings[0]?.evidence as Record<string, Record<string, unknown>>).trend ?? {}) : {};
+    expect(shortTrend.basis).toBe('full');
+  });
+
   it('대조군(기본 열화 4 µV/h)은 0건, break-in 이전뿐이면 insufficient', () => {
     expect(elVoltageRise.detect({ assetId: 31, episodes: elRuns({ count: 300, startHours: 1200, endHours: 2400, rateUvPerH: 4, seed: 3 }) }, ctx())).toEqual({ status: 'ok', findings: [] });
     const early = elVoltageRise.detect({ assetId: 31, episodes: elRuns({ count: 100, startHours: 10, endHours: 900, rateUvPerH: 50, seed: 4 }) }, ctx());
@@ -68,6 +95,22 @@ describe('fc.voltage_decay@1', () => {
     expect(result.status === 'ok' && result.findings[0]?.effect.value).toBeCloseTo(40, 0);
     const legacy = fcVoltageDecay.detect({ assetId: 41, episodes: constantPower }, ctx(1, { params: { correctCurrentDensity: true, correctTemperature: true } }));
     expect(legacy.status === 'ok' ? legacy.findings.length : 0).toBe(0);
+  });
+
+  it('변화점 이후 기울기: 기본 감쇠 6 µV/h 400 h 뒤 30 µV/h로 바뀌면 30 ± 3 µV/h (전체 기울기는 더 작다)', () => {
+    const kinkHours = 1000;
+    const episodes = fcRuns({ count: 420, startHours: 600, endHours: 2400, rateUvPerH: 0, seed: 13, noiseMv: 0.2 }).map((e) => {
+      const h = e.features.op_hours_cum ?? 0;
+      const drop = 6e-6 * (Math.min(h, kinkHours) - 600) + 30e-6 * Math.max(0, h - kinkHours);
+      return { ...e, features: { ...e.features, v_cell_at_jref: (e.features.v_cell_at_jref ?? 0) - drop } };
+    });
+    const result = fcVoltageDecay.detect({ assetId: 41, episodes }, ctx());
+    const finding = result.status === 'ok' ? result.findings[0] : undefined;
+    const trend = (finding?.evidence as Record<string, Record<string, unknown>> | undefined)?.trend ?? {};
+    expect(trend.basis).toBe('post_change');
+    expect(finding?.effect.value).toBeGreaterThan(27);
+    expect(finding?.effect.value).toBeLessThan(33);
+    expect(-((trend.full as Record<string, number>).slope_uv_per_h ?? 0)).toBeLessThan(finding?.effect.value ?? 0);
   });
 
   it('대조군(기본 감쇠 6 µV/h, 블로워 그대로)은 0건', () => {

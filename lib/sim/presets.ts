@@ -104,6 +104,8 @@ export const EVAL_PRESET = Object.freeze({
     integratedCapacityFadePct: [1, 3, 5, 7, 10],
     /** SIM-A 랙 3 셀 전압 산포 증가 [mV/월] */
     cellSpreadMvPerMonth: [5, 10, 20],
+    /** 데이터 품질 결측(샘플 제거)·고착(값 고정) 길이 [h] — SIM-A 일사계·외기온도, SIM-B 배터리실 온도·모듈 온도 */
+    dqHours: [3, 6, 12],
     elzUvPerH: [5, 10, 20, 40],
     fcUvPerH: [5, 10, 20, 40],
     inverterDropPctPoints: [0.5, 1, 2, 3],
@@ -125,6 +127,7 @@ export interface EvalMagnitudes {
   readonly capacityFadePct: number | null;
   readonly integratedCapacityFadePct: number | null;
   readonly cellSpreadMvPerMonth: number | null;
+  readonly dqHours: number | null;
   readonly elzUvPerH: number | null;
   readonly fcUvPerH: number | null;
   readonly inverterDropPctPoints: number | null;
@@ -141,6 +144,21 @@ export interface EvalRunPlan {
 }
 
 /**
+ * 데이터 품질 평가 주입 (순번 i마다 100일씩 뒤로 옮겨 계절을 바꾼다, 대조군 SIM-C에는 넣지 않는다):
+ * SIM-A 일사계 POA 고착(40일째 09시)·외기온도 결측(47일째 10시), SIM-B 배터리실 온도 고착(54일째 09시)·모듈 온도 결측(61일째 13시)
+ */
+function dqEvalScenarios(from: string, hours: number, i: number): Scenario[] {
+  const at = (day: number, kstHour: number): number => Date.parse(from) + (day + 100 * i) * MS_PER_DAY + kstHour * MS_PER_HOUR;
+  const durationS = hours * HOUR_S;
+  return [
+    { kind: 'dq.stuck_sensor', site: 'SIM-A', sourceKey: 'WX1/POA', start: at(40, 9), durationS },
+    { kind: 'dq.sample_loss', site: 'SIM-A', sourceKey: 'WX1/T_AMB', start: at(47, 10), durationS },
+    { kind: 'dq.stuck_sensor', site: 'SIM-B', sourceKey: 'ESS1/T_ROOM', start: at(54, 9), durationS },
+    { kind: 'dq.sample_loss', site: 'SIM-B', sourceKey: 'WX1/T_MOD', start: at(61, 13), durationS },
+  ];
+}
+
+/**
  * 시드 × 스윕 순번마다 실행 하나. 순번 i에서 각 스윕의 i번째 크기를 설비 하나에만 넣는다
  * (동종 비교 기준이 남도록 랙·인버터는 1대씩 — SIM-A 랙 1 용량·랙 3 셀 불균형, SIM-B 랙 1 용량 — 목록이 짧은 스윕은 그 순번에 고장 없음).
  */
@@ -153,6 +171,7 @@ export function evalRunPlans(preset: EvalPreset = EVAL_PRESET): readonly EvalRun
         capacityFadePct: sweeps.capacityFadePct[i] ?? null,
         integratedCapacityFadePct: sweeps.integratedCapacityFadePct[i] ?? null,
         cellSpreadMvPerMonth: sweeps.cellSpreadMvPerMonth[i] ?? null,
+        dqHours: sweeps.dqHours[i] ?? null,
         elzUvPerH: sweeps.elzUvPerH[i] ?? null,
         fcUvPerH: sweeps.fcUvPerH[i] ?? null,
         inverterDropPctPoints: sweeps.inverterDropPctPoints[i] ?? null,
@@ -165,7 +184,8 @@ export function evalRunPlans(preset: EvalPreset = EVAL_PRESET): readonly EvalRun
         ...(magnitudes.elzUvPerH === null ? [] : [{ kind: 'fault.elz_stack_degradation', site: 'SIM-B', uvPerH: magnitudes.elzUvPerH, startDay } as const]),
         ...(magnitudes.fcUvPerH === null ? [] : [{ kind: 'fault.fc_voltage_decay', site: 'SIM-B', uvPerH: magnitudes.fcUvPerH, startDay } as const]),
       ];
-      return { id: `eval-s${seed}-${i + 1}`, seed, from: preset.from, days: preset.days, siteCodes: ALL_SIM_SITES, magnitudes, scenarios: [...faults, ...preset.controls] };
+      const dq = magnitudes.dqHours === null ? [] : dqEvalScenarios(preset.from, magnitudes.dqHours, i);
+      return { id: `eval-s${seed}-${i + 1}`, seed, from: preset.from, days: preset.days, siteCodes: ALL_SIM_SITES, magnitudes, scenarios: [...faults, ...dq, ...preset.controls] };
     }),
   );
 }

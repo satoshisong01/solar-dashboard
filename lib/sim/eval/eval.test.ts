@@ -21,7 +21,7 @@ describe('평가 잡 분해', () => {
     const control = jobs.filter((j) => j.siteCode === 'SIM-C');
     expect(control.map((j) => j.runIds.length)).toEqual([5, 5, 5]);
     expect(control.every((j) => j.scenarios.length === EVAL_PRESET.controls.length)).toBe(true);
-    expect(jobs.find((j) => j.id === 's101-SIM-A-3')?.scenarios.map((s) => s.kind)).toEqual(['fault.battery_capacity_fade', 'fault.inverter_efficiency_drop', 'fault.cell_imbalance']);
+    expect(jobs.find((j) => j.id === 's101-SIM-A-3')?.scenarios.map((s) => s.kind)).toEqual(['fault.battery_capacity_fade', 'fault.inverter_efficiency_drop', 'fault.cell_imbalance', 'dq.stuck_sensor', 'dq.sample_loss']);
     expect(jobs.find((j) => j.id === 's101-SIM-B-5')?.scenarios.map((s) => s.kind)).toEqual(['fault.battery_capacity_fade']);
   });
 

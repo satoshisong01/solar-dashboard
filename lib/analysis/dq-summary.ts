@@ -1,61 +1,18 @@
 // dq.gap_flatline 입력: 포인트별 결측(1시간 롤업 공백)·고착(원시 같은 값 연속) 구간을 SQL로 요약한다.
 // - 창은 사이트에 실제 데이터가 있는 구간으로 줄인다 (수집 시작 전·마지막 수신 이후를 결측으로 세지 않음)
 // - 결측: 시간 버킷이 없거나 n = 0인 시간의 연속 구간. 받은 샘플 = Σ n
-// - 고착: metric_def.flatline_max_s가 있는 메트릭만, 같은 값이 그 시간 넘게 이어진 원시 구간
+// - 고착: metric_def.flatline_max_s가 있는 메트릭만. 규칙(구간 끝 = 마지막 샘플 + 주기, 길이 ≥ 기준, 일사량 야간 0 근처 제외)은
+//   메모리 평가와 같도록 lib/analytics/dq/summary.ts에 적어 두고 SQL도 그대로 따른다
 import { sql, type Kysely } from 'kysely';
-import type { DqGapFlatlineInput, DqPointSummary } from '@/lib/analytics/detectors/dq-gap-flatline';
+import type { DqGapFlatlineInput } from '@/lib/analytics/detectors/dq-gap-flatline';
+import { flatlineIgnoreAbsBelow, summarizePoints, type FlatRun } from '@/lib/analytics/dq/summary';
 import { MS_PER_HOUR, type TimeWindow } from '@/lib/analytics/types';
 import type { DB } from '@/lib/db/types';
 import type { PointRow } from './catalog';
 
+export { summarizePoints, type FlatRun, type HourCount } from '@/lib/analytics/dq/summary';
+
 const iso = (ms: number): string => new Date(ms).toISOString();
-
-export interface HourCount {
-  readonly pointId: number;
-  readonly hourStart: number;
-  readonly n: number;
-}
-
-export interface FlatRun {
-  readonly pointId: number;
-  readonly start: number;
-  readonly end: number;
-  readonly value: number;
-}
-
-/** 순수: 포인트·시간 개수·고착 구간 → 탐지기 입력 요약 */
-export function summarizePoints(points: readonly PointRow[], hours: readonly HourCount[], flatRuns: readonly FlatRun[], window: TimeWindow): DqPointSummary[] {
-  const firstHour = Math.ceil(window.start / MS_PER_HOUR) * MS_PER_HOUR;
-  const hourCount = Math.max(0, Math.floor((window.end - firstHour) / MS_PER_HOUR));
-  const countsByPoint = new Map<number, Map<number, number>>();
-  for (const h of hours) countsByPoint.set(h.pointId, (countsByPoint.get(h.pointId) ?? new Map<number, number>()).set(h.hourStart, h.n));
-  return points
-    .filter((p) => p.periodS !== null && p.periodS > 0)
-    .map((point) => {
-      const counts = countsByPoint.get(point.pointId) ?? new Map<number, number>();
-      const gaps: TimeWindow[] = [];
-      let received = 0;
-      for (let i = 0; i < hourCount; i += 1) {
-        const hour = firstHour + i * MS_PER_HOUR;
-        const n = counts.get(hour) ?? 0;
-        received += n;
-        if (n > 0) continue;
-        const last = gaps.at(-1);
-        if (last && last.end === hour) gaps[gaps.length - 1] = { start: last.start, end: hour + MS_PER_HOUR };
-        else gaps.push({ start: hour, end: hour + MS_PER_HOUR });
-      }
-      return {
-        pointId: point.pointId,
-        assetId: point.assetId,
-        metricKey: point.metricKey,
-        sourceKey: point.sourceKey,
-        expectedSamples: Math.round((hourCount * 3600) / (point.periodS ?? 1)),
-        receivedSamples: received,
-        gaps,
-        flatlines: flatRuns.filter((f) => f.pointId === point.pointId).map(({ start, end, value }) => ({ start, end, value })),
-      };
-    });
-}
 
 /** 사이트 포인트들의 데이터 구간으로 줄인 창. 데이터가 없으면 null */
 async function dataWindow(db: Kysely<DB>, pointIds: readonly number[], window: TimeWindow): Promise<TimeWindow | null> {
@@ -73,7 +30,10 @@ async function flatRunsOf(db: Kysely<DB>, points: readonly PointRow[], window: T
   const flat = points.filter((p) => p.flatlineMaxS !== null);
   if (flat.length === 0) return [];
   const { rows } = await sql<{ point_id: number; start_ms: number; end_ms: number; value: number }>`
-    WITH limits AS (SELECT * FROM unnest(${flat.map((p) => p.pointId)}::int4[], ${flat.map((p) => p.flatlineMaxS ?? 0)}::int4[]) AS l(point_id, max_s)),
+    WITH limits AS (
+      SELECT * FROM unnest(${flat.map((p) => p.pointId)}::int4[], ${flat.map((p) => p.flatlineMaxS ?? 0)}::int4[], ${flat.map((p) => p.periodS ?? 0)}::int4[], ${flat.map((p) => flatlineIgnoreAbsBelow(p.metricKey))}::float8[])
+        AS l(point_id, max_s, period_s, ignore_abs_below)
+    ),
     marked AS (
       SELECT m.point_id, m.ts, m.value,
         CASE WHEN m.value IS NOT DISTINCT FROM lag(m.value) OVER w THEN 0 ELSE 1 END AS changed
@@ -82,10 +42,11 @@ async function flatRunsOf(db: Kysely<DB>, points: readonly PointRow[], window: T
       WINDOW w AS (PARTITION BY m.point_id ORDER BY m.ts)
     ),
     runs AS (SELECT point_id, ts, value, sum(changed) OVER (PARTITION BY point_id ORDER BY ts) AS run FROM marked)
-    SELECT r.point_id, (extract(epoch FROM min(r.ts)) * 1000)::float8 AS start_ms, (extract(epoch FROM max(r.ts)) * 1000)::float8 AS end_ms, min(r.value) AS value
+    SELECT r.point_id, (extract(epoch FROM min(r.ts)) * 1000)::float8 AS start_ms, (extract(epoch FROM max(r.ts) + make_interval(secs => l.period_s)) * 1000)::float8 AS end_ms, min(r.value) AS value
     FROM runs r JOIN limits l ON l.point_id = r.point_id
-    GROUP BY r.point_id, r.run, l.max_s
-    HAVING max(r.ts) - min(r.ts) > make_interval(secs => l.max_s)
+    GROUP BY r.point_id, r.run, l.max_s, l.period_s, l.ignore_abs_below
+    HAVING max(r.ts) + make_interval(secs => l.period_s) - min(r.ts) >= make_interval(secs => l.max_s)
+      AND (l.ignore_abs_below IS NULL OR abs(min(r.value)) > l.ignore_abs_below)
     ORDER BY r.point_id, min(r.ts)
   `.execute(db);
   return rows.map((row) => ({ pointId: row.point_id, start: row.start_ms, end: row.end_ms, value: row.value }));

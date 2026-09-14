@@ -1,6 +1,7 @@
 // 메모리 모드: HTTP·DB 없이 시뮬레이션해 포인트별 시계열을 타입 배열로 모은다 (탐지기 평가용, 설계 §5.5).
 // 값은 수집 파이프라인이 om.measurement에 저장할 값과 같다 (원본값 × scale + value_offset, 노이즈·반올림·고착 포함).
 // 전송 계층 시나리오(단절·중복 재전송·시계 오차)는 저장값을 바꾸지 않으므로 반영하지 않는다(시각 이동·CLOCK_SUSPECT 없음).
+// 결측 주입(dq.sample_loss)은 저장값에 남으므로 반영한다: 그 샘플 값은 NaN(= 저장되지 않은 샘플).
 import { METRIC_DEF_BY_KEY } from '@/db/seed/catalog';
 import { SIM_SITES } from '@/db/seed/sites';
 import type { SiteDef } from '@/db/seed/types';
@@ -10,7 +11,7 @@ import type { SimEvent } from './events';
 import { MS_PER_SECOND, toEpochMs, type TimeInput } from './math';
 import { createPlant } from './plant';
 import { readingKey } from './plant-types';
-import { EMPTY_PLAN, planScenarios, scenarioOriginMs, type Scenario } from './scenarios';
+import { EMPTY_PLAN, isSampleLost, planScenarios, scenarioOriginMs, type Scenario } from './scenarios';
 import { buildTruth, type SimulationTruth } from './truth';
 
 export const MEMORY_STEP_S = 60;
@@ -35,7 +36,7 @@ export interface MemorySeries extends MemoryPoint {
   readonly key: string;
   /** 샘플 시각 [epoch ms]. 같은 주기의 시계열끼리 같은 배열을 공유하므로 수정하지 말 것 */
   readonly ts: Float64Array;
-  /** 정규 단위 값 */
+  /** 정규 단위 값. NaN = 결측 주입으로 저장되지 않은 샘플 */
   readonly value: Float64Array;
   /** om.measurement.quality 비트 (HARD_RANGE만 계산) */
   readonly quality: Int16Array;
@@ -193,14 +194,15 @@ export function simulateMemory(options: MemorySimulationOptions): MemorySimulati
   let steps = 0;
   sites.forEach((site, i) => {
     const writers = createWriters(pointsBySite[i] ?? [], timestamps);
-    const plant = createPlant({ site, seed: options.seed, startMs: firstStepMs - stepMs, stepS: MEMORY_STEP_S, plan: plans.get(site.code) ?? EMPTY_PLAN });
+    const plan = plans.get(site.code) ?? EMPTY_PLAN;
+    const plant = createPlant({ site, seed: options.seed, startMs: firstStepMs - stepMs, stepS: MEMORY_STEP_S, plan });
     for (let tMs = firstStepMs; tMs < toMs; tMs += stepMs) {
       const output = plant.step(tMs);
       steps += 1;
       for (const sample of output.samples) {
         const writer = writers.get(sample.sourceKey);
         if (!writer) continue;
-        const value = applyScale(sample.value, writer);
+        const value = isSampleLost(plan, sample.sourceKey, sample.ts) ? Number.NaN : applyScale(sample.value, writer);
         writer.series.value[writer.index] = value;
         writer.series.quality[writer.index] = value < writer.hardMin || value > writer.hardMax ? QUALITY.HARD_RANGE : 0;
         writer.index += 1;

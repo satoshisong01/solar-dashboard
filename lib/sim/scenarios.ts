@@ -33,6 +33,14 @@ export interface StuckSensorScenario {
   readonly start: TimeInput;
   readonly durationS: number;
 }
+/** 센서 샘플이 영영 들어오지 않음 (게이트웨이가 그 태그를 보내지 못함). 단절 후 백필과 달리 저장값에 결측이 남는다 */
+export interface SampleLossScenario {
+  readonly kind: 'dq.sample_loss';
+  readonly site: string;
+  readonly sourceKey: string;
+  readonly start: TimeInput;
+  readonly durationS: number;
+}
 export interface SpikeScenario {
   readonly kind: 'dq.spike';
   readonly site: string;
@@ -63,6 +71,7 @@ export type Scenario =
   | GatewayOutageScenario
   | DuplicateBatchesScenario
   | StuckSensorScenario
+  | SampleLossScenario
   | SpikeScenario
   | ClockSkewScenario
   | H2LeakAlarmScenario
@@ -77,6 +86,7 @@ export interface SiteScenarioPlan extends ControlPlan {
   /** clockSkewMs를 적용하는 전송 시각 구간. null이면 실행 내내 */
   readonly clockSkewWindow: TimeWindow | null;
   readonly stuckSensors: readonly (TimeWindow & { readonly sourceKey: string })[];
+  readonly sampleLosses: readonly (TimeWindow & { readonly sourceKey: string })[];
   readonly spikes: readonly { readonly sourceKey: string; readonly perDay: number; readonly magnitude: number }[];
   readonly leakAlarms: readonly { readonly atMs: number; readonly detector: string }[];
   readonly faults: readonly FaultScenario[];
@@ -88,6 +98,7 @@ export const EMPTY_PLAN: SiteScenarioPlan = Object.freeze({
   clockSkewMs: 0,
   clockSkewWindow: null,
   stuckSensors: [],
+  sampleLosses: [],
   spikes: [],
   leakAlarms: [],
   faults: [],
@@ -149,6 +160,8 @@ function applyScenario(plan: SiteScenarioPlan, site: SiteDef, scenario: Exclude<
       return { ...plan, duplicateRatio: scenario.ratio };
     case 'dq.stuck_sensor':
       return { ...plan, stuckSensors: [...plan.stuckSensors, { ...windowOf(scenario.start, scenario.durationS, label), sourceKey: requireSourceKey(site, scenario.sourceKey) }] };
+    case 'dq.sample_loss':
+      return { ...plan, sampleLosses: [...plan.sampleLosses, { ...windowOf(scenario.start, scenario.durationS, label), sourceKey: requireSourceKey(site, scenario.sourceKey) }] };
     case 'dq.spike':
       return {
         ...plan,
@@ -165,6 +178,11 @@ function applyScenario(plan: SiteScenarioPlan, site: SiteDef, scenario: Exclude<
     case 'fault':
       return { ...plan, faults: [...plan.faults, validateFault(site, scenario)] };
   }
+}
+
+/** 이 태그의 이 시각 샘플이 결측 주입 구간이면 true (보내지도 저장하지도 않는다) */
+export function isSampleLost(plan: Pick<SiteScenarioPlan, 'sampleLosses'>, sourceKey: string, tMs: number): boolean {
+  return plan.sampleLosses.some((w) => w.sourceKey === sourceKey && tMs >= w.startMs && tMs < w.endMs);
 }
 
 /** 그 시각에 보내는 배치에 적용할 게이트웨이 시계 오차 [ms] */

@@ -4,9 +4,13 @@ import type { PipelineAsset } from '@/lib/analytics/pipeline/types';
 import type { AssetSeries, Sample } from '@/lib/analytics/types';
 import { pointKey, type MemorySeries } from '../memory';
 
+/** 메모리 시계열 → 원시 샘플. 값이 NaN인 샘플(결측 주입)은 DB에 행이 없는 것과 같게 뺀다 */
 export function toSamples(series: MemorySeries): Sample[] {
-  const samples: Sample[] = new Array<Sample>(series.ts.length); // 수십만 개라 map 대신 미리 잡은 배열을 채운다
-  for (let i = 0; i < series.ts.length; i += 1) samples[i] = { ts: series.ts[i] as number, value: series.value[i] as number, quality: series.quality[i] as number };
+  const samples: Sample[] = []; // 수십만 개라 map·filter 대신 한 번에 채운다
+  for (let i = 0; i < series.ts.length; i += 1) {
+    const value = series.value[i] as number;
+    if (!Number.isNaN(value)) samples.push({ ts: series.ts[i] as number, value, quality: series.quality[i] as number });
+  }
   return samples;
 }
 

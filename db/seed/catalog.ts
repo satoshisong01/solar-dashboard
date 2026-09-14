@@ -183,14 +183,16 @@ function metric(
 }
 
 const SIX_HOURS_S = 6 * 3600; // 온도처럼 늘 조금씩 변하는 값의 고착 판정 기본값
+const TWO_HOURS_S = 2 * 3600;
 const G = 'gauge';
 const C = 'counter';
 
 /** 정규 단위: kW, kWh, V, A, °C, %, bar, kg/h, ppm, μS/cm 등. 무차원(상태 코드·횟수·역률)은 빈 문자열. */
 export const METRIC_DEFS: readonly MetricDef[] = [
   // 기상
-  metric('poa.irradiance', '경사면 일사량(POA)', 'irradiance', 'W/m²', G, 'avg', { hard: [-10, 1800], expected: [0, 1400], aliases: ['POA', 'SunSpec 302 POA'] }),
-  metric('ghi.irradiance', '수평면 전일사량(GHI)', 'irradiance', 'W/m²', G, 'avg', { hard: [-10, 1600], expected: [0, 1200], aliases: ['GHI'] }),
+  // 일사량은 주간에 늘 변하므로 같은 값 2시간이면 고착 의심. 야간 0 근처 값은 고착 판정에서 뺀다 (lib/analytics/dq/summary.ts)
+  metric('poa.irradiance', '경사면 일사량(POA)', 'irradiance', 'W/m²', G, 'avg', { hard: [-10, 1800], expected: [0, 1400], flatlineS: TWO_HOURS_S, aliases: ['POA', 'SunSpec 302 POA'] }),
+  metric('ghi.irradiance', '수평면 전일사량(GHI)', 'irradiance', 'W/m²', G, 'avg', { hard: [-10, 1600], expected: [0, 1200], flatlineS: TWO_HOURS_S, aliases: ['GHI'] }),
   metric('module.temp', '모듈 후면 온도', 'temperature', '°C', G, 'avg', { hard: [-40, 110], expected: [-20, 85], flatlineS: SIX_HOURS_S, aliases: ['SunSpec 303 TmpBOM'] }),
   metric('ambient.temp', '외기 온도', 'temperature', '°C', G, 'avg', { hard: [-50, 60], expected: [-25, 40], flatlineS: SIX_HOURS_S, aliases: ['TmpAmb'] }),
   metric('ambient.humidity', '외기 상대습도', 'humidity', '%', G, 'avg', { hard: [0, 100], expected: [10, 100], aliases: ['RH'] }),

@@ -8,11 +8,11 @@ import { DEFAULT_PV_DAY_PARAMS } from '../lib/analytics/episodes/pv';
 import { DEFAULT_STACK_EXTRACTOR_PARAMS } from '../lib/analytics/episodes/stack-episodes';
 import { EXTRACTOR_VERSIONS } from '../lib/analytics/episodes/types';
 import type { WorkerRequest, WorkerResponse } from '../lib/sim/eval/pool';
-import { evaluatePreparedJob, prepareSiteJob, type PreparedJob } from '../lib/sim/eval/replay';
+import { evaluatePreparedJob, PREPARED_JOB_FORMAT, prepareSiteJob, type PreparedJob } from '../lib/sim/eval/replay';
 
 /** 추출기 설정·버전·잡이 같으면 같은 준비 결과 */
 const cacheKey = (request: WorkerRequest): string =>
-  hashInput({ job: request.job, extractor: EXTRACTOR_VERSIONS, ess: DEFAULT_ESS_EXTRACTOR_PARAMS, pv: DEFAULT_PV_DAY_PARAMS, stack: DEFAULT_STACK_EXTRACTOR_PARAMS }).slice(0, 12);
+  hashInput({ format: PREPARED_JOB_FORMAT, job: request.job, extractor: EXTRACTOR_VERSIONS, ess: DEFAULT_ESS_EXTRACTOR_PARAMS, pv: DEFAULT_PV_DAY_PARAMS, stack: DEFAULT_STACK_EXTRACTOR_PARAMS }).slice(0, 12);
 
 function loadOrPrepare(request: WorkerRequest): { prepared: PreparedJob; cached: boolean } {
   if (request.cacheDir === null) return { prepared: prepareSiteJob(request.job), cached: false };

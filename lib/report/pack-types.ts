@@ -86,6 +86,10 @@ export interface CapacityPackEvidence {
 
 export interface StackPackEvidence {
   readonly kind: 'stack';
+  /** 효과 기울기 구간 (post_change면 opHoursFirst = 변화점) */
+  readonly slopeBasis: 'full' | 'post_change';
+  /** 전체 점 기울기 [µV/h] (부호 포함) */
+  readonly fullSlopeUvPerH: number | null;
   readonly segments: number;
   readonly binCount: number;
   readonly breakInHours: number | null;

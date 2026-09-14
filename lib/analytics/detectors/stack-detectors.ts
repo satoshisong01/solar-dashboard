@@ -27,6 +27,7 @@ const BASE_DEFAULTS = {
   cusumK: 0.5,
   cusumH: 5,
   sigmaFloorMv: 0.5,
+  minHoursAfterChange: 300,
   sev2UvPerH: 10,
   sev3UvPerH: 20,
   sev4UvPerH: 40,
@@ -88,16 +89,18 @@ function blowerCheck(episodes: readonly FcSteadyEpisode[], result: StackTrendRes
 }
 
 function buildFinding(spec: Spec, input: StackVoltageInput<unknown>, ctx: DetectorContext<StackDetectorParams>, p: StackDetectorParams, result: StackTrendResult, checks: readonly DiagnosticCheck[]): CandidateFinding | null {
-  const { fit } = result.trend;
+  const fit = result.effectFit;
   const sign = spec.direction === 'up' ? 1 : -1;
   const rate = sign * fit.slope * 1e6;
   const [ciLow, ciHigh] = spec.direction === 'up' ? [fit.ciLow * 1e6, fit.ciHigh * 1e6] : [-fit.ciHigh * 1e6, -fit.ciLow * 1e6];
   const severity = severityByMagnitude(rate, [[p.sev4UvPerH, 4], [p.sev3UvPerH, 3], [p.sev2UvPerH, 2]]);
   if (severity === null || !(ciLow > 0) || rate <= p.sev2UvPerH) return null;
 
-  const first = result.xs[0] ?? 0;
+  const first = result.xs[result.effectFromIndex] ?? 0;
   const last = result.xs[result.xs.length - 1] ?? 0;
   const baselineMv = (result.referenceV + fit.intercept + fit.slope * first) * 1000;
+  const fullRate = sign * result.trend.fit.slope * 1e6;
+  const basisText = result.basis === 'post_change' ? ` 변화점(누적 ${fixed(first, 0)} h) 이후 기울기입니다(전체 기울기 ${fixed(fullRate, 1)} µV/h).` : '';
   const currentMv = (result.referenceV + fit.intercept + fit.slope * last) * 1000;
   const agrees = (result.trend.mkPValue < 0.05 && Math.sign(result.trend.mkTau) === sign) || result.trend.alarmIndex !== null;
   const evidence: JsonObject = { ...stackTrendEvidence(result, p.breakInHours), checks: [...checks] };
@@ -114,7 +117,7 @@ function buildFinding(spec: Spec, input: StackVoltageInput<unknown>, ctx: Detect
     summary:
       `정상운전 ${result.points.length}구간(누적 ${fixed(first, 0)}~${fixed(last, 0)} h, break-in ${fixed(p.breakInHours, 0)} h 이후)을 같은 전류밀도·온도 구간으로 맞춰 보면 ` +
       `${spec.subject}이 ${fixed(rate, 1)} µV/h(95% CI ${fixed(ciLow, 1)} ~ ${fixed(ciHigh, 1)})로 ${spec.titleVerb}하고 있습니다. ` +
-      `운전 ${fixed(last - first, 0)} h 동안 셀당 약 ${fixed(Math.abs(currentMv - baselineMv), 1)} mV ${spec.titleVerb}.` +
+      `운전 ${fixed(last - first, 0)} h 동안 셀당 약 ${fixed(Math.abs(currentMv - baselineMv), 1)} mV ${spec.titleVerb}.${basisText}` +
       (supported.length > 0 ? ` 함께 확인된 신호: ${supported.join(', ')}.` : ''),
     effect: { metric: spec.direction === 'up' ? 'v_cell_rise_rate' : 'v_cell_decay_rate', value: r(rate, 3) ?? 0, unit: 'µV/h', ciLow: r(ciLow, 3), ciHigh: r(ciHigh, 3), baseline: r(baselineMv, 2), current: r(currentMv, 2), levelUnit: 'mV' },
     windowStart: Math.min(...result.points.map((pt) => pt.start)),

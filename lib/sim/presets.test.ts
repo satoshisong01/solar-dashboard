@@ -102,6 +102,13 @@ describe('EVAL_PRESET · evalRunPlans', () => {
       expect(runs.map((r) => r.magnitudes.capacityFadePct)).toEqual([1, 3, 5, 7, 10]);
       expect(runs.map((r) => r.magnitudes.integratedCapacityFadePct)).toEqual([1, 3, 5, 7, 10]);
       expect(runs.map((r) => r.magnitudes.cellSpreadMvPerMonth)).toEqual([5, 10, 20, null, null]);
+      expect(runs.map((r) => r.scenarios.filter((s) => s.kind === 'dq.stuck_sensor' || s.kind === 'dq.sample_loss').map((s) => ('durationS' in s ? s.durationS / 3_600 : 0)))).toEqual([
+        [3, 3, 3, 3],
+        [6, 6, 6, 6],
+        [12, 12, 12, 12],
+        [],
+        [],
+      ]);
       expect(runs.map((r) => r.magnitudes.elzUvPerH)).toEqual([5, 10, 20, 40, null]);
       expect(runs.map((r) => r.magnitudes.fcUvPerH)).toEqual([5, 10, 20, 40, null]);
       expect(runs.map((r) => r.magnitudes.inverterDropPctPoints)).toEqual([0.5, 1, 2, 3, null]);

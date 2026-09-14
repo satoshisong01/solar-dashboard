@@ -99,6 +99,22 @@ describe('탐지기별 메시지 템플릿', () => {
     );
   });
 
+  it('스택 전압(변화점 이후 기울기): 변화점과 전체 구간 기울기를 함께 쓰고 validateDraft를 통과한다', () => {
+    const snapshot = stackFinding().snapshot as Record<string, Record<string, unknown>>;
+    const kinked = stackFinding({
+      effect: { metric: 'v_cell_rise_rate', value: 24.6, unit: 'µV/h', ciLow: 23.8, ciHigh: 25.5, baseline: 1912.1, current: 1929.8, levelUnit: 'mV' },
+      snapshot: {
+        ...snapshot,
+        trend: { ...snapshot.trend, basis: 'post_change', slope_uv_per_h: 24.6, ci_low_uv_per_h: 23.8, ci_high_uv_per_h: 25.5, full: { slope_uv_per_h: 21.4 }, change_start_op_h: 1230, line: [{ op_h: 1230, dv_mv: -2.1 }, { op_h: 1950, dv_mv: 15.6 }] },
+      },
+    });
+    const pack = buildEvidencePack(packInput({ findings: [kinked] }));
+    const draft = templateComposer.compose(pack);
+    expect(textOf(draft, 'finding.4.message')).toContain('(누적 운전 1,230~1,950 h)');
+    expect(textOf(draft, 'finding.4.message')).toContain('기울기가 바뀐 변화점(누적 1,230 h) 이후 구간의 값이며, 전체 구간 기울기는 21.4 µV/h입니다.');
+    expect(validateDraft(draft, pack)).toMatchObject({ ok: true, issues: [] });
+  });
+
   it('셀 편차: 기준 → 최근 mV·추세·동종 비교', () => {
     const draft = templateComposer.compose(buildEvidencePack(packInput({ findings: [cellFinding()] })));
     expect(textOf(draft, 'finding.2.message')).toContain('기준 8 mV(15회) → 최근 31.7 mV(20회)로 +23.7 mV(95% CI +22.8 ~ +25.6) 변했습니다. 추세 +10.1 mV/월(95% CI +9.4 ~ +10.9). 동종 랙 3대 대비 수정 z 5.2.');

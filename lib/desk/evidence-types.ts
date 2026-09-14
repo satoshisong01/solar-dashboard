@@ -57,6 +57,10 @@ export interface StackBinView {
 
 export interface StackEvidence {
   readonly kind: 'stack';
+  /** 효과 기울기 구간: 전체 또는 CUSUM 변화점 이후 (예전 스냅샷은 full) */
+  readonly slopeBasis: 'full' | 'post_change';
+  /** 전체 점 기울기 [µV/h] (변화점 이후 기울기를 쓸 때 비교용, 없으면 null) */
+  readonly fullSlopeUvPerH: number | null;
   readonly breakInHours: number | null;
   readonly excludedBreakIn: number | null;
   readonly bins: readonly StackBinView[];

@@ -1,4 +1,4 @@
-// 사이트 잡 하나: (1) 준비 — 메모리 모드 시뮬레이션 → 설비별 에피소드 추출(분석 파이프라인과 같은 함수) + 참 SOH 요약
+// 사이트 잡 하나: (1) 준비 — 메모리 모드 시뮬레이션 → 설비별 에피소드 추출(분석 파이프라인과 같은 함수) + 참 SOH 요약 + 데이터 품질 압축 요약
 // (2) 평가 — 주 단위 점검 시각마다 탐지기 실행, 주입 고장은 하루 단위로 첫 탐지 시각을 좁힌다.
 // 준비 결과는 JSON으로 저장할 수 있어 탐지기 파라미터만 바꿔 다시 평가할 때 시뮬레이션을 건너뛸 수 있다.
 import { runSiteDetectors } from '@/lib/analytics/pipeline/detect';
@@ -11,6 +11,7 @@ import { detectorPointFilter, simulateMemory, type MemoryPoint, type MemorySerie
 import type { SimulationTruth, InjectionTruth } from '../truth';
 import { assetEventsOf, evalSite, type EvalSite } from './assets';
 import type { SiteJob } from './jobs';
+import { dqAssetCount, dqFindingsAt, prepareDq, type PreparedDq } from './dq';
 import { assetSeriesFor } from './memory-series';
 import { detectionOf, injectionMagnitude, isEvalDetector, tallyOutcomes } from './records';
 import type { DetectorOutcome } from '@/lib/analytics/pipeline/types';
@@ -26,15 +27,19 @@ export interface PreparedJob {
   readonly episodes: readonly StoredEpisode[];
   readonly truth: SimulationTruth;
   readonly soh: HourlySoh;
+  readonly dq: PreparedDq;
   readonly stats: { readonly simulationMs: number; readonly extractionMs: number; readonly samples: number };
 }
+
+/** 준비 결과 형식 버전 (캐시 키에 넣는다: 형식이 바뀌면 예전 캐시를 쓰지 않는다) */
+export const PREPARED_JOB_FORMAT = 2;
 
 export interface EvaluateOptions {
   /** 첫 점검일 (기준선 세션이 쌓일 시간) */
   readonly firstCheckpointDay?: number;
   readonly checkpointStepDays?: number;
   readonly configs?: readonly DetectorConfigRow[];
-  /** 평가할 탐지기 (기본 메모리 모드 5종) */
+  /** 평가할 탐지기 (기본 메모리 모드 6종) */
   readonly detectorIds?: readonly EvalDetectorId[];
   readonly now?: () => number;
 }
@@ -81,6 +86,7 @@ export function prepareSiteJob(job: SiteJob, now: () => number = () => performan
     episodes,
     truth: simulated.truth,
     soh: hourlySoh(simulated.series),
+    dq: prepareDq(site, simulated.series, { start: fromMs, end: toMs }),
     stats: { simulationMs: simulated.stats.elapsedMs, extractionMs: now() - started, samples: simulated.stats.samples },
   };
 }
@@ -100,9 +106,21 @@ interface InjectionContext {
   readonly detections: readonly DetectionRecord[];
 }
 
+/** dq.gap_flatline은 스냅샷 대신 메모리 요약으로 실행한다 (사이트 단위 결과 하나) */
+function dqOutcome(prepared: PreparedJob, siteId: number, now: number): DetectorOutcome {
+  const findings = dqFindingsAt(prepared.dq, siteId, prepared.fromMs, now, prepared.job.seed);
+  return { detectorId: 'dq.gap_flatline', detectorVersion: '1', siteId, assetId: null, status: 'ok', findings, reason: null, configVersions: [] };
+}
+
+function outcomesAt(index: SnapshotIndex, prepared: PreparedJob, now: number, detectorIds: readonly EvalDetectorId[], targetAssetIds?: ReadonlySet<number>): DetectorOutcome[] {
+  const pipelineIds = detectorIds.filter((id) => id !== 'dq.gap_flatline');
+  const pipeline = pipelineIds.length === 0 ? [] : runSiteDetectors(index, { now, seed: prepared.job.seed, detectorIds: pipelineIds, targetAssetIds });
+  return detectorIds.includes('dq.gap_flatline') ? [...pipeline, dqOutcome(prepared, index.snapshot.siteId, now)] : pipeline;
+}
+
 function firstDetection(ctx: InjectionContext, detectorId: EvalDetectorId, assetId: number, failureModes: readonly string[], range: { from: number; to: number }): number | null {
   for (let now = range.from; now <= range.to; now += MS_PER_DAY) {
-    const outcomes = runSiteDetectors(ctx.index, { now, seed: ctx.prepared.job.seed, detectorIds: [detectorId], targetAssetIds: new Set([assetId]) });
+    const outcomes = outcomesAt(ctx.index, ctx.prepared, now, [detectorId], new Set([assetId]));
     if (outcomes.some((o) => o.findings.some((f) => f.assetId === assetId && failureModes.includes(f.failureMode)))) return now;
   }
   return null;
@@ -163,7 +181,7 @@ export function evaluatePreparedJob(prepared: PreparedJob, options: EvaluateOpti
   const started = clock();
   const checkpointTs = checkpoints(prepared.fromMs, job.days, options);
   const detectorIds = options.detectorIds ?? EVAL_DETECTOR_IDS;
-  const runs = checkpointTs.map((now) => ({ now, outcomes: runSiteDetectors(index, { now, seed: job.seed, detectorIds }) }));
+  const runs = checkpointTs.map((now) => ({ now, outcomes: outcomesAt(index, prepared, now, detectorIds) }));
   const detections = runs.flatMap(({ now, outcomes }) => detectionOf(outcomes, now));
   const ctx: InjectionContext = { index, prepared, site, detections };
   const injections = prepared.truth.injections.flatMap((injection) => injectionResults(ctx, injection)).filter((i) => (detectorIds as readonly string[]).includes(i.detectorId));
@@ -175,7 +193,7 @@ export function evaluatePreparedJob(prepared: PreparedJob, options: EvaluateOpti
     fromMs: prepared.fromMs,
     toMs: prepared.toMs,
     checkpointTs,
-    applicableAssets: Object.fromEntries(EVAL_DETECTOR_IDS.map((id) => [id, index.assetsOfClass(EVAL_DETECTOR_CLASS[id]).length])),
+    applicableAssets: Object.fromEntries(EVAL_DETECTOR_IDS.map((id) => [id, id === 'dq.gap_flatline' ? dqAssetCount(prepared.dq) : index.assetsOfClass(EVAL_DETECTOR_CLASS[id]).length])),
     detections,
     injections,
     controls: prepared.truth.controls,

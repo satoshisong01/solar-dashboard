@@ -51,6 +51,7 @@ export function evaluateGates(jobs: readonly SiteJobResult[], scores: readonly D
   const electrolyzer = scoreAtLeast(jobs, 'el.voltage_rise', 20);
   const fuelCell = scoreAtLeast(jobs, 'fc.voltage_decay', 20);
   const cell = scoreAtLeast(jobs, 'ess.cell_imbalance', 10);
+  const dq = scoreAtLeast(jobs, 'dq.gap_flatline', 6);
   return [
     ...capacityGates(jobs),
     ...scores.map((s) => gate(`${s.detectorId}.fp_per_asset_month`, `${s.detectorId} 오탐 [건/자산·월] (대조군 포함, ${r(s.assetMonths, 1)} 자산·월)`, s.fpPerAssetMonth, '<=', 0.1)),
@@ -58,6 +59,7 @@ export function evaluateGates(jobs: readonly SiteJobResult[], scores: readonly D
     gate('el.voltage_rise.rel_error_20uvh', 'el.voltage_rise 20 µV/h 이상 크기 상대오차 중앙값', electrolyzer.magnitudeRelErrorMedian, '<=', 0.1),
     gate('fc.voltage_decay.rel_error_20uvh', `fc.voltage_decay 20 µV/h 이상 크기 상대오차 중앙값 (주입 ${fuelCell.injections}건)`, fuelCell.magnitudeRelErrorMedian, '<=', 0.1),
     gate('ess.cell_imbalance.recall_10mv', `ess.cell_imbalance 월 10 mV 이상 재현율 (주입 ${cell.injections}건)`, cell.recall, '>=', 0.9),
+    gate('dq.gap_flatline.recall_6h', `dq.gap_flatline 6시간 이상 결측·고착 재현율 (주입 ${dq.injections}건)`, dq.recall, '>=', 0.9),
   ];
 }
 
@@ -100,7 +102,7 @@ export function buildScorecard(jobs: readonly SiteJobResult[], options: Scorecar
     preset: { from: options.preset.from, days: options.preset.days, fault_start_day: options.preset.faultStartDay, capacity_fade_days: options.preset.capacityFadeDays, seeds: options.seeds, runs: options.runs, sweeps: options.preset.sweeps },
     jobs: jobs.length,
     elapsed_s: r(options.elapsedMs / 1000, 1),
-    not_evaluated: { 'dq.gap_flatline': '메모리 모드는 전송 계층(단절·지연·시계 오차)을 재현하지 않아 DB E2E 모드에서만 평가합니다' },
+    not_evaluated: {},
     detectors: Object.fromEntries(
       EVAL_DETECTOR_IDS.map((id) => {
         const s = scores.find((score) => score.detectorId === id) as DetectorScore;

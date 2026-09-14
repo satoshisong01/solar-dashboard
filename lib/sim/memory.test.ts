@@ -93,6 +93,20 @@ describe('simulateMemory — 옵션', () => {
     expect(filtered.stats.bytes).toBeLessThan(full.stats.bytes);
   });
 
+  it('결측 주입(dq.sample_loss): 메모리 값은 NaN(저장되지 않은 샘플), simulate()는 그 샘플을 보내지 않는다', async () => {
+    const scenarios: Scenario[] = [{ kind: 'dq.sample_loss', site: 'SIM-A', sourceKey: 'WX1/T_AMB', start: FROM + MS_PER_HOUR, durationS: 3_600 }];
+    const memory = simulateMemory({ siteCodes: ['SIM-A'], from: FROM, to: FROM + 3 * MS_PER_HOUR, seed: 5, scenarios });
+    const ambient = Array.from(memory.series.get('SIM-A/WX1|ambient.temp')?.value ?? []);
+    expect(ambient).toHaveLength(36);
+    expect(ambient.map((v, i) => [i, Number.isNaN(v)]).filter(([, lost]) => lost).map(([i]) => i)).toEqual(Array.from({ length: 12 }, (_, k) => 12 + k));
+    expect(memory.truth.injections).toEqual([expect.objectContaining({ kind: 'dq.sample_loss', assetPath: 'SIM-A/WX1', params: { sourceKey: 'WX1/T_AMB', durationHours: 1 }, expectedDetectors: ['dq.gap_flatline'] })]);
+    let sent = 0;
+    for await (const batch of simulate({ siteCodes: ['SIM-A'], from: FROM, to: FROM + 3 * MS_PER_HOUR, seed: 5, scenarios })) {
+      sent += batch.envelope.series.filter((s) => s.src === 'WX1/T_AMB').reduce((sum, s) => sum + s.v.length, 0);
+    }
+    expect(sent).toBe(24);
+  }, 60_000);
+
   it('탐지기 메트릭 목록은 모두 실제 포인트를 가리킨다', () => {
     for (const [classKey, metrics] of Object.entries(DETECTOR_METRICS)) {
       for (const metric of metrics) {

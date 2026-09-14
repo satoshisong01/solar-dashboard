@@ -127,6 +127,8 @@ function parseStack(s: JsonRecord): StackEvidence {
   const trend: TrendView | null = points.length === 0 ? null : { xKind: 'op_hours', yName: '조건 보정 셀 전압 잔차 (mV)', points, line: line.length >= 2 ? line : null, slope: mvPerH(perH.slope), ciLow: mvPerH(perH.low), ciHigh: mvPerH(perH.high), slopeText: slopeText(perH.slope, perH.low, perH.high, 'µV/h', 1), changeStart: asNumber(t.change_start_op_h) };
   return {
     kind: 'stack',
+    slopeBasis: asString(t.basis) === 'post_change' ? 'post_change' : 'full',
+    fullSlopeUvPerH: asNumber(asRecord(t.full).slope_uv_per_h),
     breakInHours: asNumber(s.break_in_hours),
     excludedBreakIn: asNumber(s.excluded_break_in),
     bins: asArray(s.bins).flatMap((item) => {

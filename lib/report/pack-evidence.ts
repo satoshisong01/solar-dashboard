@@ -76,6 +76,8 @@ function stack(e: StackEvidence): PackEvidence {
   const perHourUv = (mvPerH: number | null) => roundTo(mvPerH === null ? null : mvPerH * 1000, 3);
   return {
     kind: 'stack',
+    slopeBasis: e.slopeBasis,
+    fullSlopeUvPerH: roundTo(e.fullSlopeUvPerH, 3),
     segments: e.bins.reduce((sum, b) => sum + b.n, 0),
     binCount: e.bins.length,
     breakInHours: e.breakInHours,

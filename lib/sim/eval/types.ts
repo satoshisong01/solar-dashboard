@@ -1,12 +1,13 @@
 // 시뮬레이터 평가 결과 타입 (잡 → 워커 → 집계). 모두 JSON으로 주고받을 수 있는 값이다.
 import type { ControlEventTruth, InjectionTruth } from '../truth';
 
-/** 메모리 모드에서 평가하는 탐지기 (dq.gap_flatline은 전송 계층 효과가 없어 DB E2E 모드에서만 평가) */
-export const EVAL_DETECTOR_IDS = ['ess.capacity_fade', 'ess.cell_imbalance', 'pv.inverter_peer', 'el.voltage_rise', 'fc.voltage_decay'] as const;
+/** 메모리 모드에서 평가하는 탐지기. dq.gap_flatline은 저장값 수준 결측·고착 주입만 평가한다 (전송 계층 단절·지연은 DB E2E 모드) */
+export const EVAL_DETECTOR_IDS = ['ess.capacity_fade', 'ess.cell_imbalance', 'pv.inverter_peer', 'el.voltage_rise', 'fc.voltage_decay', 'dq.gap_flatline'] as const;
 export type EvalDetectorId = (typeof EVAL_DETECTOR_IDS)[number];
 
-/** 탐지기가 적용되는 설비 종류 */
+/** 탐지기가 적용되는 설비 종류 ('*' = 데이터 품질 포인트가 있는 모든 설비) */
 export const EVAL_DETECTOR_CLASS: Readonly<Record<EvalDetectorId, string>> = {
+  'dq.gap_flatline': '*',
   'ess.capacity_fade': 'ess.rack',
   'ess.cell_imbalance': 'ess.rack',
   'pv.inverter_peer': 'pv.inverter',

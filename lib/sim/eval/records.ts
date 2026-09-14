@@ -55,6 +55,9 @@ export function injectionMagnitude(injection: InjectionTruth): { magnitude: numb
       return { magnitude: num('uvPerH'), unit: 'µV/h' };
     case 'fault.cell_imbalance':
       return { magnitude: num('mVPerMonth'), unit: 'mV/월' };
+    case 'dq.stuck_sensor':
+    case 'dq.sample_loss':
+      return { magnitude: num('durationHours'), unit: 'h' };
     default:
       return { magnitude: Number.NaN, unit: '' };
   }

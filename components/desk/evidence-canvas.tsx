@@ -1,4 +1,5 @@
 import { EmptyNote, Panel } from '@/components/ui/panel';
+import { formatSigned } from '@/lib/desk/effect';
 import { cautionLabel } from '@/lib/desk/labels';
 import type { CapacityEvidence, EvidenceView, SohTargetView } from '@/lib/desk/evidence-types';
 import type { TrendView } from '@/lib/desk/trend';
@@ -76,7 +77,11 @@ export function EvidenceCanvas({ evidence, chargeTimeText, assetLabel, peerCodes
           <Panel title="같은 조건 비교표" meta="전류밀도×스택 온도 구간별 정상운전">
             <StackBinsTable evidence={evidence} />
           </Panel>
-          <TrendPanel trend={evidence.trend} label="조건 보정 셀 전압 잔차" />
+          <TrendPanel
+            trend={evidence.trend}
+            label="조건 보정 셀 전압 잔차"
+            footnote={evidence.slopeBasis === 'post_change' && evidence.trend?.changeStart != null ? `효과 기울기는 CUSUM 변화점(누적 ${Math.round(evidence.trend.changeStart)} h) 이후 점으로 계산했습니다${evidence.fullSlopeUvPerH === null ? '' : ` (전체 점 기울기 ${formatSigned(evidence.fullSlopeUvPerH, 1)} µV/h)`}.` : null}
+          />
         </>
       );
     case 'cell_imbalance':

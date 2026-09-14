@@ -7,7 +7,7 @@ import type { SimEvent } from './events';
 import { MS_PER_MINUTE, MS_PER_SECOND, toEpochMs, type TimeInput } from './math';
 import { createPlant, type Plant, type PlantSample } from './plant';
 import { deriveRng, type Rng } from './rng';
-import { clockSkewAt, EMPTY_PLAN, planScenarios, scenarioOriginMs, type Scenario, type SiteScenarioPlan } from './scenarios';
+import { clockSkewAt, EMPTY_PLAN, isSampleLost, planScenarios, scenarioOriginMs, type Scenario, type SiteScenarioPlan } from './scenarios';
 import { createGatewayTransport, type GatewayTransport, type PendingBatch, type Transmission } from './transport';
 
 export const DEFAULT_STEP_S = 60;
@@ -206,7 +206,7 @@ export async function* simulate(options: SimulateOptions): AsyncGenerator<Simula
     }
     for (const [i, runner] of runners.entries()) {
       const output = runner.plant.step(tMs);
-      buffers[i]?.samples.push(...output.samples);
+      buffers[i]?.samples.push(...output.samples.filter((s) => !isSampleLost(runner.plan, s.sourceKey, s.ts)));
       buffers[i]?.events.push(...output.events);
     }
   }
