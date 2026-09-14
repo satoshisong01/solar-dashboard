@@ -58,7 +58,8 @@ export function SiteKpiCards({ kpis }: Readonly<{ kpis: SiteTodayKpis }>) {
   );
 }
 
-function gatewayLevel(gateway: GatewayRow, nowMs: number): StatusLevel {
+/** 게이트웨이 수신 신선도 상태 (데이터 화면도 같은 기준을 쓴다) */
+export function gatewayLevel(gateway: Pick<GatewayRow, 'status' | 'lastSeenMs'>, nowMs: number): StatusLevel {
   if (gateway.status !== 'active') return 'na';
   if (gateway.lastSeenMs === null) return 'unknown';
   const age = nowMs - gateway.lastSeenMs;
