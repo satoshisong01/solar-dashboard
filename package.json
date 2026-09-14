@@ -7,6 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --project unit",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
+    "test:e2e": "playwright test",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
     "db:up": "tsx scripts/db-server.ts",
     "db:down": "tsx scripts/db-stop.ts",
     "db:migrate": "dotenv -e .env.development.local -- node-pg-migrate up -m db/migrations",
@@ -30,11 +36,13 @@
     "zod": "4.6.5"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^22",
     "@types/pg": "8.23.1",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "@vitest/coverage-v8": "5.0.0",
     "babel-plugin-react-compiler": "1.0.0",
     "dotenv-cli": "11.0.0",
     "embedded-postgres": "17.10.0-beta.17",
@@ -43,6 +51,8 @@
     "kysely-codegen": "0.20.0",
     "tailwindcss": "^4",
     "tsx": "4.23.13",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite": "8.3.0",
+    "vitest": "5.0.0"
   }
 }
