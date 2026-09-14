@@ -4,7 +4,7 @@
 //   게이트 미달이면 종료 코드 1. 전체 프리셋이면 lib/analytics/scorecard.json을 갱신하고, 로컬 DB가 떠 있으면 sim.eval_result에 기록한다.
 //
 //   npm run sim:eval                                  전체 (시드 3 × 스윕 5)
-//   npm run sim:eval -- --seeds 101 --runs 3,4        CI 축소: 시드 101의 스윕 3·4번(용량 5·7%, 전해조 20·40 µV/h)만
+//   npm run sim:eval -- --runs 3,4,5                  CI 축소: 스윕 3~5번(용량 5·7·10%, 전해조 20·40 µV/h)만 — 게이트 주입은 전체와 같다
 //   npm run sim:eval -- --cache .data/sim-eval        시뮬레이션·추출 결과를 저장해 탐지기 파라미터만 바꿔 다시 평가
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { availableParallelism } from 'node:os';
@@ -40,7 +40,8 @@ const PARAMS_NOTE: Readonly<Record<string, string>> = {
     'correctCurrentDensity·correctTemperature = false(전류밀도 bin·회귀 끔, 온도 bin 유지), 전압은 v_cell_at_jref만 사용(v_cell_mean 대체 제거). ' +
     '추출기 기준 전류밀도 0.5 → 0.6 A/cm², 분극 기울기 0.25 → 0.2 V/(A/cm²), 환산 허용 거리 0.25 → 0.3. 심각도 임계(10/20/40 µV/h)는 그대로.',
   'el.voltage_rise': '변경 없음 (break-in 1,000 h 이후만 쓰므로 1년 평가에서 탐지 지연이 김).',
-  'pv.inverter_peer': '변경 없음. MAD 하한(동종 중앙값 0.5%) 때문에 수정 z −3.5는 약 2.6% 이상 저하부터 잡는다(2%p 0/3, 3%p 3/3).',
+  'pv.inverter_peer':
+    '동종 4대에서는 MAD가 거의 항상 하한이라 하한이 곧 임계다. madFloorRatio 0.5% → 0.3%(수정 z −3.5 기준 유효 탐지 편차 약 2.6% → 1.6%)로 인버터 2%p 저하 0/3 → 3/3, 1%p는 0/3 그대로, 대조군(흐린 주·출력제어) 포함 오탐 0. z 임계 −3.5·최근 7일 중 5일 조건은 그대로.',
   'ess.cell_imbalance': '변경 없음. eval 프리셋에 셀 불균형 주입이 없어 오탐만 평가.',
 };
 

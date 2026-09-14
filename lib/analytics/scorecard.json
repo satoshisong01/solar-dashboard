@@ -42,7 +42,7 @@
     }
   },
   "jobs": 33,
-  "elapsed_s": 207.9,
+  "elapsed_s": 208.5,
   "not_evaluated": {
     "dq.gap_flatline": "메모리 모드는 전송 계층(단절·지연·시계 오차)을 재현하지 않아 DB E2E 모드에서만 평가합니다"
   },
@@ -123,16 +123,16 @@
     "pv.inverter_peer": {
       "detector": "pv.inverter_peer@1",
       "unit": "%p",
-      "tp": 3,
+      "tp": 6,
       "fp": 0,
-      "fn": 9,
-      "recall": 0.25,
+      "fn": 6,
+      "recall": 0.5,
       "precision": 1,
       "asset_months": 1461.4,
       "fp_per_asset_month": 0,
       "median_delay_days": 5,
-      "magnitude_mae": 0.079,
-      "min_detectable_magnitude": 3,
+      "magnitude_mae": 0.065,
+      "min_detectable_magnitude": 2,
       "curve": [
         {
           "magnitude": 0.5,
@@ -153,10 +153,10 @@
         {
           "magnitude": 2,
           "injections": 3,
-          "detected": 0,
-          "recall": 0,
-          "median_delay_days": null,
-          "magnitude_mae": null
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 5,
+          "magnitude_mae": 0.052
         },
         {
           "magnitude": 3,
@@ -167,7 +167,7 @@
           "magnitude_mae": 0.079
         }
       ],
-      "params_note": "변경 없음. MAD 하한(동종 중앙값 0.5%) 때문에 수정 z −3.5는 약 2.6% 이상 저하부터 잡는다(2%p 0/3, 3%p 3/3)."
+      "params_note": "동종 4대에서는 MAD가 거의 항상 하한이라 하한이 곧 임계다. madFloorRatio 0.5% → 0.3%(수정 z −3.5 기준 유효 탐지 편차 약 2.6% → 1.6%)로 인버터 2%p 저하 0/3 → 3/3, 1%p는 0/3 그대로, 대조군(흐린 주·출력제어) 포함 오탐 0. z 임계 −3.5·최근 7일 중 5일 조건은 그대로."
     },
     "el.voltage_rise": {
       "detector": "el.voltage_rise@1",

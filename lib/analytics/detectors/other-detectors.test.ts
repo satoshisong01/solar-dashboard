@@ -76,6 +76,12 @@ describe('pv.inverter_peer@1', () => {
     expect((finding?.evidence.days as unknown[]).length).toBe(6);
   });
 
+  it('MAD 하한(동종 중앙값 0.3%) 기준으로 −2% 저하는 잡고 −1% 저하는 넘기지 않는다', () => {
+    const two = pvInverterPeer.detect({ siteId: 1, days: site(-2) }, ctxAt(NOW));
+    expect(two.status === 'ok' && two.findings.map((f) => f.assetId)).toEqual([4]);
+    expect(pvInverterPeer.detect({ siteId: 1, days: site(-1) }, ctxAt(NOW))).toEqual({ status: 'ok', findings: [] });
+  });
+
   it('대조군은 0건, 큰 저하는 severity 3, 동종 3대 미만이면 insufficient', () => {
     expect(pvInverterPeer.detect({ siteId: 1, days: site(0) }, ctxAt(NOW))).toEqual({ status: 'ok', findings: [] });
     const big = pvInverterPeer.detect({ siteId: 1, days: site(-15) }, ctxAt(NOW));

@@ -32,7 +32,8 @@ export const PV_INVERTER_PEER_DEFAULTS: PvInverterPeerParams = Object.freeze({
   minFlaggedDays: 5,
   minPeers: 3,
   zThreshold: -3.5,
-  madFloorRatio: 0.005,
+  // sim:eval: 0.5% → 0.3% (유효 탐지 편차 약 2.6% → 1.6%, 인버터 2%p 저하 0/3 → 3/3, 대조군 포함 오탐 0). 수정 z 임계 −3.5·5/7일 조건은 그대로
+  madFloorRatio: 0.003,
   minCompleteness: 0.9,
   sev3Pct: -10,
   iterations: 1000,

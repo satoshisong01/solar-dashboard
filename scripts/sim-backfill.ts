@@ -1,12 +1,15 @@
 // 과거 N일치 가상 사이트 데이터를 실제 수집 API(POST /api/ingest/v1)로 적재한다. 서버(npm run dev)가 떠 있어야 한다.
 //   npm run sim:backfill -- --days 30 --sites SIM-A,SIM-B,SIM-C --seed 42 --base-url http://localhost:3000 --scenario dq
 // 끝나면 기대 고유 샘플 수를 출력하고, verify:ingest가 읽을 적재 기록(.data/sim/backfill-manifest.json)을 남긴다.
+// 시나리오에 운영 이벤트(SOC 상한 설정 변경 등)가 있으면 개발 DB om.asset_event에도 기록한다 (봉투에는 설비 설정 이력이 없음).
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
+import { db } from '../lib/db/kysely';
+import { recordAssetEvents } from '../lib/sim/asset-events-store';
 import { DEFAULT_MAX_FAILURES, runBatches } from '../lib/sim/batch-runner';
 import { createHttpEmitter } from '../lib/sim/emit-http';
-import { simulate } from '../lib/sim/index';
+import { buildTruth, simulate } from '../lib/sim/index';
 import { DEFAULT_MANIFEST_PATH, MANIFEST_VERSION, type BackfillManifest, type RunSummary } from '../lib/sim/manifest';
 import { MS_PER_DAY, MS_PER_MINUTE } from '../lib/sim/math';
 import { presetScenarios, SCENARIO_PRESETS, type ScenarioPreset } from '../lib/sim/presets';
@@ -158,13 +161,21 @@ async function main(): Promise<void> {
     elapsedMs,
     summary,
   });
+  const { assetEvents } = buildTruth({ siteCodes: config.sites, from: fromMs, to: toMs, scenarios });
+  if (assetEvents.length > 0 && !summary.aborted) {
+    const recorded = await recordAssetEvents(db, assetEvents);
+    const missing = recorded.missingAssets.length > 0 ? ` · 설비 없음 ${recorded.missingAssets.join(', ')}` : '';
+    console.log(`[backfill] 운영 이벤트(om.asset_event): 새로 ${recorded.inserted}건 · 이미 있음 ${recorded.existing}건${missing}`);
+  }
   if (summary.aborted || summary.results.failed > 0) {
     console.error(`[backfill] 실패한 배치가 있어 중단했거나 일부가 빠졌습니다${summary.aborted ? ` (실패 ${DEFAULT_MAX_FAILURES}건에서 중단)` : ''}.`);
     process.exitCode = 1;
   }
 }
 
-main().catch((error: unknown) => {
-  console.error('[backfill] 실패:', error instanceof Error ? error.message : error);
-  process.exitCode = 1;
-});
+main()
+  .catch((error: unknown) => {
+    console.error('[backfill] 실패:', error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  })
+  .finally(() => db.destroy());
