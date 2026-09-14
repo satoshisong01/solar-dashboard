@@ -15,7 +15,7 @@
 
 ### 시작하기
 
-1. 환경변수 파일을 만들고 값을 채웁니다. `BETTER_AUTH_SECRET`은 32자 이상 랜덤 값이며 생성 명령은 `.env.example`에 있습니다.
+1. 환경변수 파일을 만들고 값을 채웁니다. `BETTER_AUTH_SECRET`(32자 이상)과 `INGEST_KEY_ENC_KEY`(base64 32바이트)는 랜덤 값이며 생성 명령은 `.env.example`에 있습니다.
    ```bash
    cp .env.example .env.development.local
    ```
@@ -31,11 +31,18 @@
    ```bash
    npm run db:migrate
    ```
-5. 관리자 계정을 만듭니다. 가입이 비활성이라 계정은 이 스크립트로만 만듭니다.
+5. 설비 카탈로그와 가상 사이트를 넣습니다.
+   ```bash
+   npm run db:seed
+   ```
+   - `om.asset_class`·`om.metric_def` 카탈로그와 가상 사이트 SIM-A(태양광+ESS)·SIM-B(연계형)·SIM-C(연계형 대조군)의 설비 트리·게이트웨이·포인트 매핑을 upsert합니다. 여러 번 실행해도 결과가 같습니다.
+   - 게이트웨이 개발용 HMAC 비밀값 `SIM_GATEWAY_SECRET_<게이트웨이 코드>`가 env 파일에 없으면 생성해 파일 끝에 추가하고, DB에는 `INGEST_KEY_ENC_KEY`로 암호화해 저장합니다. 비밀값은 출력하지 않습니다.
+   - 정의는 `db/seed/`(순수 데이터 모듈)에 있습니다. `db/seed/sites.ts`의 `UNMAPPED_SOURCE_TAGS`는 일부러 매핑하지 않는 태그라 DB에 넣지 않습니다(미매핑 인박스·재처리 시연용).
+6. 관리자 계정을 만듭니다. 가입이 비활성이라 계정은 이 스크립트로만 만듭니다.
    ```bash
    npm run admin:create -- --email admin@hysol.local --password '<12자 이상>' --name 관리자
    ```
-6. 개발 서버를 실행하고 http://localhost:3000/login 에서 로그인합니다.
+7. 개발 서버를 실행하고 http://localhost:3000/login 에서 로그인합니다.
    ```bash
    npm run dev
    ```
@@ -44,14 +51,15 @@
 |---|---|
 | `db:migrate:down` | 마지막 마이그레이션 1개 되돌리기 |
 | `db:migrate:test` | 테스트 DB 마이그레이션 (integration·e2e가 시작할 때 같은 작업을 자동으로 한다) |
-| `db:types` | DB에서 `lib/db/types.ts` 생성 (om, public 스키마) |
+| `db:types` | DB에서 `lib/db/types.ts` 생성 (om, public 스키마. 파티션 자식 테이블은 제외) |
+| `db:seed` / `db:seed:test` | 개발 / 테스트 DB에 카탈로그·가상 사이트 멱등 upsert. 게이트웨이 개발용 비밀값이 없으면 해당 env 파일에 생성 |
 | `db:reset` | **로컬 전용.** 개발 DB 스키마를 모두 지우고 다시 migrate. `localhost:54320`이 아니면 중단 |
 | `admin:create` / `admin:create:test` | 개발 / 테스트 DB에 관리자 계정 생성. 이미 있으면 안내 후 종료 |
 | `typecheck` / `lint` | `tsc --noEmit` / ESLint |
 
 ### 테스트
 
-테스트용 환경변수 파일을 한 번 만듭니다. `DATABASE_URL`의 DB 이름을 `hysol_test`로 바꾸고, `BETTER_AUTH_SECRET`은 개발용과 다른 값, `E2E_ADMIN_PASSWORD`(12자 이상)를 채웁니다. E2E 브라우저도 한 번 설치합니다.
+테스트용 환경변수 파일을 한 번 만듭니다. `DATABASE_URL`의 DB 이름을 `hysol_test`로 바꾸고, `BETTER_AUTH_SECRET`·`INGEST_KEY_ENC_KEY`는 개발용과 다른 값, `E2E_ADMIN_PASSWORD`(12자 이상)를 채웁니다. E2E 브라우저도 한 번 설치합니다.
 
 ```bash
 cp .env.example .env.test.local

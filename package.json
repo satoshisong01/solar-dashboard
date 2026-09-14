@@ -19,7 +19,9 @@
     "db:migrate:down": "dotenv -e .env.development.local -- node-pg-migrate down -m db/migrations",
     "db:migrate:test": "dotenv -e .env.test.local -- node-pg-migrate up -m db/migrations",
     "db:types": "dotenv -e .env.development.local -- kysely-codegen --dialect postgres --default-schema public --include-pattern \"{om,public}.*\" --out-file lib/db/types.ts",
-    "db:reset": "dotenv -e .env.development.local -- tsx scripts/db-reset-local.ts && npm run db:migrate",
+    "db:seed": "dotenv -e .env.development.local -- tsx scripts/db-seed.ts --env-file .env.development.local",
+    "db:seed:test": "dotenv -e .env.test.local -- tsx scripts/db-seed.ts --env-file .env.test.local",
+    "db:reset":"dotenv -e .env.development.local -- tsx scripts/db-reset-local.ts && npm run db:migrate",
     "admin:create": "dotenv -e .env.development.local -- tsx scripts/admin-create.ts",
     "admin:create:test": "dotenv -e .env.test.local -- tsx scripts/admin-create.ts"
   },
