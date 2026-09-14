@@ -1,0 +1,741 @@
+{
+ "verdicts": [
+  {
+   "researchKey": "electrolyzer",
+   "claim": "PEM 전해조(2020): 50~80 °C, 셀압력 <30 bar, 1~2 A/cm², 부하 5~120%, 냉간기동 <20분, 스택수명 50,000~80,000 h, 시스템 50~83 kWh/kg",
+   "verdict": "verified",
+   "correctedClaim": "PEM 전해조(2020 기준)는 50~80 °C, 셀압력 <30 bar, 전류밀도 1~2 A/cm², 부하범위 5~120%, 냉간기동 <20분, 스택수명 50,000~80,000 h, 시스템 50~83 kWh/kg이다.",
+   "evidenceUrl": "https://www.irena.org/-/media/Files/IRENA/Agency/Publication/2020/Dec/IRENA_Green_hydrogen_cost_2020.pdf",
+   "note": "IRENA 2020 표 6(65쪽)과 모든 수치가 일치한다. 같은 표의 스택 효율은 47~66 kWh/kg이다. 표 1은 PEM 운전압력을 <70 bar로 따로 적었으니 셀압력(<30 bar)과 헷갈리지 않게 써야 한다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "알칼라인(AWE, 2020): 70~90 °C, 0.2~0.8 A/cm², 부하 15~100%, 냉간기동 <50분, 스택수명 60,000 h, 시스템 50~78 kWh/kg",
+   "verdict": "verified",
+   "correctedClaim": "알칼라인(AWE) 전해조(2020 기준)는 70~90 °C, 전류밀도 0.2~0.8 A/cm², 부하범위 15~100%, 냉간기동 <50분, 스택수명 60,000 h, 시스템 50~78 kWh/kg이다.",
+   "evidenceUrl": "https://www.irena.org/-/media/Files/IRENA/Agency/Publication/2020/Dec/IRENA_Green_hydrogen_cost_2020.pdf",
+   "note": "IRENA 표 6과 일치한다. 셀압력은 <30 bar, 스택 효율은 47~66 kWh/kg이다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "SOEC 700~850 °C, 부하 30~125%, 냉간기동 >600분, 수명 <20,000 h, 시스템 40~50 kWh/kg; AEM 40~60 °C, 수명 >5,000 h, 시스템 57~69 kWh/kg(2020)",
+   "verdict": "verified",
+   "correctedClaim": "SOEC는 700~850 °C, 부하범위 30~125%, 냉간기동 >600분, 스택수명 <20,000 h, 시스템 40~50 kWh/kg이며, AEM은 40~60 °C, 스택수명 >5,000 h, 시스템 57~69 kWh/kg이다(2020 기준).",
+   "evidenceUrl": "https://www.irena.org/-/media/Files/IRENA/Agency/Publication/2020/Dec/IRENA_Green_hydrogen_cost_2020.pdf",
+   "note": "표 6과 일치한다. AEM의 부하범위(5~100%)와 냉간기동(<20분)도 같은 표에 있다. IRENA는 두 기술이 덜 성숙해 제조사 간 편차가 크다고 표시했다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "순수 제조 손실 포함 수소 1 kg당 물 18~24 kg(화학양론 9 kg)",
+   "verdict": "verified",
+   "correctedClaim": "순수 제조 손실을 포함하면 수소 1 kg 생산에 물 18~24 kg이 필요하다(화학양론 9 kg).",
+   "evidenceUrl": "https://www.irena.org/-/media/Files/IRENA/Agency/Publication/2020/Dec/IRENA_Green_hydrogen_cost_2020.pdf",
+   "note": "원문 문장과 일치한다. PV 연계 시 상류(패널 제조 등)까지 포함하면 22~126 kg이라는 값도 같은 곳에 있다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "DOE PEM 스택 2022 현황 2.0 A/cm²@1.9 V, 51 kWh/kg, 4.8 µV/h(0.25%/1,000 h), 40,000 h; 2026 목표 2.3 µV/h, 80,000 h",
+   "verdict": "verified",
+   "correctedClaim": "DOE 기준 PEM 스택 2022년 현황은 2.0 A/cm²@1.9 V/cell, 51 kWh/kg, 열화 4.8 µV/h(0.25%/1,000 h), 수명 40,000 h이며, 2026년 목표는 2.3 µV/h, 80,000 h이다.",
+   "evidenceUrl": "https://www.energy.gov/cmei/fuels/technical-targets-proton-exchange-membrane-electrolysis",
+   "note": "원문은 4.8 mV/kh로 적었고 이는 µV/h와 같은 값이다. 2026 목표는 3.0 A/cm²@1.8 V, 48 kWh/kg이고, 시스템 효율은 2022년 55 → 2026년 51 kWh/kg이다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "DOE 알칼라인 스택 2022 현황 0.5 A/cm²@1.9 V, 51 kWh/kg, 3.2 µV/h, 60,000 h, 시스템 55 kWh/kg",
+   "verdict": "verified",
+   "correctedClaim": "DOE 기준 알칼라인 스택 2022년 현황은 0.5 A/cm²@1.9 V/cell, 51 kWh/kg, 열화 3.2 µV/h(0.17%/1,000 h), 수명 60,000 h이고 시스템 효율은 55 kWh/kg이다.",
+   "evidenceUrl": "https://www.energy.gov/cmei/fuels/technical-targets-liquid-alkaline-electrolysis",
+   "note": "일치한다. 2026 목표는 1.0 A/cm²@1.8 V, 2.3 µV/h, 80,000 h, 시스템 52 kWh/kg이다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "2024년 말 세계 수전해 설치 약 2 GW, 알칼라인이 신규·누적 60%, 중국이 2024 신규 50%·누적 과반",
+   "verdict": "verified",
+   "correctedClaim": "2024년 말 세계 수전해 설치용량은 약 2 GW이며, 알칼라인이 신규·누적 용량의 60%, 중국이 2024년 신규의 50%와 누적의 과반을 차지했다.",
+   "evidenceUrl": "https://iea.blob.core.windows.net/assets/12d92ecc-e960-40f3-aff5-b2de6690ab6b/GlobalHydrogenReview2025.pdf",
+   "note": "GHR 2025 99~100쪽과 일치한다(원문 표현은 'almost 2 GW'). 2024년 신규 설치는 약 600 MW로 2023년 700 MW보다 적고, 유럽이 신규의 25%였다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "KGS AH271: 산소 중 수소 >2 %vol, 수소 중 산소 >3 %vol, 외함 수소 >1 %vol 비상정지·로크아웃",
+   "verdict": "verified",
+   "correctedClaim": "KGS AH271(2025)은 발생 산소 중 수소 >2%, 발생 수소 중 산소 >3%, 외함 내 수소 >1%, 압축기로 공급되는 수소 중 산소 >2%일 때 비상정지하고, 이후 수동으로 로크아웃을 해제해야만 정상운전하도록 요구한다.",
+   "evidenceUrl": "https://h2hub.or.kr/main/info/regulation_info.do?mode=download&articleNo=2572&attachNo=4930",
+   "note": "AH271 2025판 3.3.1.2 (1-7)~(1-9), (1-14), (4)와 일치한다. 원문은 '%'로만 표기했다. 압축기 공급 수소 중 산소 2% 조건(2024.8 개정)도 함께 넣기를 권장한다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "알칼라인 제조사는 턴다운을 설계부하 10~40%로 제한, Deoxo 후 O2 <5 ppmv, TSA 후 H2O <5 ppmv",
+   "verdict": "verified",
+   "correctedClaim": "알칼라인 제조사는 가스 교차오염을 막기 위해 턴다운을 설계부하의 10~40%로 제한하며, 통상 Deoxo 후 산소 <5 ppmv, 건조기 후 수분 <5 ppmv를 목표로 한다.",
+   "evidenceUrl": "https://www.eiga.eu/uploads/documents/DOC246.pdf",
+   "note": "EIGA Doc 246/23 11쪽과 일치한다. 같은 문서는 PEM의 턴다운을 5~40%로, AWE 전해액을 KOH 20~40%로, 가압 AWE는 용존가스가 많아 최소 안전부하가 더 높다고 적었다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "운전곡선 추종 제어·MPC로 알칼라인 최소부하 27.5%→10.5%·10% 확대(Qi 2021)",
+   "verdict": "partially_verified",
+   "correctedClaim": "부하에 따라 계통 압력을 낮추는 운전곡선 추종(OCT) 제어기와 MPC를 설계한 시뮬레이션 사례연구(피크 셰이빙 시나리오)에서, 알칼라인 전해 시스템의 최소부하가 기존 일정압력 제어 27.5%에서 OCT 10.5%, MPC 10%로 확대되었다.",
+   "evidenceUrl": "https://doi.org/10.1016/j.ijhydene.2021.08.069",
+   "note": "인용 URL(ScienceDirect)은 403으로 열리지 않아 같은 논문 초록(Qi et al., IJHE 2021, 'Pressure control strategy to extend the loading range of an AEL system')으로 확인했다. 수치는 맞지만 동적 불순물 모델 기반 사례연구 결과이지 실설비 실증이 아니다. '확대했다'는 표현이 실적처럼 읽힌다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "HTO·온도 동특성 반영 스케줄링: 최소부하 34% AWE, 22대 플랜트 수소 +7.74%·수익 +8.72%(PV 직결 평균 수소 +0.807%)",
+   "verdict": "partially_verified",
+   "correctedClaim": "HTO·온도 동특성을 반영한 MILP 스케줄링은 정상상태 최소부하 34%인 AWE를 단시간 저부하로 운전하게 한다. 시뮬레이션에서 PV 100개 시나리오 평균 수소 +0.807%·수익 +0.982%(풍력 25개 시나리오 +1.021%/+1.438%)였고, 풍력 직결을 가정한 22대 플랜트 1일 사례에서는 기존 방식 대비 수소 +7.74%·수익 +8.72%였다(재생발전 예측은 완벽하다고 가정).",
+   "evidenceUrl": "https://arxiv.org/abs/2301.12242",
+   "note": "수치는 모두 원문과 맞는다. 다만 22대 사례는 내몽골 건설 중 플랜트 규모를 빌린 풍력 직결 단일 시뮬레이션이고, 논문 스스로 예측 오차를 고려하지 않았다고 한계를 밝혔다. PV 사례와 나란히 쓰면 태양광에서도 7.7%가 난다고 오해하기 쉽다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "OCV 유휴 포함 718사이클 후 PEM HFR 약 1.6배, 1.3 V 유지 시 미발생",
+   "verdict": "verified",
+   "correctedClaim": "OCV 유휴를 포함한 3↔0.1 A/cm² 부하 사이클 718회 후 PEM 셀의 고주파저항(HFR)이 약 1.6배(약 56→88 mΩ·cm²)로 증가했고, 유휴 시 OCV 대신 1.3 V를 유지한 500사이클 시험에서는 열화가 나타나지 않았다.",
+   "evidenceUrl": "https://iopscience.iop.org/article/10.1149/2.0421908jes",
+   "note": "Weiß et al., JES 2019에서 확인했다. 1.3 V 유지 시험은 500사이클이었으니 조건을 적어 두어야 한다. 실험실 단셀 결과다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "영간격 AWE 역전류 보호 없이 40회 기동정지 후 전류 유지율 87.7%, 희생양극 보호 시 101.6%(실험실)",
+   "verdict": "verified",
+   "correctedClaim": "영간격 알칼라인 전해조(2셀 실험실 스택)에서 역전류 보호 없이 40회(20 h) 기동·정지 후 전류 유지율은 87.7%였고, Zn 희생금속으로 보호하면 101.6%를 유지했다.",
+   "evidenceUrl": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9709953/",
+   "note": "JACS Au 2022(POSTECH·KIER)와 일치한다. 논문은 비용·안정성 측면에서 납(Pb)을 최적 희생재로 제시했다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "3 MW 알칼라인 전해조에서 트랜지스터 토폴로지가 6펄스 사이리스터 대비 SEC 최대 4.5% 저감",
+   "verdict": "partially_verified",
+   "correctedClaim": "산업규모 알칼라인 전해조에서 트랜지스터 기반 전원 토폴로지는 기존 6펄스 사이리스터 브리지 대비 전해조 비에너지소비량(SEC)을 최대 4.5% 낮출 수 있다(Koponen et al., J. Power Sources 491, 2021).",
+   "evidenceUrl": "https://doi.org/10.1016/j.jpowsour.2020.229443",
+   "note": "ADS 링크는 캡차에 막혀 Semantic Scholar·LUTPub 초록으로 확인했다. 4.5%는 일치한다. '3 MW'는 초록에 없고 원문도 접근하지 못해 확인하지 못했다. 정확한 DOI는 10.1016/j.jpowsour.2020.229443이다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "에너지파크 마인츠 6 MW PEM: 2015.9 432.5 MWh, 수소 72,526 Nm³, HHV 59.4%",
+   "verdict": "verified",
+   "correctedClaim": "에너지파크 마인츠 PEM 설비는 2015년 9월 전체 플랜트 전력 432.5 MWh로 수소 72,526 Nm³(HHV 256.9 MWh)를 생산해 HHV 기준 59.4%의 전체 플랜트 효율을 기록했다(146 h 운전).",
+   "evidenceUrl": "https://iea.blob.core.windows.net/assets/imports/events/140/EnergygieparkMainzoperationalandeconomicalanalysisoftheworldwidelargestpowertogasplantwithPEMelectrolysis.pdf",
+   "note": "발표자료 11쪽 표와 일치한다(원문 항목명 'Utilization factor(HS)'). 수소량은 트레일러 계량 기록이다. '6 MW' 규모는 추출한 텍스트에서 직접 확인하지 못했다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "3 MW·16 bar 산업 AWE 동적 모델 열 거동 98.7% 정확도, 패러데이 효율 86% 주원인 션트전류",
+   "verdict": "verified",
+   "correctedClaim": "3 MW·16 bar 산업 알칼라인 플랜트의 동적 모델은 열 거동을 98.7% 정확도로 예측했고, 정격 정상운전 패러데이 효율 86%의 주원인은 션트전류였으며 스택 외기 열손실은 전체 전력손실의 2.6%였다.",
+   "evidenceUrl": "https://doi.org/10.1016/j.ijhydene.2021.11.126",
+   "note": "Sakas et al.(LUT), IJHE 2021 초록(OpenAlex)과 일치한다. 검증은 같은 규격의 산업 플랜트와 비교해 이뤄졌다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "CNN-LSTM이 PEM 정전류 1,140 h·기동정지 660 h 전압 열화를 R² 0.98 이상 예측(실험실)",
+   "verdict": "verified",
+   "correctedClaim": "CNN-LSTM 모델이 PEM 전해조 정전류 1,140 h·기동정지 660 h 내구 데이터의 전압 열화를 R² 0.98 이상으로 예측했다(실험실).",
+   "evidenceUrl": "https://doi.org/10.1016/j.egyai.2024.100420",
+   "note": "Xu et al., Energy and AI 2024 초록과 일치한다. 1,000 h 후 열화는 정전류 4.5%, 기동정지 2.5%이고, 예측은 향후 수백 h 구간에 한정된다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "AWE 온도제어에 스택 약 6분·냉각 약 4분 지연, 풍력 입력에서 약 8 °C 변동으로 설정 65 °C",
+   "verdict": "partially_verified",
+   "correctedClaim": "5 Nm³/h 상용 알칼라인 설비 실험에서 스택 약 6분·냉각 약 4분의 열전달 지연이 확인되어 PID 튜닝이 어렵다. 인용 문헌 사례에서는 풍력 입력(정격 40~100% 전류 변동)에서 온도가 약 8 °C 흔들려 전해액 온도를 65 °C로 운용했고, 허용 한계 90 °C보다 낮아 효율을 희생했다.",
+   "evidenceUrl": "https://arxiv.org/abs/2210.00801",
+   "note": "지연값은 5 Nm³/h 한 대에서 얻은 값이라 알칼라인 설비 일반으로 넓히면 과장이다. 8 °C·65 °C는 저자들의 실측이 아니라 논문이 인용한 문헌 [8]의 사례다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "BNEF 인용 보도: 2026년 출하 약 3.5 GW 중 중국 67%, 100 MW+ 알칼라인 중국 536 $/kW, 유럽 2,385 $/kW",
+   "verdict": "verified",
+   "correctedClaim": "BNEF 전망을 인용한 보도(월간수소경제, 2026.9.14)에 따르면 2026년 세계 전해조 출하는 약 3.5 GW로 2025년보다 줄고, 중국 업체 비중은 39%에서 67%로 늘며, 100 MW 이상 알칼라인 시스템 비용은 중국 약 536 $/kW, 유럽 약 2,385 $/kW다.",
+   "evidenceUrl": "https://www.h2news.kr/news/articleView.html?idxno=14258",
+   "note": "보도문과 일치한다. BNEF 원문이 아닌 언론 인용이라 신뢰도는 중간이다. 같은 기사는 중국산 알칼라인의 명목효율이 2023년 65.9%에서 2025년 72.1%로 올랐다고 전한다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "제주 동복 12.5 MW 실증 4종, 2022.4~2026.3, 620억원, 가동률 60% 기준 연 1,176 t",
+   "verdict": "verified",
+   "correctedClaim": "제주 동복 12.5 MW 그린수소 실증은 AEC·PEM·SOEC·AEM 4종으로 2022년 4월~2026년 3월 진행하며, 총 620억원(국비 296억·민간 324억) 규모로 가동률 60% 기준 연 1,176 t 생산을 목표로 한다.",
+   "evidenceUrl": "http://www.h2news.kr/news/articleView.html?idxno=10341",
+   "note": "2022.9.29 보도와 일치한다. 계획 목표치일 뿐 운영 실적이 아니며, 사업 종료(2026.3) 후 결과는 확인하지 못했다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "(사례) 마인츠: 432.5 MWh, 72,526 Nm³, HHV 59.4%(146 h), 밸런싱 에너지 20% 감소(분석), 2차 예비력 사전자격 통과",
+   "verdict": "verified",
+   "correctedClaim": "Stadtwerke Mainz·Linde·Siemens·RheinMain 응용과학대: 2015년 9월 전체 플랜트 432.5 MWh 투입, 수소 72,526 Nm³ 생산, HHV 효율 59.4%(146 h). 풍력 예측오차를 흡수하면 밸런싱 에너지가 '검토한 분석 틀 안에서' 20% 줄어든다고 분석했다. 2차 예비력 사전자격 시험을 통과했다.",
+   "evidenceUrl": "https://iea.blob.core.windows.net/assets/imports/events/140/EnergygieparkMainzoperationalandeconomicalanalysisoftheworldwidelargestpowertogasplantwithPEMelectrolysis.pdf",
+   "note": "20%는 'in the considered framework'라는 단서가 붙은 자체 분석값이다. 실적처럼 쓰면 안 된다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "(사례) NEDO·Toshiba ESS·Tohoku·Iwatani·Asahi Kasei FH2R: 정격 1,200 Nm³/h, 예비력 상품(FRR·RR·RR-FIT) 수준 확인",
+   "verdict": "partially_verified",
+   "correctedClaim": "NEDO·도시바ESS·도호쿠전력·이와타니: 후쿠시마 FH2R(2020.3 개소)의 10 MW급 수소 생산설비로 수요반응 응답이 일본 수급조정시장 상품(FRR·RR·RR-FIT)에 상당함을 확인했다(FY2016~2025 사업). 운영 효율·가동률 수치는 공개되지 않았다.",
+   "evidenceUrl": "https://www.global.toshiba/ww/news/energy/2023/04/news-20230427-01.html",
+   "note": "인용 보도자료에는 '10 MW-class'만 있고 정격 1,200 Nm³/h와 Asahi Kasei는 나오지 않는다. 쓰려면 별도 출처가 필요하다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "(사례) Qi et al. IJHE 2021: 일정압력 최소부하 27.5% → OCT 10.5%, MPC 10%",
+   "verdict": "verified",
+   "correctedClaim": "Tsinghua University 연구진(Qi et al., IJHE 2021): 시뮬레이션 사례연구에서 기존 일정압력 제어 최소부하 27.5% → 운전곡선 추종 제어 10.5%, MPC 10%.",
+   "evidenceUrl": "https://doi.org/10.1016/j.ijhydene.2021.08.069",
+   "note": "초록으로 확인했다. 모델 기반 사례연구라는 점을 반드시 적어야 한다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "(사례) Qiu et al. 2023: PV 평균 수소 +0.807%·수익 +0.982%(풍력 +1.021%/+1.438%), 22대 수소 +7.74%·수익 +8.72%, 713.82초",
+   "verdict": "verified",
+   "correctedClaim": "Qiu et al.(Renewable Energy 2023): PV 시나리오 평균 수소 +0.807%·수익 +0.982%(풍력 +1.021%/+1.438%). 풍력 직결을 가정한 22대 플랜트 시뮬레이션에서 기존 방식 대비 수소 +7.74%·수익 +8.72%, 분해 기법 계산시간 713.82초.",
+   "evidenceUrl": "https://arxiv.org/abs/2301.12242",
+   "note": "수치는 일치한다. 22대 사례는 풍력 직결 가정이고 예측 오차는 반영하지 않았다. 제1저자 Qiu는 쓰촨대 소속이다(교신 Lin Jin은 칭화대)."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "(사례) arXiv 2501.14576: 셀전압 RMSE <0.032 V, 온도 ±4.0 K·HTO ±0.14%p, 부하추종 차 <0.015 MW, SEC 차 <0.001 kWh/Nm³",
+   "verdict": "partially_verified",
+   "correctedClaim": "중국 북부 4,000 Nm³/h 산업 AWE 데이터 연구(arXiv 2501.14576): 셀전압 모델 RMSE 0.028~0.033 V(스택 4기, 1,000 A/m² 이상), 온도 RMSE 입구 4.0 K·출구 3.7 K, HTO 농도 RMSE 0.14%p(검증셋 4.0 K·0.148%). 풍력 공급 시뮬레이션에서 4-in-1과 1-in-1 4기의 부하추종·온도안정 오차·SEC 차이는 0.015 MW, 0.346 K, 0.001 kWh/Nm³ 미만.",
+   "evidenceUrl": "https://arxiv.org/html/2501.14576v3",
+   "note": "스택 3의 RMSE가 0.03294 V라 '<0.032 V'는 틀리다. 온도·HTO 값은 RMSE인데 '±'로 적어 오차 범위처럼 읽힌다. 4-in-1 비교는 실측이 아닌 풍력 공급 시뮬레이션이다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "(사례) IJHE 2021 Sakas: 열 모델 98.7%, 패러데이 효율 86% 주원인 션트전류, 열손실 2.6%",
+   "verdict": "verified",
+   "correctedClaim": "LUT University(Sakas et al., IJHE 2021): 동일 규격 산업 플랜트와 비교 검증한 열 모델 정확도 98.7%, 정격 정상운전 패러데이 효율 86%의 주원인은 션트전류, 스택 외기 열손실은 전체 전력손실의 2.6%.",
+   "evidenceUrl": "https://doi.org/10.1016/j.ijhydene.2021.11.126",
+   "note": "초록과 일치한다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "(사례) Xu et al. 2024: R² >0.98, 1,000 h 후 열화 정전류 4.5%·기동정지 2.5%",
+   "verdict": "verified",
+   "correctedClaim": "Chongqing University 등(Xu et al., Energy and AI 2024): 두 데이터셋 모두 R² >0.98, 장기 예측에서 비교 모델보다 우수. 1,000 h 후 전압 열화는 정전류 4.5%, 기동정지 2.5%(실험실).",
+   "evidenceUrl": "https://doi.org/10.1016/j.egyai.2024.100420",
+   "note": "초록과 일치한다. 기동정지 열화가 더 작게 나온 것은 이 실험 조건의 특이값이므로 일반화하면 안 된다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "(사례) Koponen 2021: 트랜지스터 토폴로지 SEC 최대 4.5% 저감, 넓은 부분부하 영역에서 스택 SEC 최소화",
+   "verdict": "partially_verified",
+   "correctedClaim": "LUT University(Koponen et al., J. Power Sources 491, 2021): 트랜지스터 기반 토폴로지는 기존 6펄스 사이리스터 브리지 대비 전해조 SEC를 최대 4.5% 낮출 수 있다. 사이리스터 정류기는 AC·DC 양측 전력품질이 나빠 SEC가 최적이 아니고 무효전력 성분이 크다.",
+   "evidenceUrl": "https://doi.org/10.1016/j.jpowsour.2020.229443",
+   "note": "4.5%는 확인했다. '넓은 부분부하 영역에서 스택 SEC 최소화'라는 문장은 초록에 없고 원문에 접근하지 못해 확인하지 못했다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "(사례) 산업부·H2KOREA·전북TP·현대건설·테크로스·한수원: 1,000 kg/일, 99.999%, 111.3억(국비 54.3억)",
+   "verdict": "verified",
+   "correctedClaim": "산업통상자원부·H2KOREA·전북테크노파크·현대건설·테크로스·한국수력원자력: 전북 부안 2.5 MW PEM(일생산 1,000 kg), 수소품질 99.999% 이상, 총사업비 111.3억원(국비 54.3억·지자체 30억·민간 27억), 2025년 5월 가동 계획(2023년 보도).",
+   "evidenceUrl": "https://www.electimes.com/news/articleView.html?idxno=320475",
+   "note": "보도와 일치한다. 가동 후 성과는 확인하지 못했다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "(AI효과) 태양광 예측 연계 스케줄링: PV +0.807%·+0.982%, 22대 +7.74%·+8.72%, 최소부하 27.5%→10%, MILP 가용에너지 89.7%·가동률 93.7%·기동정지 764회, 마인츠 밸런싱 20% 감소",
+   "verdict": "partially_verified",
+   "correctedClaim": "HTO·온도 동특성 반영 스케줄링: PV 시나리오 평균 수소 +0.807%·수익 +0.982%(Qiu 2023). 22대 사례 +7.74%/+8.72%는 풍력 직결에 예측이 완벽하다고 가정한 시뮬레이션이다. 압력 연동 제어로 AWE 최소부하 27.5%→10%(Qi 2021, 시뮬레이션). 풍력 예측오차 흡수 시 밸런싱 에너지 20% 감소(마인츠, 자체 분석 틀). MILP 89.7%·93.7%·764회는 출처 미확인.",
+   "evidenceUrl": "https://arxiv.org/abs/2301.12242",
+   "note": "Qiu 2023은 예측 오차를 고려하지 않았으므로 '태양광 예측 연계' AI 효과의 근거로 쓰면 과장이다. MILP 수치(IJHE 2021)는 URL이 없어 검증하지 못했다."
+  },
+  {
+   "researchKey": "electrolyzer",
+   "claim": "(AI효과) 운전 패턴 스트레스 귀속: HFR 1.6배(Weiß 2019), 87.7% vs 101.6%(JACS Au 2022), 0.3 A/cm²/s에서 열화 +183%, 1 h 주기 +64%(Energy and AI 2026)",
+   "verdict": "partially_verified",
+   "correctedClaim": "OCV 유휴 포함 3↔0.1 A/cm² 사이클 718회 후 HFR 약 1.6배, 1.3 V 유지 500사이클에서는 열화 미발생(Weiß 2019, JES). 보호 없는 영간격 AWE 40회 기동정지 후 전류 유지율 87.7% vs Zn 희생금속 보호 101.6%(JACS Au 2022, 실험실). 전류밀도 변화율·주기별 열화 증가율(+183%, +64%)은 출처 미확인.",
+   "evidenceUrl": "https://iopscience.iop.org/article/10.1149/2.0421908jes",
+   "note": "앞의 두 연구는 확인했다. 'Energy and AI 2026' 수치는 1차 리서치에도 URL 없이 '2026 데이터기반 연구'로만 적혀 있어 검증할 수 없었다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "수소 공기 중 가연범위 4~75 vol%, MIE 0.017 mJ, MESG 0.08 mm",
+   "verdict": "partially_verified",
+   "correctedClaim": "수소의 공기 중 가연범위는 4~75 vol%(NTP), 최소점화에너지는 0.017 mJ이며, Molkov(2012)는 수소의 가장 좁은 최대안전틈새(MESG)를 0.08 mm로 제시한다(방폭기기 분류에 쓰는 IEC 표준 MESG 값은 따로 확인이 필요하다).",
+   "evidenceUrl": "https://hyresponder.eu/wp-content/uploads/2021/04/Lecture-2-slides.pdf",
+   "note": "세 값 모두 HyResponder 슬라이드와 일치한다. 다만 0.08 mm는 Molkov 교재 인용이고, 방폭 분류 실무에서는 IEC 60079-20-1 표값(약 0.29 mm로 널리 인용)을 쓰는 경우가 많다. 이 검증에서는 표준 원문을 열어보지 못했으니 방폭 설계 근거로 쓰기 전에 확인해야 한다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "순수소 화염은 옅은 청색으로 주간에 보이지 않으며 복사율 0.1 미만",
+   "verdict": "partially_verified",
+   "correctedClaim": "순수소 화염은 옅은 청색으로 주간에 보이지 않고, 복사율은 0.1 미만(ADL, 1960)으로 보고되지만 Sandia 연구는 0.3 미만으로 제시한다. 실제 제트화염은 빨려 들어간 입자 때문에 보일 수도 있다.",
+   "evidenceUrl": "https://hyresponder.eu/wp-content/uploads/2021/04/Lecture-2-slides.pdf",
+   "note": "같은 슬라이드에 Sandia의 <0.3이 함께 실려 있는데 0.1 미만만 골라 단정했다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "수소 줄-톰슨 역전온도 약 200 K, 상온 교축 시 온도 상승(착화 수준 아님)",
+   "verdict": "partially_verified",
+   "correctedClaim": "수소의 줄-톰슨 역전온도는 50 bar 미만에서 약 190 K(−83 °C)이므로, 상온에서 교축 팽창하면 온도가 내려가지 않고 약간 오른다.",
+   "evidenceUrl": "https://arxiv.org/pdf/1702.06015",
+   "note": "출처는 약 190 K(50 bar 미만)로 적었다. '착화할 수준은 아님'은 이 출처에 없는 서술이다. 역전온도는 압력에 따라 달라진다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "NIST 식: Z 450 bar·15 °C 약 1.296(29.2 kg/m³), 700 bar 약 1.466(40.2 kg/m³), 이상기체식 30%·47% 과대평가",
+   "verdict": "verified",
+   "correctedClaim": "NIST(Lemmon·Huber·Leachman 2008) 식으로 계산하면 수소 압축인자 Z는 450 bar·15 °C에서 약 1.296(밀도 29.2 kg/m³), 700 bar·15 °C에서 약 1.466(밀도 40.2 kg/m³)이며, 이상기체식은 재고를 각각 약 30%, 47% 과대평가한다.",
+   "evidenceUrl": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4652867/",
+   "note": "원문 표 1 계수로 다시 계산했다: Z=1.2956·29.23 kg/m³, Z=1.4662·40.17 kg/m³. 검증점(400 K·50 MPa, Z=1.24305)도 재현된다. 식의 오차는 220~1000 K·70 MPa까지 0.01% 이내다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "기존 리서치의 NIST Z식 계수 a7·a8·a9가 10배 크게 기재되어 450 bar에서 Z 3.44, 검증점 2.219로 틀림",
+   "verdict": "verified",
+   "correctedClaim": "기존 리서치(research-fuelcell_storage.json)의 NIST Z식 계수 a7·a8·a9가 원문(0.9588528×10⁻⁴, −0.1109040×10⁻⁶, 0.1264403×10⁻⁹)보다 10배 크게 적혀 있어, 그대로 쓰면 450 bar·15 °C에서 Z가 1.296 대신 3.44로 나오고 NIST 검증점(400 K·50 MPa, Z=1.2430)도 2.219로 틀린다.",
+   "evidenceUrl": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4652867/",
+   "note": "research-fuelcell_storage.json 1384행이 0.0009588528, −1.10904e-6, 1.26440e-9로 적혀 있음을 확인했다. 10배 계수로 계산하면 3.443과 2.219가 나온다. 데이터 계약·코드에 넣기 전에 반드시 고쳐야 한다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "수소 1 K 상승 시 200~700 bar·15 °C에서 압력 약 0.36%(450 bar 약 1.6 bar) 상승",
+   "verdict": "verified",
+   "correctedClaim": "수소 질량이 일정할 때 가스온도가 1 K 오르면 200~700 bar·15 °C 부근에서 압력이 약 0.36%(450 bar에서 약 1.6 bar) 오른다(NIST 식 기반 계산값).",
+   "evidenceUrl": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4652867/",
+   "note": "직접 다시 계산했다: 200 bar 0.72 bar(0.359%), 450 bar 1.63 bar(0.362%), 700 bar 2.51 bar(0.358%)."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "단열압축 25 °C·압력비 3 토출 약 137 °C, API 618은 수소 계열 토출온도를 135 °C로 제한",
+   "verdict": "contradicted",
+   "correctedClaim": "이상기체 단열압축(k≈1.41) 기준으로 수소를 25 °C에서 압력비 3으로 압축하면 토출온도는 약 137 °C다(계산값). API 618 6판은 일반 예측 토출온도 한계를 135 °C로 두고, 수소 풍부 서비스(분자량 12 이하)나 무급유 실린더는 120 °C로 제한한다.",
+   "evidenceUrl": "https://www.recip.org/wp-content/uploads/2025/05/EFRC-Report-Review-API-618-6th-edition-API-688-2nd-edition-Part-1-V1.pdf",
+   "note": "137 °C 계산은 맞다(137.2 °C). 그러나 EFRC 검토서 6.5.1절은 수소 풍부 서비스에 120 °C(250 °F)를 적용한다고 인용한다. '수소 계열 135 °C'는 틀렸고, 다이어프램 압축기 원리 항목에도 같은 오류가 있다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "KGS FU671(2025): 경보농도 LEL 1/4 이하, 정밀도 ±25%, 1.6배 농도 30초 이내, 경보 유지",
+   "verdict": "verified",
+   "correctedClaim": "KGS FU671(2025)에서 가스누출검지경보장치의 경보농도는 폭발하한계의 1/4 이하, 경보정밀도는 설정치의 ±25% 이하, 검지에서 발신까지는 경보농도 1.6배 농도에서 보통 30초 이내이며, 경보는 확인·대책을 강구할 때까지 유지된다.",
+   "evidenceUrl": "https://h2hub.or.kr/main/info/regulation_info.do?mode=download&articleNo=3039&attachNo=5967",
+   "note": "2.8.2.1.2~2.8.2.1.7과 일치한다(2025.12.9 승인판). 원문은 '보통 30초 이내'이고, 전원전압 ±10% 변동에서도 정밀도를 유지해야 한다는 조항도 있다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "KGS FU671: 검출부 실내 바닥둘레 10 m마다 1개, 실외 체류 우려 20 m마다 1개, 천장~검지부 하단 0.3 m 이하",
+   "verdict": "verified",
+   "correctedClaim": "KGS FU671(2025)에 따르면 검출부는 건축물 안 누출 우려 설비군 바닥면 둘레 10 m마다 1개 이상, 건축물 밖에서 인접 구조물·피트 등으로 가스가 체류할 우려가 있는 장소는 20 m마다 1개 이상 설치하고, 천장에서 검지부 하단까지 0.3 m 이하로 둔다.",
+   "evidenceUrl": "https://h2hub.or.kr/main/info/regulation_info.do?mode=download&articleNo=3039&attachNo=5967",
+   "note": "2.8.2.3.1·2.8.2.3.3과 일치한다. 천장이 매우 높으면 0.4 m 이상 포집갓을 달도록 한 규정(2.8.2.3.4)도 있다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "KGS FU671: 수소 중 산소 2 vol% 이상 압축 금지, 수전해 제조 시 발생·정제·저장 출구 1일 1회 이상 분석",
+   "verdict": "verified",
+   "correctedClaim": "KGS FU671(2025)은 수소 중 산소 또는 산소 중 수소가 2 vol% 이상인 가스를 압축하지 않도록 하고, 물 전기분해로 제조할 때 발생장치·정제장치·수소저장설비 출구에서 1일 1회 이상 가스를 채취해 분석하도록 한다.",
+   "evidenceUrl": "https://h2hub.or.kr/main/info/regulation_info.do?mode=download&articleNo=3039&attachNo=5967",
+   "note": "3.2.2.1·3.2.2.2와 일치한다. 산소 중 수소 2% 이상도 압축 금지 대상이다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "KGS FU671: 축적압력 1개 110%, 2개 이상 116%, 화재 121%, 다단 각 단 과압안전장치, 저장설비 방출관 5 m 또는 정상부 2 m 중 높은 위치",
+   "verdict": "verified",
+   "correctedClaim": "KGS FU671(2025)에서 안전밸브 축적압력은 화재가 아닌 경우 1개 설치 시 MAWP의 110%, 2개 이상 116%, 화재 시 121% 이하이며, 다단 압축기는 각 단에 과압안전장치를 둔다. 수소저장설비 방출관은 지상 5 m 이상 또는 저장설비 정상부에서 2 m 중 높은 위치에 설치한다.",
+   "evidenceUrl": "https://h2hub.or.kr/main/info/regulation_info.do?mode=download&articleNo=3039&attachNo=5967",
+   "note": "2.8.1.5, 2.8.1.1(압축기 최종단·다단은 각 단), 2.8.1.8.1과 일치한다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "KGS FU671: 운전 중 수소설비 1일 1회 점검, 기록 검토로 열화경향 파악, 강제환기 1 m²당 0.5 m³/min",
+   "verdict": "verified",
+   "correctedClaim": "KGS FU671(2025)은 운전 중 수소설비를 1일 1회 이상 점검하고, 점검·보수 기록을 검토해 설비 열화경향을 파악한 뒤 차기 점검·보수 계획과 설비개선에 활용하도록 한다. 자연환기가 불가능하면 강제환기를 바닥면적 1 m²당 0.5 m³/min 이상으로 한다.",
+   "evidenceUrl": "https://h2hub.or.kr/main/info/regulation_info.do?mode=download&articleNo=3039&attachNo=5967",
+   "note": "3.3.4.2, 3.3.4.4, 2.8.9.2와 일치한다. 강제환기 기준은 자연환기구 설치가 불가능할 때 적용된다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "수소법상 수소연료사용시설 정기검사 매 1년(다중이용시설 매 6개월) 전후 30일 이내",
+   "verdict": "partially_verified",
+   "correctedClaim": "수소법 시행령 제50조에 따라 수소연료사용시설 사용자는 완성검사증명서 발급일을 기준으로 매 1년(다중이용시설은 매 6개월)이 되는 날의 전후 30일 이내에 정기검사를 받는다.",
+   "evidenceUrl": "https://www.law.go.kr/법령/수소경제육성및수소안전관리에관한법률시행령",
+   "note": "내용은 법제처 시행령 제50조(2026.1.2 시행본)로 확인했다. 그러나 인용한 연구개발특구진흥재단 체크리스트(innopolis)에는 이 문구가 없으니 출처를 시행령으로 바꿔야 한다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "고압가스법 시행규칙: 안전관리규정 실시기록 5년 보존, 압축가스 50 m³ 이상 사용신고, 매 1년 전후 15일 이내 정기검사",
+   "verdict": "verified",
+   "correctedClaim": "고압가스 안전관리법 시행규칙상 안전관리규정 실시기록은 5년간 보존하고, 저장능력 50 m³ 이상 압축가스저장설비를 갖춘 특정고압가스 사용자는 사용신고 대상이며, 사용신고자는 완성검사증명서 발급일 기준 매 1년이 되는 날의 전후 15일 이내에 정기검사를 받는다.",
+   "evidenceUrl": "https://h2hub.or.kr/main/info/regulation_info.do?mode=download&articleNo=2180&attachNo=4103",
+   "note": "제19조, 제46조제1항제2호, 제48조제2항과 일치한다. 문서는 2024.1.1 시행본이므로 이후 개정 여부는 확인이 필요하다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "2019 강릉 수소탱크 폭발: 버퍼탱크 산소 약 6%, 정전기 점화, 정제기 미설치·접지 미연결·저출력 운전, 사망 2·부상 6",
+   "verdict": "verified",
+   "correctedClaim": "2019년 5월 강원테크노파크(강릉) 수전해 수소탱크 폭발은 산소가 약 6% 유입된 버퍼탱크에서 정전기 불꽃이 점화원이 되었고, 정제기(산소제거기) 미설치, 접지선 미연결, 최저출력 미만 저출력 운전이 원인으로 지목되었다(사망 2명, 부상 6명, 재산피해 약 393억원).",
+   "evidenceUrl": "https://www.sisaweek.com/news/articleView.html?idxno=141570",
+   "note": "검찰 수사결과 보도와 일치한다(부상은 중상 1명·경상 5명). 설비는 석면 분리막이라 최저출력 범위가 50%였고, 연료전지·태양광·풍력 하이브리드 R&D 과제로 설치됐다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "2019 노르웨이 Kjørbo 수소충전소 폭발 근본원인은 고압 저장유닛 탱크의 특정 플러그 조립 오류",
+   "verdict": "verified",
+   "correctedClaim": "2019년 6월 10일 노르웨이 Kjørbo 수소충전소 사고의 근본원인은 고압 저장유닛 수소탱크의 특정 플러그 조립 오류로 확인되었다(Gexcon 조사).",
+   "evidenceUrl": "https://nelhydrogen.com/press-release/nel-asa-status-update-5-regarding-incident-at-kjorbo/",
+   "note": "2019.6.27 Nel 발표와 일치한다. 플러그에서 샌 수소가 공기와 혼합해 착화했으며, 당시 점화원은 계속 조사 중이었다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "NREL: 2017년까지 정비 4,663건 중 69% 비계획, 디스펜서·압축기 67%, 씰 파손이 압축기 정지 주원인·2시간 이상, 누설검지 회로 실시간 감시로 정지 회피 가능",
+   "verdict": "verified",
+   "correctedClaim": "NREL 분석에서 2017년까지 소매 수소충전소 정비 이벤트 4,663건 중 69%가 비계획이었고, 디스펜서와 압축기가 67%(칠러 포함 78%)를 차지했다. 씰 고장은 압축기 정지의 주원인으로 수리에 보통 여러 명이 2시간 이상 걸리며, 압축기 누설검지 회로를 실시간 감시하면 정지를 피할 수 있다고 보고했다.",
+   "evidenceUrl": "https://www.osti.gov/servlets/purl/1603259",
+   "note": "일치한다. 씰 관련 서술은 NREL의 이전 압축기 연구[36]를 인용한 것이다. '피할 수 있었다'는 실제 회피 실적이 아니라 가능성 서술이다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "Linde IC90/60: IC90 2대·5단 유압, 흡입 6~201 bara, 토출 <900 bar, 56 kg/h, 1~3.3 kWh/kg",
+   "verdict": "verified",
+   "correctedClaim": "Linde IC90/60 이온 압축기 모듈은 IC90 2대·5단 유압구동으로 흡입 6~201 bara, 토출 900 bar 미만, 용량 56 kg/h, 전력소비 1~3.3 kWh/kg(압축기+열관리)이다.",
+   "evidenceUrl": "https://assets.linde.com/-/media/global/engineering/engineering/home/products-and-services/plant-components/powering-sustainable-mobility-for-generations-to-come/le_lhf_datasheet_ic90_60.pdf",
+   "note": "제조사 데이터시트와 일치한다. 일 충전 수요 900 kg 미만인 충전소용 모듈이다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "DOE: 수소 액화에 에너지 함량 30% 이상, 액화온도 −253 °C 이하",
+   "verdict": "verified",
+   "correctedClaim": "DOE에 따르면 수소 액화에는 현재 기술로 수소 에너지 함량의 30% 이상이 들고, 액화하려면 −253 °C 이하로 냉각해야 한다.",
+   "evidenceUrl": "https://www.energy.gov/eere/fuelcells/liquid-hydrogen-delivery",
+   "note": "일치한다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "실험실 단단 왕복동 공기압축기 AE+SVM 밸브 결함 98% 초과(수소 실기 아님)",
+   "verdict": "verified",
+   "correctedClaim": "실험실 단단 왕복동 공기압축기에서 음향방출(AE) 특징과 SVM으로 밸브 결함을 98%를 넘는 정확도로 자동 판정했다(수소 실기 아님).",
+   "evidenceUrl": "https://doi.org/10.1016/j.aej.2016.12.010",
+   "note": "AEJ 2017 초록과 일치한다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "(사례) 강원테크노파크 강릉: 사망 2, 부상 6, 산소 약 6%, FU671 2% 압축금지·1일 1회 분석",
+   "verdict": "verified",
+   "correctedClaim": "강원테크노파크 강릉벤처공장(수전해 실증): 사망 2명, 부상 6명, 버퍼탱크 산소 약 6% 유입. KGS FU671은 수소 중 산소 2% 이상 압축 금지와 1일 1회 가스분석을 규정한다.",
+   "evidenceUrl": "https://www.sisaweek.com/news/articleView.html?idxno=141570",
+   "note": "보도와 FU671 원문으로 확인했다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "(사례) Nel ASA/Uno-X: 관련 법인에 총 NOK 2,500만 벌금(h2-view)",
+   "verdict": "partially_verified",
+   "correctedClaim": "Nel ASA/Uno-X(조사 Gexcon): 근본원인은 고압 저장유닛 탱크의 특정 플러그 조립 오류였다. 벌금 규모는 인용 출처에서 확인되지 않았다.",
+   "evidenceUrl": "https://nelhydrogen.com/press-release/nel-asa-status-update-5-regarding-incident-at-kjorbo/",
+   "note": "NOK 2,500만 벌금은 인용 URL(Nel 보도자료)에 없다. h2-view 기사 URL을 따로 달아야 한다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "(사례) NREL: 4,663건 중 69% 비계획, 디스펜서+압축기 67%(칠러 포함 78%), 디스펜서 46%, 씰 수리 2시간 이상",
+   "verdict": "verified",
+   "correctedClaim": "NREL: 2017년까지 정비 이벤트 4,663건 중 69% 비계획; 디스펜서+압축기 67%(칠러 포함 78%); 디스펜서 46%; 압축기 씰 고장 수리에 여러 명이 2시간 이상.",
+   "evidenceUrl": "https://www.osti.gov/servlets/purl/1603259",
+   "note": "일치한다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "(사례) EU JRC·유럽수소안전패널 HIAD 2.0: 2022년 706건",
+   "verdict": "verified",
+   "correctedClaim": "EU JRC·유럽수소안전패널: HIAD 2.0 데이터베이스는 2022년 기준 706건을 수록했다. 검사·정비 효과의 정량(%)은 없다.",
+   "evidenceUrl": "https://doi.org/10.1016/j.ijhydene.2022.03.170",
+   "note": "초록과 일치한다. 교훈은 설계, 제작·설치·변경, 인적요인, 비상대응 4범주로 정리되어 있다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "(사례) IJHE 2025/2016(일본·미국 비교): 비율 수치는 초록에 없음",
+   "verdict": "contradicted",
+   "correctedClaim": "IJHE 2025(Tzioutzios et al.)는 일본 KHK 사고 DB를 분석한 연구로, 초록 하이라이트에 누출의 1/3이 안전계통에서 시작됐고 누출 7건 중 1건은 사람이 발견했다는 비율이 있다. 주 누출원은 밸브·조인트·씰이며 디스펜서·압축기 관여가 가장 많았다.",
+   "evidenceUrl": "https://doi.org/10.1016/j.ijhydene.2025.151309",
+   "note": "DOI 논문은 일본·미국 비교가 아닌 일본 단일 DB 연구이고, 초록에 비율 수치가 실제로 있다. 2016년 비교 연구는 URL이 없어 확인하지 못했다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "(사례) 한국가스기술공사 서산 수소충전소 데이터 연구(ICECCME 2021): 정량 효과 미확인",
+   "verdict": "verified",
+   "correctedClaim": "한국가스기술공사 서산 수소충전소 SCADA 데이터로 GMM-HMM 이상상태 탐지를 시험한 연구(ICECCME 2021): 초록에 정량 성능·절감 효과는 없다.",
+   "evidenceUrl": "https://doi.org/10.1109/iceccme52200.2021.9590853",
+   "note": "초록으로 확인했다. 밸브·스위치 on/off 이벤트로 운전모드를 정의한 방식이다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "(사례) AEJ 2017: 밸브 결함 판정 98% 초과(실험실)",
+   "verdict": "verified",
+   "correctedClaim": "Alexandria Engineering Journal 2017: 단단 왕복동 공기압축기 실험실 시험에서 밸브 결함 판정 정확도 98% 초과.",
+   "evidenceUrl": "https://doi.org/10.1016/j.aej.2016.12.010",
+   "note": "일치한다."
+  },
+  {
+   "researchKey": "storage",
+   "claim": "(사례) IJHE 2020: ANN 위치 예측 78.4%, K-DTW 87.5%(실험 조건)",
+   "verdict": "verified",
+   "correctedClaim": "IJHE 2020: 헬륨을 수소 대용으로 쓴 축소 주차장 모델에서 천장 센서 12개 데이터로 누출 위치를 예측한 결과, ANN 78.4%, K-DTW 87.5%.",
+   "evidenceUrl": "https://doi.org/10.1016/j.ijhydene.2020.09.218",
+   "note": "초록과 일치한다. 헬륨·축소모형 조건을 반드시 적어야 한다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "국내 발전용 연료전지 누적 2022년 879 MW → 2023년 1,036 MW(+157 MW), 세계 최초 1 GW",
+   "verdict": "verified",
+   "correctedClaim": "국내 발전용 연료전지 누적 설치량은 2022년 879 MW에서 2023년 1,036 MW로 157 MW 늘어 세계 최초로 1 GW를 넘었다.",
+   "evidenceUrl": "https://www.electimes.com/news/articleView.html?idxno=332044",
+   "note": "2024.1.26 보도(수소연료전지산업협회·KPX 자료)와 일치한다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "2025 일반수소발전 입찰(4차) 52개, 180.55 MW, 연 1,355 GWh, 경쟁률 2.4:1",
+   "verdict": "verified",
+   "correctedClaim": "2025년 일반수소발전 경쟁입찰(4차) 낙찰은 52개 발전소, 180.55 MW, 연 1,355 GWh이며 경쟁률은 2.4:1이었다.",
+   "evidenceUrl": "https://www.dnews.co.kr/uhtml/view.jsp?idxno=202508180830309050942",
+   "note": "2025.8.17 산업부·KPX 발표 보도와 일치한다. 개별 호기는 모두 20 MW 이하였다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "2026년 입찰 개설물량 청정수소 500 GWh, 일반수소 930 GWh, 석탄-암모니아 혼소 청정수소 지원 제외",
+   "verdict": "partially_verified",
+   "correctedClaim": "기후에너지환경부가 2026년 6월 9일 행정예고한 고시 개정안 기준으로, 2026년 수소발전 입찰 개설물량은 청정수소 500 GWh, 일반수소 930 GWh이며 석탄-암모니아 혼소는 청정수소발전 입찰 지원 대상에서 제외된다(의견수렴 후 확정 예정).",
+   "evidenceUrl": "https://www.newspim.com/news/view/20260609000406",
+   "note": "수치는 일치하지만 행정예고 단계 내용이다. 확정 고시 여부를 확인하지 않고 확정 사실처럼 썼다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "2026 개편에서 일반수소 입찰 3년 후 존속 재검토, 연료전지 탄소포집 추가·열 활용 개선 시 가점",
+   "verdict": "partially_verified",
+   "correctedClaim": "2026년 6월 행정예고 당시 정부는 일반수소 입찰 지원을 중장기적으로 줄이되 3년 후 존속 여부를 재검토하겠다고 했고, 연료전지에 대해서는 열 활용 가점을 올리거나 CCUS 설비 도입 시 가점을 주는 방안을 추진한다고 밝혔다.",
+   "evidenceUrl": "https://www.asiae.co.kr/article/2026060915313849460",
+   "note": "정부 관계자가 밝힌 계획·방침이지 확정된 평가기준이 아니다. '가점을 받을 수 있다'는 단정은 과장이다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "두산퓨얼셀 일반수소 낙찰 비중 2023 62%, 2024 73%, 2025 60%; 2026 물량 약 125 MW(179 MW 대비 30.2% 감소)",
+   "verdict": "verified",
+   "correctedClaim": "두산퓨얼셀의 일반수소 입찰 낙찰 비중은 2023년 62%, 2024년 73%, 2025년 60%였고, 2026년 일반수소 입찰물량은 행정예고 기준 약 125 MW로 기존 179 MW보다 30.2% 적다.",
+   "evidenceUrl": "https://www.newspim.com/news/view/20260807000603",
+   "note": "보도와 일치한다. 125 MW도 6월 행정예고 기준이며, 언론 보도라 신뢰도는 중간이다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "입찰시장: 계약물량 초과분 SMP로만 정산, 미달 시 실제 발전량만 정산해 고정비 미회수, 계약기간 일반 20년·청정 15년, 가격 60·비가격 40",
+   "verdict": "verified",
+   "correctedClaim": "수소발전 입찰시장은 계약물량을 넘는 발전분에 차액정산금 없이 SMP로만 정산하고, 계약물량보다 적게 발전하면 실제 발전량에만 정산금을 지급해 사업자가 고정비를 회수하지 못한다. 계약기간은 일반수소 20년, 청정수소 15년이며, 일반수소는 가격 60점·비가격 40점으로 평가한다.",
+   "evidenceUrl": "https://www.keaj.kr/news/articleView.html?idxno=5673",
+   "note": "기고문 본문과 일치한다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "KPX 2023.5 설명회 일반수소 비가격: 출력증감발률 5.0%/min 이상, 최소운전출력 15% 미만, 에너지효율성 15% 이상 최고 구간",
+   "verdict": "verified",
+   "correctedClaim": "KPX 2023년 5월 설명회 자료(일반수소발전 비가격요소 평가표 및 세부지침 '안')에서 출력증감발률 5.0%/min 이상, 최소운전출력범위 15% 미만, 에너지효율성((열+기타 에너지 공급열량)/연료투입열량) 15% 이상이 최고 구간이다.",
+   "evidenceUrl": "https://www.kpx.or.kr/boardDownload.es?bid=0042&list_no=69381&seq=2",
+   "note": "13·12쪽과 일치한다. 2023년 '(안)'이므로 최신 공고의 평가표로 다시 확인해야 한다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "KPX 기술능력: 0 pu 150 ms, 1,350 ms 이내 회복, 0.9 pu 연속운전, 무효전력 33% 이상, 유효전력 회복 5초, 속도조정률 5.0%",
+   "verdict": "verified",
+   "correctedClaim": "같은 자료의 일반수소 입찰 기술능력 요건은 고장 시 전압 0 pu에서 150 ms 지속, 고장 제거 후 1,350 ms 이내 회복, 회복 후 0.9 pu 연속운전, 무효전력 공급능력 33% 이상, 유효전력 회복 5초 이내, 속도조정률 5.0% 이내이며, 소규모 연료전지는 별도 요건을 검토 중이다.",
+   "evidenceUrl": "https://www.kpx.or.kr/boardDownload.es?bid=0042&list_no=69381&seq=2",
+   "note": "6쪽과 일치한다. 2023년 '(안)'이다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "DOE 비교: PEM <120 °C, PAFC 150~200 °C, MCFC 600~700 °C, SOFC 500~1,000 °C; 효율 PEM 60%/40%, PAFC 40%, MCFC 50%, SOFC 60%; SOFC 제한된 정지 횟수",
+   "verdict": "verified",
+   "correctedClaim": "DOE 비교표 기준 운전온도는 PEM <120 °C, PAFC 150~200 °C, MCFC 600~700 °C, SOFC 500~1,000 °C이고, 전기효율은 PEM 60%(직접 수소)·40%(개질연료), PAFC 40%, MCFC 50%, SOFC 60%다. SOFC의 과제로 '제한된 정지 횟수'가 명시되어 있다.",
+   "evidenceUrl": "https://www.energy.gov/eere/fuelcells/comparison-fuel-cell-technologies",
+   "note": "일치한다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "두산 M400 수소형 440 kW, 전기 50%, 열 35%(85%); 도시가스형 전기 43%, 열 47%(90%); 열 120 °C·60 °C",
+   "verdict": "verified",
+   "correctedClaim": "두산 PureCell Model 400 수소형은 정격 440 kW, 전기효율 50%, 열효율 35%(종합 85%)이고, 도시가스형은 전기 43%, 열 47%(종합 90%)이며, 열은 고온 120 °C·저온 60 °C로 공급된다.",
+   "evidenceUrl": "https://www.doosanfuelcell.com/en/prod/prod-0102/",
+   "note": "수소형은 인용 페이지(prod-0102)에서, 도시가스형은 같은 사이트 prod-0101 페이지에서 확인했다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "Bloom ES 5.5(330 kW) 도시가스 누적 전기효율 65~53%(LHV 순AC), 원격 관리; 2024.8 수소 SOFC 약 60%·CHP 90%",
+   "verdict": "partially_verified",
+   "correctedClaim": "Bloom Energy Server 5.5(330 kW) 데이터시트는 도시가스 누적 전기효율을 65~53%(LHV 순AC, 65%는 ASME PTC 50 검증)로 적고, 'Bloom Energy가 원격 관리·감시'한다고 명시한다.",
+   "evidenceUrl": "https://bloomenergy.m3iworks.com/wp-content/uploads/bloom-energy-server-datasheet-2023.pdf",
+   "note": "데이터시트 내용은 확인했다. '2024년 8월 수소 SOFC 약 60%, CHP 90%'는 이 2023년 데이터시트에 없으니 블룸 보도자료 URL을 따로 달아야 한다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "ene.field micro-CHP 67기: PEMFC 고장 64%·SOFC 55% BoP, 스택 원인 1%·2%, 90% 설비 95% 이상 가용",
+   "verdict": "verified",
+   "correctedClaim": "유럽 ene.field 등 micro-CHP 67기 분석에서 PEMFC 고장의 64%, SOFC 고장의 55%가 BoP에서 발생했고, 스택 원인 정지는 PEMFC 1%, SOFC 2%였으며, 설비의 90%가 95% 이상 가용했다.",
+   "evidenceUrl": "https://ieafuelcell.com/wp-content/uploads/2024/11/2021-stationary-application-performance.pdf",
+   "note": "IEA AFC TCP 보고서 2~3쪽과 일치한다(Nielsen 등 인용). 첫해 무고장·가용률 100%인 설비가 45%였다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "IEA AFC TCP: 대형(0.4~30 MW) 고온형 연료전지 시스템 기동·정지 0→100% 약 4시간",
+   "verdict": "verified",
+   "correctedClaim": "IEA AFC TCP 자료에 따르면 대형(0.4~30 MW) 연료전지 시스템은 대부분 고온형이라 현재 기동·정지 특성이 0→100% 약 4시간 수준이며, 1분 이내로 줄이는 것이 개선 목표다.",
+   "evidenceUrl": "https://ieafuelcell.com/wp-content/uploads/2024/11/2021-stationary-application-performance.pdf",
+   "note": "9쪽과 일치한다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "PEMFC 기동 시뮬레이션: 방전 저항 없으면 캐소드 >1.6 V, 수소 충진 2배 시 탄소손실 48.5% 감소, 방전 저항 적용 시 약 43~63% 감소",
+   "verdict": "verified",
+   "correctedClaim": "PEMFC 기동 시뮬레이션(유사 3D 모델)에서 캐소드 전위는 방전 저항이 없으면 1.6 V를 넘고(저항이 있으면 1.5 V 미만), 수소 충진 속도를 2배로 높이면 탄소 손실이 48.5% 줄며, 방전 저항(2×10⁻⁴ / 5×10⁻⁴ Ω·m²)을 적용하면 탄소 손실이 약 63% / 43% 줄었다.",
+   "evidenceUrl": "https://www.mdpi.com/1996-1073/13/9/2338",
+   "note": "MDPI 직접 접근은 403이라 리더 프록시로 본문을 확인했다(0.08 → 0.03/0.045 µg_C/cm²). 모델 결과이며 실험 검증은 정성적이다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "25 cm² 단셀 2,000사이클: 스텝 19 µV/cycle(20.67%), 램프 제한 10 µV/cycle(10.72%), 기여 부하변동 56.78%·기동정지 33.17%(인용)",
+   "verdict": "verified",
+   "correctedClaim": "25 cm² 단셀 2,000사이클 동적부하 실험에서 램프율이 높은 DLC1은 19 µV/cycle(성능 손실 20.67%), 램프율을 제한한 DLC2는 10 µV/cycle(10.72%)로 열화했고, 성능 저하 기여는 부하변동 56.78%, 기동·정지 33.17%로 인용됐다.",
+   "evidenceUrl": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9763490/",
+   "note": "초록 수치와 일치한다. 논문 본문에는 20.581%/10.78%로 달리 적혀 있어 논문 자체가 불일치한다. 기여도는 선행 문헌(차량용)에서 인용한 값이다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "Pei 등(2008) 열화계수: 기동정지 0.00196%/회, 부하변동 0.0000593%/회, 아이들 0.00126%/h, 고출력 0.00147%/h(2차 인용)",
+   "verdict": "verified",
+   "correctedClaim": "Pei 등(2008)의 운전조건별 열화계수는 기동정지 0.00196%/회, 부하변동 0.0000593%/회, 아이들 0.00126%/h, 고출력 0.00147%/h다(자동차용 실험값, 2차 인용).",
+   "evidenceUrl": "https://upcommons.upc.edu/server/api/core/bitstreams/f6d57a68-e1cb-437d-91db-d205fc74234f/content",
+   "note": "수치는 UPC 석사논문 부록의 파이썬 코드 상수로만 확인했다(2차·저신뢰 출처). Pei 원문은 열어보지 못했으니 보고서에는 원문 인용이 필요하다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "DOE 수송용 목표: −20 °C에서 50% 출력 30초, 무보조 −30 °C, 기동·정지 5,000사이클",
+   "verdict": "verified",
+   "correctedClaim": "DOE 수송용(80 kW급) 연료전지 시스템의 2020년·궁극 목표는 −20 °C에서 정격 50% 출력까지 30초, 무보조 기동 −30 °C, 기동·정지 내구 5,000사이클(1.2 A/cm²에서 전압 저하 5% 미만)이다.",
+   "evidenceUrl": "https://www.energy.gov/cmei/fuels/doe-technical-targets-fuel-cell-systems-and-stacks-transportation-applications",
+   "note": "값은 일치한다. 목표 연도(2020·궁극)와 차량용 시스템이라는 대상을 적어야 정치형과 혼동하지 않는다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "FCLAB PHM 2014: FC1 70 A 정전류, FC2 70 A+10% 삼각리플(5 kHz); FC1 3% 기준 실제 RUL 63 h를 62 h로 예측",
+   "verdict": "verified",
+   "correctedClaim": "FCLAB IEEE PHM 2014 데이터에서 FC1은 70 A 정전류, FC2는 70 A에 10% 삼각 전류 리플(5 kHz)로 운전됐다. RUL 고장 임계를 FC1 초기전압(3.35 V)의 3.0~4.0%, FC2(3.33 V)의 4.5~5.5% 손실로 둔 연구에서 FC1 3% 기준 실제 RUL 63 h를 62 h로 예측했다.",
+   "evidenceUrl": "https://doi.org/10.3390/electronics13122335",
+   "note": "리더 프록시로 본문을 확인했다. FA 점수 0.9671, 전압 RMSE 0.00147도 일치한다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "UCL: 같은 MEA 99~100%, 다른 MEA 약 33%, 새 MEA 20% 추가 시 1D-CNN 95.1%",
+   "verdict": "partially_verified",
+   "correctedClaim": "UCL 연구에서 전압 응답 기반 ML 고장진단은 같은 MEA에서 99~100% 정확도였다. 학습에 없던 다른 MEA에서는 1D-CNN·SVM이 약 33%(3클래스 무작위 수준), DNN은 약 72~73%로 떨어졌고, 새 MEA 데이터 20%를 학습에 넣으면 1D-CNN 95.1%, DNN 83.0%, 선형 SVM 66.2%였다(실험실, 상용 시스템 미검증).",
+   "evidenceUrl": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12446379/",
+   "note": "33%는 1D-CNN과 SVM에 한정된 결과다. DNN은 약 72~73%를 유지했으므로 모든 모델이 무작위 수준으로 떨어진 것처럼 쓰면 틀린다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "경기그린에너지 화성 MCFC(2.8 MW×21, 58.8 MW) 2024.12 가동률 50% 이하, FCE와 약 1억6,000만 달러 7년 LTSA로 스택 순차 교체",
+   "verdict": "partially_verified",
+   "correctedClaim": "경기그린에너지 화성 MCFC 발전소(2.8 MW×21기, 58.8 MW)는 대표이사 기고(2024.12.3) 기준 설비가동률 50% 이하였고, 2024년 6월 퓨얼셀에너지와 직접 계약해 2024년 9월~2025년 21개 호기를 수명 7년짜리 스택으로 단계 교체하기로 했다.",
+   "evidenceUrl": "https://www.h2news.kr/news/articleView.html?idxno=13121",
+   "note": "인용 URL은 기사가 아닌 경기그린에너지 대표 기고문(이해관계자)이다. '약 1억6,000만 달러'는 본문에 없어 확인하지 못했다(관련기사 제목에 '7년 유지보수 계약'만 보인다)."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "(사례) 경기그린에너지/FCE: 가동률 50% 이하, 연 약 42~43만 MWh, 7년 LTSA 1.6억 달러, 2021.1 전국 MCFC 174.8 MW 중 30% 가동 불가(경인일보)",
+   "verdict": "partially_verified",
+   "correctedClaim": "경기그린에너지(한수원·삼천리·포스코 출자)/FuelCell Energy: 2024년 설치 4~5년차 호기 대부분의 잦은 고장으로 설비가동률 50% 이하. 연 최대 42만3,000 MWh 생산 설비. 2024년 6월 FCE와 직접 계약, 2024년 9월~2025년 21개 호기를 수명 7년 스택으로 단계 교체.",
+   "evidenceUrl": "https://www.h2news.kr/news/articleView.html?idxno=13121",
+   "note": "1억6,000만 달러(약 2,000억원)와 경인일보 인용 수치(174.8 MW 중 30%)는 인용 URL에 없다. 필요하면 원 기사 URL을 따로 달아야 한다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "(사례) ene.field/IEA AFC TCP: 첫해 45% 무고장, 90% 설비 95% 이상 가용, BoP 64%/55%, 스택 1%/2%, PEM 603기·SOFC 403기",
+   "verdict": "verified",
+   "correctedClaim": "ene.field(FCH JU)/IEA AFC TCP 정리: 첫해 45%는 고장 없이 가용률 100%. 설비의 90%가 95% 이상 가용. PEMFC 고장의 64%, SOFC 고장의 55%가 BoP. 스택 원인 정지는 PEMFC 1%, SOFC 2%. ene.field에서만 PEM 603기·SOFC 403기 설치.",
+   "evidenceUrl": "https://ieafuelcell.com/wp-content/uploads/2024/11/2021-stationary-application-performance.pdf",
+   "note": "일치한다(분석 대상은 67기)."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "(사례) HEALTH-CODE: 임피던스 2,300건 이상(정상 25%·고장 75%), 온보드 수 분, DC/DC 최대효율 94%, EU 약 236만 유로",
+   "verdict": "verified",
+   "correctedClaim": "EU H2020 HEALTH-CODE(2015.9~2018.12): 실험실 임피던스 측정 2,300건 이상(정상 약 25%, 고장 75%), 온보드 측정·처리 수 분, micro-CHP용 DC/DC 하드웨어 최대효율 94%, EU 지원 €2,358,736. 진단 정확도·수명연장률 수치는 없다.",
+   "evidenceUrl": "https://cordis.europa.eu/project/id/671486/reporting",
+   "note": "CORDIS 보고와 일치한다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "(사례) INSIGHT: EIS로 연료결핍·탄소석출 식별, 알고리즘 <5초, 도구 원가 <2%(목표 3%), 목표 서비스·스택교체비 50%·TCO 10%/kWh",
+   "verdict": "verified",
+   "correctedClaim": "EU FCH JU INSIGHT(CEA 주관, 11개 기관, 2017~2019): EIS로 스택 수준 연료결핍·탄소석출 식별, 고장탐지 알고리즘 5초 미만, 진단 도구 원가 시스템의 2% 미만(목표 3%). 기대효과 목표: 서비스·스택 교체비 50% 절감, 수명 +5%·가용률 +1%로 TCO 10%/kWh 절감. 필드 달성치는 공개되지 않았다.",
+   "evidenceUrl": "https://cordis.europa.eu/project/id/735918/reporting",
+   "note": "CORDIS 보고와 일치한다(EU 기여 약 250만 유로, 총 약 310만 유로)."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "(사례) FCLAB·FEMTO-ST/Wu et al. 2024: 임계 3.0/3.5/4.0%·4.5/5.0/5.5%, RUL 63 h→62 h, 점수 0.9671, RMSE 0.00147 V",
+   "verdict": "verified",
+   "correctedClaim": "FCLAB 데이터/Wu et al.(Electronics 2024): FC1 고장 임계는 초기전압(3.35 V)의 3.0/3.5/4.0% 손실, FC2는 4.5/5.0/5.5%. 제안 모델은 FC1 3% 기준 실제 RUL 63 h를 62 h로 예측했고 최종점수 0.9671, 전압 예측 RMSE 0.00147. 실험실·수 % 손실 범위라는 한계가 있다.",
+   "evidenceUrl": "https://doi.org/10.3390/electronics13122335",
+   "note": "본문 표 3·5와 일치한다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "(사례) UCL iScience 2025: 같은 MEA 1D-CNN·SVM 100%, DNN 99.17%, 다른 MEA 약 33%, 결합 99.2%, 20% 추가 95.1/83.0/66.2%",
+   "verdict": "partially_verified",
+   "correctedClaim": "UCL Electrochemical Innovation Lab(iScience 2025): 같은 MEA에서 1D-CNN·SVM 100%, DNN 99.17%. 다른 MEA에 적용하면 1D-CNN·SVM 약 33%(무작위 수준), DNN 약 72~73%. 두 MEA 데이터를 합치면 1D-CNN 99.2%. 원본 80%+새 MEA 20% 학습 시 1D-CNN 95.1%, DNN 83.0%, 선형 SVM 66.2%. 상용 시스템에서는 검증하지 않았다.",
+   "evidenceUrl": "https://pmc.ncbi.nlm.nih.gov/articles/PMC12446379/",
+   "note": "DNN이 다른 MEA에서 72~73%였다는 점이 빠져 일반화 실패를 과장했다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "(사례) CEA LITEN·Grenoble INP Energies 2020: >1.6 V vs <1.5 V, 48.5% 감소(최저 유속 76% 증가), 63%/43% 감소, 리브 비율 편차 5%→15% 이상",
+   "verdict": "verified",
+   "correctedClaim": "CEA LITEN·Grenoble INP(Energies 2020, 모델): 방전 저항이 없으면 캐소드 전위 1.6 V 초과, 있으면 1.5 V 미만. 수소 유속 2배 시 탄소 손실 48.5% 감소(최저 유속은 76% 증가). 방전 저항 2×10⁻⁴/5×10⁻⁴ Ω·m²에서 탄소 손실 약 63%/43% 감소. 리브 비율이 30%에서 70%로 커지면 국부 부식 편차가 약 5%에서 15% 이상으로 증가.",
+   "evidenceUrl": "https://www.mdpi.com/1996-1073/13/9/2338",
+   "note": "본문과 일치한다. 시뮬레이션 결과다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "(사례) Scientific Reports 2022: 19 vs 10 µV/cycle, 20.67% vs 10.72%, 옴저항 +14.56% vs +10.18%, DLC1 촉매층 박리",
+   "verdict": "verified",
+   "correctedClaim": "PSG College of Technology·Luleå University of Technology 등(Scientific Reports 2022): 전압 감쇠율 DLC1 19 µV/cycle vs DLC2 10 µV/cycle. 총 성능 손실 20.67% vs 10.72%(본문 표기는 20.581% vs 10.78%). 옴저항 증가 14.56% vs 10.18%. DLC1에서 촉매층 박리 관찰.",
+   "evidenceUrl": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9763490/",
+   "note": "일치한다. 논문 초록과 본문의 성능 손실 수치가 서로 조금 다르다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "(사례) Bloom: 330 kW, 누적 전기효율 65~53%(65% ASME PTC 50), 수소 60%·CHP 90%(2024.8), 물 소비 없음",
+   "verdict": "partially_verified",
+   "correctedClaim": "Bloom Energy(국내 합작 블룸SK퓨얼셀): Energy Server 5.5는 330 kW, 도시가스 누적 전기효율 65~53%(LHV 순AC, 65%는 ASME PTC 50 검증), 정상 운전 중 물 소비 없음, 블룸이 원격 관리·감시.",
+   "evidenceUrl": "https://bloomenergy.m3iworks.com/wp-content/uploads/bloom-energy-server-datasheet-2023.pdf",
+   "note": "수소 운전 전기효율 약 60%·CHP 90%(2024.8)는 인용 데이터시트에 없어 확인하지 못했다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "(사례) 산업부·KPX: 52개, 180.55 MW, 1,355 GWh, 2.4:1(이용률 약 86%), 두산 62/73/60%, 2026 930 GWh(125 MW, 30.2% 감소), 미코파워 국산화율 99.7%",
+   "verdict": "partially_verified",
+   "correctedClaim": "산업통상자원부·KPX: 2025년 4차 일반수소 입찰 52개 발전소, 180.55 MW, 1,355 GWh/년, 경쟁률 2.4:1(계약물량은 연 이용률 약 86%에 해당, 계산값). 두산퓨얼셀 낙찰 비중 2023년 62%, 2024년 73%, 2025년 60%. 2026년 일반수소 개설물량 930 GWh(약 125 MW, 179 MW 대비 30.2% 감소, 행정예고 기준). 미코파워(SOFC)·HD하이드로젠 첫 낙찰.",
+   "evidenceUrl": "https://www.dnews.co.kr/uhtml/view.jsp?idxno=202508180830309050942",
+   "note": "이용률 86%는 다시 계산해 확인했다(1,355 GWh ÷ (180.55 MW×8,760 h) = 0.857). 두산 비중·125 MW는 뉴스핌 기사에서 확인했다. '미코파워 국산화율 99.7%'는 어느 인용 기사에서도 확인하지 못했다."
+  },
+  {
+   "researchKey": "fuelcell",
+   "claim": "(사례) 칭화대 Pei 연구팀(IJHE 2008): 기동정지 0.00196%/회 등, 후속 인용 기여도 부하변동 약 57%·기동정지 약 33%",
+   "verdict": "partially_verified",
+   "correctedClaim": "칭화대 Pucheng Pei 연구팀(IJHE 2008, 자동차용 연료전지 수명 평가): 기동정지 0.00196%/회, 부하변동 0.0000593%/회, 아이들 0.00126%/h, 고출력 0.00147%/h(2차 인용). 후속 문헌 인용 기준 성능 저하 기여도는 부하변동 약 57%, 기동정지 약 33%.",
+   "evidenceUrl": "https://www.sciencedirect.com/science/article/abs/pii/S036031990800476X",
+   "note": "ScienceDirect 원문은 열지 못했다. 계수는 UPC 석사논문 부록 코드로, 기여도(56.78%/33.17%)는 Scientific Reports 2022 인용문으로만 확인했다. 차량 주행사이클 기반이라 정치형 발전에 그대로 쓰면 안 된다."
+  }
+ ],
+ "systemicIssues": [
+  "[수치 오류·전파] API 618 토출온도: 6판은 일반 한계 135 °C, 수소 풍부 서비스(분자량 ≤12)·무급유 실린더는 120 °C다. 핵심주장과 '다이어프램 압축기' 원리 항목 모두 '수소계 135 °C'로 잘못 적었다. 단별 토출온도 트립 설정 근거로 그대로 쓰면 안전 여유가 줄어든다.",
+  "[조건 누락: 시뮬레이션→실적] Qi 2021(최소부하 27.5%→10%)과 Qiu 2023(22대 +7.74%/+8.72%)은 모델 사례연구인데 '확대했다/높였다'로 실적처럼 썼다. 특히 22대 사례는 풍력 직결에 완벽한 예측을 가정했는데, '태양광 예측 연계 AI 효과'의 근거로 PV 수치(+0.8%)와 나란히 제시해 태양광에서도 7~9% 개선이 가능한 것처럼 읽힌다.",
+  "[과잉 일반화] 단일 소형 설비·실험실 결과를 일반 특성으로 넓혔다. 예: 5 Nm³/h 한 대의 열전달 지연(6분·4분)을 '알칼라인 설비 온도제어' 전반으로, UCL 1D-CNN·SVM만의 33% 급락을 모델 일반으로(DNN은 72~73% 유지), 복사율 <0.1만 골라 단정(같은 출처에 Sandia <0.3 병기).",
+  "[출처 불일치] 수치는 맞거나 그럴듯하지만 인용 URL에는 해당 수치가 없다: 수소법 정기검사 주기(실제 근거는 시행령 제50조), 블룸 2024.8 수소 60%·CHP 90%(2023 데이터시트에 없음), 경기그린에너지 LTSA 1억6,000만 달러·경인일보 30%, 미코파워 국산화율 99.7%, Kjørbo 벌금 NOK 2,500만, FH2R 1,200 Nm³/h·Asahi Kasei, Koponen '3 MW', 마인츠 Deoxo 입·출구 규격. 모두 출처를 교체하거나 '미확인'으로 표시해야 한다.",
+  "[출처 없음] 'Energy and AI 2026' 열화 +183%/+64%, 'IJHE 2021 MILP' 가용에너지 89.7%·가동률 93.7%·기동정지 764회, 'Chem. Eng. Sci. 2026' 질소퍼지 온도영역, Fraunhofer ISE 퍼지 질소 10/30 vol%, HyAxiom 43.5%/44.4% 등은 URL이 없어 검증하지 못했다. 보고서 수치로 쓰려면 원문 URL을 확보해야 한다.",
+  "[통계 표기 오류] arXiv 2501.14576의 RMSE(4.0 K, 0.14%p)를 '±오차'로 적었고, 셀전압 RMSE 최대값 0.03294 V를 '<0.032 V'로 잘못 반올림했다.",
+  "[원리 설명 과장] 정류기 항목의 '설정값 변경 후 1초 이내 전력 추종(IRENA)': IRENA 원문은 약 40 kW 소형 설비가 밀리초 안에 반응을 시작하고 정착은 '수 초' 걸린다고 적었다. 1초 이내 추종은 대형 설비 일반의 성능으로 볼 수 없다.",
+  "[원리 설명 수치] 줄-톰슨 역전온도 '약 200 K'는 출처 기준 약 190 K(50 bar 미만)이고 압력에 따라 달라진다. '착화할 수준은 아님'은 출처가 없는 서술이다.",
+  "[원리 설명·방폭] 수소 MESG 0.08 mm는 Molkov 교재 값이다. 방폭기기군(IIC) 분류 실무의 IEC 60079-20-1 표값은 약 0.29 mm로 널리 인용된다(이번 검증에서 표준 원문은 미확인). 방폭 설계 근거로 쓸 때 어느 정의·시험법의 값인지 명시하고 표준값을 확인해야 한다.",
+  "[원리 설명 출처 과대] MCFC '가스터빈 결합 시 약 65%'는 인용한 DOE 비교표에 없다(DOE는 50%만 제시). PEM 전기삼투 설명을 arXiv 2501.14576 인용 문헌에 연결했지만 해당 논문 본문에는 관련 서술이 없다.",
+  "[정책 단계 혼동] 2026년 수소발전 입찰 물량(청정 500·일반 930 GWh, 125 MW)과 연료전지 CCUS·열활용 가점은 2026.6 행정예고·정부 방침 단계인데 확정 제도처럼 썼다. KPX 비가격·기술능력 기준도 2023년 '(안)'이므로 최신 공고로 다시 확인해야 한다.",
+  "[신뢰도 표시 누락] 경기그린에너지 가동률 자료는 독립 보도가 아닌 해당사 대표이사 기고문(이해관계자)이다. Pei 2008 열화계수는 석사논문 부록 코드에서만 확인한 2차 인용이다. BNEF 수치도 언론 재인용이다. confidence를 낮춰 표기해야 한다.",
+  "[원문 자체 불일치] Scientific Reports 2022(PEMFC 동적부하)는 초록(20.67%/10.72%)과 본문(20.581%/10.78%)의 성능 손실 수치가 다르다. 인용 시 어느 값인지 밝혀야 한다.",
+  "[기존 리서치 결함 확인] research-fuelcell_storage.json 1384행의 NIST 수소 Z식 계수 a7·a8·a9가 원문보다 10배 크다(450 bar·15 °C에서 Z=3.44로 계산됨). 저장량 환산 로직·데이터 계약에 넣기 전에 반드시 고쳐야 한다.",
+  "[표기 관례 혼재·주의] 전해조 발열식은 HHV 열중립전압 1.48 V, 연료전지 발열식은 LHV 기준 1.253 V를 쓴다. 각 관례 안에서는 맞지만 한 보고서에 함께 실을 때는 기준(HHV/LHV, 생성수 상태)을 명시해야 독자가 헷갈리지 않는다."
+ ]
+}

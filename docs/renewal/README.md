@@ -1,7 +1,7 @@
 # HySol Desk — 태양광·수소 O&M 콘솔 리뉴얼 설계
 
 - 작성일: 2026-09-14
-- 상태: **확정 — P0~P2 구현 진행** (브랜치 `renewal/om-console`, 단계별 커밋)
+- 상태: **확정 — P0~P3 구현 진행** (브랜치 `renewal/om-console`, 단계별 커밋)
 - 제품명: **HySol Desk** (하이솔 데스크)
 - 근거: 리서치 5건(자산 47종 · 텔레메트리 224개 · 파생지표 92개 · 고장모드 90개 · 출처 204건), 독립 설계안 3건 → 종합
 
@@ -15,13 +15,30 @@
 
 ---
 
+## 0. 확정 결정 — 2026-09-14 사전 질의 (본문과 충돌하면 이 절이 우선)
+
+| 항목 | 확정 내용 | 본문에서 바뀌는 곳 |
+|---|---|---|
+| 구현 범위 | **P0~P3 전부** 연속 진행. P4는 "연결된 DB에 저장" 구조만 보장(`DATABASE_URL`을 RDS로 바꾸고 `db:migrate` 하면 동작). RDS 데이터 이관·Vercel 배포 작업은 하지 않음. P5 LLM 보류 | §8 |
+| 로컬 DB | embedded-postgres (Docker 금지 — 개발 PC 블루스크린) | §6 |
+| 원시 보존 | **영구 보관**. 원시 파티션 DROP/보존 잡 없음. 월 파티션 사전 생성만. 용량이 커지면 추후 아카이브 검토 | §5.2 |
+| 분석 실행 | **수동 실행만**. 관리자가 사이트·설비·기간을 골라 "분석 실행" → 결과는 발견사항(finding)으로만 저장. 자동 분석·주간 크론 없음 → Vercel 크론 불필요 | §5.3 파이프라인의 tick/daily 크론 |
+| 롤업 | 크론 대신 수집 직후 `after()`에서 dirty 시간 버킷을 처리하고, 분석 실행 시작 시 남은 dirty를 먼저 처리 | §5.3 |
+| 리포트 | **분석과 출력 분리.** 분석이 리포트·파일을 자동으로 만들지 않음. 관리자가 "리포트 만들기" 버튼으로 초안 생성 → 검토 → "PDF 출력" 버튼. **메일 발송 기능 없음**, 전달은 사용자가 별도로 | §4 코칭 리포트 행, §5.3 월요일 리포트 |
+| 로그인 | 이메일+비밀번호(가입 비활성, 운영자가 계정 발급) | — |
+| 수익 위젯 | SMP·REC 수기 입력 + CSV 업로드 | §4 오늘 |
+| 정비 이력 | 콘솔에서 직접 기록 + CSV 가져오기 | §4 조치 추적 |
+| 수소 사양 기준 | PEM 전해조 + PEM 연료전지(순수소). 실제 사양이 오면 파라미터만 교체 | §5.5 |
+| 사이트 | 실제 운영 중인 태양광·수소 사이트 없음, 기존 데이터는 전부 목데이터 → **가상 사이트 3곳**(SIM-A 태양광+ESS / SIM-B 연계형 / SIM-C 고장 없는 대조군). 기존 `solar_*` 테이블은 이관하지 않음 | §5.5, §11 |
+| 연구 문서 | 별도 산출물(실데이터가 없으므로 업계 자료 기반 **예상안**): 태양광·수소발전에서 보통 받는 데이터, 그 데이터로 보는 수명·노후·개선 여지, 월 1회·분기 1회 AI 분석 시 탐지 가능한 항목과 분석 리포트 예시. **PPT 약 15장 + 엑셀(데이터 목록·수명·분석 주기 매트릭스) + Word 약 20쪽** | — |
+
 ## 1. 전제 (사용자 결정)
 
 | 항목 | 결정 |
 |---|---|
 | 목적 | 관리자 전용 O&M 인텔리전스 콘솔. 사이트·설비·부품 원시데이터 → 분석 → 사이트별 유지보수 코칭 리포트. 최종 사용자용 아님 |
 | 수소 형태 | 연계형: 태양광 → 수전해 → 수소 압축·저장 → 연료전지 발전 (ESS 포함 가능) |
-| 인프라 | 로컬 Docker PostgreSQL로 개발 → 같은 마이그레이션을 기존 AWS RDS에 적용. 배포 Vercel 유지 |
+| 인프라 | 로컬 PostgreSQL(embedded-postgres, Docker 미사용)로 개발 → 같은 마이그레이션을 기존 AWS RDS에 적용. 배포 Vercel 유지. Docker는 개발 PC에서 블루스크린을 일으켜 제외(2026-09-14) |
 | AI | 이번 단계 LLM 미사용. 통계·규칙 기반 분석 + 리포트 템플릿. LLM은 교체 가능한 인터페이스만 |
 | 기존 UI | 전면 재구성. 수익(SMP/REC)은 요약 위젯으로 축소 |
 | 브랜딩 | "Solar" 중심 명칭 전면 교체 (화면·API 경로·DB 스키마). 제품명 HySol Desk. 저장소·폴더명 `solar-dashboard`는 P4까지 유지 |
@@ -239,14 +256,14 @@ daily (02:17)  파티션 생성·보존 → DQ 스윕 → kpi_daily → site_ene
 | 프레임워크 | Next 16.1.1, React 19.2.3 | **Next 16.3.5, React 19.3.0** (첫 커밋) | critical 취약점(Proxy 우회, Server Action CSRF 등) 해결. 확인: `npm audit` |
 | 렌더링 | 단일 클라이언트 페이지 + 폴링 | RSC + `server-only` DAL로 DB 직접 조회, 변경은 Server Action + zod. Route Handler는 ingest / cron / auth / series만 | Next 16 문서 권고. 준실시간은 탭이 보일 때만 `router.refresh` |
 | DB 접근 | pg Pool, `any` | pg 8.23 + **Kysely 0.29** + kysely-codegen(DB → TS 타입) | SQL 중심 분석(파티션, BRIN, date_bin)과 타입 안전 |
-| 마이그레이션 | 없음 | **node-pg-migrate 9** (순수 `.sql`, advisory lock) | 로컬 Docker와 RDS에 동일 적용. Drizzle Kit은 PARTITION BY 미지원 |
-| 로컬 DB | 없음 | docker compose PostgreSQL(RDS와 같은 메이저, 포트 54320, 테스트 DB 포함) | 운영 RDS 무접촉 개발 |
+| 마이그레이션 | 없음 | **node-pg-migrate 9** (순수 `.sql`, advisory lock) | 로컬 DB와 RDS에 동일 적용. Drizzle Kit은 PARTITION BY 미지원 |
+| 로컬 DB | 없음 | **embedded-postgres** — 실제 PostgreSQL 바이너리를 npm으로 받아 일반 프로세스로 실행(포트 54320, 테스트 DB 포함). Docker 미사용 | 운영 RDS 무접촉 개발. Docker Desktop이 개발 PC에서 블루스크린 유발 |
 | 인증 | 없음 | **Better Auth 1.7** (이메일+비밀번호, 가입 비활성, admin, DB 세션·rate limit) + `proxy.ts` 낙관 검사 + 모든 page/action/handler 첫 줄 `requireAdmin()` | Auth.js v5는 베타·유지보수 모드. Proxy 우회 advisory 이력 때문에 DAL 검사 필수 |
 | 차트 | Chart.js 4 | **ECharts 6.1** (echarts/core 트리셰이킹 + 자체 래퍼) | 수만 포인트 줌·다중축·이벤트 밴드·차트 커서 동기화·서버 SVG(리포트) |
 | 지도 | Kakao SDK 수동 + innerHTML, 미사용 leaflet | **react-kakao-maps-sdk 1.2** (선언형), leaflet 계열 삭제 | XSS 제거, 타입 |
 | 아이콘 | Font Awesome CDN | **lucide-react** | 렌더 차단 CSS 제거, 트리셰이킹 |
 | 검증 | 없음 | **zod 4.6** | 수신 페이로드·폼·쿼리·환경변수 |
-| 테스트 | 없음 | **Vitest 5** (unit: `lib/analytics` 커버리지 80% / integration: Docker 테스트 DB) + fast-check + **Playwright 1.63** (프로덕션 빌드, chromium) | 순수 함수 TDD, 인증 차단·폐루프 E2E |
+| 테스트 | 없음 | **Vitest 5** (unit: `lib/analytics` 커버리지 80% / integration: 로컬 테스트 DB) + fast-check + **Playwright 1.63** (프로덕션 빌드, chromium) | 순수 함수 TDD, 인증 차단·폐루프 E2E |
 | 스크립트 | 없음 | tsx (`db:up`, `db:migrate`, `db:types`, `db:seed`, `sim:backfill`, `sim:live`, `sim:eval`, `jobs:tick`, `jobs:daily`, `admin:create`) | Node 네이티브 TS는 `@/` 경로 미해석 |
 | 배포 | Vercel(Hobby 추정) | Vercel, region `icn1`, 크론 2개(tick 10분, daily) | Hobby는 상업 이용 불가·크론 1일 1회 → 운영 전환 시 Pro 필요 |
 
@@ -278,14 +295,14 @@ components/  ui/ charts/ map/ console/
 db/migrations/*.sql
 scripts/     tsx 진입점
 tests/e2e/
-docker-compose.yml
+scripts/db-server.ts   embedded-postgres 로컬 DB 서버
 ```
 
 ## 8. 단계별 로드맵
 
 | 단계 | 목표 | 산출물 | 완료 기준 | 실행 |
 |---|---|---|---|---|
-| **P0 기반 정리·리브랜딩** | 보안 구멍과 데이터 오염원 제거, DB·인증·콘솔 셸 | Next 16.3.5 업그레이드(별도 커밋) · 브라우저 시뮬레이터 / 인증 없는 POST / 24h 삭제 크론 / weather-history / leaflet 제거 · docker compose + node-pg-migrate + Kysely · Better Auth + proxy + DAL · `(auth)`/`(console)` 셸, 새 브랜드, lucide · ECharts 래퍼 · Vitest/Playwright 골격 | `npm audit`에 next 0건 · `next build` 통과 · 빈 DB에 migrate up 2회 무오류 · 비로그인 E2E로 콘솔 URL·Server Action·`/api/series` 전부 차단 | Claude (로컬) |
+| **P0 기반 정리·리브랜딩** | 보안 구멍과 데이터 오염원 제거, DB·인증·콘솔 셸 | Next 16.3.5 업그레이드(별도 커밋) · 브라우저 시뮬레이터 / 인증 없는 POST / 24h 삭제 크론 / weather-history / leaflet 제거 · embedded-postgres + node-pg-migrate + Kysely · Better Auth + proxy + DAL · `(auth)`/`(console)` 셸, 새 브랜드, lucide · ECharts 래퍼 · Vitest/Playwright 골격 | `npm audit`에 next 0건 · `next build` 통과 · 빈 DB에 migrate up 2회 무오류 · 비로그인 E2E로 콘솔 URL·Server Action·`/api/series` 전부 차단 | Claude (로컬) |
 | **P1 수집 원장 + 시뮬레이터** | 계약 없이 받고, 원본 보존하고, 재처리 | `/api/ingest/v1`(HMAC·gzip·멱등 3중·bronze·미매핑·안전 즉시 경로) · 카탈로그 시드(리서치 기반 asset_class·metric_def) · measurement 월 파티션 + dirty 롤업 + 기본 DQ · 시뮬레이터 6개 모델 + HTTP emit + SIM-A/B/C · OpenWeather 어댑터(서버) · 화면: 오늘(골격), 플릿, 사이트, 자산 상세, 탐색기, 안전, 데이터, 설정/카탈로그 | 30일 × 3사이트를 HTTP 적재(중복 5% + 6시간 단절 백필 포함) 시 행 수 기대치 정확 일치 · m_1h = 원시 재집계 · 미매핑 태그 매핑 후 replay로 과거 표시 · 안전 이벤트 수신 → 배너 | Claude (로컬) |
 | **P2 분석 데스크 MVP** | 배터리 예시를 원시 → 리포트 → 조치 검증까지 닫기 (태양광·ESS·전해조·연료전지 포함) | 에피소드 추출기(ess / pv / el / fc) · 통계 도구 · 탐지기 6종 + detector_config · finding / evidence / transition · 분석 데스크(인박스, 증거 캔버스, 에피소드 오버레이, 판별 체크, 권고) · 조치 추적 + 전후 검증 · EvidencePack + templateComposer + validateDraft + 리포트 검토·인쇄 · sim:eval 게이트 + /sim · 오늘 화면 완성 | CI 게이트 통과(§5.5) · 용량 −6.25% 주입을 −6.25% ± 1%p로 추정 · SOC 상한 변경을 기각 사유로 입력하면 해당 오탐 소멸 · 밸런싱 조치가 `improved` → `verified` 전이 E2E · SIM-B 주간 리포트가 sev ≥ 4 전부 인용하고 validateDraft 통과 · `lib/analytics` 커버리지 80% | Claude (로컬) |
 | **P3 수소 체인 심화** | 저장·압축·연료전지 BoP와 사이트 체인 원장 | 탐지기 8종(§5.3) · `site_energy_daily` + 체인 Sankey + 물질수지 잔차 + 전해조 계통전력 비율 · PV 미활용 원인 분해 · 탐지 준비도 매트릭스 · 탐지기 설정 UI | 신규 시나리오 게이트 편입·기존 회귀 없음 · 건강한 사이트 물질수지 잔차 < 1% · 탱크 미세누설 최소 탐지 크기 곡선 산출 · 출력제어·흐린 주 대조군에서 PV finding 0건 | Claude (로컬) |

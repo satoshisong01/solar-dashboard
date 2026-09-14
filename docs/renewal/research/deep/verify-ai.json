@@ -1,0 +1,898 @@
+{
+ "verdicts": [
+  {
+   "researchKey": "ai_methods",
+   "claim": "미국 DOE FEMP O&M 가이드(Release 3.0)는 예지보전이 예방보전 대비 8~12%, 예방보전은 반응형 대비 12~18% 비용 절감 효과가 있다고 제시한다.",
+   "verdict": "verified",
+   "correctedClaim": "미국 DOE FEMP O&M Best Practices Guide(Release 3.0, 2010, PNNL-19634)는 과거 연구 추정치로 예지보전이 예방보전만 할 때보다 8~12%, 예방보전이 반응형보다 평균 12~18% 비용을 줄인다고 제시한다.",
+   "evidenceUrl": "https://www.energy.gov/sites/prod/files/2020/04/f74/omguide_complete_w-eo-disclaimer.pdf",
+   "note": "PDF 본문 5.3~5.4절에서 확인. 원문 표현은 'Past studies have estimated', 'Estimated'로 추정치다. 2010년 자료라 최신 근거는 아니다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "같은 DOE 가이드가 인용한 독립 조사의 산업 평균: 예지보전 도입 시 투자수익 10배, 정비비 25~30% 감소, 고장 70~75% 제거, 정지시간 35~45% 감소, 생산 20~25% 증가(오래된 조사 인용이라 재현성 제한).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지. 단, 조사 출처와 연도가 가이드에 적혀 있지 않다는 점을 함께 적는다.",
+   "evidenceUrl": "https://www.energy.gov/sites/prod/files/2020/04/f74/omguide_complete_w-eo-disclaimer.pdf",
+   "note": "원문은 'independent surveys indicate the following industrial average savings'. 조사 이름·표본·연도가 없다. 경영진 보고서에서 기대효과(ROI 10배 등)로 쓰면 안 된다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "NIST 조사(Thomas·Weiss 2021): 예방·예지 정비 의존도가 높은 하위 50% 제조사는 반응형 의존 상위 50%보다 비계획 정지가 52.7%, 결함이 78.5% 적었다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9890517/",
+   "note": "International Journal of PHM 2021. 'bottom 50% ... 52.7% less unplanned downtime and 78.5% less defects' 확인. 미국 제조업 대상이며 발전소 대상이 아니다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "같은 NIST 조사에서 예지 중심 기업은 예방 중심 기업보다 비계획 정지 18.5%, 결함 87.3%가 적었지만 출하액 대비 정비비 지출은 212.3% 많았다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(정비비는 출하액 대비 '직접 정비비' 비율).",
+   "evidenceUrl": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9890517/",
+   "note": "'Direct maintenance costs relative to shipments are 212.3% higher' 확인. 상관관계 조사이며 인과 효과가 아니다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "McKinsey는 예지보전이 설비 정지시간을 30~50% 줄이고 설비 수명을 20~40% 늘린다고 제시한다(컨설팅 자료, 방법론 비공개).",
+   "verdict": "unverified",
+   "correctedClaim": "(원문 미확인) McKinsey 기사에 예지보전이 정지시간 30~50% 감소, 설비 수명 20~40% 연장을 가져온다는 서술이 있다고 알려져 있으나 확인하지 못했다. 보고서에는 '컨설팅사 추정, 원문 미확인'으로 표기한다.",
+   "evidenceUrl": "https://www.mckinsey.com/capabilities/operations/our-insights/manufacturing-analytics-unleashes-productivity-and-profitability",
+   "note": "WebFetch 2회와 curl 모두 시간초과·연결 실패로 원문을 열지 못했다. 검색 예산도 소진돼 대체 출처를 찾지 못했다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "NREL PV Fleets(8.5GW, 인버터 채널 24,000개) 분석에서 1차 데이터 품질 심사를 통과한 채널은 81%였고, 오염 분석에는 255개 시스템만 사용할 수 있었다.",
+   "verdict": "verified",
+   "correctedClaim": "NREL PV Fleets(8.5GW, 인버터 데이터 채널 24,000개) 분석에서 1차 품질 심사 후 시스템 1,700개와 인버터·전력량계 채널 28,700개(81%)가 분석 가능했다. 가용률·PI 분석은 1,128개 시스템, 오염 분석은 수작업 검증을 거친 255개 시스템만 쓸 수 있었다.",
+   "evidenceUrl": "https://docs.nlr.gov/docs/fy24osti/88769.pdf",
+   "note": "NREL/TP-5K00-88769(2024.2). 81%는 인버터와 전력량계 채널을 합친 28,700개 기준이다. www.nrel.gov 주소는 DNS 조회에 실패했고 docs.nlr.gov에서 같은 파일을 받았다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "NREL PV Fleets: 인버터 가용률 중앙값 0.99(P90 0.95), RdTools YoY 열화율 중앙값 −0.75%/년, 오염을 분리한 CODS 기준 약 −0.5%/년이며 RdTools 열화 분석에는 2년 이상 데이터가 필요하다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(시스템 단위 가용률 P50 0.99/0.991, P90 0.95. −0.75%/년은 2022년 분석의 기준값으로 이번 갱신 분석과 일치. CODS 중앙값 −0.50%/년).",
+   "evidenceUrl": "https://docs.nlr.gov/docs/fy24osti/88769.pdf",
+   "note": "요약·5장·6장에서 확인. RdTools에 2년 이상 데이터가 필요하다는 서술도 있다(채널 23,464개, 시스템 1,575개 통과)."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "SunEdison 450개 PV 시스템의 27개월 서비스 티켓 3,600건 분석에서 에너지 손실의 50%가 사건의 5%에서 발생했고 인버터가 발생 빈도와 에너지 손실 모두 최대였다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://pdfs.semanticscholar.org/7535/1afe78f698d9c94ea6f0e48183712c19a7d5.pdf",
+   "note": "슬라이드에 '3600 service tickets for 450 systems in 27 months(2010.1~2012.3)', '50% of energy loss caused by 5% of incidents', 인버터가 빈도·손실 모두 최대라고 적혀 있다. 운영사 발표 자료이며 게재처는 표기돼 있지 않다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "전통·머신러닝·딥러닝 16개 이상 탐지 기법을 실데이터 5종에서 비교한 결과 어느 계열도 다른 계열을 일관되게 능가하지 못했다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://arxiv.org/abs/2204.01637",
+   "note": "Audibert 외. 초록: 16개 기법·실데이터 5종, 'no family of methods outperforms the others'."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "NASA JPL의 LSTM 기반 텔레메트리 이상 탐지에서 경보 가지치기 적용 시 정밀도가 48.9%에서 87.5%로 올랐고 재현율은 84.8%에서 80.0%로 소폭 감소했다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://arxiv.org/abs/1802.04431",
+   "note": "본문 표와 서술에서 확인: 재현율 −4.8%p(84.8→80.0), 정밀도 +38.6%p(48.9→87.5), 1스텝 예측 정규화 절대오차 5.9%."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "머신러닝과 통계적 공정관리를 결합한 SCADA 기반 모델이 풍력 150기(6개 단지)에서 비계획 정지 최대 2개월 전에 이상을 예측했다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(이탈리아·루마니아 6개 단지, 150기, 283MW. 2년 오프라인 검증과 1년 실시간 검증).",
+   "evidenceUrl": "https://arxiv.org/abs/1910.09808",
+   "note": "초록의 'anomaly prediction up to 2 months before device unscheduled downtime' 확인. '최대'이므로 평균 선행시간이 아니다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "실제 PV 인버터 약 200대(약 85대 고장, 교체 103건)의 5분 데이터로 학습한 ESCNN 고장 예지 모델이 정확도 94% 이상, F1 약 92%를 기록했다(단일 비공개 데이터셋).",
+   "verdict": "partially_verified",
+   "correctedClaim": "산업체 2곳이 제공한 주거·상업용 PV 인버터 700여 대(440개 사이트, 5분 데이터, 전체 중 약 85대가 1회 이상 고장·교체 103건) 가운데 약 200대로 학습·검증한 ESCNN 모델이 5겹 교차검증 평균 정확도 94% 이상, F1 약 92%를 기록했다(비공개 데이터셋, 비교 모델 CNN-GAP 88%).",
+   "evidenceUrl": "https://www.osti.gov/biblio/2575731",
+   "note": "DOI 페이지는 유료라 OSTI 공개본으로 확인했다. '85대 고장'은 700여 대 전체 기준이라 200대 중 85대로 읽히면 안 된다. 주거·상업용 인버터라 발전소급 중앙 인버터로 옮기는 데 한계가 있다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "IEA PVPS 기준 4MWp 발전소 열화상 점검은 휴대형 카메라로 15~20시간, 드론으로 5~10시간이 걸리며 항공 열화상 순촬영 속도는 시간당 2~3MWp에 이른다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(모든 조건이 이상적일 때 기준. 순촬영 속도는 원문상 '최대 약 12,000장/시간').",
+   "evidenceUrl": "https://iea-pvps.org/wp-content/uploads/2020/01/Review_on_IR_and_EL_Imaging_for_PV_Field_Applications_by_Task_13.pdf",
+   "note": "12~13쪽과 항공 IRT 절에서 확인. 원문에 'all the other factors ... are ideal' 전제가 붙어 있다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "EL 이미지 셀 1,968개 결함 분류에서 CNN은 평균 정확도 88.42%, 수작업 특징+SVM은 82.44%를 기록했다.",
+   "verdict": "partially_verified",
+   "correctedClaim": "EL 이미지에서 추출한 셀 2,624개 중 1,968개(75%)로 학습하고 656개로 시험한 결함 분류에서 CNN 평균 정확도 88.42%, 수작업 특징+SVM 82.44%를 기록했다.",
+   "evidenceUrl": "https://arxiv.org/abs/1807.02894",
+   "note": "1,968개는 학습 세트다. 시험 세트는 656개다. 수치 자체는 맞다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "LFP 셀 124개 데이터에서 첫 100사이클 데이터만으로 수명을 시험 오차 9.1%로 예측했고, 첫 5사이클로 2군 분류 오차 4.9%를 달성했다(실험실 조건).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(상용 LFP/흑연 셀 124개를 급속충전 조건에서 사이클링, 수명 150~2,300사이클).",
+   "evidenceUrl": "https://www.nature.com/articles/s41560-019-0356-8",
+   "note": "Nature Energy 초록에서 확인."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "EPRI BESS 고장 DB에서 연령이 알려진 고장의 72%가 시공·시운전·운전 첫 2년 내에 발생했고, 셀 직접 원인은 분류된 사건의 11%였으며, 2018~2019년 사건 30건 중 27건이 한국에서 발생했다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://restservice.epri.com/publicdownload/000000003002030360/0/Product",
+   "note": "EPRI 2024년 5월 백서 본문에서 확인: 72%, 'Only 3 incidents, or 11%', '30 incidents ... 27 occurred in South Korea'. epri.com 제품 페이지는 내용이 표시되지 않아 공개 PDF로 확인했다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "Duke Energy M&D 센터는 1만 1천여 개 예측 모델로 발전 설비의 87%를 분석가 5명이 감시하며, 2016년 단일 조기 발견 사건으로 3,400만 달러 손실을 회피했다(벤더 성공 사례).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(벤더 성공 사례).",
+   "evidenceUrl": "https://www.aveva.com/en/perspectives/success-stories/duke-energy/",
+   "note": "'over $34 millions in a single early catch event in 2016', 모델 11,000개 이상, 데이터 포인트 50만 개 이상, 설비 87% 이상, 분석가 5명(7개 주) 확인. 절감액 산정 방식은 공개되지 않았다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "Google DeepMind는 미국 풍력 700MW에 36시간 앞 머신러닝 발전량 예측을 적용해 풍력 에너지 가치를 약 20% 높였다고 발표했다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(2019년 2월 자사 발표. 기준은 시간별 약정을 하지 않는 경우).",
+   "evidenceUrl": "https://deepmind.google/blog/machine-learning-can-boost-the-value-of-wind-energy/",
+   "note": "'roughly 20 percent, compared to the baseline scenario of no time-based commitments'. 발전량 증가가 아니라 시장 가치 증가이며, 초기 결과라는 단서가 있다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "예측 분석 기반 동적 기회 정비 전략이 해상풍력 수치 예제에서 연간 정비비를 기존 전략 대비 39.24%, 단순 전략 대비 32.46% 절감했다(시뮬레이션).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(수치 예제 결과).",
+   "evidenceUrl": "https://doi.org/10.1016/j.rser.2019.03.049",
+   "note": "ScienceDirect는 403이라 Semantic Scholar의 초록으로 확인했다: 'widely employed and the simple maintenance strategies ... 39.24% and 32.46% respectively'."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "국내 재생에너지 발전량 예측제도는 20MW 이상 발전사업자(또는 20MW 이상 집합자원)가 하루 전 예측을 제출해 예측오차율 8% 이하일 때 3~4원/kWh를 정산받는 구조다(2021년 10월 시행).",
+   "verdict": "partially_verified",
+   "correctedClaim": "2020년 9월 확정된 전력시장운영규칙 개정안에 따르면 20MW 이상 태양광·풍력 발전사업자, 또는 1MW 이하 설비를 20MW 이상 모은 집합전력자원 운영자가 하루 전 발전량 예측을 제출하고(참여 조건: 1개월 평균 오차율 10% 이하 등록시험), 예측오차율 8% 이하일 때 3~4원/kWh를 정산받는다. 기사상 시행 목표는 2021년 상반기였다.",
+   "evidenceUrl": "https://www.industrynews.co.kr/news/articleView.html?idxno=39594",
+   "note": "기사 날짜는 2020.9.19다. '2021년 10월 시행'은 이 출처에 없어 별도 출처가 필요하다. 이후 제도 개편 여부도 보고서 작성 시점 기준으로 다시 확인해야 한다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "(사례) Google DeepMind: 냉각 에너지 최대 40% 절감, 전기 손실 반영 후 PUE 오버헤드 15% 절감(2016년 자사 발표)",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://deepmind.google/discover/blog/deepmind-ai-reduces-google-data-centre-cooling-bill-by-40/",
+   "note": "2016.7.20. 'up to 40 percent'와 '15 percent reduction in overall PUE overhead' 확인. 데이터센터 사례라 발전소 O&M과는 거리가 있다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "(사례) Liu 외(IEEE TSTE 2024), 산업체 2곳 인버터 데이터: 인버터 약 200대, 약 85대가 1회 이상 고장·교체 103건, ESCNN 정확도 94% 이상·F1 약 92%(CNN-GAP 88%), 단일 비공개 데이터셋",
+   "verdict": "partially_verified",
+   "correctedClaim": "Liu 외(IEEE TSTE 2024): 산업체 2곳의 주거·상업용 인버터 700여 대(440개 사이트, 전체 중 약 85대 고장·교체 103건) 가운데 약 200대로 검증, ESCNN 5겹 교차검증 정확도 94% 이상·F1 약 92%(CNN-GAP 88%).",
+   "evidenceUrl": "https://www.osti.gov/biblio/2575731",
+   "note": "핵심주장과 같은 문제다. 85대는 전체 700여 대 기준이다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "(사례) SunEdison(Golnas, IEEE PVSC 2012): 450개 시스템·티켓 3,600건, 미발전 에너지 총생산의 약 1%, 에너지 손실의 50%가 사건의 5%에서 발생, 인버터가 빈도·손실 최대, 손실의 75%가 인버터·AC·외부 계통 등 핵심 노드",
+   "verdict": "partially_verified",
+   "correctedClaim": "SunEdison(Golnas·Voss 발표 자료, 게재처 미확인): 450개 시스템·27개월·티켓 3,600건, 미발전 에너지 총생산의 약 1%, 에너지 손실의 50%가 사건의 5%, 인버터가 빈도·손실 최대, 손실의 75%가 인버터·AC·외부 핵심 노드.",
+   "evidenceUrl": "https://pdfs.semanticscholar.org/7535/1afe78f698d9c94ea6f0e48183712c19a7d5.pdf",
+   "note": "수치는 모두 슬라이드에서 확인했다. 'IEEE PVSC 2012'는 파일에 없고, ai_cases는 같은 자료를 'IEEE J. Photovoltaics 2013'으로 적어 그룹 간에 서로 다르다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "(사례) Zhang 외(Nature Communications, 2023): 전기차 347대·충전 스냅숏 69만여 개, 딥러닝 포함 최신 기법 대비 우수, 예상 직접 고장·점검 비용 감소(비율은 초록 미기재)",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://www.nature.com/articles/s41467-023-41226-5",
+   "note": "Crossref 초록: 'over 690,000 LiB charging snippets from 347 EVs', 'reduces the expected direct EV battery fault and inspection costs'."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "(사례) Attia 외(Nature, 2020): 224개 후보 프로토콜을 16일에 탐색(조기 예측 없는 완전 탐색은 500일 이상)",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://www.nature.com/articles/s41586-020-1994-5",
+   "note": "초록: '224 candidates in 16 days (compared with over 500 days using exhaustive search without early prediction)'. 실험실 급속충전 프로토콜 최적화 사례다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "(사례) EPRI BESS Failure Incident Database: DB 81건 중 26건 분류 가능, 연령이 알려진 고장의 72%가 시공·시운전·운전 2년 내, 셀 직접 원인 11%, 2018~2023년 계통형 BESS 고장률 97% 감소, 2018~2019년 30건 중 27건이 한국",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://restservice.epri.com/publicdownload/000000003002030360/0/Product",
+   "note": "백서 본문에서 81건, 26건, 72%, 11%, 97%, 27/30 모두 확인."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "(사례) NREL: 8.5GW·인버터 채널 24,000개, 1차 품질 심사 통과 81%, 가용률 중앙값 0.99(P90 0.95), 수명 성능지수 중앙값 0.95, 열화율 중앙값 −0.75%/년(오염 분리 시 약 −0.5%/년)",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(81%는 인버터·전력량계 채널 28,700개 기준).",
+   "evidenceUrl": "https://docs.nlr.gov/docs/fy24osti/88769.pdf",
+   "note": "수명 PI 중앙값 0.95(P90 0.83) 확인. 원래 URL(www.nrel.gov)은 열리지 않아 docs.nlr.gov로 바꾸기를 권한다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "(사례) BFH(베른 응용과학대) 연구진, IEEE Access 2025: 여러 터빈 연합학습이 단일 터빈 모델보다 일관 우수(특히 데이터 부족 시)·필요 이력 데이터 감소, 이질적 단지 간 협력은 성능 저하 가능(정성 결과, 수치 초록 미기재)",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://doi.org/10.1109/ACCESS.2025.3599360",
+   "note": "OpenAlex 초록에서 확인. 저자 소속(BFH)은 초록에 없어 확인하지 못했다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "(사례) Duke Energy / Google DeepMind 풍력 / Gigoni 외 / Severson 외 / Zhou·Yin / IEA PVPS Task 13 / NASA JPL / NIST 사례 수치(핵심주장과 동일)",
+   "verdict": "verified",
+   "correctedClaim": "각 핵심주장 판정과 같다.",
+   "evidenceUrl": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9890517/",
+   "note": "같은 출처와 수치라 개별 핵심주장 판정으로 대신한다. JPL 1스텝 정규화 절대오차 5.9%, Gigoni 283MW도 확인했다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "(AI효과) IEA PVPS 조사: PV 고장탐지 연구의 알고리즘은 인공신경망 30%, KNN 10%, 퍼지 8%, SVM·선형회귀 각 7%",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://iea-pvps.org/wp-content/uploads/2021/10/Final-Executive-Summary-IEA-PVPS-T13-19_2021_PV-Failure-Monitoring.pdf",
+   "note": "요약본 2쪽에서 확인. 알고리즘 성능이 아니라 문헌에 등장한 빈도다."
+  },
+  {
+   "researchKey": "ai_methods",
+   "claim": "(AI효과) EL 사전학습→열화상 전이학습 99.23%(실험실 유도 결함 데이터라 현장 성능은 낮을 수 있음) / Chronos 42개 데이터셋 제로샷",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(단독 학습 98.67% 대비 전이학습 99.23%).",
+   "evidenceUrl": "https://doi.org/10.1016/j.solener.2020.01.055",
+   "note": "Semantic Scholar 초록에서 'lab induced defects', '99.23%' 확인. Chronos(arXiv 2403.07815) 초록의 42개 데이터셋과 제로샷 성능도 확인."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "LLM 기반 시계열 예측 기법 3종에서 LLM 구성요소를 제거하거나 단순 어텐션 층으로 바꿔도 예측 성능이 떨어지지 않았고 대부분 오히려 좋아졌다(NeurIPS 2024 spotlight).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://arxiv.org/abs/2406.16964",
+   "note": "초록 확인. arXiv comments에 'Accepted to NeurIPS 2024 (Spotlight)'. 표준 데이터셋 13종 기준."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "LLM을 이용한 제로샷 시계열 이상탐지(SigLLM)는 11개 데이터셋에서 최신 딥러닝 모델보다 약 30% 낮은 성능을 보였다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(F1 기준, 최고 딥러닝 모델 AER이 약 30% 높음).",
+   "evidenceUrl": "https://arxiv.org/abs/2405.14755",
+   "note": "초록: 'state-of-the-art deep learning models are still superior in performance, achieving results 30% better'."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "수학 문제에 답과 무관한 문장 하나를 추가하면 최신 LLM 전반에서 정답률이 최대 65%p 떨어졌다(GSM-Symbolic, ICLR 2025).",
+   "verdict": "verified",
+   "correctedClaim": "수학 문제에 그럴듯하지만 답과 무관한 문장 하나를 넣으면(GSM-NoOp) 시험한 모든 최신 LLM의 성능이 떨어졌고, 가장 크게는 소형 모델(Phi-3-mini)에서 65% 넘게 떨어졌다(GSM-Symbolic, ICLR 2025).",
+   "evidenceUrl": "https://machinelearning.apple.com/research/gsm-symbolic",
+   "note": "원문은 'up to 65%'이고 최대치는 소형 모델에서 나왔다. 대형 최신 모델의 하락 폭은 이보다 작으므로 '전반에서 65%p'로 읽히지 않게 쓴다."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "계산을 Python 인터프리터에 맡기는 PAL 방식은 GSM8K에서 사고연쇄(CoT)를 쓴 PaLM-540B보다 top-1 정확도가 절대 15%p 높았다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(PAL은 Codex 사용).",
+   "evidenceUrl": "https://arxiv.org/abs/2211.10435",
+   "note": "초록: 'surpassing PaLM-540B which uses chain-of-thought by absolute 15% top-1'."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "검색증강생성(RAG)을 쓰는 상용 법률 AI 도구도 17%(Lexis+ AI)~33%(Westlaw AI-Assisted Research) 비율로 환각했다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(Ask Practical Law AI도 17% 이상).",
+   "evidenceUrl": "https://arxiv.org/abs/2405.20362",
+   "note": "'each hallucinate between 17% and 33%', 'Westlaw ... one-third of its responses' 확인."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "인용 생성 벤치마크 ALCE에서 최상위 모델도 ELI5 데이터셋 응답의 약 50%가 인용으로 완전히 뒷받침되지 않았다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://arxiv.org/abs/2305.14627",
+   "note": "초록: 'on the ELI5 dataset, even the best models lack complete citation support 50% of the time'."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "EPRI 전력 분야 LLM 벤치마크(전문가 94명, 2,100여 문항)에서 선도 모델은 객관식 83~86%였으나 서술형으로 바꾸면 평균 27%p 하락했고, 전문가 수준 문항은 46~71%에 그쳤다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://www.prnewswire.com/news-releases/epri-publishes-first-electric-sector-benchmarking-results-of-public-llms-302635785.html",
+   "note": "2025.12.9 보도자료에서 94명, 2,100여 문항, 83~86%, 27%p, 46~71%, 웹검색 2~4% 확인. 보도자료라 세부 방법론은 원 보고서로 확인해야 한다."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "기업 환경 Text-to-SQL 벤치마크 Spider 2.0에서 o1-preview 기반 에이전트의 성공률은 21.3%로, Spider 1.0(91.2%)·BIRD(73.0%)보다 크게 낮았다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(ICLR 2025).",
+   "evidenceUrl": "https://arxiv.org/abs/2411.07763",
+   "note": "초록에서 확인. Spider 2.0-lite 설정에서는 최고 파서도 5.7%였다."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "산업 설비 운영·정비 에이전트 벤치마크 AssetOpsBench에서 GPT-4.1의 과제 완료율은 65%였고, 85점 배포 준비 기준을 넘은 모델은 없었으며, 실패 궤적의 23.8%가 과제 완료를 과장한 사례였다.",
+   "verdict": "partially_verified",
+   "correctedClaim": "산업 설비 운영·정비 에이전트 벤치마크 AssetOpsBench에서 GPT-4.1의 과제 완료율은 65%(Agent-as-Tool)로 완료율 70%를 넘은 모델이 없었고, 자동 발견된 신규 실패 유형 중 '과제 완료 과장'이 122건(23.8%)이었다.",
+   "evidenceUrl": "https://arxiv.org/abs/2506.03828",
+   "note": "arXiv v1~v4 PDF를 모두 검색했지만 '85점 배포 준비 기준'은 없다. 65%, 23.8%, Plan-Execute 최고 46%는 확인했다."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "Microsoft RCACopilot은 1년치 실제 클라우드 인시던트에서 근본원인 범주 예측 정확도 최대 0.766을 기록했다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(인시던트 653건, 지표는 micro-F1 0.766·macro-F1 0.533).",
+   "evidenceUrl": "https://arxiv.org/abs/2305.15778",
+   "note": "초록은 'RCA accuracy up to 0.766'이고 본문 표상 micro-F1 값이다. macro-F1은 0.533으로 크게 낮다."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "문맥 임베딩과 문맥 BM25를 결합하면 top-20 검색 실패율이 49%(5.7%→2.9%) 줄고, 재정렬을 더하면 67%(→1.9%) 줄었다(벤더 자체 실험).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://www.anthropic.com/news/contextual-retrieval",
+   "note": "문맥 임베딩만 쓰면 35%(→3.7%). 벤더 자체 실험이다."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "고객지원 상담원 5,172명에게 생성형 AI 보조를 도입하자 생산성이 평균 14%, 초보·저숙련자는 34% 향상됐고 숙련자 효과는 미미했다.",
+   "verdict": "partially_verified",
+   "correctedClaim": "고객지원 상담원 5,172명 데이터에서 생성형 AI 보조는 시간당 해결 건수 기준 생산성을 평균 15% 높였고, 경력이 짧고 숙련도가 낮은 상담원은 속도와 품질이 모두 좋아졌으나 가장 숙련된 상담원은 속도가 소폭 늘고 품질은 소폭 떨어졌다(QJE 2025).",
+   "evidenceUrl": "https://api.crossref.org/works/10.1093/qje/qjae044",
+   "note": "판본이 섞였다. QJE 게재본 초록은 5,172명·15%이고, NBER 워킹페이퍼(w31161)는 5,179명·14%·초보 34%다. 인용 URL(QJE)에 맞추려면 15%로 고치거나 NBER 판을 인용해야 한다. QJE 페이지는 403이라 Crossref 초록으로 확인했다."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "BCG 컨설턴트 실험에서 AI 역량 경계 안의 과제는 AI 사용 시 과제 12.2% 증가·속도 25.1% 향상·품질 40% 이상 향상이었지만, 경계 밖 과제에서는 AI 사용자가 정답을 낼 확률이 19%p 낮았다(과신·과의존 위험).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://mitsloan.mit.edu/sites/default/files/2023-10/SSRN-id4573321.pdf",
+   "note": "Dell'Acqua 외 워킹페이퍼 초록에서 12.2%, 25.1%, 40% 이상, 19%p 확인."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "Siemens는 생성형 AI 유지보수 코파일럿 파일럿에서 반응정비 시간이 평균 25% 줄었다고 발표했다(벤더 발표, 파일럿 조건 비공개).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://press.siemens.com/global/en/pressrelease/siemens-expands-industrial-copilot-new-generative-ai-powered-maintenance-offering",
+   "note": "2025.3.24: 'First pilot use cases have shown ... save on average 25% reactive maintenance time'."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "Aker BP와 Cognite는 RCA 에이전트가 엔지니어 시간을 70% 이상 줄였다고 발표했다(벤더·고객 공동 발표).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://www.cognite.com/en/company/newsroom/aker-bp-leverages-cognite-atlas-ai-tm-to-pioneer-an-ai-first-future-in-exploration-and",
+   "note": "2025.9.16: 'reduce engineers' time to perform this analysis by over 70%'. 측정 방법은 공개되지 않았다."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "한국서부발전 WP-GPT는 내부 문서 1,432건과 질의응답 데이터 약 35,000건을 활용하며, 국정원 생성형 AI 보안지침에 따라 외부 통신망과 완전히 분리해 구축됐다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(2024년 6월부터 7개월 개발).",
+   "evidenceUrl": "https://www.thefairnews.co.kr/news/articleView.html?idxno=39990",
+   "note": "기사에서 1,432건, 약 35,000건, 국정원 지침에 따른 내부망 분리 확인. 업무 효과 수치는 없다."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "한국수력원자력은 네이버클라우드 HyperCLOVA X에 원전 운전경험·절차서를 학습시켜 외부망과 분리된 사내 데이터센터 폐쇄망에 생성형 AI 플랫폼을 구축했다.",
+   "verdict": "partially_verified",
+   "correctedClaim": "한국수력원자력은 2024년 12월 네이버클라우드 '뉴로클라우드 포 하이퍼클로바X' 도입 계약을 맺고, 40여 년 원전 운전경험 자료와 절차서를 학습시킨 한수원 특화 생성형 AI 플랫폼을 사내 데이터센터 폐쇄망에 2025년 3월까지 구축하기로 했다.",
+   "evidenceUrl": "https://www.aitimes.kr/news/articleView.html?idxno=33191",
+   "note": "기사(2024.12.11)는 구축 '계획'이다. 완료 여부는 이 출처로 확인할 수 없다."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "풍력 정비로그 LLM 라벨링에서 확신도가 높은 라벨의 F1은 0.91, 낮은 라벨은 0.50으로(gpt-o3), 확신도 기반 사람 검토 분기가 유효했다. 저자들은 완전 자동화를 아직 권장하지 않았다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(정답 기준은 벤치마크 표준 라벨, 정비로그 400여 건).",
+   "evidenceUrl": "https://arxiv.org/abs/2509.06813",
+   "note": "본문: gpt-o3 'High' 확신 F1 0.91, 'Low' 0.50. 초록에서 Human-in-the-Loop를 권고한다."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "IEA PVPS Task 13 사례에서 10 MWp PV 발전소의 20년 수익이 PID로 기대 대비 48% 낮아질 상황이 완화조치 시 5~6% 감소로 줄었다(비용 우선순위 수 CPN 방법론).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(20년 누적 재무 이익 기준).",
+   "evidenceUrl": "https://iea-pvps.org/key-topics/quantification-of-technical-risks-in-pv-power-systems/",
+   "note": "'48% below original expectations', '5%–6% below' 확인. 정비 티켓 핵심 파라미터 자동 추출이 'of vital importance'라는 서술도 확인."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "이웃 비교형 가정용 에너지 리포트(Opower)는 무작위 실험에서 평균 2.0%의 에너지 소비 절감을 보였다(피드백 리포트의 행동 변화 효과 참고치).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(미국 60만 가구, 사용량 상위 10% 가구는 6.3%).",
+   "evidenceUrl": "https://econpapers.repec.org/RePEc:eee:pubeco:v:95:y:2011:i:9-10:p:1082-1095",
+   "note": "Allcott(2011) 초록에서 확인. 가정용 행동 넛지라 발전소 정비 코칭 효과의 근거로 쓰기는 약하다."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "(사례) 한국수력원자력 × 네이버클라우드·베스핀글로벌: 정량 효과 미공개(정량 근거 미확인)",
+   "verdict": "partially_verified",
+   "correctedClaim": "한국수력원자력 × 네이버클라우드: 2024.12 도입 계약, 2025.3 구축 목표, 정량 효과 미공개.",
+   "evidenceUrl": "https://www.aitimes.kr/news/articleView.html?idxno=33191",
+   "note": "인용 기사에 베스핀글로벌은 나오지 않는다."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "(사례) Avangrid(Iberdrola 그룹) × AWS: 정량 효과 미공개(정량 근거 미확인) / First Time Right Autopilot, Amazon Bedrock, 2개 풍력단지 배치",
+   "verdict": "unverified",
+   "correctedClaim": "(원문 미확인) Avangrid가 AWS 생성형 AI로 미국 풍력단지 정비를 지원하는 도구를 도입했다는 발표. 도구명·배치 단지 수·정량 효과는 미확인.",
+   "evidenceUrl": "https://www.iberdrola.com/press-room/news/detail/avangrid-generative-ai-support-wind-farms-in-united-states",
+   "note": "WebFetch와 curl 모두 HTTP 403이라 열지 못했다."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "(사례) IBM Research: GPT-4.1 과제 완료 65%(Agent-as-Tool), 계획-실행 방식은 최고 46%로 하락. 85점 배포 준비 기준을 넘은 모델 없음. 실패 중 완료 과장 23.8%, 오류 복구 실패 31%",
+   "verdict": "partially_verified",
+   "correctedClaim": "IBM Research AssetOpsBench: GPT-4.1 과제 완료 65%(Agent-as-Tool), Plan-Execute 방식 최고 46%(GPT-4.1은 38%), 완료율 70% 초과 모델 없음, 신규 실패 유형 중 완료 과장 122건(23.8%), 비효과적 오류 복구 160건.",
+   "evidenceUrl": "https://arxiv.org/abs/2506.03828",
+   "note": "'85점 기준'은 논문에 없다. '31%'는 논문에 적힌 비율이 아니라 160건을 같은 분모로 나눈 계산값으로 보인다."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "(사례) Midea Group 연구센터: 예비 내부 평가: 스키마 검증 쿼리 계획 성공 100% 대 검증 제거 시 0%, 라우팅 정확도 70% 대 제거 시 20%, 진단 품질 4.80 대 멀티에이전트 제거 시 3.60",
+   "verdict": "partially_verified",
+   "correctedClaim": "Midea Group 예비 내부 평가(BESS O&M 보조): 라우팅 행동 정확도 70% 대 라우팅 제거 시 20%, 진단 품질 4.80 대 멀티에이전트 제거 시 3.60. 스키마 검증 쿼리 계획의 'SQL 실행 가능 성공률' 100% 대 0%는 검증을 통과한 계획만 성공으로 세는 정의에서 나온 값이다.",
+   "evidenceUrl": "https://arxiv.org/abs/2607.01992",
+   "note": "수치는 맞다. 다만 표에 'Only validated query plans are counted'라고 적혀 있어 0%는 정의상 결과이지 성능 비교가 아니다. 사이트 규모·라벨 방식은 공개 전이다."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "(사례) IET Renewable Power Generation 게재 연구(Malyi 외): 부품·이슈 분류 F1 0.89 대 해석적 정비유형 0.77(gpt-o3). 확신도 높은 라벨 F1 0.91 대 낮은 라벨 0.50. 소형 오픈소스 모델은 과신 경향",
+   "verdict": "partially_verified",
+   "correctedClaim": "Malyi 외(에든버러대·Nadara, arXiv 2025): gpt-o3 Issue Category 분류 F1 0.89 대 Maintenance Type 0.77, 확신도 'High' 라벨 F1 0.91 대 'Low' 0.50, phi4 14b는 'High' 라벨 F1 0.64로 과신.",
+   "evidenceUrl": "https://arxiv.org/abs/2509.06813",
+   "note": "수치는 확인했다. 'IET RPG 게재'는 arXiv v1에 없어 확인하지 못했다."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "(사례) 한국서부발전 / Siemens / Aker BP / EPRI / Microsoft / Stanford RegLab 사례 수치(핵심주장과 동일)",
+   "verdict": "verified",
+   "correctedClaim": "각 핵심주장 판정과 같다.",
+   "evidenceUrl": "https://arxiv.org/abs/2405.20362",
+   "note": "같은 출처와 수치라 개별 판정으로 대신한다."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "(사례) Stanford·MIT(Brynjolfsson, Li, Raymond), QJE 2025: 평균 생산성 14% 향상, 초보·저숙련자 34% 향상",
+   "verdict": "partially_verified",
+   "correctedClaim": "Brynjolfsson·Li·Raymond, QJE 2025: 상담원 5,172명, 평균 생산성 15% 향상, 저숙련·저경력자는 속도·품질 모두 개선(워킹페이퍼판은 14%·34%).",
+   "evidenceUrl": "https://api.crossref.org/works/10.1093/qje/qjae044",
+   "note": "QJE판과 NBER판 수치가 섞였다."
+  },
+  {
+   "researchKey": "ai_llm",
+   "claim": "(AI효과) 정답률만 보는 평가는 추측을 보상해 환각을 늘리므로 기권에 부분 점수를 주고 확신 오답을 더 감점해야 한다",
+   "verdict": "partially_verified",
+   "correctedClaim": "정답률만 보는 평가는 추측을 보상해 환각을 유지시키므로, 평가 지침에 신뢰 기준 t를 명시하고(정답 1점, '모름' 0점, 오답은 t/(1−t)점 감점) 불확실할 때의 기권을 불이익 주지 않게 채점을 바꿔야 한다.",
+   "evidenceUrl": "https://arxiv.org/abs/2509.04664",
+   "note": "논문 제안은 기권 0점과 오답 감점이다. '기권에 부분 점수'는 정확하지 않다. GPT-4 판정자 80% 이상 일치(arXiv 2306.05685)는 확인했다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "EPRI BESS 고장 데이터베이스 분석(2024)에 따르면 전 세계 계통용 BESS 고장률은 2018년부터 2023년까지 97% 줄었다(배치 GW당 약 9.2건 → 0.2건).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(GW당 건수는 그림 1에서 읽은 근사값).",
+   "evidenceUrl": "https://restservice.epri.com/publicdownload/000000003002030360/0/Product",
+   "note": "97%는 본문에서 확인했다. 9.2와 0.2는 본문에 숫자로 적혀 있지 않고 그림 1의 선 그래프(2018년 약 9, 2023년 0에 가까움)와 일치한다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "EPRI 분석에서 시스템 연령이 알려진 BESS 고장의 72%는 시공·시운전 중이거나 운전 시작 후 2년 이내에 일어났다. 최다 근본원인은 통합·조립·시공(원인 판정 26건 중 10건)이었다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(26건 중 2건은 설계·통합 이중 분류).",
+   "evidenceUrl": "https://www.utilitydive.com/news/cells-and-modules-not-responsible-for-most-battery-energy-storage-system-fa/716732/",
+   "note": "Utility Dive(2024.5.21)에서 10/26 확인. EPRI 백서에서 72%와 최다 원인 확인."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "Raptor Maps 2025 Global Solar Report(193GWdc 분석)는 2024년 설비 이상으로 인한 태양광 매출 손실을 MWdc당 연 약 5,720달러로 추산했다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(서비스사 보고서의 2차 인용).",
+   "evidenceUrl": "https://solarquarter.com/2026/02/17/benchmarking-dc-health-protecting-revenue-in-expanding-solar-fleets/",
+   "note": "SolarQuarter 기사(2026.2.17)에서 193GWdc, 약 5,720달러/MWdc 확인. 원 보고서는 확인하지 않았다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "Raptor Maps 2024 보고서에서 태양광 발전소의 설비 이상 기인 전력손실은 전년 대비 3.13%에서 4.47%로 늘었고, 연간 매출 손실은 46억 달러로 추정됐다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(2024.3.13 발간 6판, 125GW 분석, 2023년 데이터).",
+   "evidenceUrl": "https://raptormaps.com/press/global-solar-report-finds-4b-annual-revenue-loss-in-solar-industry",
+   "note": "보도자료에서 3.13%→4.47%, 46억 달러, 125GW 확인."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "화웨이 Smart I-V Curve Diagnosis는 100MW 발전소 전체 스트링을 15분 안에 스캔하고 14종 고장 리포트를 자동 생성한다고 밝혔다(데이터 정밀도 0.5%, TÜV 인증 주장).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(원문은 '최대 0.5% 정밀도', TÜV Rheinland 현장 인증이라는 제조사 주장).",
+   "evidenceUrl": "https://solar.huawei.com/au/news-room/au/2019/news-20190710",
+   "note": "2019.7.10 제조사 뉴스."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "SunEdison의 600여 PV 시스템 O&M 분석에서 인버터는 이슈 빈도와 에너지 손실 모두 1위였고, 에너지 손실의 50%가 전체 사건의 5%에서 발생했다.",
+   "verdict": "contradicted",
+   "correctedClaim": "SunEdison의 PV 시스템 450개, 27개월(2010.1~2012.3) 서비스 티켓 3,600건 분석에서 인버터는 이슈 빈도와 에너지 손실 모두 1위였고, 에너지 손실의 50%가 전체 사건의 5%에서 발생했다.",
+   "evidenceUrl": "https://pdfs.semanticscholar.org/7535/1afe78f698d9c94ea6f0e48183712c19a7d5.pdf",
+   "note": "분석 대상은 450개다. 슬라이드상 운영 규모는 750개 발전소 이상이며 '600여'는 어디에도 없다. ai_methods 그룹의 450개와도 다르다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "미국 DOE FEMP O&M Best Practices Guide(Release 3.0, 2010)가 인용한 산업 설문 평균에 따르면, 예지정비를 도입하면 투자수익 10배, 정비비 25~30% 감소, 고장 70~75% 제거, 다운타임 35~45% 감소 효과가 있다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(출처 불명의 '독립 조사' 인용이며 생산 20~25% 증가도 포함).",
+   "evidenceUrl": "https://www.energy.gov/sites/prod/files/2020/04/f74/omguide_complete_w-eo-disclaimer.pdf",
+   "note": "5.3절에서 확인. 조사 출처와 연도가 없다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "ACCURE는 유럽 BESS 운영사의 SOC 추정 오차를 45% 이상에서 ±3%로 개선했다고 발표했다(자사 사례).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(자사 사례).",
+   "evidenceUrl": "https://www.accure.net/case-studies/50-mwh-bess-europe",
+   "note": "'>45%'(최대 50%) → '+/- 3%', LFP 전용 SOC 모델, 저가 시간대 재보정 일정 확인. 매출 수치는 없다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "ACCURE·Gore Street의 75MW Dogfish BESS(ERCOT) 분석에서 SOC 부정확 때문에 가격 피크 때 3.8MWh가 유휴 상태였고, 보정 효과는 연 11만 달러 이상(ERCOT 평균 거래수익 대비 약 5%)으로 제시됐다(자사 사례).",
+   "verdict": "verified",
+   "correctedClaim": "ACCURE·Gore Street의 75MW/1시간 Dogfish BESS(ERCOT)에서 한 방전 사이클(새벽 2시, 267달러/MWh) 동안 SOC 부정확으로 3.8MWh가 유휴 상태였고(약 1,000달러 손실), 보정 효과는 연 11만 달러 이상(ERCOT 평균 거래수익 대비 약 5%)으로 추정됐다(자사 사례).",
+   "evidenceUrl": "https://www.accure.net/case-studies/gore-street-capital-turning-soc-accuracy-into-5-more-trading-revenue",
+   "note": "3.8MWh는 한 사이클의 사례다. 연 11만 달러는 추정 편익이다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "블룸에너지는 미국·인도의 원격감시·제어센터(RMCC) 두 곳에서 서버당 500개 이상의 성능 파라미터를 실시간 감시하고, 예측분석으로 고장 전에 원격 조정한다(SEC 10-K).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://www.sec.gov/Archives/edgar/data/1664703/000166470322000034/be-20211231.htm",
+   "note": "2021 회계연도 10-K: 'monitor over 500 system performance parameters real time', 'override the onboard automated control systems', 'advanced predictive analytics ... prior to a failure occurring'."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "EU Clean Hydrogen JU는 2024년 과제공고에서 전해조 모니터링·진단 도구가 100kW 이상 산업 규모에서 아직 실증·통합되지 않았다고 명시했다. KPI로는 고장 탐지·분리 95% 이상, 진단 시스템 비용 시스템의 3% 이하, 신뢰도 99%를 제시했다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(기존 EU 과제의 도구는 대부분 연료전지용이며 100kW 초과 전해조에 실증·통합되지 않았다는 취지).",
+   "evidenceUrl": "https://www.clean-hydrogen.europa.eu/system/files/2024-01/Clean%20Hydrogen%20JU%20AWP%202024%20-%20all%20chapters_Final_For_Publication.pdf",
+   "note": "HORIZON-JTI-CLEANH2-2024-01-04 과제 본문에서 FDI 95% 초과, 3% 이하(PEMEL 15유로/kW), 열화 PEMEL 0.12%/1000h·AEL 0.10%/1000h, 신뢰도 99% 목표 확인."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "한국동서발전은 520kW 태양광(패널 2,080장)을 드론 열화상으로 진단해 결함 패널 205장을 찾았고, 조치 후 출력을 6.6% 높였다(연 약 1.2억원 수익 효과).",
+   "verdict": "partially_verified",
+   "correctedClaim": "한국동서발전은 당진화력 자재창고 옥상 태양광 520kW(패널 2,080장)를 2018년 11월 드론 열화상으로 진단해 결함 패널 205장을 찾았다. 연결불량 103장 자체정비와 82장 교체로 출력을 6.6% 높였고, 연간 수익과 잔존수명을 감안해 환산한 효과는 약 1억 2,000만원이다(2019.9.16 보도).",
+   "evidenceUrl": "https://www.epj.co.kr/news/articleView.html?idxno=22970",
+   "note": "1.2억원은 '연' 수익이 아니라 잔존수명을 포함한 환산액이다. 기사에 AI 활용 언급이 없어 'AI 효과'로 분류하면 안 된다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "한국전기안전공사 ESS 통합관리시스템은 PCS·배터리 운영정보 75개를 1분 단위로 받는다. 2024년 1월부터 온라인 무정전 정기검사를 도입했고, 요건은 전월 연계율 90%다.",
+   "verdict": "partially_verified",
+   "correctedClaim": "한국전기안전공사가 2022년 구축한 ESS 통합관리시스템은 PCS·배터리 운영정보 75개를 1분 단위로 받는다. 2024년 1월 온라인 무정전 정기검사를 전면 도입했고, 신청 요건은 이전 검사일 이후 접속률 90% 이상과 직전 1개월 접속률 90% 이상을 동시에 충족하는 것이다(2024년부터 신규 ESS는 연계 의무).",
+   "evidenceUrl": "https://www.electimes.com/news/articleView.html?idxno=332823",
+   "note": "전기신문 인터뷰(2024.2.27). 요건이 두 가지인데 하나만 적혔다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "한국에너지공단 REMS에는 2020년 6월 기준 2.1만여 개 신재생 설비가 연동됐고, 설비 제조사 26곳·모니터링 장치 제조사 17곳이 인증을 받았다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(대상은 정부 보급사업 설비, 당시 연동률 약 92%).",
+   "evidenceUrl": "https://www.industrynews.co.kr/news/articleView.html?idxno=38798",
+   "note": "2020.7.2 기사에서 '2만1천여 개소', 26개·17개 확인. 보급사업(주로 소규모) 설비라 사업용 발전소 전체를 대표하지 않는다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "수소안전관리 로드맵 2.0(2023.5)에 따르면 수소충전소는 검사기관이 가스누출·이상압력을 실시간 모니터링하지만, 수소 생산·배관·저장시설은 실시간 모니터링이 없다. 정부는 2030년까지 '수소시설 통합모니터링체계' 구축을 추진한다.",
+   "verdict": "verified",
+   "correctedClaim": "수소안전관리 로드맵 2.0(2023.5.9)에 따르면 수소충전소는 검사기관이 가스누출·이상압력을 실시간 모니터링하지만 충전소 외 수소시설(생산기지, 수소배관망, 대규모 액화수소 인수저장설비 등)은 실시간 모니터링이 없다. 정부는 2030년 과제로 '수소시설 통합 안전관리 모니터링 체계' 구축을 추진하고, 실시간 모니터링 대상 시설에 정기검사 제외 등 인센티브를 검토한다.",
+   "evidenceUrl": "http://www.shinkim.com/newsletter/2023/GA/2023_vol185/links/2023_vol185_102.pdf",
+   "note": "로드맵 31쪽 ⑦항(30년)에서 확인. PDF 글꼴 문제로 텍스트 추출이 안 돼 페이지 이미지로 확인했다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "ENGIE Darwin 플랫폼은 시스템 투자 1,300만 유로(2년) 대비 3년간 2,700만 유로의 추가수익을 냈다(2018년 기사, 주로 풍력).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(2018.4.20 기사).",
+   "evidenceUrl": "https://www.windpower-international.com/analysis/engies-darwin-project-the-evolution-of-data-management-6124931/",
+   "note": "'€13 million over two years', 'extra income of €27 million over three years', 요 제어 0.5% 손실→10년 1,000만 유로, 1초·10분 샘플링 확인."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "한국서부발전 WISE 예측진단센터의 AI 패턴인식(APR) 예측경보는 2023년 24건, 2024년 30건의 설비 이상을 조기탐지했다(화력 중심).",
+   "verdict": "verified",
+   "correctedClaim": "한국서부발전은 AI 패턴학습 기반 조기경보로 2023년 24건의 조기경보(태안 보일러 튜브 미세누설 사전 감지 포함), 2024년 30건의 설비고장 예방 사례를 냈다고 밝혔다(화력 중심, WISE 예측진단센터는 2024년 11월 개소).",
+   "evidenceUrl": "https://www.electimes.com/news/articleView.html?idxno=355329",
+   "note": "전기신문 2025.5.25. 2023년은 '조기경보 24건', 2024년은 '고장 예방 사례 30건'으로 표현이 다르다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "두산퓨얼셀 연료전지는 운영 중 635.8MW(1,437대)이며, 이 중 국내가 568.9MW(1,294대)다(회사 홈페이지, 기준일 미표기).",
+   "verdict": "partially_verified",
+   "correctedClaim": "두산퓨얼셀 PAFC 공급실적은 가동 중 635.8MW(1,437대), 이 중 국내 568.9MW(1,294대)이며 설치 중 192.7MW(391대)가 따로 있다(회사 홈페이지, 기준일 미표기).",
+   "evidenceUrl": "https://www.doosanfuelcell.com/kr/intro/intr-0401/",
+   "note": "수치는 맞다. 다만 PAFC 기준이라 전체 연료전지(SOFC 등)로 읽히지 않게 해야 한다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "제주 행원 3.3MW급 수전해 실증단지는 2024년 9월부터 하루 약 200kg의 그린수소를 생산해 수소버스 17대 등에 공급한다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://www.ajunews.com/view/20260913110346855",
+   "note": "아주경제 2026.9.13에서 확인."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "드론 열화상 AI 연구(Measurement, 2026)에서 EfficientNet-B0 모델은 가중 F1 0.927을 기록했고, 점검~보고 시간이 147분에서 54분으로 63% 줄었다.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(폴란드·스페인 연구진, 사진 2,400장(실험실 오염 사진 260장 포함), 먼지 클래스 F1은 0.732).",
+   "evidenceUrl": "https://www.aitimes.com/news/articleView.html?idxno=214824",
+   "note": "AI타임스(2026.9.4)의 2차 보도로 확인했다. 63%는 147→54분을 계산한 값이며 기사 표현은 '60% 이상'이다. 논문 원문은 확인하지 않았다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) Huawei (FusionSolar): 100MW 발전소 15분 스캔, 14종 고장 리포트, 데이터 정밀도 0.5%(TÜV 인증 주장). 칭하이 골무드 100MW에서 전 스트링 100% 정확도(제조사 주장). 고장률 12.1% 말레이시아 발전소는 조치 시 발전량 1.5% 이상 증가 가능(제조사 추정).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://solar.huawei.com/au/news-room/au/2019/news-20190710",
+   "note": "말레이시아: 9,496개 스트링 중 1,149개 고장. 1.5%는 '모두 조치할 경우'의 추정이다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) Power Factors (고객: Origis Energy, European Energy): Origis Energy가 4.6GW 태양광+저장의 성능목표 98% 관리에 사용. European Energy 2.4GW 계약(2025). 정비비·발전량 개선 %는 미공개(자사 발표).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://www.powerfactors.com/unity/asset-performance-management",
+   "note": "페이지에서 4.6GW·98%, European Energy 2.4GW, REMI 310GW 이상 학습 확인. 계약 연도 2025는 페이지에서 확인하지 못했다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) Raptor Maps: 설비 이상 전력손실 3.13%→4.47%(전년 대비), 연 46억 달러 매출 손실(2024년판). 2024년 MWdc당 연 5,720달러 손실, 5년간 설비 기인 저성과 214% 증가, 인버터·스트링 고장이 DC 손실의 주원인(2025년판). 서비스사 고객 표본이라 편향 가능.",
+   "verdict": "partially_verified",
+   "correctedClaim": "Raptor Maps: 2024년판(125GW)에서 설비 이상 전력손실 3.13%→4.47%, 연 46억 달러 손실. 2025년판(193GWdc)에서 2024년 MWdc당 연 약 5,720달러 손실, 100~200MWdc급 대형 사이트는 2020년 이후 손실이 5배 이상 증가, 인버터·스트링 고장이 DC 손실의 주원인. 서비스사 고객 표본이라 편향 가능.",
+   "evidenceUrl": "https://solarquarter.com/2026/02/17/benchmarking-dc-health-protecting-revenue-in-expanding-solar-fleets/",
+   "note": "'5년간 214% 증가'는 인용 URL에 없다. 기사에는 대형 사이트 5배 이상 증가만 있다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) ACCURE Battery Intelligence: 결함 모듈 2개 특정, 1주 내 결과 제공, 5만 달러 절감, 인수시험 6주 지연 해소(자사 사례).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(북미 100MWh 이상 태양광+ESS, 1개월 데이터 분석).",
+   "evidenceUrl": "https://www.accure.net/case-studies/imbalanced-racks-bring-commissioning-to-a-standstill",
+   "note": "자사 사례 페이지에서 모두 확인."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) ACCURE Battery Intelligence: 전해액 누출 제조결함 모듈을 식별·교체해 잠재 열폭주를 예방. 가용률·선행일수 수치는 미공개.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://www.accure.net/case-studies/140-mwh-bess-europe",
+   "note": "'manufacturing defect that was spilling electrolytes', 'prevent a potentially dangerous thermal runaway event' 확인. 이 페이지에 '20개 이상 안전 지표' 서술은 없다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) EPRI (PNNL·TWAICE 공동): 전 세계 계통용 BESS 고장률 2018→2023년 97% 감소(GW당 9.2→0.2). 연령이 알려진 고장의 72%가 시공·시운전·운전 2년 이내 발생. 최다 원인은 통합·조립·시공(26건 중 10건). 운전 원인은 모두 제어계에서 발생했고, BMS를 보완하는 모니터링·분석을 권고.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(GW당 수치는 그림에서 읽은 근사값).",
+   "evidenceUrl": "https://restservice.epri.com/publicdownload/000000003002030360/0/Product",
+   "note": "'in all cases, the operation failure occurred in the controls system', 'Battery monitoring and analytics to augment BMS operation' 확인."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) Fluence: 연간 수익성 3~10% 향상 가능, 한 사고에서 80만 달러 이상 절감 사례(자사 주장, 조건 미공개).",
+   "verdict": "partially_verified",
+   "correctedClaim": "Fluence Nispera(자사 페이지): 고객이 연 3~10% 수익성 향상을 얻을 수 있다고 주장. '한 사고에서 80만 달러 이상 절감'은 제목 표현이며, 본문은 예지 경보가 사전 대응을 '가능하게 했을 수 있다(could have enabled)'는 가정형이다.",
+   "evidenceUrl": "https://fluenceenergy.com/nispera/",
+   "note": "실현 성과가 아니라 가능성·가정형 서술이다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) ENGIE: 시스템 투자 1,300만 유로(2년) 대비 3년 추가수익 2,700만 유로. 요 제어 보정으로 0.5% 생산손실 방지, 10년 약 1,000만 유로(2018, 주로 풍력).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://www.windpower-international.com/analysis/engies-darwin-project-the-evolution-of-data-management-6124931/",
+   "note": "1,000만 유로는 '10년간 보정 시 가치' 추정이다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) SunEdison (Golnas & Voss, IEEE J. Photovoltaics 2013 관련 발표): 인버터가 이슈 빈도와 에너지 손실 모두 1위. 에너지 손실의 75%가 인버터·AC·외부(계통) 핵심 노드에서 발생, 50%는 전체 사건의 5%에서 발생, 33%는 외부 요인.",
+   "verdict": "partially_verified",
+   "correctedClaim": "SunEdison(Golnas·Voss 발표 자료, 게재처 미확인, 450개 시스템·티켓 3,600건): 인버터가 이슈 빈도·에너지 손실 1위, 손실 75%가 인버터·AC·외부 핵심 노드, 50%가 사건 5%에서 발생, 33%가 외부 요인.",
+   "evidenceUrl": "https://pdfs.semanticscholar.org/7535/1afe78f698d9c94ea6f0e48183712c19a7d5.pdf",
+   "note": "수치는 확인했다. 게재처(IEEE JPV 2013)는 파일에 없고 ai_methods(PVSC 2012)와도 다르다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) Sandia National Laboratories: 정량 효과 미공개(분석 도구). 코칭 폐루프 설계의 참고 구현.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://pvops.readthedocs.io/en/latest/",
+   "note": "pvops 문서에서 O&M 텍스트·시계열·I-V 분석 기능 확인. 정량 결과는 없다. 문서 첫 페이지에는 개발 기관이 명시돼 있지 않다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) Bloom Energy (국내: 블룸SK퓨얼셀): 하루 10억 개 실시간 데이터포인트(1GW 설치 기준). 고장 예측 정확도·절감액은 미공개. 국내 기사에서는 전 세계 600여 사이트에서 보증미달 배상 0건이라는 회사 주장이 소개됨.",
+   "verdict": "partially_verified",
+   "correctedClaim": "Bloom Energy: 설치용량 1GW에서 하루 10억 개 실시간 성능 데이터포인트(C3 AI 협업 발표, 2024.5.14), 서버당 500개 이상 파라미터 실시간 감시(10-K). 고장 예측 정확도·절감액은 미공개.",
+   "evidenceUrl": "https://c3.ai/c3-ai-and-bloom-energy-team-up-to-revolutionize-fuel-cell-performance-service-and-engineering-analytics/",
+   "note": "10억 데이터포인트는 인용된 10-K가 아니라 C3 AI 보도자료에 있다. '600여 사이트 배상 0건'은 출처 URL이 없어 확인하지 못했다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) Nel Hydrogen: 서비스계약으로 당일 접수 응답 보장. 가동률·절감 수치는 미공개.",
+   "verdict": "verified",
+   "correctedClaim": "Nel Hydrogen NASOC: 문제 해결 요청에 당일 접수 확인(same-day acknowledgment), 원격 감시·보고, 예방정비는 옵션. 가동률·절감 수치는 미공개.",
+   "evidenceUrl": "https://nelhydrogen.com/support/nasoc/",
+   "note": "'응답 보장'은 해결이 아니라 접수 확인 수준이다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) thyssenkrupp nucera: 셀랙의 점진적 성능 편차를 출력 급감 전 탐지한 사례를 소개(정량 미공개). 설치 누적 10GW 이상(염소-알칼리 포함 전체 기준).",
+   "verdict": "partially_verified",
+   "correctedClaim": "thyssenkrupp nucera: 고객 사이트에서 nucera evaluator로 셀랙의 점진적 성능 편차를 출력 급감 전에 탐지한 사례를 소개(정량 미공개).",
+   "evidenceUrl": "https://www.thyssenkrupp-nucera.com/newsroom/blog/how-thyssenkrupp-nucera-is-advancing-the-green-hydrogen-economy-through-digital-service-excellence",
+   "note": "'10GW 이상' 설치 실적은 이 블로그에 없다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) SINTEF 컨소시엄 (EU FCH JU, 2018~2021): 이탈리아·벨기에 운전원이 원격 시험 운전에 성공. 수소 생산단가 4~6유로/kg 분석. 가용률·열화 수치는 요약에 미공개. 예산 692만 유로.",
+   "verdict": "contradicted",
+   "correctedClaim": "SINTEF 주관 HAEOLUS(EU FCH JU, 2018.1~2023.12, 총사업비 778만 유로·EU 지원 499만 유로): 노르웨이 Raggovidda 풍력단지에 2.5MW 전해조를 연계했고, 이탈리아·벨기에 운전원의 원격 운전을 시연했으며, 수소 생산단가를 4~6유로/kg으로 분석했다.",
+   "evidenceUrl": "https://cordis.europa.eu/project/id/779469/reporting",
+   "note": "기간(2021→2023)과 예산(692만→총 778만/EU 499만 유로)이 CORDIS와 다르다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) Università degli Studi di Salerno 등 (EU FCH JU): 5종 고장(연료조성 변화·공기 결핍·연료 결핍·황 피독·플러딩/건조) 대상, TRL 3~4→5. 예산 약 236만 유로. 정확도 수치는 미공개.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(HEALTH-CODE, 2015.9~2018.12, 2,358,740유로).",
+   "evidenceUrl": "https://www.clean-hydrogen.europa.eu/projects-dashboard/projects-repository/health-code_en",
+   "note": "과제 페이지에서 확인. 연료전지(PEMFC·SOFC) 진단 과제이며 전해조가 아니다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) Clean Hydrogen Partnership (EU): 기존 도구는 100kW 이상 산업 규모 전해조에 미실증이라고 명시. KPI: FDI 95% 이상, 진단 시스템 비용 3% 이하(PEMEL 15유로/kW), 열화 PEMEL 0.12%/1000h·AEL 0.10%/1000h, 신뢰도 99%.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지.",
+   "evidenceUrl": "https://www.clean-hydrogen.europa.eu/system/files/2024-01/Clean%20Hydrogen%20JU%20AWP%202024%20-%20all%20chapters_Final_For_Publication.pdf",
+   "note": "AWP 2024 57~58쪽에서 확인."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) OFFIS (독일 BMBF): 개념 설계 단계, 시뮬레이션 데이터로 1차 구현 시험 중(실측 성과 없음).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(SEGIWA 과제, BMBF 03HY121F).",
+   "evidenceUrl": "https://www.frontiersin.org/journals/energy-efficiency/articles/10.3389/fenef.2024.1437214/full",
+   "note": "'being developed and tested based on simulated data' 확인."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) NREL (ARIES): 고풍속에서는 수평 운동량, 저풍속에서는 부력이 플룸 형상을 지배함을 보임. 수치 성과는 미공개.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(전해조 기반 수소 생산시설의 수소 확산 디지털 트윈 연구).",
+   "evidenceUrl": "https://www.osti.gov/biblio/3011897",
+   "note": "OSTI 서지 페이지에서 확인."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) 한국동서발전: 결함 205장 발견(연결불량 103장 정비로 손실 5% 해소, 82장 교체로 1.6% 해소), 출력 6.6% 상승, 연 약 1.2억원 수익 효과. 41MW 전체 적용 시 0.7MW 추가 효과 추정(보도일 미확인).",
+   "verdict": "partially_verified",
+   "correctedClaim": "한국동서발전(2019.9.16 보도): 결함 205장 발견. 출력손실 5%를 일으킨 연결불량 103장은 자체정비로 해결했고, 손실 1.6%를 일으킨 나머지 102장 중 운영환경 문제 20장을 뺀 82장을 교체해 출력 6.6% 상승. 연간 수익과 잔존수명을 감안한 환산 효과 약 1억 2,000만원. 41MW 전체 적용 시 0.7MW 증설 효과(투자비 11억원 절감) 추정.",
+   "evidenceUrl": "https://www.epj.co.kr/news/articleView.html?idxno=22970",
+   "note": "보도일은 2019.9.16이다. 1.2억원은 연간 수익이 아니다. AI 적용 언급은 없다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) 제이케이코어·한국에너지기술연구원 (적용: 한국중부발전): 발전량 예측 정확도 99%, 설비 고장 탐지 95% 이상(보도, 지표 정의 미공개). 실증: 인천 아시아드 2.7MW, 천안 산단 11MW, 군산 99.9MW, 오만 500MW.",
+   "verdict": "partially_verified",
+   "correctedClaim": "한국중부발전·제이케이코어 공동개발 AI 태양광 고장진단 시스템(인천발전본부 도입): 이상 감지 정확도 95% 이상, 발전량 예측 정확도 99% 수준(한국경제 2026.2.19, 지표 정의 미공개). 제이케이코어 시스템은 인천아시아드 2.7MW, 천안 산단 11MW, 군산 99.9MW, 오만 500MW에서 실증했고 조달청 혁신제품으로 지정됐다(솔라투데이 2026.1.16).",
+   "evidenceUrl": "https://www.hankyung.com/article/2026021905431",
+   "note": "인용 URL(솔라투데이)에는 99%·95%가 없고 한국경제 기사에 있다. 한국에너지기술연구원의 참여는 두 기사에서 확인하지 못했다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) 한국에너지기술연구원(KIER): 고장진단 정확도 95% 이상, 변화하는 일사에서 전압·전류 시뮬레이션 예측 98% 이상(2023.9 보도).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(10년 이상 수집한 I-V 곡선 데이터 기반).",
+   "evidenceUrl": "https://www.koit.co.kr/news/articleView.html?idxno=116998",
+   "note": "기사에서 95% 이상, 98% 확인. 보도 날짜는 따로 확인하지 않았다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) 한국서부발전: 조기탐지 2023년 24건, 2024년 30건. 태안 보일러 튜브 미세누설 사전 감지(보도).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(2023년 조기경보 24건, 2024년 고장예방 사례 30건).",
+   "evidenceUrl": "https://www.electimes.com/news/articleView.html?idxno=355329",
+   "note": "전기신문 2025.5.25."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) 한국전기안전공사(KESCO): 2022년 시스템 구축, 2024년 1월 온라인 무정전 정기검사 전면 도입, 전월 연계율 90% 요건. 비용 절감액은 미공개.",
+   "verdict": "partially_verified",
+   "correctedClaim": "한국전기안전공사: 2022년 시스템 구축, 2024년 1월 온라인 무정전 정기검사 전면 도입, 신청 요건은 이전 검사일 이후 접속률 90% 이상과 직전 1개월 접속률 90% 이상 동시 충족. 비용 절감액은 미공개.",
+   "evidenceUrl": "https://www.electimes.com/news/articleView.html?idxno=332823",
+   "note": "요건 일부가 빠졌다. AI가 아니라 데이터 연계 기반 검사 체계다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) 한국에너지공단: 2019년 6월 관리센터 개소 당시 약 1만 개소 연동, 2020년 6월 2.1만 개소 이상, 설비 제조사 26곳·모니터링 장치 17곳 인증. 예측 서비스는 향후 계획 단계.",
+   "verdict": "partially_verified",
+   "correctedClaim": "한국에너지공단 REMS: 2020년 6월 기준 2만 1천여 개소 연동(연동률 약 92%), 설비 제조사 26곳·모니터링 장치 제조사 17곳 인증, 연간 2만여 개소 이상 증가 전망.",
+   "evidenceUrl": "https://www.industrynews.co.kr/news/articleView.html?idxno=38798",
+   "note": "'2019년 6월 개소 당시 약 1만 개소'는 이 기사에서 찾지 못했다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) 아이티공간 (실증: 한국동서발전 울산, 행정안전부 지원): 목표 성능 1초 이내 위험 판단(개발 목표). 2027년부터 1MWh 이상 BESS에서 3개월 이상 실증, 2028년까지 20억원(국비 16억) 투입. 실적 수치는 없음.",
+   "verdict": "partially_verified",
+   "correctedClaim": "아이티공간(행정안전부 2026 지역 맞춤형 재난안전 기술개발 공모 선정): 2028년까지 20억원(국비 16억·시비 4억) 투입, 2027년부터 강제 열폭주 시험을 거쳐 동서발전 울산발전본부의 1MWh 이상 BESS에서 3개월 이상 실증. 실적 수치 없음.",
+   "evidenceUrl": "https://www.energydaily.co.kr/news/articleView.html?idxno=201416",
+   "note": "에너지데일리 2026.7.14. '1초 이내 위험 판단' 목표는 기사에서 찾지 못했다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) 제주특별자치도·한국가스공사 등: 2024년 9월부터 하루 약 200kg 생산(버스 17대 등). 1MW PEM 시간당 18kg. 제주 출력제어 2015년 3회→2023년 181회. 12.5MW 실증은 가동률 60% 기준 연 1,176톤 목표. 생산단가 kg당 2만원 이상(보도).",
+   "verdict": "partially_verified",
+   "correctedClaim": "제주: 출력제한 2015년 3회→2023년 181회, 12.5MW 그린수소 실증단지는 가동률 60% 기준 연 1,176톤 목표, 업계는 생산단가를 kg당 2만원 이상으로 추정(수소신문 2024.6.7). 행원 3.3MW 단지는 2024년 9월부터 하루 약 200kg 생산, 수소버스 17대 등에 공급(아주경제 2026.9.13).",
+   "evidenceUrl": "https://www.h2news.kr/news/articleView.html?idxno=12504",
+   "note": "h2news 기사는 2024.6.7자라 '2024년 9월부터 200kg·17대'는 담겨 있지 않다(아주경제 출처). '1MW PEM 시간당 18kg'은 기사에서 찾지 못했다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(사례) 한국수력원자력: 이상 징후 11건 사전 포착, 약 1,680억원 발전손실 예방(2026.4 중앙일보 보도, 기간 미공개).",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(원전종합상황실 고지능형 조기경보시스템, 2026.4.27 중앙일보 기업 홍보성 기획기사).",
+   "evidenceUrl": "https://v.daum.net/v/4tUksBsAyB",
+   "note": "'이상 징후 11건을 사전에 포착 ... 약 1680억원 규모의 발전 손실' 확인. [국민의 기업] 기획이라 신뢰도는 중간 이하다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(AI효과) 드론 열화상 이상 자동 탐지와 손실 환산: 한국동서발전 520kW·2,080장 중 205장 결함 발견, 조치 후 출력 6.6% 상승(연 약 1.2억원).",
+   "verdict": "partially_verified",
+   "correctedClaim": "한국동서발전(2019): 드론 열화상 진단으로 520kW·2,080장 중 205장 결함 발견, 조치 후 출력 6.6% 상승(잔존수명 감안 환산 효과 약 1.2억원). AI 자동 탐지 적용 여부는 보도에 없음.",
+   "evidenceUrl": "https://www.epj.co.kr/news/articleView.html?idxno=22970",
+   "note": "AI 효과의 근거로 쓰기 어렵고, 금액은 연 단위가 아니다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(AI효과) 배터리 셀·모듈 안전 위험 스코어링: ACCURE 20개 이상 안전 지표 심각도 점수 / (원리) ACCURE는 LFP 특성화 SOC 보정 모델과 20개 이상의 안전 지표를 심각도 점수 모델로 묶는다",
+   "verdict": "partially_verified",
+   "correctedClaim": "ACCURE는 자체 안전 점수 모델로 이상 모듈을 'safety red zone'으로 분류해 전해액 누출 제조결함 모듈을 찾았다(지표 개수는 인용 사례 페이지에서 미확인).",
+   "evidenceUrl": "https://www.accure.net/case-studies/140-mwh-bess-europe",
+   "note": "'20개 이상 안전 지표'는 인용한 두 사례 페이지 어디에도 없다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(AI효과) 디지털 커미셔닝: TWAICE VERBUND 42MW 디지털 커미셔닝(2023, 정량 미공개) / (원리) Repsol 20MW/80MWh 보증 추적 사례",
+   "verdict": "unverified",
+   "correctedClaim": "(출처 미제시) TWAICE의 VERBUND 42MW 디지털 커미셔닝, Repsol 20MW/80MWh 보증 추적 사례는 확인하지 못했다.",
+   "evidenceUrl": "https://www.accure.net/case-studies/imbalanced-racks-bring-commissioning-to-a-standstill",
+   "note": "두 사례 모두 URL이 없고 웹 검색 예산이 소진돼 확인하지 못했다."
+  },
+  {
+   "researchKey": "ai_cases",
+   "claim": "(AI효과) 다음날 발전량 예측: 중부발전·제이케이코어 발전량 예측 정확도 99%(정의 미공개, 2026 보도). KETEP 2026 과제: 미세먼지 반영 예측정확도 95% 이상 목표.",
+   "verdict": "verified",
+   "correctedClaim": "원문 그대로 유지(KETEP 과제 원문은 '미세먼지(soiling) 영향 포함 예측 정확도 95% 이상').",
+   "evidenceUrl": "https://app.rndcircle.io/gov-grant/5f1bfc5f-45c2-485f-b78e-e2a19ca5b61e",
+   "note": "한국경제 2026.2.19에서 99%, rndcircle 과제 공고에서 95% 목표 확인. soiling은 엄밀히 '표면 오염'이라 '미세먼지'와 같은 개념은 아니다. 99% 정확도는 지표 정의가 없어 국내 예측제도 오차율 8%와 직접 비교할 수 없다."
+  }
+ ],
+ "systemicIssues": [
+  "같은 출처인데 그룹마다 수치·서지가 다르다. SunEdison 분석 대상이 ai_methods는 450개, ai_cases는 '600여 개'다(원문 450개). 게재처도 'IEEE PVSC 2012'와 'IEEE J. Photovoltaics 2013'으로 갈리는데, 원 슬라이드에는 게재처가 없다. 보고서에서는 한 가지로 통일하고 게재처는 '발표 자료'로 적어야 한다.",
+  "판본을 섞거나 원문에 없는 기준을 붙였다. Brynjolfsson 외 연구는 QJE 게재본(5,172명·15%)을 인용하면서 NBER 워킹페이퍼 수치(14%·초보 34%)를 썼다. AssetOpsBench의 '85점 배포 준비 기준'과 '오류 복구 실패 31%'는 arXiv v1~v4 어디에도 없다.",
+  "가능성·가정형·환산 수치를 실현 성과로 옮겼다. Fluence '$800K 절감'은 본문상 'could have enabled', 3~10%는 'could realize'다. 화웨이 말레이시아 1.5%는 모두 조치할 경우의 잠재치다. 동서발전 1.2억원은 잔존수명까지 넣은 환산액인데 '연 수익'으로 적었다. DeepMind 20%는 발전량이 아니라 시장가치 기준이다.",
+  "인용 URL에 해당 수치가 없다. Raptor '5년간 214% 증가', 제주 '200kg·17대'와 '1MW PEM 시간당 18kg'(h2news), 중부발전 99%·95%(솔라투데이, 실제로는 한국경제), 블룸 '하루 10억 데이터포인트'(10-K가 아니라 C3 AI 보도자료), ACCURE '20개 이상 안전지표', thyssenkrupp '10GW', 아이티공간 '1초 이내', 한수원 '베스핀글로벌', REMS '2019년 1만 개소'가 해당한다. 수치가 실제로 있는 URL로 바꾸거나 '미확인'으로 표기해야 한다.",
+  "AI 효과와 데이터 수집·점검 체계의 효과가 섞였다. 동서발전 드론 열화상은 기사에 AI 언급이 없다. 한국전기안전공사 온라인 무정전 검사와 REMS 연동은 데이터 연계·규칙 기반 검사다. 'AI효과' 표에서 빼거나 '모니터링 인프라 효과'로 따로 분류해야 한다.",
+  "실험실·벤치마크·시뮬레이션 결과를 현장 효과처럼 쓸 위험이 있다. EL CNN 88.42%는 학습 1,968셀·시험 656셀 기준이다. Severson은 실험실 LFP 셀, solener 99.23%는 실험실 유도 결함, Zhou·Yin 39.24%는 수치 예제다. Midea '검증 제거 시 0%'는 검증을 통과한 계획만 성공으로 세는 정의에서 나온 값이다. Liu 외는 주거·상업용 인버터 데이터라 발전소급 인버터로 옮기기 어렵고, '85대 고장'도 200대가 아니라 700여 대 전체 기준이다.",
+  "오래되거나 출처가 불명확한 설문·컨설팅 수치에 기대고 있다. DOE 가이드는 2010년판이고 'ROI 10배, 고장 70~75% 제거'는 이름 없는 '독립 조사' 인용이다. McKinsey 30~50%는 원문을 열지 못했다. NIST 조사는 제조업 상관관계 분석이다. 경영진용 기대효과 수치로 쓰지 말고 배경 참고로만 두어야 한다.",
+  "날짜·기간·예산 오류가 있다. HAEOLUS는 2018~2021·692만 유로가 아니라 2018.1~2023.12·총 778만 유로(EU 499만)다. 국내 발전량 예측제도 '2021년 10월 시행'은 인용 기사(2020.9, 시행 목표 2021년 상반기)에 없다. 한수원 생성형 AI는 기사(2024.12) 기준으로 '구축했다'가 아니라 2025년 3월 구축 목표였다. Raptor 2024판은 분석 규모 125GW를 함께 적어야 2025판 193GWdc와 헷갈리지 않는다.",
+  "링크가 깨지거나 접근이 막혔다. www.nrel.gov는 DNS 조회에 실패했고(NREL이 National Laboratory of the Rockies로 개명) docs.nlr.gov/docs/fy24osti/88769.pdf로는 받을 수 있다. IEEE TSTE·ScienceDirect 논문은 유료벽이라 OSTI 공개본(osti.gov/biblio/2575731)이나 초록 DB로 바꿔야 재검증할 수 있다. Iberdrola(403), McKinsey(시간초과), epri.com 제품 페이지(내용 미표시)는 열리지 않았다.",
+  "원리 설명의 기술적 부정확(ai_cases I-V 곡선 진단): '스트링 전압을 개방전압(Voc)에서 단락전류(Isc) 구간까지 훑는다'는 전압과 전류를 섞은 표현이다. 정확히는 동작 전압을 Voc에서 단락점(0V) 쪽으로 낮추고, 그동안 전류가 0에서 Isc 근처까지 오르는 곡선을 기록한다. 또 '스캔 중 발전이 멈춘다'기보다 해당 MPPT 채널이 최대전력점을 벗어나 짧은 시간 출력이 줄어든다고 쓰는 편이 정확하다.",
+  "원리·제도 설명의 조건 누락: 한국전기안전공사 온라인 검사 요건은 '전월 연계율 90%' 하나가 아니라 '이전 검사일 이후 접속률 90% 이상'과 '직전 1개월 접속률 90% 이상'을 동시에 충족해야 한다. REMS 연동 2.1만 개소는 정부 보급사업(주로 소규모) 설비라 사업용 대형 발전소 데이터 표준으로 일반화하면 안 된다. 수소 로드맵의 공식 명칭은 '수소시설 통합 안전관리 모니터링 체계'(2030년 과제)다.",
+  "최대치·특정 조건 값을 일반화했다. GSM-Symbolic '최대 65%'는 소형 모델(Phi-3-mini) 기준이다. RCACopilot 0.766은 micro-F1이고 macro-F1은 0.533이다. EPRI 'GW당 9.2→0.2건'은 본문 수치가 아니라 그래프에서 읽은 근사값이다. 두산퓨얼셀 635.8MW는 PAFC만 센 실적이다. 보고서에 이런 조건을 함께 적어야 한다."
+ ]
+}

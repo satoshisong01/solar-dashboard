@@ -1,0 +1,1248 @@
+{
+ "domain": "AI O&M 상용 플랫폼·실증 사례 조사 (태양광·ESS·수소, 국내외)",
+ "overview_md": "## 한눈에 보기: 상용 AI O&M은 네 단계로 가치를 만든다 — 데이터 수집 → 이상 탐지 → 손실 환산 → 작업지시\n\n**원리부터.** 상용 AI 운영·유지보수(O&M) 플랫폼이 하는 일은 결국 두 값을 비교하는 것입니다. 하나는 날씨와 설비 사양으로 계산한 '있어야 할 값(기대값)', 다른 하나는 '실제 값'입니다. 둘의 차이를 원인별로 나누고 kWh와 원(돈)으로 환산한 뒤, 누가 무엇을 고칠지 작업지시로 넘깁니다. 그래서 플랫폼의 실력은 알고리즘보다 **어떤 원시데이터를 얼마나 촘촘히 받느냐**에서 먼저 갈립니다.\n\n**1) 시장은 네 갈래로 나뉜다.**\n- **설비 제조사 클라우드**: 화웨이 FusionSolar, SolarEdge, 블룸에너지 원격감시·제어센터(RMCC), Nel 운영센터(NASOC) 등. 자기 장비의 깊은 데이터를 받는다(예: 스트링 I-V 곡선, 연료전지 500여 개 파라미터). 대신 **다른 회사 장비는 보지 못한다**.\n- **독립 자산성능관리(APM, Asset Performance Management) 플랫폼**: Power Factors, Fluence Nispera, Clir, ENGIE Darwin 등. 여러 제조사의 SCADA·인버터·BESS 데이터와 작업지시 시스템(CMMS)을 묶는다. 그리고 '잃어버린 발전량이 얼마이고 원인이 무엇인지'를 금액으로 보여준다.\n- **특화 분석 서비스**: 드론 열화상(Raptor Maps, Zeitview), 배터리 분석(ACCURE, TWAICE). 한 종류의 데이터를 아주 깊게 판다.\n- **공공 인프라**: 한국에너지공단 REMS, 한국전기안전공사 ESS 통합관리시스템. 표준 항목을 1분 단위로 모아 감시·검사에 쓰지만, **정비 코칭 기능은 없다**.\n\n**2) 공개된 성과는 대부분 '손실을 찾아낸' 수치다.**\n- Raptor Maps는 193GWdc를 분석해, 설비 이상 때문에 2024년 MWdc당 연 5,720달러의 매출 손실이 났다고 추산했다.\n- ACCURE는 배터리 충전상태(SOC) 오차를 45% 이상에서 ±3%로 줄였다고 밝혔다.\n- 한국동서발전은 드론 열화상 진단 후 조치로 출력을 6.6% 높였다.\n- 반면 '고장을 며칠 앞서 예측했다'는 선행탐지 일수는 공개 근거가 드물다. 있더라도 대부분 제조사 자체 주장이다.\n\n**3) 수소는 아직 초기다.**\n- EU 청정수소 파트너십(Clean Hydrogen JU)은 2024년 과제공고에서 전해조 모니터링·진단 도구가 100kW 이상 산업 규모에서는 아직 실증·통합되지 않았다고 명시했다.\n- 같은 공고의 목표치는 고장 탐지·분리(FDI) 95% 이상, 진단 시스템 비용은 설비비의 3% 이하다.\n- 제조사 원격센터(Nel, thyssenkrupp nucera, Siemens)는 스택 전압, kWh/kg, 수소 순도를 벤치마크하는 수준이다.\n- 태양광→수전해→저장→연료전지를 **하나의 체인으로 분석하는 상용 제품은 확인하지 못했다**.\n\n**4) 우리 콘솔이 차별화할 지점**\n- **다중 벤더 통합**: 국내 발전소는 사이트마다 인버터·PCS 제조사가 다르다. 제조사 중립 데이터 모델로 묶으면 벤더 클라우드마다 따로 들어가는 문제가 사라진다.\n- **연계형 수소 체인 KPI**: 태양광 잉여전력(출력제어분 포함) → 수소 kg → 다시 kWh로 이어지는 흐름에서, 구간별 효율과 손실의 원인을 짚는다.\n- **코칭 폐루프**: Sandia pvOps처럼 정비 티켓 텍스트와 발전 데이터를 결합한다. 권고 → 조치 → 효과 검증까지 이어 붙여, 기존 제품이 '탐지'에서 멈추는 공백을 메운다.",
+ "components": [
+  {
+   "name_ko": "설비 제조사 클라우드 모니터링",
+   "name_en": "OEM cloud monitoring (예: Huawei FusionSolar Smart I-V, SolarEdge Monitoring Platform)",
+   "role": "자사 인버터·옵티마이저·전력변환장치에서 데이터를 직접 받아 원격감시, 고장 알림, 온디맨드 진단(I-V 스캔)을 제공한다. 우리 콘솔에는 스트링·모듈 수준 원시데이터를 가져올 수 있는 가장 깊은 입구지만, 제조사별로 API와 데이터 범위가 제각각이다.",
+   "howItWorks": "인버터 내부 계측값(직류 전압·전류, 교류 출력, 온도, 고장코드)이 데이터로거나 통신 동글을 거쳐 제조사 클라우드로 올라간다. I-V 곡선 진단(I-V curve diagnosis)은 인버터가 최대전력점 추종(MPPT)을 잠시 멈추고 스트링 전압을 개방전압(Voc)에서 단락전류(Isc) 구간까지 훑는(sweep) 방식이다. 이렇게 얻은 전류-전압 곡선(화웨이 기준 곡선당 128점)을 클라우드 알고리즘이 형상(계단, 기울기, Voc·Isc 편차)으로 분류해 고장 유형을 판정한다. SolarEdge는 모듈마다 붙은 전력 옵티마이저 덕분에 모듈 단위 출력을 볼 수 있다.",
+   "controlLogic": "화웨이는 100MW 발전소 전체 스트링을 15분 안에 스캔하고 14종 고장 리포트를 자동 생성한다고 밝혔다(정밀도 0.5%, TÜV 인증 주장). 스캔 중에는 해당 스트링의 발전이 잠시 멈추므로, 일사가 안정적인 시간대에 정기(월·분기) 또는 수동으로 실행한다(권장 일사 조건의 구체값은 제조사 문서 확인 필요 — 추정). 알람은 제조사 고유 고장코드로 발생하고, 외부 API 제공 주기와 항목은 벤더·계약마다 다르다(추정).",
+   "keyParameters": [
+    "스트링 전압·전류(1~5분)",
+    "I-V 곡선(곡선당 128점, 온디맨드)",
+    "Voc·Isc·Pmax·충진율(FF)",
+    "모듈 단위 출력(옵티마이저 사용 시)",
+    "제조사 고장·이벤트 코드와 발생/해제 시각",
+    "스캔 시점 일사·모듈 온도"
+   ],
+   "degradationAndFailures": [
+    "바이패스 다이오드 단락: I-V 곡선에 계단이 생기고 Voc가 모듈의 약 1/3 단위로 떨어짐",
+    "부분 음영·오염: 곡선에 계단 또는 Isc 저하, 피어 스트링 대비 전류비 하락",
+    "전위유도열화(PID): 충진율과 Voc 저하, 발전소 가장자리(음극 쪽) 스트링에 집중",
+    "스트링 개방·커넥터 불량: 전류 0 또는 직렬저항 증가(곡선 기울기 완만해짐)",
+    "벤더 종속 한계: 다른 회사 장비나 계통·출력제어 이벤트는 보이지 않아 손실 원인 분리가 불완전"
+   ]
+  },
+  {
+   "name_ko": "독립 자산성능관리(APM) 플랫폼",
+   "name_en": "Independent Asset Performance Management (예: Power Factors Unity, Fluence Nispera, Clir, ENGIE Darwin)",
+   "role": "여러 제조사 설비의 SCADA·인버터·BESS·기상·트래커 데이터를 한 데이터 모델로 통합한다. 기대발전량 대비 손실을 분해해 금액으로 환산하고, 작업지시 시스템(CMMS)과 연동해 조치까지 추적한다. 우리 콘솔이 가장 직접적으로 비교될 제품군이다.",
+   "howItWorks": "사이트 SCADA 또는 데이터로거에서 제조사와 무관하게 데이터를 모아 표준 자산 계층(사이트-설비-부품-포인트)에 매핑한다. 기상 데이터와 설비 모델로 기대발전량을 계산하고 실제값과의 차이를 가용성, 출력제어, 오염, 클리핑, 성능 저하 등으로 나눈다(Power Factors의 손실 폭포도, loss waterfall). ENGIE Darwin은 풍속·유효전력은 1초, 기어박스 온도는 10분 간격으로 수집해 클라우드로 올렸다. Power Factors는 310GW 이상 운영데이터로 학습한 AI 엔진 REMI를 내세운다(자사 주장).",
+   "controlLogic": "손실 금액 기준으로 우선순위를 매긴다. 이상이 감지되면 CMMS 티켓을 자동 생성하고, 계약 KPI(가용률·성능비 PR)를 산정 규칙으로 정산한다. Origis Energy는 4.6GW 태양광+저장 포트폴리오의 성능목표 98%를 관리하는 단일 기준 데이터로 Power Factors를 쓴다고 알려졌다(고객사례, 자사 발표). Fluence Nispera는 부품 성능이 정상 패턴에서 벗어나면 AI 경보를 낸다.",
+   "keyParameters": [
+    "기대 대비 실제 발전량(kWh)",
+    "손실 유형별 kWh·금액",
+    "설비 가용률(%)",
+    "온도보정 성능비(PR)",
+    "평균 수리시간(MTTR)·티켓 상태",
+    "출력제어·급전 지시 구간"
+   ],
+   "degradationAndFailures": [
+    "피어 인버터 대비 비발전량 지속 하락: 성능 저하 또는 부분 고장",
+    "가용률 저하와 반복 알람 패턴: 인버터 부품(제어보드, AC 접촉기, 팬) 고장 가능성",
+    "기대값 모델 오류(일사계 드리프트, 잘못된 설비 메타데이터): 모든 손실 분석을 오염시키는 공통 위험",
+    "출력제어 구간을 분리하지 않으면 설비 고장 손실이 과대평가됨"
+   ]
+  },
+  {
+   "name_ko": "드론 열화상 분석 서비스",
+   "name_en": "Aerial infrared thermography analytics (예: Raptor Maps, Zeitview)",
+   "role": "드론이나 유인기로 찍은 적외선(IR)·가시광(RGB) 영상에서 모듈 단위 결함을 자동 탐지·분류하고, 위치를 디지털 배치도에 매핑해 손실 kW와 매출로 환산한다. 스트링 계측으로는 보이지 않는 모듈 내부 결함을 찾는 보완 데이터원이다.",
+   "howItWorks": "IEC TS 62446-3:2017(태양광 모듈·발전소 옥외 적외선 열화상)이 정한 일사·장비·인력 자격 조건에서 촬영한다. 영상을 정사영상으로 합성한 뒤, 합성곱 신경망(CNN) 같은 영상 AI가 핫스팟, 바이패스 다이오드 고장, 스트링 오프라인, 오염 등을 분류한다. 결과는 모듈 좌표에 매핑되고, 이상 유형별 손실계수로 영향 kW를 추정한다. 2026년 Measurement 논문에서는 EfficientNet-B0 모델이 가중 F1 0.927을 기록했고, 점검~보고 시간이 147분에서 54분으로 줄었다.",
+   "controlLogic": "연 1회 정기 점검에 더해 준공검사·보증만료 전·자연재해 후에 실시한다. 한국동서발전은 향후 준공검사 항목에 드론 열화상 진단을 넣겠다고 밝혔다. 결함 목록은 작업지시로 넘기고, 조치 후 재촬영으로 효과를 확인한다. 촬영 최소 일사량 등 세부 조건값은 표준 원문 확인이 필요하다.",
+   "keyParameters": [
+    "주변 대비 온도차 ΔT(°C)",
+    "이상 유형 분류(핫스팟·다이오드·스트링·오염·파손)",
+    "모듈 좌표(GeoJSON 등)",
+    "추정 영향 출력(kW)",
+    "촬영 시 일사·풍속"
+   ],
+   "degradationAndFailures": [
+    "셀 핫스팟: 셀 균열이나 국부 음영으로 해당 셀 온도 상승",
+    "바이패스 다이오드 고장: 모듈의 1/3 영역이 균일하게 가열",
+    "스트링 전체 가열 또는 저온: 스트링 개방·퓨즈 단선",
+    "커넥터·정션박스 발열: 접촉저항 증가, 화재 전조",
+    "Raptor Maps 2025 보고서: 인버터·스트링 고장이 DC 관련 전력손실의 주된 원인"
+   ]
+  },
+  {
+   "name_ko": "배터리 분석 전문 플랫폼",
+   "name_en": "Battery analytics platform (예: ACCURE Battery Intelligence, TWAICE)",
+   "role": "BMS(배터리관리시스템) 원시 이력으로 SOC·SOH를 독립적으로 다시 추정하고, 셀·모듈 안전 위험을 점수화하며, 커미셔닝과 보증 조건을 추적한다. BMS 내부 추정값을 그대로 믿지 않는 제2의 판단 계층이다.",
+   "howItWorks": "셀 전압·온도, 랙 전류, BMS가 보고한 SOC 이력을 클라우드에 올리면, 전기화학·등가회로 모델과 머신러닝을 섞어 실제 가용 에너지와 셀 이상을 추정한다. ACCURE는 LFP 배터리 특성화 기반 SOC 보정 모델과 20개 이상의 안전 지표를 심각도 점수 모델로 묶는다고 밝혔다. TWAICE는 설치 초기 성능을 점검하는 디지털 커미셔닝을 VERBUND의 42MW 신규 설비(2023년 1분기)에 적용했다.",
+   "controlLogic": "SOC 오차가 쌓이기 시작하면 경보를 내고, 전력 가격이 낮은 시간대에 재보정(만충·만방)을 잡으라고 권고한다(ACCURE 50MWh급 유럽 사례). 안전 점수가 임계를 넘으면 해당 모듈을 교체하도록 조치를 요구한다. 보증 추적은 계약상 C-rate, 온도, 방전심도(DoD) 한도를 넘었는지 계산한다(Repsol 20MW/80MWh 사례에 포함).",
+   "keyParameters": [
+    "셀 전압 전체(최소·최대만이 아닌 전 셀, mV 분해능)",
+    "BMS 보고 SOC·SOE vs 적산 Ah 기반 재추정값",
+    "SOH(용량·저항)",
+    "랙 간 SOC 불균형",
+    "보증 파라미터(C-rate·온도·DoD) 누적 이력"
+   ],
+   "degradationAndFailures": [
+    "SOC 드리프트: LFP의 평탄한 전압곡선 탓에 BMS 오차가 누적. Dogfish 75MW(미국 ERCOT)에서는 가격 피크 때 3.8MWh가 거래되지 못하고 유휴 상태였음",
+    "제조 결함 모듈: 전해액 누출이 열폭주 위험으로 이어짐(유럽 BESS 사례)",
+    "BMS 결함 모듈 때문에 랙 불균형이 생겨 인수시험이 6주 지연(북미 100MWh 이상 사례)",
+    "EPRI 분석: 고장의 72%가 시공·시운전·운전 2년 이내에 발생해 초기 집중 감시가 필요"
+   ]
+  },
+  {
+   "name_ko": "수소 설비 제조사 원격운영센터",
+   "name_en": "Electrolyzer / fuel cell OEM remote operations (예: Nel NASOC, thyssenkrupp nucera digital, Siemens Hydrogen Performance Suite, Bloom Energy RMCC)",
+   "role": "전해조와 연료전지 제조사가 장기서비스계약(LTSA)에 따라 원격으로 감시·벤치마크하고, 필요하면 운전 파라미터를 원격으로 조정한다. 국내 연료전지 발전소도 이 구조라서, 원시데이터가 제조사 쪽에 먼저 쌓인다.",
+   "howItWorks": "플랜트 제어기(PLC/DCS)의 신호가 보안 텔레메트리로 제조사 센터에 전송된다. Nel NASOC는 에너지 소비(스택 전압 포함), 수소 생산량, 온도·성능 안정성, 수소 순도를 보며, 변압기·정류기(전력 입력)부터 전해 모듈(H2·O2 출력)까지 파고들어 볼 수 있다. thyssenkrupp nucera는 알칼라인 전해조의 단일 셀 엘리먼트마다 상태를 감시하고, nucera evaluator로 셀랙의 점진적 성능 편차를 출력 급감 전에 잡았다고 소개했다. 블룸에너지는 서버마다 500개 이상 성능 파라미터를 실시간으로 받는다.",
+   "controlLogic": "블룸은 미국·인도 두 곳 RMCC를 이중화해 24시간 운영하며, 운전원이 온보드 자동제어를 원격으로 덮어쓰고(override) 파라미터를 조정한다(SEC 10-K). Nel은 서비스계약으로 당일 접수 응답을 보장하고, 예방정비는 옵션으로 판다. 대부분 기본 감시 → 예방정비 → 성능보증으로 계약 등급을 나눈다.",
+   "keyParameters": [
+    "스택 전압과 셀(엘리먼트) 전압",
+    "비에너지소비 kWh/kg",
+    "수소 순도·산소 중 수소 농도",
+    "스택 온도·압력",
+    "정류기 입력 전력",
+    "운전시간·기동/정지 횟수"
+   ],
+   "degradationAndFailures": [
+    "셀랙 전압이 점진적으로 상승: 전극·막 열화, 같은 전류밀도에서 kWh/kg 증가",
+    "수소 순도 저하·산소 중 수소 증가: 가스 크로스오버, 안전 문제",
+    "연료전지 모듈 성능 저하: 전압 하락·효율 저하(블룸은 예측분석으로 고장 전 조정한다고 밝힘)",
+    "EU Clean Hydrogen JU(2024): 이런 모니터링·진단 도구는 100kW 이상 산업 규모 전해조에서 아직 충분히 실증되지 않음"
+   ]
+  },
+  {
+   "name_ko": "공공 모니터링·안전 인프라",
+   "name_en": "Public monitoring & safety infrastructure (REMS, KESCO ESS 통합관리시스템, 수소시설 실시간 모니터링)",
+   "role": "정부 보급 설비와 규제 대상 설비의 표준 항목을 모아 가동 감시, 고장 알림, 온라인 정기검사에 쓴다. 우리 콘솔 입장에서는 최소 공통 데이터 표준이자 규제 준수 채널이다.",
+   "howItWorks": "인증된 인버터나 RTU가 공단·공사 표준 프로토콜로 중앙 서버에 전송한다. REMS는 제조사마다 달랐던 모니터링 프로토콜을 통일한 것을 핵심 성과로 꼽는다(2020년 6월 기준 2.1만여 개소 연동, 설비 제조사 26곳·모니터링 장치 제조사 17곳 인증). 한국전기안전공사 ESS 통합관리시스템(2022년 구축)은 온·습도, 모듈온도, 과전압·과전류·과충전·과방전·지락전류 등 PCS·배터리 운영정보 75개를 1분 단위로 받는다.",
+   "controlLogic": "REMS는 고장이 나면 설치자와 시공업체에 알림을 보낸다. 한국전기안전공사는 2024년 1월부터 온라인 무정전 정기검사를 도입했고, 전월 연계율 90% 이상을 요건으로 한다. 수소충전소는 검사기관이 가스누출·이상압력을 실시간 감시한다. 반면 수소 생산·배관·저장시설은 아직 실시간 모니터링이 없어, 수소안전관리 로드맵 2.0이 2030년까지 '수소시설 통합모니터링체계' 구축과 정기검사 제외 인센티브를 검토 과제로 올렸다.",
+   "keyParameters": [
+    "인버터 입·출력 전압·전류·전력, 누적발전량, 고장여부(REMS)",
+    "SOC·SOH·모듈온도·지락전류 등 75항목(KESCO, 1분)",
+    "전월 데이터 연계율(%)",
+    "수소충전소 가스누출·압력"
+   ],
+   "degradationAndFailures": [
+    "통신 두절로 연계율이 떨어지면 온라인 검사 자격을 잃는 규제 리스크",
+    "표준 항목만으로는 스트링·셀 단위 진단, 온도보정 PR, SOH 독립 추정이 불가능(1차 리서치 결론과 동일)",
+    "수소 생산·저장 설비는 공공 실시간 감시가 없어 자체 감시 체계가 필요"
+   ]
+  }
+ ],
+ "operatingModes": [
+  {
+   "mode": "상시 감시·경보 (Real-time monitoring & alarming)",
+   "description": "1초~5분 데이터로 설비 상태를 계속 보면서, 고장코드나 임계치 초과, 정상 패턴 이탈을 알린다. 모든 플랫폼의 기본 모드다.",
+   "triggers": "데이터 수신 시마다 실행. 경보 규칙(제조사 코드, 한계값, APR 같은 다변량 이탈 모델)에 걸리면 알림을 보낸다.",
+   "dataSignature": "시계열이 연속으로 들어오고, 경보 이벤트는 드물게 튀는 형태. 통신 두절(heartbeat 누락)은 결측 구간으로 드러난다."
+  },
+  {
+   "mode": "정기 진단 캠페인 (I-V 스캔·드론 열화상)",
+   "description": "평소 계측으로는 안 보이는 스트링·모듈 결함을 찾으려고 일정 주기로 온디맨드 측정을 한다.",
+   "triggers": "월·분기 I-V 스캔 일정, 연 1회 드론 촬영, 준공검사·보증만료 전, 태풍·우박 뒤, 피어 대비 저성과가 감지됐을 때.",
+   "dataSignature": "I-V 곡선 묶음(곡선당 128점)과 IR·RGB 이미지 세트가 한꺼번에 들어온다. 스캔 중 해당 스트링 발전이 잠깐 떨어진다."
+  },
+  {
+   "mode": "디지털 커미셔닝·인수 검증",
+   "description": "준공·증설 직후, 설계 대비 용량·효율·랙 균형을 데이터로 확인하고 결함을 인수 전에 걸러낸다.",
+   "triggers": "준공(COD) 전 인수시험, 설비 교체 뒤, 초기 1~2년 집중 감시(EPRI: 고장의 72%가 이 시기에 발생).",
+   "dataSignature": "만충·만방 시험 사이클, 랙별 SOC가 퍼지는 모습, 초기 I-V와 열화상 기준값이 기록된다."
+  },
+  {
+   "mode": "손실 분석·계약 KPI 정산 (월간 리포트)",
+   "description": "기대발전량 대비 손실을 원인별로 나누고 가용률·PR·보증 KPI를 계산해 보고한다.",
+   "triggers": "월말·분기말 정산, 성능보증·LTSA 평가 시점, 경영 보고.",
+   "dataSignature": "일·월 단위 집계 테이블, 손실 폭포도, 출력제어 구간과 정지 구간 태깅."
+  },
+  {
+   "mode": "사고·이상 사후 원인분석 (Forensics)",
+   "description": "화재·정지·보증 분쟁이 생기면 전후 원시데이터로 근본 원인을 재구성한다.",
+   "triggers": "화재·열폭주 의심, 긴 정지, 보증 청구, 규제기관 보고 요구.",
+   "dataSignature": "사고 전후 고해상도 원시데이터(블랙박스·운영데이터 기록장치), 알람 순서, 정비 티켓 원문."
+  },
+  {
+   "mode": "원격 개입·파라미터 조정",
+   "description": "원격센터 운전원이 온보드 제어값을 조정하거나 설비를 원격으로 제어한다.",
+   "triggers": "성능 편차 감지(블룸 RMCC), 급전·출력제어 지시, 원격 운전 실증(HAEOLUS에서는 이탈리아·벨기에 운전원이 노르웨이 설비를 원격 시험 운전).",
+   "dataSignature": "설정값 변경 이벤트와 그 뒤 운전점의 계단형 변화. 변경 전후를 비교하면 효과 검증 데이터가 된다."
+  },
+  {
+   "mode": "보증·계약 조건 추적",
+   "description": "배터리 C-rate·온도·방전심도, 전해조·연료전지 성능보증 조건 위반 여부를 쌓아 두고 청구 근거를 만든다.",
+   "triggers": "상시 누적, 보증만료 전 점검, 제조사 분쟁.",
+   "dataSignature": "운전 조건 분포 히스토그램(온도×C-rate×SOC)과 보증 한도 초과 이벤트 누적."
+  }
+ ],
+ "dataToCollect": [
+  {
+   "component": "인버터(제조사 클라우드/Modbus)",
+   "name_ko": "고장·이벤트 코드 원문(발생·해제 시각 포함)",
+   "unit": "코드, 타임스탬프",
+   "sampling": "이벤트 발생 시(초 단위 시각)",
+   "priority": "must",
+   "whatItTells": "정지 원인, 반복 고장, 가용률 산정의 기준. SunEdison 600여 시스템 분석에서 인버터가 티켓 빈도와 에너지 손실 모두 1위였고, 에너지 손실의 50%가 사건 5%에서 나왔다.",
+   "source": "벤더 클라우드 API, Modbus 이벤트 레지스터, SunSpec 이벤트 비트"
+  },
+  {
+   "component": "PV 스트링",
+   "name_ko": "I-V 곡선 스캔 결과",
+   "unit": "V, A (곡선당 약 128점)",
+   "sampling": "온디맨드. 월 1회~분기 1회 권장(추정), 저성과 감지 시 추가",
+   "priority": "should",
+   "whatItTells": "스트링별 고장 유형(다이오드 단락, 음영, PID, 오염, 직렬저항 증가) 분류와 교체 대상 특정",
+   "source": "I-V 스캔 기능 인버터(예: 화웨이 Smart I-V Curve Diagnosis) 클라우드 export 또는 휴대형 I-V 트레이서"
+  },
+  {
+   "component": "PV 어레이",
+   "name_ko": "드론 적외선·가시광 정사영상과 이상 목록",
+   "unit": "°C(ΔT), 이미지, 모듈 좌표",
+   "sampling": "연 1회 + 준공검사·보증만료 전·재해 후",
+   "priority": "should",
+   "whatItTells": "모듈 단위 결함 위치·유형과 손실 kW. 동서발전 520kW 설비에서 2,080장 중 205장 결함을 찾아 조치 후 출력 6.6% 상승",
+   "source": "IEC TS 62446-3 준수 드론 촬영 서비스 결과(CSV/GeoJSON), 자체 드론"
+  },
+  {
+   "component": "사이트(계통 연계점)",
+   "name_ko": "출력제어·급전 지시 이력",
+   "unit": "kW 상한, 시작·종료 시각",
+   "sampling": "지시 발생 시",
+   "priority": "must",
+   "whatItTells": "출력제어 손실을 설비 고장 손실과 분리. 수소 체인에서는 버려질 전력을 수전해에 쓴 비율을 계산하는 근거(제주 출력제어 2015년 3회 → 2023년 181회)",
+   "source": "KPX·한전 지시 기록, 발전소 제어기(PPC) 로그"
+  },
+  {
+   "component": "사이트(기상)",
+   "name_ko": "위성 기반 일사량",
+   "unit": "W/m²",
+   "sampling": "10~15분(위성 제공 주기, 추정)",
+   "priority": "should",
+   "whatItTells": "일사계 드리프트 교차검증과, 일사계가 없는 소규모 사이트의 기대발전량 계산. 해줌은 천리안 2호 위성 기반 알고리즘으로 약 4,000개 발전소를 예측한다.",
+   "source": "위성 일사 API(기상청 천리안 2A 산출물, 민간 예측사)"
+  },
+  {
+   "component": "포트폴리오",
+   "name_ko": "피어 발전소 비발전량",
+   "unit": "kWh/kWp",
+   "sampling": "1시간·1일 집계",
+   "priority": "should",
+   "whatItTells": "날씨 요인과 사이트 고유 문제를 분리하고 저성과 발전소를 선별(이웃 발전소 대비 이상 감지)",
+   "source": "자사 다중 사이트 데이터 집계, 권역별 공개 발전 통계"
+  },
+  {
+   "component": "BESS 셀·모듈",
+   "name_ko": "전 셀 전압(최소·최대 요약값이 아닌 셀별 원시값)",
+   "unit": "V (mV 분해능)",
+   "sampling": "BMS 최대 제공 주기(1초~1분)",
+   "priority": "must",
+   "whatItTells": "셀 불균형, 자가방전·미세단락, 결함 모듈을 탐지하고 SOC를 독립 재추정. 배터리 분석사들은 BMS 원시 이력을 요구한다.",
+   "source": "BMS 이력 export, EMS historian"
+  },
+  {
+   "component": "BESS 시스템",
+   "name_ko": "BMS 보고 SOC·SOE와 충방전 적산 Ah·Wh",
+   "unit": "%, kWh, Ah",
+   "sampling": "1분",
+   "priority": "must",
+   "whatItTells": "SOC 드리프트를 찾아 실제 가용 에너지가 과소·과대 평가되는지 확인. ACCURE 사례에서 SOC 오차 45% 이상을 ±3%로 보정",
+   "source": "BMS/EMS, PCS 전력량계"
+  },
+  {
+   "component": "BESS(규제 연계)",
+   "name_ko": "KESCO 전송 75개 운영정보(온·습도, 모듈온도, 과전압·과전류·과충전·과방전·지락전류 등)",
+   "unit": "항목별(°C, %RH, V, A, mA)",
+   "sampling": "1분",
+   "priority": "must",
+   "whatItTells": "규제기관과 같은 기준으로 이상을 감시하고, 온라인 무정전 정기검사 요건(전월 연계율 90%)을 관리",
+   "source": "한국전기안전공사 ESS 통합관리시스템 연계 RTU(같은 게이트웨이에서 우리 콘솔로 이중 전송 검토 — 계약·보안 확인 필요)"
+  },
+  {
+   "component": "전해조 스택",
+   "name_ko": "스택 전압과 셀(엘리먼트)별 전압",
+   "unit": "V",
+   "sampling": "1초~1분",
+   "priority": "must",
+   "whatItTells": "셀랙의 점진적 성능 편차와 열화를 조기 탐지(thyssenkrupp nucera evaluator 사례), 약한 셀 식별",
+   "source": "셀전압 모니터링(CVM) 장치, 전해조 PLC, OPC UA"
+  },
+  {
+   "component": "전해조 시스템",
+   "name_ko": "비에너지소비(정류기 AC 입력 기준)",
+   "unit": "kWh/kg",
+   "sampling": "15분 집계(원천: 전력 1분·유량 1분)",
+   "priority": "must",
+   "whatItTells": "체인 효율, 열화 추세, 벤더·기술 간 벤치마크(Nel NASOC의 핵심 감시 항목)",
+   "source": "정류기 입력 전력량계 + 수소 질량유량계"
+  },
+  {
+   "component": "전해조 가스처리",
+   "name_ko": "수소 순도·산소 중 수소 농도",
+   "unit": "%, ppm",
+   "sampling": "1분",
+   "priority": "must",
+   "whatItTells": "가스 크로스오버(안전), 제품 품질 벤치마크",
+   "source": "가스분석기(열전도식·산소 센서), PLC"
+  },
+  {
+   "component": "전해조 전력변환",
+   "name_ko": "변압기·정류기 입력 전력·역률·직류 리플",
+   "unit": "kW, -, %",
+   "sampling": "1분(리플은 고속 샘플 필요, 추정)",
+   "priority": "should",
+   "whatItTells": "전력변환 손실과 열화 가속 요인(전류 리플) 파악. Nel은 변압기·정류기 단위까지 드릴다운한다.",
+   "source": "정류기 컨트롤러, 전력품질 분석기"
+  },
+  {
+   "component": "연료전지 발전설비",
+   "name_ko": "OEM 텔레메트리 전체 파라미터 목록과 원시값 접근권",
+   "unit": "항목별",
+   "sampling": "실시간(1초~1분, 제조사 제공 범위)",
+   "priority": "should",
+   "whatItTells": "제조사 진단을 독립적으로 검증하고 발전사 관점의 성능 추적(블룸은 서버당 500개 이상 파라미터를 본다)",
+   "source": "LTSA 계약상 데이터 제공 조항, 제조사 API·SCADA 게이트웨이"
+  },
+  {
+   "component": "수소 압축·저장·배관",
+   "name_ko": "가스누출 감지 농도와 압력",
+   "unit": "%LEL 또는 ppm, bar",
+   "sampling": "1초~1분",
+   "priority": "must",
+   "whatItTells": "안전 경보, 누출 확산 위험 평가, 향후 수소시설 통합모니터링체계(2030년 목표) 대응",
+   "source": "가스감지기·압력전송기(KGS 기준), 안전 PLC"
+  },
+  {
+   "component": "수소 체인 공통",
+   "name_ko": "구간별 에너지·질량 흐름(PV→ESS→전해조→저장→연료전지)",
+   "unit": "kWh, kg",
+   "sampling": "15분(한전 AMI 15분 계량과 정렬)",
+   "priority": "must",
+   "whatItTells": "연계형 체인의 구간별 효율과 손실 귀속. 이런 체인 분석을 제공하는 상용 사례는 확인되지 않아 우리 콘솔의 차별화 핵심",
+   "source": "구간별 전력량계, 수소 유량계, 저장탱크 압력·온도(질량 환산)"
+  },
+  {
+   "component": "연료전지·전해조(선택)",
+   "name_ko": "전기화학 임피던스 스펙트럼(EIS)",
+   "unit": "Ω·cm² vs Hz",
+   "sampling": "온디맨드(주 1회~월 1회, 추정)",
+   "priority": "nice",
+   "whatItTells": "막 건조·플러딩·연료 결핍·황 피독 같은 고장을 분리 진단(HEALTH-CODE 5종). 상용 설비 적용은 아직 연구 단계",
+   "source": "EIS 기능 내장 DC-DC 컨버터(연구 단계), 휴대형 임피던스 분석기"
+  },
+  {
+   "component": "데이터 파이프라인",
+   "name_ko": "사이트별 데이터 연계율·결측률",
+   "unit": "%",
+   "sampling": "1일",
+   "priority": "must",
+   "whatItTells": "분석 신뢰도와 규제 요건(KESCO 전월 연계율 90%) 관리. 통신 두절은 곧 진단 공백",
+   "source": "게이트웨이 heartbeat, 수집 서버 통계"
+  }
+ ],
+ "nonTelemetryData": [
+  {
+   "name_ko": "정비 티켓·작업지시(CMMS) 원문",
+   "examples": "접수 시각, 증상 서술(자유 텍스트), 조치 내용, 교체 부품, 완료 시각, 작업자",
+   "whyNeeded": "코칭 폐루프의 핵심. Sandia pvOps는 티켓 텍스트를 자연어처리(NLP)로 분류하고 발전 데이터와 시간축으로 맞춰(text2time) 고장모드별 손실을 계산한다. Power Factors도 CMMS 연동으로 탐지와 조치를 잇는다. 조치 전후 성능을 비교해야 권고의 효과를 검증할 수 있다."
+  },
+  {
+   "name_ko": "제조사 알람 코드 사전·매뉴얼",
+   "examples": "인버터·PCS·BMS·전해조 벤더별 고장코드 표, 심각도, 권장 조치",
+   "whyNeeded": "벤더마다 다른 코드를 공통 고장 분류로 매핑해야 다중 벤더 통합 분석이 가능하다. REMS가 제조사별 프로토콜 통일을 핵심 성과로 꼽을 만큼 국내 파편화가 크다."
+  },
+  {
+   "name_ko": "설비 대장·배치도(스트링 맵, 모듈 좌표, 랙·엘리먼트 번호)",
+   "examples": "인버터-MPPT-스트링-모듈 대응표, 모듈 GPS 좌표, BESS 랙 배치, 전해조 셀랙 번호",
+   "whyNeeded": "드론 열화상 결함을 위치에 매핑하고, I-V·셀전압 이상을 실제 교체 대상과 연결하는 데 필요하다."
+  },
+  {
+   "name_ko": "커미셔닝·인수시험 결과",
+   "examples": "초기 용량시험, 초기 I-V 기준곡선, 준공 열화상, 초기 kWh/kg·스택 전압 곡선",
+   "whyNeeded": "열화 추세의 기준선(0점)이다. ACCURE·TWAICE 사례처럼 인수 전 결함을 걸러내는 근거이기도 하다."
+  },
+  {
+   "name_ko": "보증·장기서비스계약(LTSA) 조건",
+   "examples": "성능보증 PR·가용률, 배터리 C-rate·온도·DoD 한도, 데이터 제공 조항, 응답시간(Nel 당일 접수 등), 보증 배상 조건",
+   "whyNeeded": "보증 청구 근거를 쌓고, 연료전지·전해조처럼 제조사가 데이터를 쥔 설비의 원시데이터 접근권을 확보하기 위해 필요하다."
+  },
+  {
+   "name_ko": "점검 보고서·현장 사진",
+   "examples": "정기점검표, 드론 보고서 PDF, 결함 사진, 전기안전공사·가스안전공사 검사 결과",
+   "whyNeeded": "AI 탐지 결과를 검증하는 라벨 데이터이자 규제 대응 증빙이다."
+  },
+  {
+   "name_ko": "시장·정산 데이터",
+   "examples": "SMP, REC 가격, 청정수소 발전 입찰가, 수소 판매단가, 출력제어 보상 여부",
+   "whyNeeded": "손실 kWh를 원으로 바꿔 우선순위를 매기고, 수소 체인(잉여전력 → 수소)의 경제성을 평가한다."
+  },
+  {
+   "name_ko": "외부 사고·고장 데이터베이스",
+   "examples": "EPRI BESS Failure Incident Database, 국내 ESS 화재 조사 결과, NREL 수소충전소 신뢰성 데이터",
+   "whyNeeded": "고장모드 사전확률과 감시 우선순위를 정한다. 예: EPRI 분석에서 BESS 고장의 72%가 시공·시운전·운전 2년 이내에 발생."
+  },
+  {
+   "name_ko": "벤더 클라우드 계정·API 조건",
+   "examples": "API 호출 한도, 제공 항목·주기, 과금, 원시데이터 export 가능 여부",
+   "whyNeeded": "실제로 무엇을 얼마나 자주 가져올 수 있는지가 분석 가능 범위를 정한다(다중 벤더 통합의 현실 제약)."
+  },
+  {
+   "name_ko": "기상 관측·예보",
+   "examples": "기상청 ASOS 관측, 동네예보, 위성 일사, 미세먼지 농도",
+   "whyNeeded": "기대발전량 계산과 발전량 예측에 필요하다(KETEP 2026 과제는 미세먼지 영향을 반영해 예측정확도 95% 이상을 목표로 함)."
+  }
+ ],
+ "aiAnalyses": [
+  {
+   "title": "I-V 곡선 형상 기반 스트링 고장 분류",
+   "question": "어느 스트링이 어떤 이유(다이오드 단락, 음영, PID, 오염, 직렬저항 증가)로 출력이 떨어졌는가?",
+   "inputs": [
+    "I-V 곡선(곡선당 약 128점)",
+    "스캔 시점 일사·모듈 온도",
+    "스트링 구성(직렬 모듈 수)",
+    "모듈 데이터시트"
+   ],
+   "method": "물리모델(단일 다이오드 모델로 곡선을 표준시험조건 STC로 환산) + 특징 추출(Voc·Isc·FF·계단 수·기울기) + 분류기(랜덤포레스트 또는 1D-CNN). 라벨이 부족하면 시뮬레이션 곡선으로 학습한다(Sandia pvOps의 iv 모듈 방식).",
+   "output": "스트링별 고장 유형·신뢰도·추정 손실(W)과 교체 대상 모듈 후보",
+   "improvement": "현장 I-V 측정 인력을 줄이고 결함 스트링에만 출동한다. 조치 뒤 재스캔으로 회복을 확인한다.",
+   "valueEvidence": "화웨이: 100MW를 15분에 스캔, 14종 고장 리포트, 정밀도 0.5%(TÜV 인증 주장). 고장률 12.1%인 말레이시아 발전소는 조치 시 발전량 1.5% 이상 증가 가능(제조사 추정). 한국에너지기술연구원: 10년 이상 I-V 데이터로 진단 정확도 95% 이상(2023 보도). https://solar.huawei.com/au/news-room/au/2019/news-20190710 , https://www.koit.co.kr/news/articleView.html?idxno=116998",
+   "dataRequirements": "I-V 스캔 가능한 인버터나 휴대형 트레이서, 스캔 시 안정 일사, 고장 라벨 수백 건 이상(추정). 정기 스캔 주기는 월~분기(추정).",
+   "maturity": "diagnostic",
+   "difficulty": "medium"
+  },
+  {
+   "title": "드론 열화상 이상 자동 탐지와 손실 환산",
+   "question": "모듈 단위로 어디에 어떤 결함이 있고, 그 결함이 얼마의 출력·매출 손실을 만드는가?",
+   "inputs": [
+    "드론 IR·RGB 정사영상",
+    "촬영 시 일사·풍속",
+    "모듈 좌표 배치도",
+    "이상 유형별 손실계수"
+   ],
+   "method": "CNN 영상 분류·검출(예: EfficientNet-B0), 정사영상 좌표 매핑, 유형별 손실계수로 kW 환산. 촬영 조건은 IEC TS 62446-3을 따른다.",
+   "output": "결함 목록(유형·위치·ΔT·영향 kW), 작업지시 초안, 재촬영 전후 비교",
+   "improvement": "교체·수리 대상을 정확히 지정하고, 준공검사와 보증 청구의 근거를 만든다.",
+   "valueEvidence": "한국동서발전: 520kW·2,080장 중 205장 결함 발견, 조치 후 출력 6.6% 상승(연 약 1.2억원). Measurement 논문(2026): F1 0.927, 점검 147분→54분(63%↓). Raptor Maps 2025: 193GWdc 분석, 2024년 MWdc당 연 5,720달러 손실. https://www.epj.co.kr/news/articleView.html?idxno=22970 , https://www.aitimes.com/news/articleView.html?idxno=214824 , https://solarquarter.com/2026/02/17/benchmarking-dc-health-protecting-revenue-in-expanding-solar-fleets/",
+   "dataRequirements": "연 1회 이상 촬영, 모듈 좌표 배치도, 라벨 이미지 수천 장(논문 2,400장), 촬영 시 일사 조건 충족",
+   "maturity": "diagnostic",
+   "difficulty": "medium"
+  },
+  {
+   "title": "기대발전량 대비 손실 분해(loss waterfall)와 금액 귀속",
+   "question": "목표 대비 부족분이 가용성, 출력제어, 오염, 클리핑, 열화, 기상 중 무엇 때문이고 각각 얼마인가?",
+   "inputs": [
+    "인버터·계량 발전량",
+    "POA 일사·모듈 온도(또는 위성 일사)",
+    "알람·정지 구간",
+    "출력제어 지시",
+    "SMP·REC 가격"
+   ],
+   "method": "물리 기반 기대발전량 모델(pvlib 계열) + 이벤트 구간 태깅(정지·출력제어·클리핑) + 규칙 기반 손실 배분. 남은 잔차는 추세 통계(Theil-Sen)로 열화·오염을 분리한다.",
+   "output": "사이트·설비별 손실 폭포도(kWh·원), 월간 KPI(가용률·PR), 우선순위 목록",
+   "improvement": "손실 금액이 큰 원인부터 정비 자원을 배분한다. 경영진에게 '회복 가능 매출'로 보고한다.",
+   "valueEvidence": "Power Factors: Origis Energy가 4.6GW 포트폴리오의 성능목표 98% 관리에 사용(자사 발표). ENGIE Darwin: 투자 1,300만 유로(2년), 3년 추가수익 2,700만 유로(2018, 풍력 포함). kWh Analytics 2025: 미국 태양광이 P50 예측보다 평균 8.6% 미달(2차 인용, 원문 미확인). https://www.powerfactors.com/unity/asset-performance-management , https://www.windpower-international.com/analysis/engies-darwin-project-the-evolution-of-data-management-6124931/",
+   "dataRequirements": "1~15분 발전·기상 데이터 1년 이상, 정확한 설비 메타데이터(용량·방위·경사), 출력제어·정지 이벤트 로그",
+   "maturity": "diagnostic",
+   "difficulty": "medium"
+  },
+  {
+   "title": "피어·위성 벤치마크 기반 저성과 발전소 선별",
+   "question": "날씨 탓이 아니라 이 발전소만의 문제로 성과가 낮은가?",
+   "inputs": [
+    "사이트별 비발전량(kWh/kWp)",
+    "위성 일사",
+    "권역·설치 형태 메타데이터"
+   ],
+   "method": "같은 권역·같은 날 피어 비발전량 비율의 로버스트 z-score(중앙값·MAD), 위성 일사 기반 기대값 대비 비율 추세",
+   "output": "저성과 발전소 순위, 지속 기간, 추정 손실",
+   "improvement": "일사계가 없는 소규모 사이트까지 전수 선별해 드론·I-V 진단 대상을 고른다.",
+   "valueEvidence": "정량 근거 미확인. 해줌이 약 4,000개 발전소 데이터로 이웃 발전소·전국 패턴 대비 이상을 감지하는 기능을 제공(2021 보도, 성과 수치 미공개). https://www.industrynews.co.kr/news/articleView.html?idxno=44127",
+   "dataRequirements": "같은 권역 사이트 다수(최소 수십 개, 추정), 일 단위 발전량, 정확한 설비용량",
+   "maturity": "descriptive",
+   "difficulty": "low"
+  },
+  {
+   "title": "설비 정상 운전패턴 이탈 조기경보(다변량 이상탐지)",
+   "question": "인버터·PCS·변압기·정류기가 고장 나기 전에 정상 패턴에서 벗어나고 있는가?",
+   "inputs": [
+    "설비별 전력·전압·전류",
+    "내부·방열판 온도",
+    "외기 온도·부하율",
+    "알람 이력",
+    "정비 티켓(라벨)"
+   ],
+   "method": "다변량 상태 추정(AAKR/MSET 계열) 또는 오토인코더로 정상 모델을 학습하고, 부하·온도 조건부 잔차를 EWMA·CUSUM으로 감시한다. 발전 공기업의 APR(Advanced Pattern Recognition) 예측경보와 같은 원리다.",
+   "output": "이탈 점수, 기여 변수, 경보와 권장 점검 항목",
+   "improvement": "계획정비로 전환해 긴 정지(에너지 손실의 대부분)를 줄인다.",
+   "valueEvidence": "서부발전 WISE(화력): APR 예측경보로 2023년 24건·2024년 30건 조기탐지(보도). DOE FEMP O&M 가이드(2010): 예지정비 도입 시 정비비 25~30%↓, 고장 70~75% 제거, 다운타임 35~45%↓(산업 설문 평균). SunEdison 분석: 인버터가 티켓·손실 최대, 손실 50%가 사건 5%에서 발생. 태양광 인버터의 선행탐지 일수는 공개 근거 미확인. https://www.electimes.com/news/articleView.html?idxno=355329 , https://www.energy.gov/sites/prod/files/2020/04/f74/omguide_complete_w-eo-disclaimer.pdf",
+   "dataRequirements": "설비별 1~10분 다변량 데이터 최소 1년(계절 포함), 고장 라벨이 붙은 티켓, 동일 모델 설비 다수",
+   "maturity": "predictive",
+   "difficulty": "high"
+  },
+  {
+   "title": "BMS SOC·SOE 재추정과 드리프트 보정 권고",
+   "question": "BMS가 보고하는 충전상태가 실제와 얼마나 어긋나 있고, 그 때문에 거래·운전에서 얼마를 잃는가?",
+   "inputs": [
+    "셀 전압·온도",
+    "랙 전류",
+    "BMS 보고 SOC·SOE",
+    "휴지·만충 구간",
+    "전력 가격"
+   ],
+   "method": "등가회로모델 + 확장 칼만필터(EKF). LFP 평탄 구간은 만충(CV 종료)·장시간 휴지 OCV를 앵커로 재보정하고, 오차 누적 추세를 감시한다.",
+   "output": "보정 SOC·SOE 시계열, 오차 추정, 저가 시간대 재보정 일정 권고",
+   "improvement": "사용 가능 에너지를 되찾아 거래 수익을 늘리고, 계약 불이행 페널티를 막는다.",
+   "valueEvidence": "ACCURE(자사 사례): 유럽 BESS SOC 오차 45% 이상 → ±3%. 미국 Dogfish 75MW에서 가격 피크 때 3.8MWh 유휴, 보정 효과 연 11만 달러 이상(ERCOT 평균 거래수익 대비 약 5%). https://www.accure.net/case-studies/gore-street-capital-turning-soc-accuracy-into-5-more-trading-revenue , https://www.accure.net/case-studies/50-mwh-bess-europe",
+   "dataRequirements": "셀·랙 단위 1분 이하 이력 수개월 이상, 셀 화학(LFP/NMC) 특성 데이터, 만충·휴지 이벤트",
+   "maturity": "prescriptive",
+   "difficulty": "high"
+  },
+  {
+   "title": "배터리 셀·모듈 안전 위험 스코어링",
+   "question": "어느 모듈이 열폭주·화재 위험으로 가고 있으며, 얼마나 급한가?",
+   "inputs": [
+    "전 셀 전압",
+    "셀·모듈 온도",
+    "휴지 중 전압 변화(자가방전)",
+    "내부저항 추정",
+    "KESCO 75항목"
+   ],
+   "method": "다지표(셀 전압 편차 추세, 자가방전율, 저항 증가, 온도 이상)를 규칙과 머신러닝으로 묶은 심각도 점수 모델. 시공·시운전·초기 2년은 민감도를 높인다.",
+   "output": "모듈별 위험 점수·근거 지표·조치 권고(교체, 운전 제한)",
+   "improvement": "결함 모듈을 선제 교체하고, 충전율 제한 같은 운전 조건을 조정한다.",
+   "valueEvidence": "ACCURE: 20개 이상 안전 지표 심각도 점수, 유럽 BESS에서 전해액 누출 제조결함 모듈을 찾아 교체(정량 미공개). EPRI(2024): 2018→2023 고장률 97% 감소(GW당 9.2→0.2), 고장의 72%가 초기 2년 이내, 모니터링·분석으로 BMS 보완 권고. https://restservice.epri.com/publicdownload/000000003002030360/0/Product , https://www.accure.net/case-studies/140-mwh-bess-europe",
+   "dataRequirements": "셀 단위 원시 전압·온도(요약값 불가), 휴지 구간 포함 수주~수개월, 사고·교체 이력 라벨",
+   "maturity": "predictive",
+   "difficulty": "high"
+  },
+  {
+   "title": "디지털 커미셔닝·랙 불균형 진단",
+   "question": "새로 지은(또는 교체한) 설비가 설계 성능을 내는가? 불균형·결함은 어디서 오는가?",
+   "inputs": [
+    "인수시험 사이클 데이터",
+    "랙별 SOC·전압",
+    "BMS 추정값",
+    "설계 용량"
+   ],
+   "method": "랙·모듈별 SOC 퍼짐 분석, BMS 추정과 적산 기반 추정 비교로 결함 BMS·모듈을 특정하고, 설계값과 차이를 검정한다.",
+   "output": "결함 부위 목록, 인수 가부 판단 근거, 재보정 지침",
+   "improvement": "상업운전(COD) 지연을 줄이고, 인수 전에 결함을 시공사·제조사 책임으로 돌린다.",
+   "valueEvidence": "ACCURE: 북미 100MWh 이상 사이트에서 1개월 데이터로 1주 안에 결함 모듈 2개 특정, 5만 달러 절감, 6주 지연 해소(자사 사례). TWAICE: VERBUND 42MW 디지털 커미셔닝(2023, 정량 미공개). https://www.accure.net/case-studies/imbalanced-racks-bring-commissioning-to-a-standstill",
+   "dataRequirements": "커미셔닝 기간 전 랙·모듈 데이터, 설계·계약 성능값",
+   "maturity": "diagnostic",
+   "difficulty": "medium"
+  },
+  {
+   "title": "정비 티켓 NLP와 발전 데이터 결합(코칭 폐루프)",
+   "question": "어떤 고장이 반복되고, 어떤 조치가 실제로 발전 회복으로 이어졌는가?",
+   "inputs": [
+    "CMMS 티켓 원문",
+    "알람 이력",
+    "발전·손실 시계열",
+    "교체 부품 기록"
+   ],
+   "method": "텍스트 정제·고장모드 분류(TF-IDF+분류기, 또는 LLM 구조화 추출), 티켓 시각과 손실 구간 정렬(text2time), 조치 전후를 동일 조건 구간(bin)으로 비교해 효과를 추정한다.",
+   "output": "고장모드별 빈도·손실·수리시간, 조치 효과 검증 결과, 발전소별 코칭 포인트",
+   "improvement": "효과 없는 반복 조치를 멈추고 근본 원인 조치로 바꾼다. 권고 → 조치 → 검증 루프를 닫는다.",
+   "valueEvidence": "정량 근거 미확인. Sandia pvOps가 티켓 NLP·text2time·생산데이터 분석을 오픈소스로 제공(효과 수치 미공개). https://pvops.readthedocs.io/en/latest/",
+   "dataRequirements": "최소 1~2년 치 티켓(자유 텍스트 포함), 티켓과 설비 ID 매핑, 발전 시계열",
+   "maturity": "prescriptive",
+   "difficulty": "medium"
+  },
+  {
+   "title": "전해조 스택·셀랙 성능 편차와 열화 추적",
+   "question": "같은 운전 조건에서 스택·셀랙 전압이 얼마나 오르고 있으며, 어느 엘리먼트가 약한가?",
+   "inputs": [
+    "스택·셀(엘리먼트) 전압",
+    "전류밀도",
+    "스택 온도·압력",
+    "운전시간·기동/정지 횟수"
+   ],
+   "method": "전류밀도·온도 조건 bin별 기준 전압 대비 편차 추세(Theil-Sen, µV/h), 엘리먼트 간 분산 추적, CUSUM 변화점 탐지",
+   "output": "열화율(%/1000h), 약한 셀 목록, 리퍼비시 시점 권고",
+   "improvement": "출력 급감 전에 셀을 교체·재생하고, 동적 운전 조건을 조정해 열화를 늦춘다.",
+   "valueEvidence": "thyssenkrupp nucera: evaluator로 셀랙의 점진적 성능 편차를 출력 급감 전 탐지(정량 미공개). Clean Hydrogen JU 2024 과제 KPI: FDI 95% 이상, 진단 비용 시스템의 3% 이하, 열화 PEMEL 0.12%/1000h·AEL 0.10%/1000h 달성에 기여, 신뢰도 99%. https://www.clean-hydrogen.europa.eu/system/files/2024-01/Clean%20Hydrogen%20JU%20AWP%202024%20-%20all%20chapters_Final_For_Publication.pdf",
+   "dataRequirements": "셀전압 모니터링(CVM) 1초~1분, 수천 시간 이상 운전 이력, 조건 bin 채움을 위한 다양한 부하",
+   "maturity": "diagnostic",
+   "difficulty": "medium"
+  },
+  {
+   "title": "전해조 플릿 벤치마크(kWh/kg·순도·가동률)",
+   "question": "우리 전해조들(다기종·다벤더)은 서로, 그리고 사양 대비 얼마나 효율적으로 수소를 만드는가?",
+   "inputs": [
+    "정류기 입력 전력",
+    "수소 유량",
+    "순도",
+    "운전·정지 이력"
+   ],
+   "method": "같은 부하율 구간의 kWh/kg 분포 비교, 가동률·기동 횟수 집계, 사양 대비 편차 표준화",
+   "output": "설비·기술별 효율 순위표, 사양 대비 격차, 운전 전략 비교",
+   "improvement": "효율 좋은 설비에 부하를 먼저 배분하고, 저효율 설비는 진단·정비한다.",
+   "valueEvidence": "정량 근거 미확인. Nel NASOC가 에너지 소비·수소 생산·온도·순도를 벤치마크(수치 미공개). 제주는 12.5MW 다기종(PEM·알칼라인·AEM·SOEC) 실증 예정이라 기술 간 비교 수요가 크다. https://nelhydrogen.com/support/nasoc/ , https://www.h2news.kr/news/articleView.html?idxno=12504",
+   "dataRequirements": "설비별 전력·유량 계량(15분), 공통 계량 기준(AC 입력 vs DC 스택) 통일",
+   "maturity": "descriptive",
+   "difficulty": "low"
+  },
+  {
+   "title": "연료전지 원격 파라미터 최적화 권고",
+   "question": "성능 저하 조짐이 보이는 연료전지 모듈의 운전 파라미터를 어떻게 바꾸면 고장을 막고 효율을 지킬 수 있나?",
+   "inputs": [
+    "서버당 수백 개 운전 파라미터",
+    "전압·전류·온도",
+    "연료 이용률",
+    "성능 이력"
+   ],
+   "method": "물리 성능모델 대비 잔차 감시와 예측분석, 과거 조정 효과를 학습한 권고 규칙(제조사 독점). 신뢰성 AI 스위트와 경보·워크플로를 자동화한다.",
+   "output": "이상 경보, 파라미터 조정 권고, 원격 조정 이력",
+   "improvement": "고장 전 원격 조정으로 출동과 정지를 줄인다. 발전사 측에서는 LTSA 성능보증 이행을 검증한다.",
+   "valueEvidence": "블룸에너지(SEC 10-K): 서버당 500개 이상 파라미터를 실시간 감시하고, 예측분석으로 고장 전에 조정. C3 AI 협업(2024): 하루 10억 개 데이터포인트, 운전 파라미터 조정 권고(효과 수치 미공개). https://www.sec.gov/Archives/edgar/data/1664703/000166470322000034/be-20211231.htm , https://c3.ai/c3-ai-and-bloom-energy-team-up-to-revolutionize-fuel-cell-performance-service-and-engineering-analytics/",
+   "dataRequirements": "제조사 수준 원시 파라미터 접근권(LTSA 조항), 실시간 전송, 과거 조정·고장 이력",
+   "maturity": "prescriptive",
+   "difficulty": "high"
+  },
+  {
+   "title": "임피던스(EIS) 기반 연료전지·전해조 고장 분리 진단",
+   "question": "전압이 떨어진 원인이 막 건조인가, 플러딩인가, 연료·공기 결핍인가, 피독인가?",
+   "inputs": [
+    "EIS 스펙트럼",
+    "운전점(전류·온도·가습)",
+    "스택 전압"
+   ],
+   "method": "등가회로 적합으로 저항·용량 성분을 추출하고 고장 사전(fault signature)과 대조해 분류한다. 결과로 열화 수준을 외삽해 잔여수명을 추정한다.",
+   "output": "고장 유형 판정, 건강상태(SoH), 잔여수명 추정",
+   "improvement": "원인에 맞게 운전 조건(가습·퍼지·연료 조성)을 바로잡아 스택 수명을 늘린다.",
+   "valueEvidence": "HEALTH-CODE(EU, 2015~2018, 약 236만 유로): 연료조성 변화·공기 결핍·연료 결핍·황 피독·플러딩/건조 5종 탐지, 기술성숙도 TRL 3~4→5(정확도 수치 미공개). Clean Hydrogen JU(2024): 전해조용 도구는 100kW 이상 규모에서 미실증. https://www.clean-hydrogen.europa.eu/projects-dashboard/projects-repository/health-code_en",
+   "dataRequirements": "EIS 측정 가능한 전력변환기 또는 장비, 운전 중 섭동 주입 허용, 고장 라벨 실험 데이터",
+   "maturity": "diagnostic",
+   "difficulty": "high"
+  },
+  {
+   "title": "수소 누출 확산 디지털 트윈과 감지기 배치 최적화",
+   "question": "누출이 나면 가스가 어디로 퍼지고, 감지기는 어디에 몇 개 있어야 가장 빨리 잡는가?",
+   "inputs": [
+    "설비 배치·누출 가능 지점",
+    "풍속·풍향·연직 바람 분포",
+    "감지기 위치·응답시간"
+   ],
+   "method": "정상상태 전산유체역학(CFD) 시뮬레이션과 시나리오 비교(고풍속 vs 저풍속). 필요하면 축소차수모델로 실시간화한다.",
+   "output": "누출 시나리오별 농도장, 감지기 배치 권고, 경보 시간 추정",
+   "improvement": "감지 사각지대를 없애고, 향후 수소시설 통합모니터링 규제에 대응한다.",
+   "valueEvidence": "정량 근거 미확인. NREL ARIES 전해조 시설 디지털 트윈(2025): 풍속이 플룸 형상과 범위에 큰 영향(수치 미공개). 수소안전관리 로드맵 2.0: 2030년까지 수소시설 통합모니터링체계 구축 추진. https://www.osti.gov/biblio/3011897",
+   "dataRequirements": "3D 배치도, 현장 기상 1분, 감지기 사양, 누출률 가정",
+   "maturity": "prescriptive",
+   "difficulty": "high"
+  },
+  {
+   "title": "연계형 체인 효율·손실 귀속(PV→ESS→전해조→저장→연료전지)",
+   "question": "태양광 1kWh(특히 출력제어로 버려질 전력)가 수소 kg과 다시 kWh로 바뀌는 동안, 어느 구간에서 얼마를 잃는가?",
+   "inputs": [
+    "구간별 전력량(PV·ESS·정류기·압축기·연료전지)",
+    "수소 생산·저장·소비 질량",
+    "출력제어 지시",
+    "설비별 효율곡선"
+   ],
+   "method": "구간별 에너지·질량 수지와 물리 모델(정류기 효율곡선, 압축 비에너지, 연료전지 효율) 대비 잔차 분해. 출력제어 전력 활용률과 체인 왕복효율 추세를 조건 bin으로 비교한다.",
+   "output": "체인 산키 다이어그램(kWh→kg→kWh), 구간별 손실·열화 기여, 운전 전략(충전 vs 수전해 배분) 권고",
+   "improvement": "잉여전력 배분 규칙을 바꾸고, 병목 구간(예: 저부하 정류기 효율)을 우선 개선해 체인 경제성을 높인다.",
+   "valueEvidence": "정량 근거 미확인. 상용 체인 분석 제품은 확인되지 않았다. 유사 실증: HAEOLUS(노르웨이, 풍력→2.5MW PEM→150kg·30bar 저장→100kW 연료전지)는 원격 운전과 진단·예측 시스템을 실증했고, 수소 생산단가를 4~6유로/kg으로 분석. https://cordis.europa.eu/project/id/779469/reporting",
+   "dataRequirements": "구간별 계량기 15분 동기화(한전 AMI 15분 정렬), 수소 유량·탱크 압력·온도, 설비 효율곡선, 1년 이상 운전",
+   "maturity": "diagnostic",
+   "difficulty": "high"
+  },
+  {
+   "title": "다음날 발전량 예측과 예측 기반 기대값",
+   "question": "내일 각 발전소는 얼마나 발전할까? 실제값이 예측에서 벗어난 원인은 날씨인가, 설비인가?",
+   "inputs": [
+    "기상 예보",
+    "위성 일사",
+    "과거 발전량",
+    "설비 메타데이터",
+    "미세먼지"
+   ],
+   "method": "수치예보 기반 물리모델과 그래디언트 부스팅·딥러닝 앙상블. 사이트별 전이학습으로 신규 사이트 초기 성능을 보완한다.",
+   "output": "시간별 발전량 예측·불확실성, 예측 대비 편차 알림",
+   "improvement": "KPX 예측제도 정산 수익을 확보하고, 수전해·ESS 운전계획을 세운다. 편차가 크면 설비 점검을 트리거한다.",
+   "valueEvidence": "중부발전·제이케이코어: 발전량 예측 정확도 99%(정의 미공개, 2026 보도). KETEP 2026 과제: 미세먼지 반영 예측정확도 95% 이상 목표. https://www.hankyung.com/article/2026021905431 , https://app.rndcircle.io/gov-grant/5f1bfc5f-45c2-485f-b78e-e2a19ca5b61e",
+   "dataRequirements": "사이트별 1년 이상 시간별 발전량, 예보 이력 아카이브, 출력제어 구간 제외 표시",
+   "maturity": "predictive",
+   "difficulty": "medium"
+  },
+  {
+   "title": "LLM 기반 발전소별 코칭 리포트 생성",
+   "question": "이번 달 이 발전소에서 가장 먼저 할 일 세 가지는 무엇이고, 근거와 기대효과는 무엇인가?",
+   "inputs": [
+    "손실 분해 결과",
+    "탐지 Finding(근거 스냅샷 포함)",
+    "정비 티켓 이력",
+    "계약 KPI"
+   ],
+   "method": "정량 분석 결과를 구조화 입력으로 넣고, 대규모 언어모델(LLM)이 서술·우선순위·조치 문장을 생성한다. 수치는 분석 엔진 값만 인용하게 제한하고 출처를 연결한다.",
+   "output": "경영진용 요약과 엔지니어용 조치 목록(근거 데이터 링크 포함)",
+   "improvement": "분석 결과가 현장 조치로 이어지는 비율을 높이고, 보고서 작성 시간을 줄인다.",
+   "valueEvidence": "정량 근거 미확인. Power Factors가 310GW 이상 운영데이터로 학습한 AI 엔진 REMI를 제공(자사 주장, 효과 수치 미공개). https://www.powerfactors.com/unity/asset-performance-management",
+   "dataRequirements": "검증된 정량 Finding 데이터셋, 용어·설비 사전, 사람 검토 피드백 기록",
+   "maturity": "prescriptive",
+   "difficulty": "medium"
+  }
+ ],
+ "caseStudies": [
+  {
+   "title": "Smart I-V Curve Diagnosis(스트링 I-V 곡선 온라인 스캔·AI 진단)",
+   "organization": "Huawei (FusionSolar)",
+   "summary": "인버터가 스트링별 I-V 곡선(곡선당 128점)을 온라인으로 스캔하고, 빅데이터·AI 알고리즘으로 고장 유형을 분류해 리포트를 자동 생성한다. 입력은 스트링 전압·전류 곡선, 분석은 곡선 형상 기반 고장 분류다.",
+   "quantifiedResult": "100MW 발전소 15분 스캔, 14종 고장 리포트, 데이터 정밀도 0.5%(TÜV 인증 주장). 칭하이 골무드 100MW에서 전 스트링 100% 정확도(제조사 주장). 고장률 12.1% 말레이시아 발전소는 조치 시 발전량 1.5% 이상 증가 가능(제조사 추정).",
+   "url": "https://solar.huawei.com/au/news-room/au/2019/news-20190710"
+  },
+  {
+   "title": "Unity APM: 다중 벤더 태양광·저장 포트폴리오 성능관리",
+   "organization": "Power Factors (고객: Origis Energy, European Energy)",
+   "summary": "SCADA·인버터·BESS·기상·트래커 데이터를 고빈도로 받아 AI 이상탐지, 손실 폭포도, 원인 진단을 제공하고 CMMS와 연동한다. AI 엔진 REMI는 310GW 이상 운영데이터로 학습했다고 밝힌다.",
+   "quantifiedResult": "Origis Energy가 4.6GW 태양광+저장의 성능목표 98% 관리에 사용. European Energy 2.4GW 계약(2025). 정비비·발전량 개선 %는 미공개(자사 발표).",
+   "url": "https://www.powerfactors.com/unity/asset-performance-management"
+  },
+  {
+   "title": "Global Solar Report 2024·2025(드론 열화상 기반 설비 손실 벤치마크)",
+   "organization": "Raptor Maps",
+   "summary": "드론·유인기 열화상과 가시광 점검 데이터를 AI로 분석해 이상을 분류하고 손실을 산정한 연례 보고서. 2024년판은 125GW, 2025년판은 193GWdc를 다룬다.",
+   "quantifiedResult": "설비 이상 전력손실 3.13%→4.47%(전년 대비), 연 46억 달러 매출 손실(2024년판). 2024년 MWdc당 연 5,720달러 손실, 5년간 설비 기인 저성과 214% 증가, 인버터·스트링 고장이 DC 손실의 주원인(2025년판). 서비스사 고객 표본이라 편향 가능.",
+   "url": "https://solarquarter.com/2026/02/17/benchmarking-dc-health-protecting-revenue-in-expanding-solar-fleets/"
+  },
+  {
+   "title": "SOC 보정으로 거래수익 5% 상향(Dogfish 75MW, ERCOT)",
+   "organization": "ACCURE Battery Intelligence (고객: Gore Street Capital)",
+   "summary": "BMS 데이터(2025년 6~8월)로 LFP 특성화 기반 SOC 보정 모델을 적용하고 EMS에 연동했다.",
+   "quantifiedResult": "가격 피크 때 3.8MWh 유휴 확인, 연 11만 달러 이상 편익(ERCOT 평균 BESS 거래수익 대비 약 5%), 업계 전체로는 GWh당 연 100만 달러 이상 추정(자사 사례).",
+   "url": "https://www.accure.net/case-studies/gore-street-capital-turning-soc-accuracy-into-5-more-trading-revenue"
+  },
+  {
+   "title": "SOC 오차 보정(유럽 BESS)",
+   "organization": "ACCURE Battery Intelligence",
+   "summary": "SOC 오차가 최대 50%에 달해 거래 기회를 놓치고 계약 페널티를 받던 운영사에 LFP 전용 SOC 추정·보정 모델과 오차 누적 조기감지를 적용했다.",
+   "quantifiedResult": "SOC 오차 45% 이상 → ±3%. 저가 시간대 재보정 일정 수립이 가능해짐(매출 수치 미공개, 자사 사례).",
+   "url": "https://www.accure.net/case-studies/50-mwh-bess-europe"
+  },
+  {
+   "title": "랙 불균형으로 멈춘 커미셔닝 해결(북미 100MWh 이상 태양광+BESS)",
+   "organization": "ACCURE Battery Intelligence",
+   "summary": "한 달 치 배터리 데이터로 상태 추정 오류를 일으키는 BMS 결함 모듈을 찾아냈다.",
+   "quantifiedResult": "결함 모듈 2개 특정, 1주 내 결과 제공, 5만 달러 절감, 인수시험 6주 지연 해소(자사 사례).",
+   "url": "https://www.accure.net/case-studies/imbalanced-racks-bring-commissioning-to-a-standstill"
+  },
+  {
+   "title": "원인 불명 불시정지와 제조결함 모듈 발견(유럽 BESS)",
+   "organization": "ACCURE Battery Intelligence",
+   "summary": "보조서비스용 BESS의 과거 데이터를 분석해 비정상 모듈 거동과 안전 문제를 점수 모델로 찾아냈다.",
+   "quantifiedResult": "전해액 누출 제조결함 모듈을 식별·교체해 잠재 열폭주를 예방. 가용률·선행일수 수치는 미공개.",
+   "url": "https://www.accure.net/case-studies/140-mwh-bess-europe"
+  },
+  {
+   "title": "BESS Failure Incident Database 근본원인 분석(2024 백서)",
+   "organization": "EPRI (PNNL·TWAICE 공동)",
+   "summary": "공개된 BESS 화재·폭발 사고 81건 가운데 근본원인을 판단할 수 있는 26건을 원인(설계·제조·통합/시공·운전)과 고장 요소(셀/모듈·제어·BOS)로 분류했다. 한국 2017~2019년 사고도 포함한다.",
+   "quantifiedResult": "전 세계 계통용 BESS 고장률 2018→2023년 97% 감소(GW당 9.2→0.2). 연령이 알려진 고장의 72%가 시공·시운전·운전 2년 이내 발생. 최다 원인은 통합·조립·시공(26건 중 10건). 운전 원인은 모두 제어계에서 발생했고, BMS를 보완하는 모니터링·분석을 권고.",
+   "url": "https://restservice.epri.com/publicdownload/000000003002030360/0/Product"
+  },
+  {
+   "title": "Nispera APM(멀티 OEM 풍력·태양광·수력·저장 성능관리)",
+   "organization": "Fluence",
+   "summary": "제조사와 무관하게 클라우드로 데이터를 모아 AI 기반 경보, 저장장치 부품 예지정비, 태양광 디지털 트윈을 제공한다.",
+   "quantifiedResult": "연간 수익성 3~10% 향상 가능, 한 사고에서 80만 달러 이상 절감 사례(자사 주장, 조건 미공개).",
+   "url": "https://fluenceenergy.com/nispera/"
+  },
+  {
+   "title": "Darwin(재생에너지 통합 데이터·예지정비 플랫폼)",
+   "organization": "ENGIE",
+   "summary": "현장 SCADA를 클라우드로 연결해 풍속·유효전력은 1초, 기어박스 온도는 10분 간격으로 수집하고 과열·결빙·요(yaw) 오정렬·저성과를 탐지했다. 2018년 기사 기준 풍력 1,045기(3.55GW) 등이 연결됐다.",
+   "quantifiedResult": "시스템 투자 1,300만 유로(2년) 대비 3년 추가수익 2,700만 유로. 요 제어 보정으로 0.5% 생산손실 방지, 10년 약 1,000만 유로(2018, 주로 풍력).",
+   "url": "https://www.windpower-international.com/analysis/engies-darwin-project-the-evolution-of-data-management-6124931/"
+  },
+  {
+   "title": "PV System Reliability: An Operator's Perspective",
+   "organization": "SunEdison (Golnas & Voss, IEEE J. Photovoltaics 2013 관련 발표)",
+   "summary": "4개 대륙 600여 개 PV 시스템(인버터 1,500여 대, 16개 벤더)의 O&M 티켓과 에너지 손실을 분석했다. 입력은 티켓·고장 부품·손실 에너지.",
+   "quantifiedResult": "인버터가 이슈 빈도와 에너지 손실 모두 1위. 에너지 손실의 75%가 인버터·AC·외부(계통) 핵심 노드에서 발생, 50%는 전체 사건의 5%에서 발생, 33%는 외부 요인.",
+   "url": "https://pdfs.semanticscholar.org/7535/1afe78f698d9c94ea6f0e48183712c19a7d5.pdf"
+  },
+  {
+   "title": "pvOps(정비 티켓·생산데이터 결합 분석 오픈소스)",
+   "organization": "Sandia National Laboratories",
+   "summary": "O&M 기록을 NLP로 정제·분류하는 text, 기대발전량·클리핑·생존분석을 하는 timeseries, 티켓과 생산데이터를 정렬하는 text2time, I-V 곡선 고장 분류용 iv 모듈로 구성된다.",
+   "quantifiedResult": "정량 효과 미공개(분석 도구). 코칭 폐루프 설계의 참고 구현.",
+   "url": "https://pvops.readthedocs.io/en/latest/"
+  },
+  {
+   "title": "원격감시·제어센터(RMCC)와 C3 AI 신뢰성 분석",
+   "organization": "Bloom Energy (국내: 블룸SK퓨얼셀)",
+   "summary": "미국·인도 두 곳의 RMCC가 서버당 500개 이상 파라미터를 실시간 감시하고, 예측분석으로 고장 전에 파라미터를 원격 조정한다. 2024년 C3 AI Reliability Suite로 성능 모니터링·조정 권고·워크플로를 자동화했다.",
+   "quantifiedResult": "하루 10억 개 실시간 데이터포인트(1GW 설치 기준). 고장 예측 정확도·절감액은 미공개. 국내 기사에서는 전 세계 600여 사이트에서 보증미달 배상 0건이라는 회사 주장이 소개됨.",
+   "url": "https://www.sec.gov/Archives/edgar/data/1664703/000166470322000034/be-20211231.htm"
+  },
+  {
+   "title": "Nel After Sales Operations Centre(NASOC)",
+   "organization": "Nel Hydrogen",
+   "summary": "전 세계 설치 전해조의 에너지 소비(스택 전압), 수소 생산, 온도·성능 안정성, 순도를 실시간으로 보고, 변압기·정류기부터 전해 모듈 출력까지 드릴다운한다. 원격 제어와 성능 벤치마크를 제공하며 예방정비는 옵션이다.",
+   "quantifiedResult": "서비스계약으로 당일 접수 응답 보장. 가동률·절감 수치는 미공개.",
+   "url": "https://nelhydrogen.com/support/nasoc/"
+  },
+  {
+   "title": "알칼라인 수전해 디지털 서비스(nucera evaluator·mirror·navigator, 원격 상태감시)",
+   "organization": "thyssenkrupp nucera",
+   "summary": "단일 셀 엘리먼트마다 상태를 감시하고(scalum 20MW 단위), 원격 상태감시(RCM) 보고서와 evaluator·load balancer·디지털 트윈으로 예지정비와 에너지 최적화를 지원한다.",
+   "quantifiedResult": "셀랙의 점진적 성능 편차를 출력 급감 전 탐지한 사례를 소개(정량 미공개). 설치 누적 10GW 이상(염소-알칼리 포함 전체 기준).",
+   "url": "https://www.thyssenkrupp-nucera.com/newsroom/blog/how-thyssenkrupp-nucera-is-advancing-the-green-hydrogen-economy-through-digital-service-excellence"
+  },
+  {
+   "title": "HAEOLUS(풍력 연계 수전해·저장·연료전지 원격운전 실증)",
+   "organization": "SINTEF 컨소시엄 (EU FCH JU, 2018~2021)",
+   "summary": "노르웨이 Raggovidda 풍력단지에 2.5MW PEM 전해조(1.25MW 스택 2기), 100kW 연료전지, 150kg·30bar 저장을 설치하고 저장·미니그리드·연료생산 모드를 실증했다. 전해조·주변설비(BoP)용 진단·예측 시스템과 원격 운전을 구현했다.",
+   "quantifiedResult": "이탈리아·벨기에 운전원이 원격 시험 운전에 성공. 수소 생산단가 4~6유로/kg 분석. 가용률·열화 수치는 요약에 미공개. 예산 692만 유로.",
+   "url": "https://cordis.europa.eu/project/id/779469/reporting"
+  },
+  {
+   "title": "HEALTH-CODE(EIS 기반 PEM 연료전지 모니터링·진단 도구)",
+   "organization": "Università degli Studi di Salerno 등 (EU FCH JU)",
+   "summary": "마이크로 열병합(µ-CHP)·백업용 PEM 연료전지에서 DC-DC 컨버터에 내장한 EIS로 상태를 감시하고, 고장 탐지·분리와 열화 수준 분석으로 수명을 외삽했다.",
+   "quantifiedResult": "5종 고장(연료조성 변화·공기 결핍·연료 결핍·황 피독·플러딩/건조) 대상, TRL 3~4→5. 예산 약 236만 유로. 정확도 수치는 미공개.",
+   "url": "https://www.clean-hydrogen.europa.eu/projects-dashboard/projects-repository/health-code_en"
+  },
+  {
+   "title": "Clean Hydrogen JU 2024 과제: 전해조 온라인 모니터링·진단 도구 개발·실증",
+   "organization": "Clean Hydrogen Partnership (EU)",
+   "summary": "GW급 재생에너지 연계 전해조의 동적 운전 수명을 위해 셀·스택·시스템 감시변수, 잔여수명 진단 알고리즘, 제어기 연동 하드웨어, 개방형 상호운용 플랫폼을 요구한다(과제번호 HORIZON-JTI-CLEANH2-2024-01-04, 최대 400만 유로).",
+   "quantifiedResult": "기존 도구는 100kW 이상 산업 규모 전해조에 미실증이라고 명시. KPI: FDI 95% 이상, 진단 시스템 비용 3% 이하(PEMEL 15유로/kW), 열화 PEMEL 0.12%/1000h·AEL 0.10%/1000h, 신뢰도 99%.",
+   "url": "https://www.clean-hydrogen.europa.eu/system/files/2024-01/Clean%20Hydrogen%20JU%20AWP%202024%20-%20all%20chapters_Final_For_Publication.pdf"
+  },
+  {
+   "title": "전해조 플릿 디지털 트윈 아키텍처(SEGIWA)",
+   "organization": "OFFIS (독일 BMBF)",
+   "summary": "개별 전해조 트윈이 데이터를 선집계하고, 플릿 트윈이 열화 모델 전이학습·정비 일정·이상탐지 서비스를 제공하는 연합형(Type 3) 구조를 제안했다.",
+   "quantifiedResult": "개념 설계 단계, 시뮬레이션 데이터로 1차 구현 시험 중(실측 성과 없음).",
+   "url": "https://www.frontiersin.org/journals/energy-efficiency/articles/10.3389/fenef.2024.1437214/full"
+  },
+  {
+   "title": "전해조 수소시설 확산·안전 평가 디지털 트윈",
+   "organization": "NREL (ARIES)",
+   "summary": "설비 배치·누출 지점과 기상(풍속·풍향·연직 분포)을 넣은 CFD 기반 디지털 트윈으로 누출 플룸과 감지기 배치를 평가했다(2025).",
+   "quantifiedResult": "고풍속에서는 수평 운동량, 저풍속에서는 부력이 플룸 형상을 지배함을 보임. 수치 성과는 미공개.",
+   "url": "https://www.osti.gov/biblio/3011897"
+  },
+  {
+   "title": "드론 열화상 진단으로 태양광 출력 6.6% 향상",
+   "organization": "한국동서발전",
+   "summary": "당진화력 자재창고 옥상 520kW(패널 2,080장)를 드론 열화상으로 진단해 결함 패널을 찾고, 연결불량 자체정비와 결함 패널 교체를 했다.",
+   "quantifiedResult": "결함 205장 발견(연결불량 103장 정비로 손실 5% 해소, 82장 교체로 1.6% 해소), 출력 6.6% 상승, 연 약 1.2억원 수익 효과. 41MW 전체 적용 시 0.7MW 추가 효과 추정(보도일 미확인).",
+   "url": "https://www.epj.co.kr/news/articleView.html?idxno=22970"
+  },
+  {
+   "title": "AI 기반 태양광발전소 디지털 O&M 시스템",
+   "organization": "제이케이코어·한국에너지기술연구원 (적용: 한국중부발전)",
+   "summary": "인버터·스트링 단위 전압·전류와 실시간 기상 데이터를 사이트별 학습모델로 분석해 출력 불균형·음영·인버터 이상을 조기 탐지한다. 조달청 혁신제품 지정(2026.1.14).",
+   "quantifiedResult": "발전량 예측 정확도 99%, 설비 고장 탐지 95% 이상(보도, 지표 정의 미공개). 실증: 인천 아시아드 2.7MW, 천안 산단 11MW, 군산 99.9MW, 오만 500MW.",
+   "url": "https://www.solartodaymag.com/news/articleView.html?idxno=20404"
+  },
+  {
+   "title": "I-V 데이터 학습 태양광 고장진단 AI",
+   "organization": "한국에너지기술연구원(KIER)",
+   "summary": "10년 이상 현장시험에서 모은 고장·정상 I-V 곡선, 어레이 구성, 일사·온도로 오염·PID·셀 부식 등을 진단한다. 신기술 인증을 받았고 원광에스앤티에 기술이전했다(오염·파손 진단 90% 이상, 2024.9).",
+   "quantifiedResult": "고장진단 정확도 95% 이상, 변화하는 일사에서 전압·전류 시뮬레이션 예측 98% 이상(2023.9 보도).",
+   "url": "https://www.koit.co.kr/news/articleView.html?idxno=116998"
+  },
+  {
+   "title": "WISE 발전설비 예측진단센터",
+   "organization": "한국서부발전",
+   "summary": "전국 사업소 운전데이터로 알고리즘 경보와 AI 패턴 인식(APR) 예측경보를 운영한다(주로 화력). 발전데이터 개방 사업(WP-AX 챔피언십 2026)을 통해 태양광·수소 데이터로 확대하며, 엔비로테크의 드론 Physical AI 태양광 O&M을 실증한다.",
+   "quantifiedResult": "조기탐지 2023년 24건, 2024년 30건. 태안 보일러 튜브 미세누설 사전 감지(보도).",
+   "url": "https://www.electimes.com/news/articleView.html?idxno=355329"
+  },
+  {
+   "title": "ESS 통합관리시스템·온라인 무정전 정기검사",
+   "organization": "한국전기안전공사(KESCO)",
+   "summary": "연계 ESS 사업장의 온·습도, 모듈온도, 과전압·과전류·과충전·과방전·지락전류 등 PCS·배터리 75개 운영정보를 1분 단위로 받아 상시 재해 감시와 검사 판정에 쓴다.",
+   "quantifiedResult": "2022년 시스템 구축, 2024년 1월 온라인 무정전 정기검사 전면 도입, 전월 연계율 90% 요건. 비용 절감액은 미공개.",
+   "url": "https://www.electimes.com/news/articleView.html?idxno=332823"
+  },
+  {
+   "title": "신·재생에너지 통합모니터링시스템(REMS)",
+   "organization": "한국에너지공단",
+   "summary": "정부 보급 설비의 발전현황과 고장여부를 실시간 감시하고, 고장 시 설치자·시공사에 알린다. 제조사별로 달랐던 프로토콜을 표준화했다.",
+   "quantifiedResult": "2019년 6월 관리센터 개소 당시 약 1만 개소 연동, 2020년 6월 2.1만 개소 이상, 설비 제조사 26곳·모니터링 장치 17곳 인증. 예측 서비스는 향후 계획 단계.",
+   "url": "https://www.industrynews.co.kr/news/articleView.html?idxno=38798"
+  },
+  {
+   "title": "다중센서·엣지 AI 기반 BESS 화재 예방 실증",
+   "organization": "아이티공간 (실증: 한국동서발전 울산, 행정안전부 지원)",
+   "summary": "전압·온도와 함께 미세 진동·음향 같은 비전기 신호를 엣지 AI로 판단하고, 자동 격리·소화설비 연동, 사고 전·중·후 원시데이터 암호화 저장까지 수행한다.",
+   "quantifiedResult": "목표 성능 1초 이내 위험 판단(개발 목표). 2027년부터 1MWh 이상 BESS에서 3개월 이상 실증, 2028년까지 20억원(국비 16억) 투입. 실적 수치는 없음.",
+   "url": "https://www.energydaily.co.kr/news/articleView.html?idxno=201416"
+  },
+  {
+   "title": "제주 행원 그린수소 실증단지(재생에너지 연계 수전해)",
+   "organization": "제주특별자치도·한국가스공사 등",
+   "summary": "행원 풍력·태양광 전력으로 알칼라인·PEM 수전해(3.3MW급)를 운영해 수소버스에 공급한다. 가스공사는 국내 첫 1MW PEM(40bar)을 규제특례로 가동했다. 12.5MW급 다기종 실증(PEM·알칼라인·AEM·SOEC, 5개 사)을 추진 중이다.",
+   "quantifiedResult": "2024년 9월부터 하루 약 200kg 생산(버스 17대 등). 1MW PEM 시간당 18kg. 제주 출력제어 2015년 3회→2023년 181회. 12.5MW 실증은 가동률 60% 기준 연 1,176톤 목표. 생산단가 kg당 2만원 이상(보도).",
+   "url": "https://www.h2news.kr/news/articleView.html?idxno=12504"
+  },
+  {
+   "title": "고지능형 조기경보시스템(원전)",
+   "organization": "한국수력원자력",
+   "summary": "원전종합상황실에 최신 감시 알고리즘을 더하고 감시체계를 이중화해, 발전 정지로 이어질 이상 징후를 실시간 탐지한다. 태양광·수소 사례는 아니지만 국내 발전사가 AI 성과를 보고하는 방식의 참고 사례다.",
+   "quantifiedResult": "이상 징후 11건 사전 포착, 약 1,680억원 발전손실 예방(2026.4 중앙일보 보도, 기간 미공개).",
+   "url": "https://v.daum.net/v/4tUksBsAyB"
+  }
+ ],
+ "koreanContext_md": "## 국내 현황: 데이터 표준은 공공이, 분석은 공기업·스타트업이 조각조각 — 벤더 중립 코칭 콘솔은 비어 있다\n\n### 1. 공공 인프라: 표준 수집은 되지만 분석·코칭은 약하다\n- **REMS(한국에너지공단)**\n  - 2019년 6월 관리센터를 열 때 약 1만 개소가 연동돼 있었고, 2020년 6월에는 2.1만여 개소로 늘었다.\n  - 설비 제조사 26곳과 모니터링 장치 제조사 17곳을 인증했다.\n  - 공단이 꼽은 핵심 성과가 '제조사별로 다르던 프로토콜의 통일'이다. 그만큼 **국내 설비 데이터가 벤더별로 파편화**돼 있다는 뜻이다.\n  - 항목은 인버터 입·출력, 누적발전량, 고장여부 수준이라 스트링·셀 단위 진단은 할 수 없다(1차 리서치 결론과 같다).\n- **한국전기안전공사 ESS 통합관리시스템**\n  - 2022년에 구축했고, PCS·배터리 운영정보 75개를 1분 단위로 받는다.\n  - 2024년 1월부터 온라인 무정전 정기검사를 운영하며, 요건은 전월 연계율 90%다.\n  - ESS를 가진 발전소는 이미 1분 단위 75항목을 외부로 보내고 있다. 같은 게이트웨이에서 우리 콘솔로도 나눠 받는 방안을 검토할 만하다(계약·보안 확인 필요, 추정).\n- **수소안전관리 로드맵 2.0(산업통상자원부, 2023.5)**\n  - 수소충전소는 검사기관이 가스누출·이상압력을 실시간 모니터링한다. 2023년 3월 기준 169개소 227기다.\n  - 반면 **수소 생산기지·배관·저장시설에는 실시간 모니터링이 없다.**\n  - 그래서 2030년까지 '수소시설 통합모니터링체계'를 구축하고, 실시간 모니터링 대상 시설은 정기검사를 면제하는 인센티브를 검토하기로 했다.\n  - 연계형 수소 설비의 안전 데이터를 처음부터 규제 보고와 호환되게 설계하면, 이 인센티브를 선점할 수 있다.\n\n### 2. 발전 공기업: AI 예측진단은 화력·원전 중심이고 태양광은 초기다\n- **한국서부발전**: WISE 예측진단센터(2024.11)가 APR 예측경보로 2023년 24건, 2024년 30건을 조기탐지했다(화력). 발전데이터를 태양광·수소로 넓히는 개방 사업(WP-AX 챔피언십 2026)으로 드론 기반 태양광 O&M 스타트업을 실증 중이다.\n- **한국중부발전·제이케이코어**\n  - 인버터·스트링 전압·전류와 실시간 기상으로 발전량 예측 99%, 고장 탐지 95% 이상을 보도했다. 지표 정의는 공개되지 않아 비교할 때 주의가 필요하다.\n  - 한국에너지기술연구원과 공동 개발했고 조달청 혁신제품으로 지정됐다(2026.1).\n- **한국동서발전**\n  - 드론 열화상 진단으로 520kW 설비의 출력을 6.6% 높였다.\n  - 준공검사에 드론 진단을 넣겠다고 밝혔다.\n  - 울산 BESS에서는 다중센서(진동·음향) 엣지 AI 화재 예방을 실증할 예정이다(2027~).\n- **한국수력원자력**: 원전 조기경보로 이상 징후 11건을 미리 잡아 약 1,680억원의 손실을 막았다고 발표했다.\n  - 국내 공기업은 AI 성과를 **'조기탐지 건수 + 회피 손실액'** 형식으로 보고한다.\n\n### 3. 연구기관·민간 O&M\n- **한국에너지기술연구원**: I-V 데이터 기반 고장진단 95% 이상. 원광에스앤티에 기술이전해 오염·파손 진단 90% 이상.\n- **해줌**: 천리안 2호 위성 기반 발전량 예측, 약 4,000개 발전소 관리, 이웃 발전소 비교 이상감지(2021).\n- **이엘티(ELTIS)**: ESS+태양광 통합관제, 2021년 기준 70여 개소 128MWh.\n- **정부 R&D**\n  - 한국에너지기술평가원(KETEP)이 2026년에 'AI 학습기반 태양광 발전량 예측 고도화 O&M 플랫폼' 과제를 공고했다. 정부지원 40억원, 36개월이다.\n  - 목표는 미세먼지를 반영한 예측정확도 95% 이상과 통합관제·KPI 분석체계·모니터링 표준안이다.\n  - 모두 **태양광 단일 자산**에 머물러 있다.\n\n### 4. 연료전지·수소\n- **두산퓨얼셀**: 운영 중 635.8MW(1,437대), 이 중 국내가 568.9MW(1,294대)다.\n- **블룸SK퓨얼셀**: 미국·인도 RMCC가 24시간 원격 감시하고, 국내 LTSA는 블룸에너지코리아와 20년 계약이다.\n- 발전용 연료전지는 **제조사 LTSA가 운영데이터와 정비를 쥐는 구조**다. 발전사가 독립적으로 성능을 검증하려면 계약상 데이터 접근권부터 확보해야 한다.\n- **제주 행원**\n  - 3.3MW급 수전해 단지가 2024년 9월부터 하루 약 200kg을 생산한다.\n  - 12.5MW급 실증에는 PEM·알칼라인·AEM·SOEC 4개 기술, 5개 공급사가 한 곳에 모인다. **수소도 다중 벤더 통합 문제**가 그대로 생긴다는 뜻이다.\n  - 제주 출력제어는 2015년 3회에서 2023년 181회로 늘었다.\n  - 정부는 2026년 9월 50~100MW급 그린수소 실증을 재생에너지 밀집지역 중심으로 추진한다고 밝혔다.\n\n### 5. 우리 콘솔에 주는 시사점\n1. **다중 벤더 통합이 1순위 가치다.** REMS 표준 항목과 KESCO 75항목을 최소 공통분모로 매핑한다. 그 위에 벤더별 확장 필드(I-V, 셀전압, 스택전압)를 얹는 2층 구조로 간다.\n2. **AI보다 데이터 접근권 계약이 먼저다.** 인버터 클라우드 API 조건, 연료전지·전해조 LTSA의 원시데이터 제공 조항(항목·주기·보관)을 구매·계약 체크리스트에 넣는다.\n3. **체인 KPI는 출력제어와 묶어야 경영진을 설득할 수 있다.** 제주·호남 출력제어가 늘고 있으니, '버려질 kWh → 수소 kg → 판매·발전 수익'을 발전소별로 정량화한다. 이런 상용 사례는 아직 없다.\n4. **성과 보고 형식을 국내 관행에 맞춘다.** Finding마다 '회피 손실(kWh·원) 추정 → 조치 → 조치 후 검증' 3단 기록을 표준화한다. 그러면 공기업식 성과 보고와 코칭 폐루프가 함께 충족된다.\n5. **데이터 품질 자체를 KPI로 관리한다.** KESCO의 연계율 90% 요건과 2030년 수소시설 통합모니터링을 고려해, 결측률과 통신 두절을 발전소 코칭 항목에 포함한다.\n6. **성과 수치는 등급을 나눠 인용한다.** 국내외 공개 수치 상당수(예측 99%, 탐지 95% 등)는 지표 정의가 없는 보도나 제조사 주장이다. 보고서에서는 '독립 검증 / 자사 주장 / 목표치'를 구분해서 쓴다.",
+ "keyClaims": [
+  {
+   "claim": "EPRI BESS 고장 데이터베이스 분석(2024)에 따르면 전 세계 계통용 BESS 고장률은 2018년부터 2023년까지 97% 줄었다(배치 GW당 약 9.2건 → 0.2건).",
+   "sourceUrl": "https://restservice.epri.com/publicdownload/000000003002030360/0/Product",
+   "confidence": "high"
+  },
+  {
+   "claim": "EPRI 분석에서 시스템 연령이 알려진 BESS 고장의 72%는 시공·시운전 중이거나 운전 시작 후 2년 이내에 일어났다. 최다 근본원인은 통합·조립·시공(원인 판정 26건 중 10건)이었다.",
+   "sourceUrl": "https://www.utilitydive.com/news/cells-and-modules-not-responsible-for-most-battery-energy-storage-system-fa/716732/",
+   "confidence": "high"
+  },
+  {
+   "claim": "Raptor Maps 2025 Global Solar Report(193GWdc 분석)는 2024년 설비 이상으로 인한 태양광 매출 손실을 MWdc당 연 약 5,720달러로 추산했다.",
+   "sourceUrl": "https://solarquarter.com/2026/02/17/benchmarking-dc-health-protecting-revenue-in-expanding-solar-fleets/",
+   "confidence": "medium"
+  },
+  {
+   "claim": "Raptor Maps 2024 보고서에서 태양광 발전소의 설비 이상 기인 전력손실은 전년 대비 3.13%에서 4.47%로 늘었고, 연간 매출 손실은 46억 달러로 추정됐다.",
+   "sourceUrl": "https://raptormaps.com/press/global-solar-report-finds-4b-annual-revenue-loss-in-solar-industry",
+   "confidence": "medium"
+  },
+  {
+   "claim": "화웨이 Smart I-V Curve Diagnosis는 100MW 발전소 전체 스트링을 15분 안에 스캔하고 14종 고장 리포트를 자동 생성한다고 밝혔다(데이터 정밀도 0.5%, TÜV 인증 주장).",
+   "sourceUrl": "https://solar.huawei.com/au/news-room/au/2019/news-20190710",
+   "confidence": "medium"
+  },
+  {
+   "claim": "SunEdison의 600여 PV 시스템 O&M 분석에서 인버터는 이슈 빈도와 에너지 손실 모두 1위였고, 에너지 손실의 50%가 전체 사건의 5%에서 발생했다.",
+   "sourceUrl": "https://pdfs.semanticscholar.org/7535/1afe78f698d9c94ea6f0e48183712c19a7d5.pdf",
+   "confidence": "high"
+  },
+  {
+   "claim": "미국 DOE FEMP O&M Best Practices Guide(Release 3.0, 2010)가 인용한 산업 설문 평균에 따르면, 예지정비를 도입하면 투자수익 10배, 정비비 25~30% 감소, 고장 70~75% 제거, 다운타임 35~45% 감소 효과가 있다.",
+   "sourceUrl": "https://www.energy.gov/sites/prod/files/2020/04/f74/omguide_complete_w-eo-disclaimer.pdf",
+   "confidence": "medium"
+  },
+  {
+   "claim": "ACCURE는 유럽 BESS 운영사의 SOC 추정 오차를 45% 이상에서 ±3%로 개선했다고 발표했다(자사 사례).",
+   "sourceUrl": "https://www.accure.net/case-studies/50-mwh-bess-europe",
+   "confidence": "low"
+  },
+  {
+   "claim": "ACCURE·Gore Street의 75MW Dogfish BESS(ERCOT) 분석에서 SOC 부정확 때문에 가격 피크 때 3.8MWh가 유휴 상태였고, 보정 효과는 연 11만 달러 이상(ERCOT 평균 거래수익 대비 약 5%)으로 제시됐다(자사 사례).",
+   "sourceUrl": "https://www.accure.net/case-studies/gore-street-capital-turning-soc-accuracy-into-5-more-trading-revenue",
+   "confidence": "low"
+  },
+  {
+   "claim": "블룸에너지는 미국·인도의 원격감시·제어센터(RMCC) 두 곳에서 서버당 500개 이상의 성능 파라미터를 실시간 감시하고, 예측분석으로 고장 전에 원격 조정한다(SEC 10-K).",
+   "sourceUrl": "https://www.sec.gov/Archives/edgar/data/1664703/000166470322000034/be-20211231.htm",
+   "confidence": "high"
+  },
+  {
+   "claim": "EU Clean Hydrogen JU는 2024년 과제공고에서 전해조 모니터링·진단 도구가 100kW 이상 산업 규모에서 아직 실증·통합되지 않았다고 명시했다. KPI로는 고장 탐지·분리 95% 이상, 진단 시스템 비용 시스템의 3% 이하, 신뢰도 99%를 제시했다.",
+   "sourceUrl": "https://www.clean-hydrogen.europa.eu/system/files/2024-01/Clean%20Hydrogen%20JU%20AWP%202024%20-%20all%20chapters_Final_For_Publication.pdf",
+   "confidence": "high"
+  },
+  {
+   "claim": "한국동서발전은 520kW 태양광(패널 2,080장)을 드론 열화상으로 진단해 결함 패널 205장을 찾았고, 조치 후 출력을 6.6% 높였다(연 약 1.2억원 수익 효과).",
+   "sourceUrl": "https://www.epj.co.kr/news/articleView.html?idxno=22970",
+   "confidence": "medium"
+  },
+  {
+   "claim": "한국전기안전공사 ESS 통합관리시스템은 PCS·배터리 운영정보 75개를 1분 단위로 받는다. 2024년 1월부터 온라인 무정전 정기검사를 도입했고, 요건은 전월 연계율 90%다.",
+   "sourceUrl": "https://www.electimes.com/news/articleView.html?idxno=332823",
+   "confidence": "high"
+  },
+  {
+   "claim": "한국에너지공단 REMS에는 2020년 6월 기준 2.1만여 개 신재생 설비가 연동됐고, 설비 제조사 26곳·모니터링 장치 제조사 17곳이 인증을 받았다.",
+   "sourceUrl": "https://www.industrynews.co.kr/news/articleView.html?idxno=38798",
+   "confidence": "medium"
+  },
+  {
+   "claim": "수소안전관리 로드맵 2.0(2023.5)에 따르면 수소충전소는 검사기관이 가스누출·이상압력을 실시간 모니터링하지만, 수소 생산·배관·저장시설은 실시간 모니터링이 없다. 정부는 2030년까지 '수소시설 통합모니터링체계' 구축을 추진한다.",
+   "sourceUrl": "http://www.shinkim.com/newsletter/2023/GA/2023_vol185/links/2023_vol185_102.pdf",
+   "confidence": "high"
+  },
+  {
+   "claim": "ENGIE Darwin 플랫폼은 시스템 투자 1,300만 유로(2년) 대비 3년간 2,700만 유로의 추가수익을 냈다(2018년 기사, 주로 풍력).",
+   "sourceUrl": "https://www.windpower-international.com/analysis/engies-darwin-project-the-evolution-of-data-management-6124931/",
+   "confidence": "medium"
+  },
+  {
+   "claim": "한국서부발전 WISE 예측진단센터의 AI 패턴인식(APR) 예측경보는 2023년 24건, 2024년 30건의 설비 이상을 조기탐지했다(화력 중심).",
+   "sourceUrl": "https://www.electimes.com/news/articleView.html?idxno=355329",
+   "confidence": "medium"
+  },
+  {
+   "claim": "두산퓨얼셀 연료전지는 운영 중 635.8MW(1,437대)이며, 이 중 국내가 568.9MW(1,294대)다(회사 홈페이지, 기준일 미표기).",
+   "sourceUrl": "https://www.doosanfuelcell.com/kr/intro/intr-0401/",
+   "confidence": "medium"
+  },
+  {
+   "claim": "제주 행원 3.3MW급 수전해 실증단지는 2024년 9월부터 하루 약 200kg의 그린수소를 생산해 수소버스 17대 등에 공급한다.",
+   "sourceUrl": "https://www.ajunews.com/view/20260913110346855",
+   "confidence": "medium"
+  },
+  {
+   "claim": "드론 열화상 AI 연구(Measurement, 2026)에서 EfficientNet-B0 모델은 가중 F1 0.927을 기록했고, 점검~보고 시간이 147분에서 54분으로 63% 줄었다.",
+   "sourceUrl": "https://www.aitimes.com/news/articleView.html?idxno=214824",
+   "confidence": "medium"
+  }
+ ],
+ "sources": [
+  {
+   "title": "Huawei - What Is the Smart I-V Curve Diagnosis 3.0?",
+   "url": "https://solar.huawei.com/au/news-room/au/2019/news-20190710"
+  },
+  {
+   "title": "SolarEdge Monitoring Platform",
+   "url": "https://www.solaredge.com/en/products/software-tools/monitoring-platform"
+  },
+  {
+   "title": "Power Factors - Unity Asset Performance Management",
+   "url": "https://www.powerfactors.com/unity/asset-performance-management"
+  },
+  {
+   "title": "Power Factors - European Energy partnership (2.4GW)",
+   "url": "https://www.powerfactors.com/news/european-energy-partners-with-power-factors-to-boost-asset-performance"
+  },
+  {
+   "title": "Raptor Maps - Global Solar Report finds $4.6B annual revenue loss (2024)",
+   "url": "https://raptormaps.com/press/global-solar-report-finds-4b-annual-revenue-loss-in-solar-industry"
+  },
+  {
+   "title": "Canary Media - Raptor Maps Global Solar Report 2025 (193GW)",
+   "url": "https://energy.canarymedia.com/raptor-maps-global-solar-report"
+  },
+  {
+   "title": "SolarQuarter - Benchmarking DC Health (Raptor Maps 2025 findings)",
+   "url": "https://solarquarter.com/2026/02/17/benchmarking-dc-health-protecting-revenue-in-expanding-solar-fleets/"
+  },
+  {
+   "title": "Zeitview - Solar inspections",
+   "url": "https://www.zeitview.com/solar"
+  },
+  {
+   "title": "IEC TS 62446-3:2017 Outdoor infrared thermography of PV modules and plants",
+   "url": "https://webstore.iec.ch/en/publication/28628"
+  },
+  {
+   "title": "ACCURE - Case studies index",
+   "url": "https://www.accure.net/company/case-studies"
+  },
+  {
+   "title": "ACCURE - Gore Street Capital SOC accuracy case",
+   "url": "https://www.accure.net/case-studies/gore-street-capital-turning-soc-accuracy-into-5-more-trading-revenue"
+  },
+  {
+   "title": "ACCURE - SOC corrections (50MWh BESS Europe)",
+   "url": "https://www.accure.net/case-studies/50-mwh-bess-europe"
+  },
+  {
+   "title": "ACCURE - Imbalanced racks commissioning case",
+   "url": "https://www.accure.net/case-studies/imbalanced-racks-bring-commissioning-to-a-standstill"
+  },
+  {
+   "title": "ACCURE - Unplanned downtimes (140MWh BESS Europe)",
+   "url": "https://www.accure.net/case-studies/140-mwh-bess-europe"
+  },
+  {
+   "title": "TWAICE - Digital commissioning case study VERBUND",
+   "url": "https://www.twaice.com/article/digital-commissioning-case-study-verbund"
+  },
+  {
+   "title": "Solar Builder - TWAICE informing arbitrage with battery analytics",
+   "url": "https://solarbuildermag.com/featured/twaice-informing-arbitrage-with-battery-analytics/"
+  },
+  {
+   "title": "EPRI 2024 White Paper - Insights from BESS Failure Incident Database",
+   "url": "https://restservice.epri.com/publicdownload/000000003002030360/0/Product"
+  },
+  {
+   "title": "Energy-Storage.News - BESS failure incident rate dropped 97%",
+   "url": "https://www.energy-storage.news/battery-storage-failure-incident-rate-dropped-97-between-2018-and-2023/"
+  },
+  {
+   "title": "Utility Dive - Cells and modules not responsible for most BESS failures",
+   "url": "https://www.utilitydive.com/news/cells-and-modules-not-responsible-for-most-battery-energy-storage-system-fa/716732/"
+  },
+  {
+   "title": "Fluence - Nispera APM",
+   "url": "https://fluenceenergy.com/nispera/"
+  },
+  {
+   "title": "World Wind Technology - ENGIE's Darwin project",
+   "url": "https://www.windpower-international.com/analysis/engies-darwin-project-the-evolution-of-data-management-6124931/"
+  },
+  {
+   "title": "Clir Renewables - From Data to Decisions (kWh Analytics 인용)",
+   "url": "https://www.clir.eco/blog/leverage-solar-project-data"
+  },
+  {
+   "title": "Golnas & Voss - PV System Reliability: An Operator's Perspective (slides)",
+   "url": "https://pdfs.semanticscholar.org/7535/1afe78f698d9c94ea6f0e48183712c19a7d5.pdf"
+  },
+  {
+   "title": "IEEE Xplore - PV System Reliability: An Operator's Perspective",
+   "url": "https://ieeexplore.ieee.org/document/6305521/"
+  },
+  {
+   "title": "Sandia pvOps documentation",
+   "url": "https://pvops.readthedocs.io/en/latest/"
+  },
+  {
+   "title": "US DOE FEMP - O&M Best Practices Guide Release 3.0 (2010)",
+   "url": "https://www.energy.gov/sites/prod/files/2020/04/f74/omguide_complete_w-eo-disclaimer.pdf"
+  },
+  {
+   "title": "Bloom Energy Form 10-K FY2021 (RMCC)",
+   "url": "https://www.sec.gov/Archives/edgar/data/1664703/000166470322000034/be-20211231.htm"
+  },
+  {
+   "title": "C3 AI and Bloom Energy partnership (2024)",
+   "url": "https://c3.ai/c3-ai-and-bloom-energy-team-up-to-revolutionize-fuel-cell-performance-service-and-engineering-analytics/"
+  },
+  {
+   "title": "Nel Hydrogen - NASOC",
+   "url": "https://nelhydrogen.com/support/nasoc/"
+  },
+  {
+   "title": "thyssenkrupp nucera - Digital service excellence blog",
+   "url": "https://www.thyssenkrupp-nucera.com/newsroom/blog/how-thyssenkrupp-nucera-is-advancing-the-green-hydrogen-economy-through-digital-service-excellence"
+  },
+  {
+   "title": "thyssenkrupp nucera - Alkaline Water Electrolysis",
+   "url": "https://www.thyssenkrupp-nucera.com/technologies/alkaline-water-electrolysis"
+  },
+  {
+   "title": "Siemens - Electrolyzer Condition Monitoring",
+   "url": "https://www.siemens.com/en-us/industries/chemicals/hydrogen/electrolyzer-condition-monitoring/"
+  },
+  {
+   "title": "CORDIS - Haeolus reporting",
+   "url": "https://cordis.europa.eu/project/id/779469/reporting"
+  },
+  {
+   "title": "Clean Hydrogen Partnership - Haeolus",
+   "url": "https://www.clean-hydrogen.europa.eu/projects-dashboard/projects-repository/haeolus_en"
+  },
+  {
+   "title": "SINTEF - Haeolus",
+   "url": "https://www.sintef.no/en/projects/2018/haeolus/"
+  },
+  {
+   "title": "Clean Hydrogen Partnership - HEALTH-CODE",
+   "url": "https://www.clean-hydrogen.europa.eu/projects-dashboard/projects-repository/health-code_en"
+  },
+  {
+   "title": "Clean Hydrogen JU Annual Work Programme 2024 (topic 2024-01-04)",
+   "url": "https://www.clean-hydrogen.europa.eu/system/files/2024-01/Clean%20Hydrogen%20JU%20AWP%202024%20-%20all%20chapters_Final_For_Publication.pdf"
+  },
+  {
+   "title": "Frontiers - Digital Twin concept and architecture for fleets of hydrogen electrolysers (SEGIWA)",
+   "url": "https://www.frontiersin.org/journals/energy-efficiency/articles/10.3389/fenef.2024.1437214/full"
+  },
+  {
+   "title": "OSTI - NREL Digital Twin for Hydrogen Dispersion and Safety Assessment",
+   "url": "https://www.osti.gov/biblio/3011897"
+  },
+  {
+   "title": "REFHYNE - Project progress",
+   "url": "https://www.refhyne.eu/project-progress/"
+  },
+  {
+   "title": "일렉트릭파워 - 동서발전, 드론 활용해 태양광 출력 6.6% 향상",
+   "url": "https://www.epj.co.kr/news/articleView.html?idxno=22970"
+  },
+  {
+   "title": "전기신문 - 동서발전, 발전사 최초 드론으로 태양광 열화상 진단",
+   "url": "https://www.electimes.com/news/articleView.html?idxno=186232"
+  },
+  {
+   "title": "AI타임스 - AI 드론으로 태양광 결함 찾는다(점검시간 147분→54분)",
+   "url": "https://www.aitimes.com/news/articleView.html?idxno=214824"
+  },
+  {
+   "title": "한국경제 - 한국중부발전, AI로 태양광 발전량 99%까지 예측",
+   "url": "https://www.hankyung.com/article/2026021905431"
+  },
+  {
+   "title": "솔라투데이 - 제이케이코어 AI 기반 태양광발전소 디지털 O&M 시스템 혁신제품 지정",
+   "url": "https://www.solartodaymag.com/news/articleView.html?idxno=20404"
+  },
+  {
+   "title": "정보통신신문 - 태양광발전소 고장진단, AI가 한다(에너지기술연구원)",
+   "url": "https://www.koit.co.kr/news/articleView.html?idxno=116998"
+  },
+  {
+   "title": "인사이트에너지뉴스 - 원광에스앤티 AI 태양광설비 수명예측 기술 사업화",
+   "url": "https://www.inenews.kr/news/articleView.html?idxno=15736"
+  },
+  {
+   "title": "전기신문 - 서부발전 WISE 프로젝트",
+   "url": "https://www.electimes.com/news/articleView.html?idxno=355329"
+  },
+  {
+   "title": "이넷뉴스 - 엔비로테크, 서부발전 발전데이터 지원사업 선정",
+   "url": "https://www.enetnews.co.kr/news/articleView.html?idxno=53099"
+  },
+  {
+   "title": "전기신문 - 한국전기안전공사 ESS 온라인 무정전 정기검사 인터뷰",
+   "url": "https://www.electimes.com/news/articleView.html?idxno=332823"
+  },
+  {
+   "title": "한국에너지공단 신재생에너지센터 - REMS 관리센터 오픈 보도자료",
+   "url": "https://www.knrec.or.kr/biz/pds/news/view.do?no=19"
+  },
+  {
+   "title": "인더스트리뉴스 - 에너지공단, 빅데이터 활용 맞춤형 신재생 보급정책(REMS 2.1만 개소)",
+   "url": "https://www.industrynews.co.kr/news/articleView.html?idxno=38798"
+  },
+  {
+   "title": "인더스트리뉴스 - 해줌, 태양광 발전량 예측 앱 '내일의발전' 출시",
+   "url": "https://www.industrynews.co.kr/news/articleView.html?idxno=44127"
+  },
+  {
+   "title": "인더스트리뉴스 - 이엘티 ESS 연계 스마트 통합관제시스템",
+   "url": "https://www.industrynews.co.kr/news/articleView.html?idxno=42525"
+  },
+  {
+   "title": "에너지데일리 - 아이티공간, 배터리 화재 선제 예방",
+   "url": "https://www.energydaily.co.kr/news/articleView.html?idxno=201416"
+  },
+  {
+   "title": "RnDCircle - AI 학습기반 태양광 발전량 예측 고도화 O&M 플랫폼 기술개발과 실증(KETEP 2026)",
+   "url": "https://app.rndcircle.io/gov-grant/5f1bfc5f-45c2-485f-b78e-e2a19ca5b61e"
+  },
+  {
+   "title": "ScienceON - AI 기반 발전량 예측 및 고장 진단 태양광 지능형 엣지 디바이스 개발 보고서",
+   "url": "https://scienceon.kisti.re.kr/srch/selectPORSrchReport.do?cn=TRKO202400004700"
+  },
+  {
+   "title": "다음(중앙일보) - 한수원 AI로 원자력발전소 안전성·운영 효율 높여",
+   "url": "https://v.daum.net/v/4tUksBsAyB"
+  },
+  {
+   "title": "두산퓨얼셀 - 회사소개 활약상(설치 현황)",
+   "url": "https://www.doosanfuelcell.com/kr/intro/intr-0401/"
+  },
+  {
+   "title": "월간수소경제 - SOFC로 신시장 개척하는 블룸SK퓨얼셀",
+   "url": "https://h2news.kr/news/article.html?no=8174"
+  },
+  {
+   "title": "월간수소경제 - 최적 그린수소 테스트베드 제주",
+   "url": "https://www.h2news.kr/news/articleView.html?idxno=12504"
+  },
+  {
+   "title": "한국가스공사 - 제주 1MW PEM 활용 그린수소 생산 성공",
+   "url": "https://www.kogas.or.kr/site/koGas/bbs/View.do?cbIdx=41&boardIdx=45995&Key=1010202000000"
+  },
+  {
+   "title": "아주경제 - 정부, 50~100MW급 그린수소 생산 실증 추진",
+   "url": "https://www.ajunews.com/view/20260913110346855"
+  },
+  {
+   "title": "산업통상자원부 - 수소 안전관리 로드맵 2.0(2023.5, 법무법인 세종 배포본)",
+   "url": "http://www.shinkim.com/newsletter/2023/GA/2023_vol185/links/2023_vol185_102.pdf"
+  }
+ ]
+}

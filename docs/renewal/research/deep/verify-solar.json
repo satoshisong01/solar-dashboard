@@ -1,0 +1,940 @@
+{
+ "verdicts": [
+  {
+   "researchKey": "pv",
+   "claim": "NREL PV Fleet(1,700개 시스템, 7.2GW) 분석에서 전체 중앙 성능 손실률은 −0.75%/yr이고, 서늘한 기후 −0.48%/yr, 더운 기후 −0.88%/yr이다.",
+   "verdict": "verified",
+   "correctedClaim": "NREL PV Fleet(7.2GW, 1,700개 사이트, 인버터 19,000대, 미국 시장의 6~7%) 분석에서 전체 성능 손실률(PLR)은 −0.75%/yr, 서늘한 기후 중앙값 −0.48%/yr, 더운 기후 −0.88%/yr이다.",
+   "evidenceUrl": "https://www.osti.gov/pages/biblio/1864619",
+   "note": "초록 원문과 수치 일치. 원문 단위는 '시스템'이 아니라 '사이트(1,700 sites)'. 추적식 Si·CdTe가 고정식과 비슷하다는 서술도 초록에 있음."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "오염(soiling)은 2018년 전 세계 PV 연간 발전량의 최소 3~4%를 손실시켰고, 경제적 손실은 30억~50억 유로 규모로 추정된다(2023년 4~5%, 40억~70억 유로 전망).",
+   "verdict": "verified",
+   "correctedClaim": "오염(soiling)은 2018년 전 세계 PV 연간 발전량의 최소 3~4%를 손실시켰고 경제적 손실은 30억~50억 유로 규모로 추정되며, 2023년에는 4~5%, 40억~70억 유로로 늘 것으로 전망됐다(IEA PVPS T13-21:2022).",
+   "evidenceUrl": "https://iea-pvps.org/wp-content/uploads/2023/01/IEA-PVPS-T13-21-2022-EXEC-SUMM-Soiling-Losses-PV-Plants.pdf",
+   "note": "요약본 PDF 본문에서 문장 그대로 확인."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "실리콘 태양전지의 개방전압(Voc)은 온도 1°C 상승당 약 2.2 mV 감소하고, 단락전류(Isc)는 일사량에 거의 비례한다.",
+   "verdict": "partially_verified",
+   "correctedClaim": "실리콘 태양전지의 개방전압(Voc)은 온도 1°C 상승당 약 2.2 mV 감소하고, 단락전류(Isc)는 온도 상승 시 약 0.06%/°C로 소폭 증가한다(Isc의 일사 비례성은 이 페이지가 아닌 별도 출처로 뒷받침 필요).",
+   "evidenceUrl": "https://www.pveducation.org/pvcdrom/solar-cell-operation/effect-of-temperature",
+   "note": "Voc −2.2 mV/°C 확인. 인용 페이지는 온도 영향 페이지라 'Isc가 일사에 비례'한다는 내용은 없음(물리적으로는 통설이나 출처 불일치)."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "N형 TOPCon 모듈(JinkoSolar Tiger Neo)의 Pmax 온도계수는 −0.29%/°C, 양면율은 80±5%이다(데이터시트). HJT는 약 −0.24%/°C, PERC는 약 −0.35~−0.38%/°C 수준(추정 범위)이다.",
+   "verdict": "contradicted",
+   "correctedClaim": "JinkoSolar Tiger Neo 3.0 페이지 기준 Pmax 온도계수는 −0.26%/°C, 양면율은 85±5%이다. HJT(약 −0.24%/°C)·PERC(약 −0.35~−0.38%/°C)는 이 출처에서 확인되지 않은 추정 범위다.",
+   "evidenceUrl": "https://www.jinkosolar.com/en/site/tigerneo_3",
+   "note": "인용 URL은 Tiger Neo 3.0 페이지인데 −0.29%/°C·80±5%는 이전 세대 값으로 보임. 제품 세대와 데이터시트 모델명을 명시해야 함."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "EN 50530 시험에서 P&O와 증분 컨덕턴스(IncCond) MPPT의 효율 차이는 동적 0.13%, 정적 0.02%로 사실상 같고, 두 방식 모두 99% 이상의 효율을 보였다.",
+   "verdict": "partially_verified",
+   "correctedClaim": "EN 50530 시험에서 P&O와 증분 컨덕턴스(IncCond) MPPT의 효율 차이는 동적 0.13%, 정적 0.02%에 불과해 두 방식은 사실상 동등하다(Sera et al., IEEE J. Photovoltaics 2013).",
+   "evidenceUrl": "https://vbn.aau.dk/en/publications/on-the-perturb-and-observe-and-incremental-conductance-mppt-metho/",
+   "note": "차이 수치는 초록에서 확인. '둘 다 99% 이상'은 초록에 없고 본문 미확인이므로 삭제 또는 추정 표시 필요."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "한전 분산형전원 배전계통 연계 기술기준은 단독운전 발생 후 최대 0.5초 이내 한전계통 가압 중지를 요구하고, 전압·주파수가 정상 범위에서 5분간 유지된 뒤에만 재병입을 허용한다.",
+   "verdict": "verified",
+   "correctedClaim": "한전 분산형전원 배전계통 연계 기술기준 제17조는 단독운전 발생 후 최대 0.5초 이내 한전계통 가압 중지를 요구하고, 제13조는 전압·주파수가 정상 범위로 복원된 뒤 5분간 유지되지 않으면 재병입하지 않도록 지연기능을 요구한다.",
+   "evidenceUrl": "https://cyber.kepco.co.kr/ckepco/front/jsp/CY/H/C/CYHCHP00802.jsp",
+   "note": "페이지 원문 확인. 같은 기준의 표 2.4(V<50% 0.5초, 50~90% 2초, 110~120% 1초, ≥120% 0.16초), 표 2.5(f>61.5Hz 0.16초), 직류 유입 0.5% 제한도 원리 서술과 일치."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "IEEE 1547-2018은 비의도적 단독운전 형성 후 2초 이내 검출·가압 중지·트립을 요구하며, 상용 인버터 대부분은 '임피던스 검출 + 양의 궤환' 계열 능동 검출법을 사용한다.",
+   "verdict": "partially_verified",
+   "correctedClaim": "IEEE 1547-2018은 비의도적 단독운전 형성 후 2초 이내에 가압 중지와 트립을 요구한다. 흔히 쓰이는 능동 검출법으로는 임피던스 검출, 양의 궤환 Sandia 주파수 편이(SFS), 임피던스 검출+양의 궤환 조합 등이 있으며, 제조사별 독자 방식도 쓰인다.",
+   "evidenceUrl": "https://docs.nlr.gov/docs/fy22osti/77782.pdf",
+   "note": "NREL/TP-5D00-77782 원문에서 2초 요건 확인. '상용 인버터 대부분'이 특정 방식을 쓴다는 통계적 서술은 없음(각주: 'some common active methods include…', 제조사 독자 방식 가능). docs.nrel.gov 도메인은 접속 불가, docs.nlr.gov로 이전됨."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "IEC/EN 62109-2 기반 비절연형 인버터의 잔류전류 감시장치(RCMU)는 30mA 이상 급변 또는 300mA 이상 연속 잔류전류에서 계통을 분리한다.",
+   "verdict": "partially_verified",
+   "correctedClaim": "SMA Sunny Boy Smart Energy 인버터는 IEC/EN 62109-2·VDE 0126-1-1에 따른 전극 감응형 잔류전류 감시장치(RCMU)를 갖추고, 잔류전류가 30mA 넘게 급변하면 계통에서 이중으로 분리한다(300mA 연속 기준은 이 매뉴얼에서 확인되지 않음).",
+   "evidenceUrl": "https://manuals.sma.de/SBSExx-50/en-US/13316496907.html",
+   "note": "30mA 급변 기준만 확인. 300mA 연속 잔류전류 기준은 IEC 62109-2 원문으로 따로 확인해야 함. 특정 제조사 매뉴얼을 일반 규칙처럼 서술함."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "2025년 9월 30일부터 500kW 이상 태양광 인버터에 HVRT·LFRT 성능 개선 통지가 시작되었고, LVRT 개선은 2023년부터 진행되었다.",
+   "verdict": "verified",
+   "correctedClaim": "2025년 9월 30일부터 전력거래소와 한전이 500kW 이상 태양광 사업자에게 인버터 고전압(HVRT)·저주파수(LFRT) 지속운전 성능 개선사업을 우편으로 사전 안내하기 시작했고, 기설 인버터의 LVRT 개선은 2023년부터 대대적으로 진행됐다.",
+   "evidenceUrl": "http://www.e2news.com/news/articleView.html?idxno=323702",
+   "note": "이투뉴스 2025-09-30 기사와 일치(언론 보도, 산업부 원문 고시는 미확인)."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "바르셀로나 1.2MW 현장에서 PID가 가동 4~8개월 만에 발생해 PR이 27.9~39.9% 하락했고, 스트링 Voc는 183.6V에서 134.1V로 떨어졌으며, anti-PID 박스 설치 후에도 PR은 75% 미만에 머물렀다.",
+   "verdict": "verified",
+   "correctedClaim": "바르셀로나 1.2MW 현장에서 PID가 가동 4~8개월 만에 나타났고, PID 스트링의 PR 차이는 27.9~39.9%(정상 스트링 0.3%)였다. Voc는 정상 183.6V 대비 134.1V였고, anti-PID 박스 설치 후에도 PR은 75% 미만에 머물렀다(Scientific Reports 2022).",
+   "evidenceUrl": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9772305/",
+   "note": "원문 수치 모두 일치. Voc는 시간 경과 하락이 아니라 정상 모듈과 PID 모듈의 비교값임."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "TOPCon 모듈 PID 시험에서 AM1.5 수준 UV를 함께 조사하면 PID 손실이 3% 미만이었지만 UV 없이 시험하면 28% 열화했다. 두께 2mm 이하 박판 유리 G/G 모듈은 설치 2년 내 후면 유리 5~10% 파손 사례가 있다.",
+   "verdict": "verified",
+   "correctedClaim": "한 사례에서 AM1.5(1000 W/m²) 수준 UV를 함께 조사하면 TOPCon 모듈의 PID 영향이 3% 미만으로 줄었지만, UV 없이 시험하면 28% 열화했다. 두께 2mm 이하 박판 유리를 쓴 G/G 모듈은 문서화된 사례에서 설치 후 2년 안에 후면 유리의 5~10%가 파손됐다.",
+   "evidenceUrl": "https://iea-pvps.org/wp-content/uploads/2025/02/IEA-PVPS-T13-30-2025-EX-SUMM-Degradation-and-Failure.pdf",
+   "note": "요약본 본문 확인. 원문은 'in one case', 'in documented cases'로 한정하므로 일반 수치처럼 쓰면 안 됨."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "현장 IR 열화상은 일사 600 W/m² 초과, 구름 없음, 약풍 조건에서 촬영하는 것이 권장되고, 모듈 열 안정화에 5~15분이 걸린다. 수작업 야간 EL 점검 생산성은 하룻밤 약 0.2MWp이다.",
+   "verdict": "verified",
+   "correctedClaim": "IEA PVPS T13-10:2018은 IR 촬영을 일사 600 W/m² 초과, 구름 없음, 약풍, 안정된 외기온 조건에서 하도록 권장하고, 모듈 열 안정화에 5~15분이 걸린다고 한다. 수작업(휴대형) 야간 EL 점검 생산성은 하룻밤 약 0.2MWp이며, 드론 EL은 최대 1MWp까지 가능하다.",
+   "evidenceUrl": "https://iea-pvps.org/wp-content/uploads/2020/01/Review_on_IR_and_EL_Imaging_for_PV_Field_Applications_by_Task_13.pdf",
+   "note": "T13-10:2018 보고서 본문에서 세 수치 모두 확인."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "EL 이미지 셀 1,968개로 학습한 결함 분류에서 CNN은 평균 정확도 88.42%, SVM은 82.44%를 기록했다.",
+   "verdict": "verified",
+   "correctedClaim": "EL 이미지 셀 1,968개로 학습한 결함 분류에서 CNN(GPU 필요)은 평균 정확도 88.42%, SVM(범용 하드웨어)은 82.44%를 기록했다(Deitsch et al., Solar Energy 2019).",
+   "evidenceUrl": "https://arxiv.org/abs/1807.02894",
+   "note": "arXiv v3 초록과 일치."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "자동비행 드론과 AI 분석을 적용해 태양광 점검·판독·보고 시간이 147분에서 54분으로 63.3% 줄었고, EfficientNet-B0 모델의 가중 F1은 0.927이었다(Measurement 2026 논문 보도).",
+   "verdict": "verified",
+   "correctedClaim": "AI타임스(2026-09-04) 보도에 따르면 폴란드·스페인 연구진이 학술지 Measurement에 발표한 연구에서 자동비행 드론과 AI 분석으로 전체 점검 시간이 147분에서 54분으로 63.3% 줄었고, EfficientNet-B0의 가중 F1은 0.927이었다.",
+   "evidenceUrl": "https://www.aitimes.com/news/articleView.html?idxno=214824",
+   "note": "기사 수치와 일치. 원 논문은 확인하지 않았으므로 보도 기반 수치로 표시해야 함."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "Raptor Maps 2026 보고서에 따르면 설비 기인 태양광 발전 손실은 2025년 5.08%로 2021년 2.36%의 두 배 이상이며, 손실 비중은 스트링 26.89%, 접속반 21.51%, 트래커 약 14%였다.",
+   "verdict": "verified",
+   "correctedClaim": "Raptor Maps Global Solar Report에 따르면 설비 기인 전력 손실은 2025년 5.08%로 2021년 2.36%의 두 배를 넘었고, 손실 비중은 스트링 고장 26.89%, 접속반 고장 21.51%, 트래커 약 14%, 인버터 25% 미만이었다.",
+   "evidenceUrl": "https://www.pv-tech.org/pv-project-power-loss-doubled-in-last-five-years-raptor-maps/",
+   "note": "PV Tech 2026-02-26 기사와 일치. 업계(벤더) 보고서라 표본·측정방법이 공개되지 않아 신뢰도는 중간 이하."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "SunEdison 450개 시스템의 27개월간 서비스 티켓 3,600건 분석에서 인버터가 고장 빈도와 에너지 손실 모두 1위였고, 에너지 손실의 50%가 전체 사건의 5%에서 발생했다.",
+   "verdict": "verified",
+   "correctedClaim": "SunEdison 450개 시스템의 27개월(2010.1~2012.3) 서비스 티켓 3,600건 분석에서 인버터가 이슈 빈도와 에너지 손실 비중 모두 가장 컸고, 에너지 손실의 50%가 사건의 5%(주로 장기 정지)에서 발생했다.",
+   "evidenceUrl": "https://pdfs.semanticscholar.org/7535/1afe78f698d9c94ea6f0e48183712c19a7d5.pdf",
+   "note": "발표 슬라이드 'Conclusions - I'에서 확인. 미실현 발전량이 총 발전의 약 1%라는 것도 확인됨."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "Sandia·NREL·EPRI가 800여 사이트 정비기록 5.5만 건을 ML로 분석한 결과, 가장 빈번한 인버터 하위계통은 통신, 지락, 열관리, IGBT였다.",
+   "verdict": "verified",
+   "correctedClaim": "Sandia·EPRI·NREL 연구진이 800개 이상 사이트의 정비기록 55,000건을 머신러닝으로 분석한 결과, 가장 자주 언급된 인버터 하위계통은 통신, 지락, 열관리 시스템, IGBT였고 통신 고장은 초기 연도에 더 잦았다(Gunda et al., IEEE Access 2020).",
+   "evidenceUrl": "https://ieeexplore.ieee.org/document/9272625/",
+   "note": "IEEE 페이지는 렌더링되지 않아 DOI 10.1109/ACCESS.2020.3039182 초록(OpenAlex)으로 확인. 원문 표현은 고장 빈도가 아니라 'most frequently discussed'."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "스페인 1MW 사이트는 연 오염 손실이 2.8%에 불과했지만, 최적화된 세척 일정으로 이익이 최대 3.6% 증가했다.",
+   "verdict": "partially_verified",
+   "correctedClaim": "스페인 남부 1MW 사이트처럼 연 오염 손실이 3% 이내인 온화한 지역에서도 계절 오염으로 출력이 20% 넘게 떨어질 수 있으며, 여름철 ±31일 창 안에 연 1회 최적 세척을 하면 이익이 최대 3.6% 늘었다(Micheli et al., Energy 2021).",
+   "evidenceUrl": "https://www.sciencedirect.com/science/article/abs/pii/S0360544220321253",
+   "note": "ScienceDirect는 403. Semantic Scholar 초록으로 확인. 초록은 '연 3% 이내'라고만 하고 2.8%는 본문 미확인. 세척 창은 '31일'이 아니라 '±31일'."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "한국에너지기술연구원은 I-V 곡선·어레이 정보·환경센서 데이터를 학습한 AI로 패널 오염·성능 저하를 95% 이상 정확도로 판단하는 원격 진단 기술을 개발했다.",
+   "verdict": "verified",
+   "correctedClaim": "한국에너지기술연구원 고석환 박사팀은 10년 이상 현장시험으로 모은 고장·정상 I-V 데이터와 어레이·환경센서 정보를 학습한 AI로 95% 이상의 고장 진단 정확도를 확보한 원격 진단 기술을 개발했다(2023.9 보도).",
+   "evidenceUrl": "https://www.industrynews.co.kr/news/articleView.html?idxno=51036",
+   "note": "언론 보도 수치로, 논문 원문의 검증 조건은 미확인."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "2019년~2023년 7월 국내 태양광 발전설비 화재는 375건(재산피해 약 44억 원)이며 원인의 77%(292건)가 전기적 요인이었다.",
+   "verdict": "verified",
+   "correctedClaim": "소방청 자료(노용호 의원실 공개)에 따르면 2019년~2023년 7월 국내 태양광 설비 화재는 375건, 재산피해는 약 44억 원이며, 77%(292건)가 전기적 요인이었다.",
+   "evidenceUrl": "https://www.electimes.com/news/articleView.html?idxno=326670",
+   "note": "기사와 일치. 장소별로는 단독주택 114건이 가장 많아 발전소(39건)에 한정된 통계가 아님에 주의."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "화웨이 스마트 IV 커브 진단은 100MW를 15분에 스캔해 14종 결함을 보고하며, 말레이시아 사례에서 9,496개 스트링 중 12.1%를 결함으로 검출했다(제조사 주장).",
+   "verdict": "verified",
+   "correctedClaim": "화웨이(제조사 발표)에 따르면 Smart I-V Curve Diagnosis는 100MW를 약 15분에 스캔해 14종 결함 보고서를 만들고, 말레이시아에서 9,496개 스트링 중 1,149개(12.1%)를 결함으로 검출했으며, 전량 조치 시 발전량이 1.5% 이상 늘 수 있다고 주장한다.",
+   "evidenceUrl": "https://solar.huawei.com/au/news/2019/news-20190710/",
+   "note": "제조사 자료와 일치. 독립 검증이 없으므로 일반적 효과로 서술하면 안 됨."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "(사례) NREL: 전체 중앙 PLR −0.75%/yr, 서늘한 기후 −0.48%/yr, 더운 기후 −0.88%/yr. 추적식 Si·CdTe는 고정식과 비슷.",
+   "verdict": "verified",
+   "correctedClaim": "NREL PV Fleet(7.2GW, 1,700개 사이트): 전체 PLR −0.75%/yr, 서늘한 기후 −0.48%/yr, 더운 기후 −0.88%/yr. 추적식 Si·CdTe는 고정식과 비슷했다.",
+   "evidenceUrl": "https://www.osti.gov/pages/biblio/1864619",
+   "note": "초록과 일치."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "(사례) SunEdison(Golnas & Voss, IEEE PVSC 2012): 인버터가 티켓 빈도·에너지 손실 모두 1위(2차 문헌 인용: 티켓 43%, 손실 36%). 에너지 손실의 50%가 사건 5%에서 발생(장기 정지). 27개월 미실현 발전량은 총 발전의 약 1%.",
+   "verdict": "partially_verified",
+   "correctedClaim": "SunEdison(Golnas & Voss): 인버터가 이슈 빈도와 에너지 손실 비중 모두 1위였고, 에너지 손실의 50%가 사건의 5%(장기 정지)에서 발생했으며, 27개월 미실현 발전량은 총 발전의 약 1%였다.",
+   "evidenceUrl": "https://pdfs.semanticscholar.org/7535/1afe78f698d9c94ea6f0e48183712c19a7d5.pdf",
+   "note": "슬라이드 막대그래프에는 수치 라벨이 없어 '티켓 43%, 손실 36%'는 인용 URL에서 확인 불가. 2차 문헌의 서지를 따로 밝히거나 삭제해야 함."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "(사례) Sandia·NREL·EPRI: 가장 빈번한 인버터 하위계통: 통신, 지락, 열관리, IGBT. 정확도 수치는 초록에서 미확인.",
+   "verdict": "verified",
+   "correctedClaim": "Sandia·EPRI·NREL(Gunda et al., IEEE Access 2020): 정비기록 55,000건(800개 이상 사이트)에서 가장 자주 언급된 인버터 하위계통은 통신, 지락, 열관리, IGBT였다. 분류 정확도 수치는 초록에 없다.",
+   "evidenceUrl": "https://ieeexplore.ieee.org/document/9272625/",
+   "note": "OpenAlex 초록과 저자 소속(Sandia, EPRI, NREL)으로 확인."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "(사례) Raptor Maps(업계 보고서): 설비 기인 손실 2025년 5.08%(2021년 2.36%의 2배 이상). 손실 비중은 스트링 26.89%, 접속반 21.51%, 트래커 약 14%, 인버터 25% 미만. 연 5회 점검 사이트 약 3% vs 연 1회 약 7%. 도킹 드론 운영 사이트 평균 3%.",
+   "verdict": "partially_verified",
+   "correctedClaim": "Raptor Maps(업계 보고서): 설비 기인 손실은 2025년 5.08%(2021년 2.36%의 2배 이상)였고, 손실 비중은 스트링 26.89%, 접속반 21.51%, 트래커 약 14%, 인버터 25% 미만이었다. 연 1회 점검 사이트는 평균 약 7%, 연 5회 점검 사이트는 약 3%의 손실을 보였다(상관관계).",
+   "evidenceUrl": "https://www.pv-tech.org/pv-project-power-loss-doubled-in-last-five-years-raptor-maps/",
+   "note": "'도킹 드론 운영 사이트 평균 3%'는 PV Tech 기사에 없음. 원 보고서에서 확인하지 못했다면 삭제해야 함."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "(사례) 폴란드·스페인 공동연구팀(Measurement, 2026년 8월): EfficientNet-B0 정밀도 0.903, 재현율 0.907, 가중 F1 0.927(핫스팟 F1 1.0, 먼지 0.732). 전체 점검 시간 147분 → 54분(−63.3%), 판독·보고만 87분 → 19분.",
+   "verdict": "verified",
+   "correctedClaim": "폴란드·스페인 공동연구팀(Measurement, 2026년 8월 공개, AI타임스 보도): EfficientNet-B0 정밀도 0.903, 재현율 0.907, 가중 F1 0.927(핫스팟 F1 1.0, 먼지 0.732). 전체 점검 시간 147분→54분(−63.3%), 판독·보고 87분→19분.",
+   "evidenceUrl": "https://www.aitimes.com/news/articleView.html?idxno=214824",
+   "note": "보도 수치와 모두 일치. 원 논문(DOI)은 미확인."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "(사례) 한국에너지기술연구원(고석환 박사팀): 오염·성능 저하 판단 정확도 95% 이상, 일사 변화 조건에서 전압-전류 예측 98% 이상(2023.9 보도).",
+   "verdict": "verified",
+   "correctedClaim": "한국에너지기술연구원(고석환 박사팀, 2023.9 보도): 고장 진단 정확도 95% 이상. 수시로 변하는 일사 조건에서 전압·전류 시뮬레이션 데이터를 98% 이상 정확하게 예측했다.",
+   "evidenceUrl": "https://www.industrynews.co.kr/news/articleView.html?idxno=51036",
+   "note": "98%는 현장 실측이 아니라 '시뮬레이션 데이터' 예측 정확도임을 명시해야 함."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "(사례) 화웨이(제조사 발표): 100MW 스캔 15분, 14종 결함 보고. 중국 거얼무 100MW 전 스트링 진단. 말레이시아 9,496 스트링 중 1,149개(12.1%) 결함, 전량 조치 시 발전량 1.5% 이상 증가(제조사 주장, 신뢰도 낮음).",
+   "verdict": "verified",
+   "correctedClaim": "화웨이(제조사 발표): 100MW 스캔 약 15분, 14종 결함 보고. 칭하이 거얼무 100MW 발전소 전 스트링 15분 진단(제조사는 '100% 정확도' 주장). 말레이시아 9,496개 스트링 중 1,149개(12.1%) 결함, 전량 조치 시 발전량 1.5% 이상 증가(제조사 주장).",
+   "evidenceUrl": "https://solar.huawei.com/au/news/2019/news-20190710/",
+   "note": "제조사 페이지와 일치. 독립 검증 없음."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "(사례) FAU Erlangen-Nürnberg 등(Deitsch et al., Solar Energy 2019): CNN 평균 정확도 88.42%(GPU 필요), SVM 82.44%(범용 하드웨어 가능).",
+   "verdict": "verified",
+   "correctedClaim": "FAU Erlangen-Nürnberg·뉘른베르크 공대·ZAE Bayern(Deitsch et al., Solar Energy 2019): 셀 1,968개로 학습해 CNN 평균 정확도 88.42%(GPU 필요), SVM 82.44%(범용 하드웨어).",
+   "evidenceUrl": "https://arxiv.org/abs/1807.02894",
+   "note": "일치."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "(사례) Universidad de Jaén 등(Micheli et al., Energy 2021): 연 오염 손실 2.8%에서도 최적화 세척으로 이익 최대 3.6% 증가. 여름 31일 창 안에서 세척하면 수익성이 있음.",
+   "verdict": "partially_verified",
+   "correctedClaim": "Universidad de Jaén(Micheli et al., Energy 2021): 스페인 남부 1MW 설비(연 오염 손실 3% 이내 지역)에서 여름철 ±31일 창 안에 연 1회 최적 세척하면 이익이 최대 3.6% 늘었다.",
+   "evidenceUrl": "https://www.sciencedirect.com/science/article/abs/pii/S0360544220321253",
+   "note": "초록 기준. 2.8%는 본문 미확인이고, 창은 '±31일'."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "(사례) Scientific Reports 2022(스페인 바르셀로나 1.2MW): PID 스트링 PR 27.9~39.9% 하락(정상 0.3%). Voc 183.6V → 134.1V. IR 표면온도 55~60°C vs 정상 37°C. anti-PID 박스는 온도를 9~13°C 낮췄지만 PR은 75% 미만에 머묾(조기 탐지 필요성).",
+   "verdict": "verified",
+   "correctedClaim": "Scientific Reports 2022(바르셀로나 1.2MW): PID 스트링 PR 차이 27.9~39.9%(정상 스트링 0.3%). Voc는 정상 183.6V 대비 PID 134.1V. 표면온도는 PID 55~60°C, 정상 약 37°C. anti-PID 박스 설치 후 온도는 9~13°C 낮아졌지만 PR은 계속 75% 미만이었다.",
+   "evidenceUrl": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9772305/",
+   "note": "모든 수치가 원문과 일치."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "(AI효과) 비가역 열화율 추정(RdTools YoY)과 기술별·보증 대비 벤치마크: NREL PV Fleet 중앙 PLR −0.75%/yr, 서늘한 기후 −0.48, 더운 기후 −0.88%/yr(Jordan et al. 2022). YoY 방식은 센서 드리프트·데이터 이동·오염에도 강건하다(Jordan et al. 2018).",
+   "verdict": "partially_verified",
+   "correctedClaim": "NREL PV Fleet(7.2GW, 1,700개 사이트) PLR −0.75%/yr, 서늘한 기후 −0.48%/yr, 더운 기후 −0.88%/yr(Jordan et al. 2022). YoY 방식의 강건성(Jordan et al. 2018)은 본 검증에서 원문을 확인하지 못했다. 또한 NREL FY24 보고서는 CODS로 오염을 제외하면 열화율이 평균 약 −0.5%/yr라고 한다.",
+   "evidenceUrl": "https://www.osti.gov/pages/biblio/1864619",
+   "note": "PLR 수치는 확인. Jordan 2018 강건성 주장은 출처 URL이 없어 미확인. 오염이 PLR에 섞인다는 점(NREL 88769)도 함께 적어야 함."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "(AI효과) 오염 손실 추정과 경제적 세척 최적 시점: 스페인 1MW 사이트 연 오염 손실 2.8%, 세척 최적화로 이익 최대 3.6% 증가(Micheli 2021). 전 세계 오염 손실 2018년 최소 3~4%, 30~50억 유로(IEA PVPS).",
+   "verdict": "partially_verified",
+   "correctedClaim": "스페인 남부 1MW 사이트(연 오염 손실 3% 이내 지역)에서 여름 ±31일 창 안의 최적 연 1회 세척으로 이익이 최대 3.6% 증가(Micheli 2021). 전 세계 오염 손실은 2018년 연 발전량의 최소 3~4%, 30~50억 유로로 추정(IEA PVPS T13-21:2022).",
+   "evidenceUrl": "https://iea-pvps.org/wp-content/uploads/2023/01/IEA-PVPS-T13-21-2022-EXEC-SUMM-Soiling-Losses-PV-Plants.pdf",
+   "note": "IEA 수치는 확인. Micheli 2.8%는 초록에서 미확인."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "(AI효과) IV 커브 형상 기반 결함 진단: 한국에너지기술연구원 AI 95% 이상 정확도, 화웨이 100MW 15분·14종 결함, 말레이시아 12.1% 결함, 1.5% 이상 증가(제조사 주장).",
+   "verdict": "verified",
+   "correctedClaim": "한국에너지기술연구원: I-V 곡선·어레이·환경센서 기반 AI로 고장 진단 정확도 95% 이상(2023 보도). 화웨이(제조사 주장): 100MW 15분 스캔·14종 결함, 말레이시아 9,496개 스트링 중 12.1% 결함, 전량 조치 시 발전량 1.5% 이상 증가.",
+   "evidenceUrl": "https://www.industrynews.co.kr/news/articleView.html?idxno=51036",
+   "note": "두 출처 모두 보도·제조사 자료. 효과 수치는 일반화하면 안 됨."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "(AI효과) 드론 IR·가시광 결함 검출: 147분→54분(−63.3%), EfficientNet-B0 가중 F1 0.927. Raptor Maps 연 5회 점검 약 3% vs 연 1회 약 7%(상관관계).",
+   "verdict": "verified",
+   "correctedClaim": "Measurement 2026 연구(AI타임스 보도): 점검·판독·보고 147분→54분(−63.3%), EfficientNet-B0 가중 F1 0.927. Raptor Maps: 연 1회 점검 사이트 평균 손실 약 7%, 연 5회 약 3%(상관관계이며 인과 아님).",
+   "evidenceUrl": "https://www.pv-tech.org/pv-project-power-loss-doubled-in-last-five-years-raptor-maps/",
+   "note": "두 출처 수치와 일치."
+  },
+  {
+   "researchKey": "pv",
+   "claim": "(AI효과) EL 이미지 셀 결함 분류: Deitsch et al.: 1,968개 셀로 CNN 88.42%, SVM 82.44%.",
+   "verdict": "verified",
+   "correctedClaim": "Deitsch et al.(Solar Energy 2019): 셀 1,968개 EL 이미지로 CNN 평균 정확도 88.42%(GPU), SVM 82.44%(범용 하드웨어).",
+   "evidenceUrl": "https://arxiv.org/abs/1807.02894",
+   "note": "일치."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "EPRI 분석에 따르면 전 세계 계통용 BESS 고장률은 2018년 GW당 약 9.2건에서 2023년 약 0.2건으로 97% 감소했다.",
+   "verdict": "verified",
+   "correctedClaim": "EPRI·PNNL·TWAICE 공동 분석에 따르면 전 세계 계통용 BESS 고장률은 2018년 설치 GW당 9.2건에서 2023년 약 0.2건으로 97% 감소했다.",
+   "evidenceUrl": "https://www.energy-storage.news/battery-storage-failure-incident-rate-dropped-97-between-2018-and-2023/",
+   "note": "Energy-Storage.News 2024-05-16 기사와 EPRI 백서 서문(97%)에서 확인."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "EPRI DB 81건 중 원인 분류 가능한 26건에서 셀/모듈 직접 원인은 3건(11%)뿐이었고, 연령이 알려진 고장의 72%가 시공·시운전·운전 2년 이내에 발생했다.",
+   "verdict": "verified",
+   "correctedClaim": "EPRI BESS 고장 DB 81건 중 원인 분류가 가능한 26건에서 셀에 직접 기인한 사고는 3건(11%)뿐이었고, 연령이 알려진 고장의 72%가 시공·시운전 중이거나 운전 2년 이내에 발생했다.",
+   "evidenceUrl": "https://www.powermag.com/wp-content/uploads/2024/05/bess-failure-report.pdf",
+   "note": "EPRI 2024 백서 본문에서 확인. 원문은 'attributed directly to the cells'. 제어 분류 사고 중 다수가 SOC 제한 등 운영 문제와 관련됐다는 단서도 있음."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "EPRI DB의 2018~2019년 사고 30건 중 27건이 한국에서 발생했으며, 한국 설치 ESS는 2013년 30개에서 2018년 947개로 급증했다.",
+   "verdict": "verified",
+   "correctedClaim": "EPRI DB의 2018~2019년 사고 30건 중 27건이 한국에서 발생했고, 한국의 BESS 설치 수는 2013년 30개에서 2018년 947개로 급증했다.",
+   "evidenceUrl": "https://www.powermag.com/wp-content/uploads/2024/05/bess-failure-report.pdf",
+   "note": "백서 본문과 일치."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "2019년 6월 정부 조사 결과 ESS 화재 23건 중 14건이 충전완료 후 대기 중, 6건이 충·방전 중, 3건이 설치·시공 중 발생했고 17건이 태양광·풍력 연계용이었다.",
+   "verdict": "verified",
+   "correctedClaim": "2019년 6월 11일 발표된 정부 조사 결과, ESS 화재 23건 중 14건은 충전완료 후 대기 중, 6건은 충·방전 중, 3건은 설치·시공 중 발생했고, 17건이 태양광·풍력 연계용이었다.",
+   "evidenceUrl": "https://www.korea.kr/news/policyNewsView.do?newsId=156335827",
+   "note": "정책브리핑 원문과 일치. 원인 4가지(전기적 충격 보호 미흡, 운영환경 관리 미흡, 설치 부주의, 통합제어·보호체계 부족)도 확인."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "2020년 2월 2차 조사에서 화재 5건 중 4건이 배터리 이상으로 판단됐고, 대상 설비는 95% 이상 충전율로 운영돼 옥내 80%·옥외 90% 충전율 제한이 도입됐다.",
+   "verdict": "verified",
+   "correctedClaim": "2020년 2월 6일 발표된 2차 조사에서 화재 5건 중 4건(예산·군위·평창·김해)은 배터리 이상이 95% 이상 높은 충전율과 결합해 발생한 것으로, 1건(하동)은 외부 이물질 접촉으로 판단됐다. 이후 충전율을 건물 내(옥내) 80%, 전용건물(옥외) 90%로 제한했다.",
+   "evidenceUrl": "https://www.knpnews.com/news/articleView.html?idxno=20325",
+   "note": "기사와 일치. 배터리 제조사는 결론에 반발했다는 점도 함께 적는 것이 공정함."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "한국전기안전공사 자료(2024.10 국감)에 따르면 2017년~2024년 6월 ESS 화재는 55건이며, 2021년 이후 25건 중 23건(92%)이 제한 충전율 이상 완충 후 미운영 상태에서 발생했다.",
+   "verdict": "verified",
+   "correctedClaim": "한국전기안전공사 자료(허성무 의원실, 2024-10-07 보도)에 따르면 2017년~2024년 6월 ESS 화재는 55건이며, 2021년 이후 25건 중 23건(92%)이 제한 충전율 이상으로 완충한 뒤 운영하지 않는 상태에서 발생했다.",
+   "evidenceUrl": "https://zdnet.co.kr/view/?no=20241007084436",
+   "note": "기사와 일치. 2024년에만 충전율 위반 70곳이 적발됐다는 내용도 있음."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "2022년 5월 2일 ESS 안전강화 대책으로 신규 설비는 충전율 제한을 보증수명 용량 이하 운영으로 전환하고, 안전관리자 월 1회 점검을 의무화했다.",
+   "verdict": "verified",
+   "correctedClaim": "2022년 5월 2일 산업부 ESS 안전강화 대책은 KEC 개정 이후 신규 설비의 충전율 고정 제한을 배터리 제조사 보증수명 용량 이내 운영으로 바꾸고(기존 설비는 기존 제한 유지), 안전관리자 월 1회 점검과 절연저항 저하 경보를 요구했다.",
+   "evidenceUrl": "https://www.shinkim.com/kor/media/newsletter/1815",
+   "note": "법무법인 뉴스레터(2차 자료)와 일치. 기존 설비는 옥내 80%·옥외 90% 제한이 유지된다는 점을 명시해야 함."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "PNNL 2022 평가는 캘린더 수명을 LFP 16년, NMC 13년으로, 평균 DOD 80%에서 80% 에너지 도달까지 사이클을 LFP 2,400회, NMC 1,520회(점추정)로 가정한다.",
+   "verdict": "verified",
+   "correctedClaim": "PNNL 2022 평가는 캘린더 수명을 LFP 16년, NMC 13년으로 두고, 평균 DOD 80%에서 가용 에너지가 정격의 80% 미만이 될 때까지의 사이클을 LFP 2,400회, NMC 1,520회(LCOS 점추정)로 가정한다.",
+   "evidenceUrl": "https://www.pnnl.gov/sites/default/files/media/file/ESGC%20Cost%20Performance%20Report%202022%20PNNL-33283.pdf",
+   "note": "본문 4.1.4절·표 4.3에서 확인."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "PNNL 2022는 리튬이온 ESS의 DC-DC 왕복효율 89.55%, 인버터·변압기 손실을 포함한 AC-AC 왕복효율 82.59%(2021년 기준)를 적용한다.",
+   "verdict": "verified",
+   "correctedClaim": "PNNL 2022는 리튬이온(LFP·NMC) ESS에 DC-DC 왕복효율 89.55%, 인버터 수준 AC-AC 86.00%, 변압기 포함 AC-AC 82.59%(2021년 기준, 양방향 인버터·변압기 각각 (0.98)² 가정)를 적용한다.",
+   "evidenceUrl": "https://www.pnnl.gov/sites/default/files/media/file/ESGC%20Cost%20Performance%20Report%202022%20PNNL-33283.pdf",
+   "note": "표 4.4와 일치."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "모듈 단위 열전파 시험에서 NMC811 모듈은 표면온도 371.6°C에서 열전파가 시작된 반면 LFP는 첫 셀 열폭주가 436.6°C에서 발생했다.",
+   "verdict": "unverified",
+   "correctedClaim": "(미확인) 차량용 NMC-811(Mini Cooper SE)·LFP(Tesla Model 3 SR+) 모듈 열전파 비교 연구(eTransportation 2023)에서 NMC-811의 열폭주 반응 속도는 셀 에너지 기준 LFP보다 9배 빨랐다. 371.6°C·436.6°C 수치는 원문에서 확인하지 못했다.",
+   "evidenceUrl": "https://www.sciencedirect.com/science/article/pii/S2590116823000802",
+   "note": "ScienceDirect 403으로 본문 확인 불가. 초록에는 해당 온도가 없음. 차량용 모듈 시험이라 정치형 ESS에 그대로 적용하면 안 됨."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "열폭주 시 최고온도는 고코발트 LCO/NMC 셀 853±24°C, 저코발트 NMC 678±13°C, LFP 404±23°C로 측정됐다.",
+   "verdict": "partially_verified",
+   "correctedClaim": "상용 18650 셀(LFP, NMC(111계 저코발트), LCO+NMC 혼합)을 과열로 열폭주시킨 실험에서 셀 온도가 최고 약 850°C까지 측정됐다(RSC Advances 2014). 화학별 ± 수치는 본 검증에서 원문을 확인하지 못했다.",
+   "evidenceUrl": "https://pubs.rsc.org/en/content/articlehtml/2014/ra/c3ra45748f",
+   "note": "RSC 페이지 403. 초록(OpenAlex)에서 '최고 850°C'와 셀 구성만 확인. 853·678·404°C 개별 값은 미확인이며, 18650 소형 셀 결과임을 명시해야 함."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "Accure 2025 보고서(100개 이상 BESS, 18GWh 이상)에 따르면 LFP 시스템의 BMS SOC 추정 오차 ±15%가 흔하며 고급 분석 적용 시 ±2%로 줄일 수 있다.",
+   "verdict": "verified",
+   "correctedClaim": "ACCURE 2025 보고서(계통용 BESS 100개 이상, 18GWh 이상)에 따르면 LFP 시스템에서 SOC 추정 오차 ±15%가 흔하며, 고급 분석을 쓰는 사업은 이를 ±2%로 줄일 수 있다(벤더 자료).",
+   "evidenceUrl": "https://www.renewableenergymagazine.com/storage/accure-releases-2025-energy-storage-system-health-20250910",
+   "note": "2025-09-10 기사와 일치. 벤더 자사 솔루션 홍보 성격이 있어 일반적 효과로 서술하면 안 됨."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "LFP 셀은 긴 휴지 후에도 충전·방전 OCV 곡선 사이에 5~25mV 히스테리시스가 남아 평탄구간에서 전압 기반 SOC 오차가 ±15%를 넘을 수 있다.",
+   "verdict": "verified",
+   "correctedClaim": "ACCURE 블로그에 따르면 LFP는 휴지 후에도 충전·방전 OCV 곡선 사이에 보통 5~25mV 차이가 남고, 평탄구간에서는 작은 전압 오차가 ±15%를 넘는 SOC 오차로 이어질 수 있다.",
+   "evidenceUrl": "https://www.accure.net/blogs/battery-hysteresis-effect",
+   "note": "블로그 문장과 일치(벤더 블로그, 신뢰도 낮음)."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "Severson 등(2019)은 LFP 셀 124개 데이터로 용량 저하 전 첫 100사이클만 사용해 수명을 시험 오차 9.1%로 예측하고, 첫 5사이클로 2그룹 분류 오차 4.9%를 달성했다.",
+   "verdict": "verified",
+   "correctedClaim": "Severson 등(Nature Energy 2019)은 급속충전 조건의 LFP/흑연 상용 셀 124개(수명 150~2,300사이클)로 첫 100사이클 데이터만 써 수명을 시험 오차 9.1%로 예측했고, 첫 5사이클로 2그룹 분류 시험 오차 4.9%를 달성했다.",
+   "evidenceUrl": "https://www.nature.com/articles/s41560-019-0356-8",
+   "note": "초록과 일치. 실험실 셀 데이터임."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "Attia 등(2020)은 초기 수명예측과 베이지안 최적화로 224개 급속충전 프로토콜 중 고수명 조건을 16일 만에 찾았다(완전탐색 시 500일 이상).",
+   "verdict": "verified",
+   "correctedClaim": "Attia 등(Nature 2020)은 초기 수명예측 모델과 베이지안 최적화로 6단계 10분 급속충전 프로토콜 224개 후보 중 고수명 조건을 16일 만에 찾았다(초기 예측 없는 완전탐색은 500일 이상).",
+   "evidenceUrl": "https://www.nature.com/articles/s41586-020-1994-5",
+   "note": "초록과 일치."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "물리정보신경망(PINN) SOH 추정은 387개 셀·310,705샘플에서 MAPE 0.87%를 기록했다.",
+   "verdict": "verified",
+   "correctedClaim": "물리정보신경망(PINN) SOH 추정은 4개 데이터셋(자체 NCM 55셀 포함) 387셀·310,705샘플에서 MAPE 0.87%를 기록했다(Nature Communications 2024).",
+   "evidenceUrl": "https://doi.org/10.1038/s41467-024-48779-z",
+   "note": "초록과 일치. 실험실 데이터셋 기준."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "NREL 수명모델에서 셀 온도를 연중 20~30°C로 유지하는 열관리를 추가하면 수명이 4.9년에서 7.0년(DOD 74%)으로, DOD를 54%로 제한하면 10년으로 늘어났다.",
+   "verdict": "verified",
+   "correctedClaim": "NREL·SunPower 수명모델 시뮬레이션에서 계절 외기에 노출된 배터리는 정격의 70%까지 4.9년이 걸렸고, 셀 온도를 연중 20~30°C로 유지하는 열관리를 더하면 DOD 74%에서 7.0년, 같은 열관리에 DOD를 54%로 제한하면 10년으로 늘었다(Smith et al., ACC 2017).",
+   "evidenceUrl": "https://docs.nlr.gov/docs/fy17osti/67102.pdf",
+   "note": "프리프린트 본문과 일치. 수명 종료 기준은 70% 용량, 시뮬레이션 결과임."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "열화비용을 반영하지 않은 ESS 시장 운전(ISO-NE 5분 실시간시장 시뮬레이션)은 기대수명 1.1년·연간 약 −210만 달러였으나, 16구간 열화비용 모델 반영 시 8.0년·약 +27.6만 달러가 됐다.",
+   "verdict": "verified",
+   "correctedClaim": "20MW/12.5MWh BES의 ISO-NE 2015년 가격 기반 5분 정산 실시간시장 시뮬레이션에서 사이클 열화비용을 반영하지 않으면 기대수명 1.1년·연간 환산이익 약 −210만 달러였고, 16구간 열화비용 모델을 반영하면 8.0년·약 +27.6만 달러였다(Xu et al.).",
+   "evidenceUrl": "https://arxiv.org/abs/1707.04567",
+   "note": "arXiv 본문 표 I에서 확인. '5분 정산'은 당시 ISO-NE 도입 예정 제도를 가정한 것이며, 1구간 모델은 8.2년·+22.3만 달러."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "Jin 등(2020, Joule) 실험에서 H2 가스 포집은 연기 발생보다 639초, 발화보다 769초 앞서 리튬 덴드라이트 위험을 경고했다.",
+   "verdict": "verified",
+   "correctedClaim": "Jin 등(Joule 2020)의 LFP-흑연 배터리팩(8.8kWh) 과충전 실험에서 H2·CO·CO2·HCl·HF·SO2 중 H2가 가장 먼저 감지됐고, 연기보다 639초, 발화보다 769초 빨랐다.",
+   "evidenceUrl": "https://www.cell.com/joule/fulltext/S2542-4351(20)30234-8",
+   "note": "Cell 페이지는 403이지만 Semantic Scholar 초록 원문으로 확인. 과충전 실험 조건이므로 모든 고장 모드에 일반화하면 안 됨."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "오프가스(전해질 증기) 감지 장치는 열폭주 발생 2~30분 전 경고를 제공한다(제조사 주장).",
+   "verdict": "verified",
+   "correctedClaim": "Honeywell은 Li-ion Tamer 오프가스 감지가 열폭주 사건 전에 보통 2~30분의 경고를 준다고 주장하며, 경고 시간은 남용(abuse) 조건의 심각도에 크게 좌우된다고 밝힌다(제조사 주장).",
+   "evidenceUrl": "https://buildings.honeywell.com/us/en/brands/our-brands/li-ion-tamer",
+   "note": "제조사 문구와 일치. 조건에 따라 달라진다는 단서를 함께 적어야 함."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "(사례) Stanford·MIT·TRI(Severson, Nature Energy 2019): 첫 100사이클(용량 중앙값 0.2% 증가 상태)로 수명 예측 시험 오차 9.1%, 첫 5사이클로 2그룹 분류 오차 4.9%.",
+   "verdict": "verified",
+   "correctedClaim": "Stanford·MIT·Toyota Research Institute(Severson, Nature Energy 2019): 첫 100사이클(초기 대비 용량 중앙값 0.2% 증가 상태)로 수명 예측 시험 오차 9.1%, 첫 5사이클로 2그룹 분류 시험 오차 4.9%.",
+   "evidenceUrl": "https://www.nature.com/articles/s41560-019-0356-8",
+   "note": "초록과 일치."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "(사례) Stanford·MIT·TRI(Attia, Nature 2020): 224개 후보 프로토콜에서 고수명 조건 16일 식별(완전탐색 500일 이상).",
+   "verdict": "verified",
+   "correctedClaim": "Attia 외(Nature 2020): 224개 후보 급속충전 프로토콜에서 고수명 조건을 16일 만에 식별(초기 예측 없는 완전탐색은 500일 이상).",
+   "evidenceUrl": "https://www.nature.com/articles/s41586-020-1994-5",
+   "note": "초록과 일치."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "(사례) Wang 외(Nature Communications 2024): 4개 데이터셋 387셀·310,705샘플에서 SOH MAPE 0.87%.",
+   "verdict": "verified",
+   "correctedClaim": "Wang 외(Nature Communications 2024): 4개 데이터셋 387셀·310,705샘플에서 SOH MAPE 0.87%.",
+   "evidenceUrl": "https://doi.org/10.1038/s41467-024-48779-z",
+   "note": "초록과 일치."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "(사례) 칭화대학교 등(Zhang 외, Nature Communications 2023): 347대 EV의 69만 개 이상 충전 스니펫에서 최신 모델 대비 우수, 예상 직접 고장·점검 비용 절감(초록상 절감률 수치 미기재).",
+   "verdict": "verified",
+   "correctedClaim": "Zhang 외(Nature Communications 2023): EV 347대의 충전 스니펫 69만 개 이상에서 동적 오토인코더 기반 이상탐지가 최신 모델의 한계를 넘었고, 예상 직접 배터리 고장·점검 비용을 줄였다(초록에 절감률 수치 없음).",
+   "evidenceUrl": "https://www.nature.com/articles/s41467-023-41226-5",
+   "note": "초록과 일치. EV 데이터이며 ESS 적용 효과는 미확인."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "(사례) University of Oxford(Aitio·Howey, 2021): 1,027개 배터리·6.2억 행 데이터에서 수명말을 8주 전 73%, 고장 시점 82% 정확도로 예측.",
+   "verdict": "verified",
+   "correctedClaim": "University of Oxford(Aitio·Howey, 2021): 사하라 이남 아프리카 태양광 홈시스템의 12V 20Ah 납축전지 1,027개(각 400~760일, 6.2억 행)에서 수명말을 8주 전 73%, 고장 시점 82%(균형 정확도) 정확도로 예측했다.",
+   "evidenceUrl": "https://arxiv.org/abs/2107.13856",
+   "note": "본문과 일치. 리튬이온 ESS가 아니라 소형 납축전지라는 점을 반드시 적어야 함."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "(사례) ACCURE Battery Intelligence: 18GWh+ 분석, 하드웨어 부품 19%가 운영 문제 유발, SAT 정격용량 충족 83%, LFP SOC 오차 ±15% 흔함 → 고급 분석 시 ±2%, 상위 사업 RTE 88% 초과, 저품질 데이터 수집 시스템 20%(벤더 자료).",
+   "verdict": "verified",
+   "correctedClaim": "ACCURE 2025 보고서(BESS 100개 이상, 18GWh 이상): BESS 하드웨어 부품의 19%가 운영 문제 유발, SAT에서 정격용량을 충족·초과한 사업 83%, LFP SOC 오차 ±15% 흔함(고급 분석 시 ±2%), 최상위 시스템 RTE 88% 초과, 시스템의 20%는 저품질 데이터만 수집(벤더 자료).",
+   "evidenceUrl": "https://www.renewableenergymagazine.com/storage/accure-releases-2025-energy-storage-system-health-20250910",
+   "note": "기사와 일치."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "(사례) EPRI(TWAICE·PNNL 공동 분류): 2018~2023년 고장률 97% 감소(GW당 약 9.2→0.2건), 셀/모듈 직접 원인 11%(3건), 연령 알려진 고장의 72%가 시공·시운전·운전 2년 이내, 2018~2019년 30건 중 27건이 한국.",
+   "verdict": "verified",
+   "correctedClaim": "EPRI(TWAICE·PNNL 전문가 공동 분류): 2018~2023년 계통용 BESS 고장률 97% 감소(GW당 9.2→약 0.2건), 셀 직접 원인 3건(분류된 26건의 11%), 연령이 알려진 고장의 72%가 시공·시운전 또는 운전 2년 이내, 2018~2019년 30건 중 27건이 한국.",
+   "evidenceUrl": "https://www.powermag.com/wp-content/uploads/2024/05/bess-failure-report.pdf",
+   "note": "백서와 일치."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "(사례) Jin 외(Joule 2020): H2 포집이 연기 발생보다 639초, 발화보다 769초 앞섬(실험 조건 기준, 2차 인용 확인 수준).",
+   "verdict": "verified",
+   "correctedClaim": "Jin 외(Joule 2020): 8.8kWh LFP-흑연 배터리팩 과충전 실험에서 H2 감지가 연기보다 639초, 발화보다 769초 앞섬.",
+   "evidenceUrl": "https://www.cell.com/joule/fulltext/S2542-4351(20)30234-8",
+   "note": "초록 원문으로 1차 확인했으므로 '2차 인용 확인 수준' 표현은 빼도 됨."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "(사례) NREL·SunPower(Smith 외, 2017 ACC): 계절 외기 노출 시 수명 4.9년(70% 기준) → 셀 20~30°C 열관리 추가 시 7.0년(DOD 74%) → DOD 54% 제한 병행 시 10년.",
+   "verdict": "verified",
+   "correctedClaim": "NREL·SunPower(Smith 외, 2017 ACC): 계절 외기 노출 시 70% 용량까지 4.9년 → 셀 20~30°C 열관리 추가 시 7.0년(DOD 74%) → 같은 열관리에 DOD 54% 제한 시 10년(시뮬레이션).",
+   "evidenceUrl": "https://docs.nlr.gov/docs/fy17osti/67102.pdf",
+   "note": "본문과 일치."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "(사례) University of Washington·ISO New England(Xu 외, IEEE Trans. Power Systems 2018): 5분 실시간시장 열화비용 미반영 시 기대수명 1.1년·연간 이익 약 −210만 달러, 16구간 반영 시 8.0년·약 +27.6만 달러(시뮬레이션).",
+   "verdict": "verified",
+   "correctedClaim": "University of Washington·ISO New England(Xu 외): 20MW/12.5MWh BES, ISO-NE 2015년 가격, 5분 정산 실시간시장 시뮬레이션에서 열화비용 미반영 시 기대수명 1.1년·연간 환산이익 −210.1만 달러, 16구간 반영 시 8.0년·+27.63만 달러.",
+   "evidenceUrl": "https://arxiv.org/abs/1707.04567",
+   "note": "표 I과 일치."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "(사례) Neoen·Tesla, Aurecon 분석: 2019년 NEM 비상 FCAS 비용 약 8,000만, 조정 FCAS 약 3,600만 호주달러 등 총 약 1억 1,600만 호주달러 절감(모델링).",
+   "verdict": "verified",
+   "correctedClaim": "Aurecon 분석(Hornsdale Power Reserve, 100MW/129MWh): 2019년 HPR이 NEM 비상 FCAS 비용을 약 8,000만, 조정 FCAS 비용을 약 3,600만 호주달러 줄여 총 약 1억 1,600만 호주달러를 절감한 것으로 모델링됐다.",
+   "evidenceUrl": "https://www.aurecongroup.com/-/media/files/downloads-library/thought-leadership/aurecon-hornsdale-power-reserve-impact-study-2020.pdf",
+   "note": "보고서 요약과 일치. HPR을 입찰 스택에서 뺀 가상 시나리오와 비교한 모델링 결과."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "(사례) 한국전력공사: 연간 약 620억원 전력구입비 절감 예상(2017년 보도 기준, 실적치 미확인).",
+   "verdict": "verified",
+   "correctedClaim": "한국전력공사: 13개소 376MW 주파수조정용 ESS 준공 후 매년 약 620억원의 전력구입비 절감을 예상(에너지데일리 2017-11-07 보도, 실적치 미확인).",
+   "evidenceUrl": "http://www.energydaily.co.kr/news/articleView.html?idxno=83896",
+   "note": "기사와 일치. 예상치임."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "(사례) 산업통상자원부·ESS 화재사고 원인조사위원회: 1차 23건 중 대기 14·충방전 6·설치 3, 태양광·풍력 연계 17건. 2차 5건 중 4건 배터리 이상, 95% 이상 충전율 → 옥내 80%/옥외 90% 제한.",
+   "verdict": "verified",
+   "correctedClaim": "1차(2019-06-11): 23건 중 충전완료 후 대기 14건·충방전 중 6건·설치 중 3건, 태양광·풍력 연계 17건. 2차(2020-02-06): 5건 중 4건은 배터리 이상과 95% 이상 고충전율 결합, 1건은 외부 이물질 → 신규 설비 옥내 80%·옥외 90% 충전율 제한.",
+   "evidenceUrl": "https://www.korea.kr/news/policyNewsView.do?newsId=156335827",
+   "note": "1차는 정책브리핑, 2차는 한국원자력신문 기사로 확인."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "(사례) TWAICE·InterEnergy(중미 40MWh BESS): 정량 복구량(MWh·%) 공개 자료 미확인 — 정성 사례(벤더 자료).",
+   "verdict": "unverified",
+   "correctedClaim": "(미확인) TWAICE·InterEnergy 고객 사례: 페이지 접근이 막혀 설비 규모와 정량 성과를 확인하지 못함.",
+   "evidenceUrl": "https://www.twaice.com/customer-stories/interenergy-bess-performance-issues-warranties-and-capacity",
+   "note": "403으로 확인 불가. 40MWh·중미 여부도 미확인이므로 보고서에서는 빼거나 '미확인'으로 표시."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "(AI효과) SOH·RUL 확률 예측: Severson 2019 9.1%/4.9%, Wang 2024 PINN MAPE 0.87%, Aitio·Howey 2021 1,027개 납축전지 8주 전 73%·고장 시점 82%.",
+   "verdict": "verified",
+   "correctedClaim": "Severson 2019(LFP 124셀, 실험실): 첫 100사이클로 수명 예측 오차 9.1%, 5사이클로 2그룹 분류 오차 4.9%. Wang 2024 PINN: 387셀·310,705샘플 SOH MAPE 0.87%. Aitio·Howey 2021: 현장 태양광 연계 납축전지 1,027개에서 수명말 8주 전 73%, 고장 시점 82% 정확도.",
+   "evidenceUrl": "https://www.nature.com/articles/s41560-019-0356-8",
+   "note": "세 출처 모두 확인."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "(AI효과) 열폭주 전조 감지: Honeywell 2~30분(제조사), Jin 2020 H2 639초·769초, EPRI: Elkhorn(2022)에서 절연 손실 경보가 운영자에게 전달되지 않아 2일 뒤 화재로 확대.",
+   "verdict": "verified",
+   "correctedClaim": "Honeywell Li-ion Tamer: 보통 2~30분 전 경고(제조사 주장). Jin 외 2020: 8.8kWh LFP팩 과충전에서 H2가 연기보다 639초, 발화보다 769초 앞섬. EPRI: Elkhorn(2022-09-20) 사고에서 절연 손실 경보가 운영자에게 제대로 전달되지 않았고 초기 경보 이틀 뒤 화재로 이어짐.",
+   "evidenceUrl": "https://www.powermag.com/wp-content/uploads/2024/05/bess-failure-report.pdf",
+   "note": "EPRI 백서 Controls 사례 서술로 Elkhorn 내용 확인."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "(AI효과) BMS 독립 SOC 재추정: Accure ±15%→±2%. EKF SOC 추정 오차 2% 이내 보고, 모델 미갱신 시 약 3% 차이(Sci Rep 2025).",
+   "verdict": "partially_verified",
+   "correctedClaim": "ACCURE 2025: LFP SOC 오차 ±15%가 흔하며 고급 분석 시 ±2%(벤더 자료). Scientific Reports 2025(EV용 리튬이온 셀 EKF 하드웨어 구현): 측정값과 추정값 오차 2% 이내. '모델 미갱신 시 약 3%'는 초록에서 확인되지 않음.",
+   "evidenceUrl": "https://www.nature.com/articles/s41598-025-99931-8",
+   "note": "EKF 2%는 초록에서 확인. 3% 차이는 미확인. 셀 단위 EV 실험이라 LFP 계통용 ESS에 그대로 옮기면 안 됨."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "(AI효과) 열관리 성능 잔차 모델: NREL Smith 2017 4.9→7.0년(DOD 74%), DOD 54% 시 10년. Accure 2025 상위 사업 RTE 88% 초과.",
+   "verdict": "verified",
+   "correctedClaim": "NREL Smith 외 2017: 셀 20~30°C 열관리 추가 시 수명 4.9년→7.0년(DOD 74%), DOD 54% 제한 병행 시 10년(시뮬레이션). ACCURE 2025: 최상위 시스템 RTE 88% 초과.",
+   "evidenceUrl": "https://docs.nlr.gov/docs/fy17osti/67102.pdf",
+   "note": "두 출처 확인. RTE 88%는 열관리 효과가 아니라 전체 성능 벤치마크임."
+  },
+  {
+   "researchKey": "ess",
+   "claim": "(AI효과) 열화 인지 운전전략: Xu 2018 1.1년·−210만 달러 vs 8.0년·+27.6만 달러. PNNL 2022 평균 DOD 80%→60%에서 LFP 사이클 2,400→8,000(종료 기준 차이 주의).",
+   "verdict": "verified",
+   "correctedClaim": "Xu 외(ISO-NE 2015 가격, 20MW/12.5MWh, 5분 정산 실시간시장 시뮬레이션): 열화비용 미반영 1.1년·연간 −210만 달러, 16구간 반영 8.0년·+27.6만 달러. PNNL 2022 표 4.3: 평균 DOD 80%에서 LFP 2,400회, 60%에서 8,000회(잔여 에너지가 해당 DOD 에너지와 같아지는 시점 기준).",
+   "evidenceUrl": "https://arxiv.org/abs/1707.04567",
+   "note": "두 출처 확인."
+  },
+  {
+   "researchKey": "system",
+   "claim": "수소 저장 시스템(전해조→200 bar 압축→연료전지)의 왕복효율은 교류 기준 31~32%, 직류 기준 34%로 평가되며, 전해조 효율 72.5%, 연료전지 50.7%, 압축 전력 5 kWh/kg이 전제다. 같은 보고서의 리튬이온 교류 왕복효율은 82.59%(2021)다.",
+   "verdict": "verified",
+   "correctedClaim": "PNNL 2022는 수소 저장 시스템 왕복효율을 직류 34%, 인버터 수준 교류 32%, 변압기 포함 교류 31%로 평가하며, 전해조 72.5%·연료전지 50.7%·200 bar 압축 5 kWh/kg을 전제로 하고 저장 중 손실은 반영하지 않았다. 같은 보고서의 리튬이온 교류(변압기 포함) 왕복효율은 82.59%(2021)다.",
+   "evidenceUrl": "https://www.pnnl.gov/sites/default/files/media/file/ESGC%20Cost%20Performance%20Report%202022%20PNNL-33283.pdf",
+   "note": "4.9.4.2절·표 4.53과 일치. '저장 손실 미반영' 조건을 빼면 벤치마크로 과대평가될 수 있음."
+  },
+  {
+   "researchKey": "system",
+   "claim": "전력단가는 그린수소 생산원가에 약 1.5배로 반영된다(20 USD/MWh → 약 31 USD/MWh 상당). 전해조 연 운전시간이 약 3,000~4,000시간이면 투자비 기여를 가장 크게 낮출 수 있다.",
+   "verdict": "verified",
+   "correctedClaim": "IRENA 2020에 따르면 현재 공정 효율에서 전력비용은 최종 수소 생산원가에 약 1.5배로 반영되어 20 USD/MWh가 약 31 USD/MWh(수소 kg당 1달러 약간 초과)가 되며, 연 3,000~4,000시간 운전이면 투자비 기여를 가장 크게 줄이기에 충분할 수 있다.",
+   "evidenceUrl": "https://www.irena.org/-/media/Files/IRENA/Agency/Publication/2020/Dec/IRENA_Green_hydrogen_cost_2020.pdf",
+   "note": "보고서 본문 문장과 일치."
+  },
+  {
+   "researchKey": "system",
+   "claim": "IRENA 2020(Eichman 등 2014 인용): 약 40 kW급 전해조는 설정값 변경 후 수 밀리초 내에 전력 변화를 시작해 수 초 내 안정되고, 제조사들은 1초 이내 증감을 보증한다. 알칼라인도 독일에서 1차 예비력 시험에 성공했다. 부하범위 PEM 5~120%, 알칼라인 15~100%, 냉간기동 각각 20분 미만, 50분 미만이다.",
+   "verdict": "verified",
+   "correctedClaim": "IRENA 2020: Eichman 등(2014)에 따르면 약 40kW급 소형 전해조는 설정값 변경 후 수 밀리초 안에 전력 변화를 시작하고 수 초 안에 안정된다. 제조사들은 1초 이내 증감을 보증해 왔고(ITM Power·Siemens 인용), 알칼라인도 독일 1차 제어예비력 시험에 성공했다. 2020년 현황 표 기준 부하범위는 PEM 5~120%, 알칼라인 15~100%이고, 냉간기동은 PEM 20분 미만, 알칼라인 50분 미만이다.",
+   "evidenceUrl": "https://www.irena.org/-/media/Files/IRENA/Agency/Publication/2020/Dec/IRENA_Green_hydrogen_cost_2020.pdf",
+   "note": "본문과 표 확인. 1초 보증은 Eichman이 아니라 제조사 자료 인용. 본문에는 'PEM 냉간기동 5분 미만' 서술도 있어 표(2020 현황 <20분)와 다르므로 인용 기준을 밝혀야 함."
+  },
+  {
+   "researchKey": "system",
+   "claim": "알칼라인 전해조는 산소 중 수소(HTO)가 2%(폭발한계의 약 절반)에 도달하면 정지하므로 정상상태 최소부하가 보통 10~40%이며, 사례 설비는 34% 미만을 지속하면 2%를 넘었다. HTO 동특성을 반영한 스케줄링은 PV 직결 조건에서 이익을 1.627% 높였다.",
+   "verdict": "verified",
+   "correctedClaim": "알칼라인 전해조는 산소 중 수소(HTO)가 2%(폭발한계의 약 절반)에 이르면 정지하므로 정상상태 최소부하가 보통 10~40%다. 사례 전해조 파라미터로는 부하가 34% 미만으로 계속되면 결국 2%를 넘었고, 온도·HTO 동특성을 반영한 스케줄링은 PV 직결 조건에서 기존 방식보다 이익을 1.627% 높였다(시뮬레이션, 실험 검증 모델).",
+   "evidenceUrl": "https://arxiv.org/abs/2203.02991",
+   "note": "본문과 일치. 34%는 특정 파라미터의 시뮬레이션 결과임."
+  },
+  {
+   "researchKey": "system",
+   "claim": "22대 알칼라인 전해조 플랜트에서 온도·HTO 동특성을 반영한 생산 스케줄링은 기존 방식 대비 수소 생산을 7.74%, 이익을 8.72% 높였다. PV 연계 사례 평균은 수소 +0.807%, 이익 +0.982%였다(시뮬레이션).",
+   "verdict": "partially_verified",
+   "correctedClaim": "풍력 직결을 가정한 22대(총 110MW) 알칼라인 전해조 플랜트 단일 사례에서 온도·HTO 동특성을 반영한 스케줄링은 기존 방식보다 수소 생산을 7.74%, 이익을 8.72% 높였다. 소규모 플랜트(5MW급 전해조) 사례 평균은 풍력 연계 수소 +1.021%·이익 +1.438%, PV 연계 수소 +0.807%·이익 +0.982%였다(시뮬레이션).",
+   "evidenceUrl": "https://arxiv.org/abs/2301.12242",
+   "note": "수치는 맞지만 7.74%·8.72%가 '풍력 직결' 단일 사례라는 조건이 빠짐. 원문도 상세 비교는 지면상 생략. PV 연계 기대효과는 약 1% 수준으로 서술해야 함."
+  },
+  {
+   "researchKey": "system",
+   "claim": "하이브리드 발전소 일전 디스패치에서 단순 전해조 모델을 쓰면, 운전/대기/정지 상태와 생산곡선 선형화를 반영한 상세 모델 대비 연간 이익이 1.8%, 수소 생산이 13.5% 줄어든 사례가 있다.",
+   "verdict": "verified",
+   "correctedClaim": "풍력-전해조 하이브리드 발전소 일전 디스패치에서, 운전·정지·대기 상태와 생산곡선 선형화 구간을 반영한 상세 모델보다 단순 모델을 쓰면 연간 이익이 1.8%, 수소 생산이 13.5% 줄어든 사례가 있다(DTU, 시뮬레이션).",
+   "evidenceUrl": "https://arxiv.org/abs/2301.05310",
+   "note": "초록과 일치. 원문은 부분부하 운전이 많은 조건에서 차이가 커진다고 한정함."
+  },
+  {
+   "researchKey": "system",
+   "claim": "사이리스터(TR)와 IGBT 정류기를 섞은 최적 투자 포트폴리오는 단일 방식·기존 구성 대비 수익을 최대 13.78% 높였고 무효전력 보상 투자를 거의 없앴다. 선호 비율은 TR:IGBT 약 3:1이다.",
+   "verdict": "verified",
+   "correctedClaim": "사이리스터(TR)와 IGBT 정류기를 혼합한 최적 구성은 TR 단독·IGBT 단독·기존 사업 구성·직관적 설계 대비 수익을 최대 13.78% 높였고, 최적 포트폴리오에서 무효전력 보상 투자가 거의 필요 없었으며 선호 비율은 TR:IGBT 3:1이었다(시뮬레이션).",
+   "evidenceUrl": "https://arxiv.org/abs/2503.17092",
+   "note": "초록과 일치. '최대(at most)' 값이므로 일반적 효과로 쓰면 안 됨."
+  },
+  {
+   "researchKey": "system",
+   "claim": "청정수소 인증 고시 제12조①: 수전해 투입 전력 데이터는 저탄소 전원이 생산한 전력량이 수소생산설비 투입 전력량과 월 단위로 일치하고, 해당 전원이 동일 전력망에 연결된 경우에만 적격하다.",
+   "verdict": "verified",
+   "correctedClaim": "청정수소 인증제도 운영에 관한 고시(산업부고시 제2024-39호) 제12조①: 수전해 투입 전력 데이터는 저탄소 전원 생산 전력량이 수소생산설비 투입 전력량과 월 단위로 일치하고, 그 전원이 수소생산설비와 동일한 전력망에 연결된 경우에 한해 적격성을 갖춘다.",
+   "evidenceUrl": "https://www.law.go.kr/admRulLsInfoP.do?admRulSeq=2100000237332",
+   "note": "법령정보센터 본문(admRulInfoR.do)에서 원문 확인. 2024-03-04 제정본 기준이므로 이후 개정 여부 확인 필요."
+  },
+  {
+   "researchKey": "system",
+   "claim": "청정수소 인증 고시에 따라 인증기관은 공정 데이터의 정밀도·완결성·대표성·일관성·재현성과 물질 수지·에너지 수지를 검토한다. 사업자는 설비확인서 최초 발급 후 6개월 이내에 현장 데이터를 제출하고, 분기별 생산 내역을 분기 종료 후 30일 이내에 신고해야 한다.",
+   "verdict": "verified",
+   "correctedClaim": "고시 제12조②에 따라 인증운영기관·인증시험평가기관의 장은 산정 범위 내 공정 데이터의 정밀도·완결성·대표성·일관성·재현성과 물질 수지·에너지 수지를 검토한다. 제14조⑤에 따라 설비확인서를 처음 받은 자는 발급일부터 6월 이내에 검증 가능한 현장 데이터를 제출하고, 제22조에 따라 청정수소 생산·수입·판매자는 분기별 내역을 분기 종료일부터 30일 이내에 산업부장관에게 신고한다.",
+   "evidenceUrl": "https://www.law.go.kr/admRulLsInfoP.do?admRulSeq=2100000237332",
+   "note": "조문 원문 확인. 5년마다 인증기준 부합 재검토 시에는 1년간 현장 데이터 제출(제14조⑤ 단서)."
+  },
+  {
+   "researchKey": "system",
+   "claim": "한국 청정수소 등급 기준(2024-03-04 시행): 1등급 0.00~0.10, 2등급 0.11~1.00, 3등급 1.01~2.00, 4등급 2.01~4.00 kgCO2e/kgH2.",
+   "verdict": "verified",
+   "correctedClaim": "한국 청정수소 등급 기준(2024-03-04 제정·시행): 1등급 0.00~0.10, 2등급 0.11~1.00, 3등급 1.01~2.00, 4등급 2.01~4.00 kgCO2eq/kgH2.",
+   "evidenceUrl": "https://www.shinkim.com/kor/media/newsletter/2375",
+   "note": "법무법인 뉴스레터(2차 자료)와 일치."
+  },
+  {
+   "researchKey": "system",
+   "claim": "2023년도 국가 전력배출계수는 0.4173 tCO2eq/MWh로 확정되어 2020~2022년 평균(0.4541)보다 8.1% 낮고, 갱신 주기는 3년에서 1년으로 단축되었다(2025-12-18 발표).",
+   "verdict": "verified",
+   "correctedClaim": "2023년도 국가 전력배출계수는 0.4173 tCO2eq/MWh로 2020~2022년 평균 0.4541보다 8.1% 낮으며, 갱신 주기가 3년에서 1년으로 단축됐다(2025-12-18 보도).",
+   "evidenceUrl": "https://k-esg.org/esghub/esg_news_view?idx=4184",
+   "note": "2차 뉴스 사이트와 일치. 보고서에는 환경부·온실가스종합정보센터 공고 원문을 인용하는 것이 좋음."
+  },
+  {
+   "researchKey": "system",
+   "claim": "추정 계산: 시스템 SEC 55 kWh/kg에 전력배출계수 0.4173 tCO2eq/MWh를 적용하면 계통전력만으로 생산한 수소는 약 22.9 kgCO2e/kg이다. 월 단위 미매칭 계통전력 비중이 약 0.44%를 넘으면 1등급 한도(0.10)를, 약 17%를 넘으면 인증 기준(4.0)을 초과한다.",
+   "verdict": "partially_verified",
+   "correctedClaim": "(추정) SEC 55 kWh/kg × 국가 전력배출계수 0.4173 tCO2eq/MWh ≈ 23.0 kgCO2e/kg이므로, 다른 배출을 0으로 두면 계통전력 비중 약 0.44%에서 1등급 한도(0.10), 약 17%에서 4등급 상한(4.0)에 이른다. 다만 인증 전과정평가에 쓰는 계통전력 배출계수는 고시의 기본 제공 데이터로 따로 확인해야 한다.",
+   "evidenceUrl": "https://k-esg.org/esghub/esg_news_view?idx=4184",
+   "note": "산술은 맞음(22.95, 0.436%, 17.4%). 하지만 국가 전력배출계수(Scope 2 산정용)가 청정수소 LCA의 계통전력 계수와 같다는 전제는 검증되지 않음. 제12조상 미매칭 전력은 비율 배분이 아니라 데이터 적격성 문제로 다뤄질 수 있음."
+  },
+  {
+   "researchKey": "system",
+   "claim": "미국 45V 최종규정(2025-01-03 발표)은 2029년까지 연간 매칭, 2030년부터 모든 설비에 시간 단위 매칭을 요구한다. 또한 수소설비 가동 전후 36개월 이내 가동한 전원(신규성)과 동일 계통지역(전달성)을 요건으로 한다.",
+   "verdict": "partially_verified",
+   "correctedClaim": "미국 재무부 45V 최종규정(2025-01-03 발표)은 연간 매칭 허용 기간을 제안안보다 2년 늘리고 2030년부터 모든 설비에 시간 단위 매칭을 요구한다. 신규성은 발전설비가 수소설비 가동(placed in service) 시점 기준 36개월 이내에 상업운전을 시작한 경우(또는 그 기간 내 증설분)로 인정하고, 전달성은 같은 계통지역을 요건으로 한다.",
+   "evidenceUrl": "https://home.treasury.gov/news/press-releases/jy2768",
+   "note": "보도자료와 대체로 일치. '가동 전후 36개월'은 수소설비보다 늦게 가동한 전원이 36개월 뒤면 제외되는 것처럼 읽힐 수 있어 규정 원문 표현으로 고칠 것을 권고."
+  },
+  {
+   "researchKey": "system",
+   "claim": "Modbus 애플리케이션 프로토콜에서 한 번에 읽을 수 있는 레지스터는 최대 125개, PDU는 최대 253바이트이며, 주소와 데이터는 빅엔디안으로 표현한다.",
+   "verdict": "verified",
+   "correctedClaim": "Modbus Application Protocol V1.1b3에서 Read Holding/Input Registers 한 번에 1~125개 레지스터를 읽을 수 있고, PDU는 최대 253바이트이며, 주소와 데이터 항목은 빅엔디안으로 표현한다.",
+   "evidenceUrl": "https://www.modbus.org/file/secure/modbusprotocolspecification.pdf",
+   "note": "사양서 본문 확인. 빅엔디안 규정은 16비트 필드 단위이며, 32비트·실수의 레지스터(워드) 순서는 사양에 없고 장비마다 다름."
+  },
+  {
+   "researchKey": "system",
+   "claim": "Eclipse Sparkplug 3.0은 에지 노드가 주기 발행 대신 변경 시 보고(RBE)를 쓰도록 권고한다. NDATA·NBIRTH는 MQTT QoS 0으로 발행하고, NDEATH는 MQTT Will 메시지로 등록해 비정상 단절도 구독자에게 전달한다.",
+   "verdict": "verified",
+   "correctedClaim": "Sparkplug 3.0.0은 변경 시 보고(RBE) 방식을 권고하고(시간 기반 보고는 비권장), NBIRTH·NDATA는 MQTT QoS 0으로 발행하도록 규정한다. NDEATH는 MQTT CONNECT의 Will 메시지(QoS 1)로 등록돼 비정상 단절 때도 구독자에게 전달된다.",
+   "evidenceUrl": "https://sparkplug.eclipse.org/specification/version/3.0/documents/sparkplug-specification-3.0.0.pdf",
+   "note": "사양서 본문(tck-id 조항)과 일치."
+  },
+  {
+   "researchKey": "system",
+   "claim": "NTP는 조용한 동일 서브넷에서 1 ms 이내로 시각을 유지할 수 있고, 인터넷 경유 시 일반적 정확도는 약 5~100 ms다.",
+   "verdict": "verified",
+   "correctedClaim": "NTP는 조용한 동일 서브넷(이더넷, 라우터 홉 적음)에서 시각을 1 ms 이내로 유지할 수 있고, 인터넷 경유 시 일반적 정확도는 약 5~100 ms로 네트워크 지연에 따라 달라진다.",
+   "evidenceUrl": "https://www.ntp.org/ntpfaq/ntp-s-algo/",
+   "note": "NTP FAQ 문장과 일치."
+  },
+  {
+   "researchKey": "system",
+   "claim": "2026년 9월 확인 기준 OPC Foundation 온라인 레퍼런스의 발행 사양 목록에 수전해 Companion Specification은 없다. OPC Foundation·VDMA Power-to-X 공동 작업(MTP VDI/VDE/NAMUR 2658 호환 목표)이 진행 중이다.",
+   "verdict": "partially_verified",
+   "correctedClaim": "2026년 9월 확인 기준 OPC Foundation 온라인 레퍼런스의 발행 사양 목록에 수소·수전해·Power-to-X 관련 Companion Specification은 없다. VDMA Power-to-X 공동 작업의 진행 여부는 이 URL에서 확인되지 않는다.",
+   "evidenceUrl": "https://reference.opcfoundation.org/",
+   "note": "사양 부재는 확인. 공동 작업·MTP 호환 목표는 별도 출처(VDMA/OPC 공동 워킹그룹 공지)가 필요함."
+  },
+  {
+   "researchKey": "system",
+   "claim": "KPX 재생에너지 발전량 예측제도는 20 MW 이상 설비, 또는 1 MW 이하 설비를 20 MW 이상 모집한 중개사업자를 대상으로 한다. 등록시험 기준은 월평균 오차율 10% 이하이며, 오차율 8% 이하일 때 3~4원/kWh를 정산한다.",
+   "verdict": "verified",
+   "correctedClaim": "2020년 9월 발표된 재생에너지 발전량 예측제도(안)는 20MW 이상 태양광·풍력 사업자와 1MW 이하 설비를 20MW 이상 모은 집합전력자원 운영자를 대상으로 하며, 등록시험은 1개월 평균 예측오차율 10% 이하, 정산은 예측오차율 8% 이하일 때 발전량에 3~4원/kWh로 한다.",
+   "evidenceUrl": "https://www.industrynews.co.kr/news/articleView.html?idxno=39594",
+   "note": "2020년 도입 계획 단계 기사 기준. 이후 시행 규칙(오차율 구간별 단가, 당일 예측 도입 등)은 KPX 현행 규정으로 다시 확인해야 함."
+  },
+  {
+   "researchKey": "system",
+   "claim": "Google DeepMind는 미국 중부 700 MW 풍력에 36시간 전 출력 예측과 하루 전 시간별 공급 약속 권고를 적용해, 시간별 약속을 하지 않던 기준 대비 풍력 에너지 가치를 약 20% 높였다고 발표했다(2019).",
+   "verdict": "verified",
+   "correctedClaim": "Google DeepMind는 미국 중부 700MW 풍력에 36시간 전 출력 예측과 하루 전 시간별 공급 약속 권고를 적용해, 시간 기반 약속을 하지 않던 경우보다 풍력 에너지 가치를 약 20% 높였다고 발표했다(2019, 기업 블로그).",
+   "evidenceUrl": "https://deepmind.google/discover/blog/machine-learning-can-boost-the-value-of-wind-energy/",
+   "note": "블로그 내용과 일치. 기업 자체 발표로 방법론·기준선이 공개되지 않음."
+  },
+  {
+   "researchKey": "system",
+   "claim": "NREL PV Fleet 분석(8.5 GW, 인버터 채널 24,000개, 1,128개 시스템)에서 시스템 가용률 중앙값은 0.99, 하위 10%(P90)는 0.95였고, 중앙 열화율은 −0.75%/년(오염 영향 제외 시 약 −0.5%/년)이었다.",
+   "verdict": "verified",
+   "correctedClaim": "NREL PV Fleet 분석(전체 8.5GW·인버터 채널 24,000개, 성능지수·가용률 분석 대상 1,128개 시스템)에서 초기 6개월을 제외한 시스템 수준 인버터 가용률은 중앙값 0.99, P90 0.95였다. RdTools YoY 중앙 열화율은 −0.75%/년이었고, CODS로 회복 가능한 오염을 제외하면 평균 약 −0.5%/년이었다.",
+   "evidenceUrl": "https://docs.nrel.gov/docs/fy24osti/88769.pdf",
+   "note": "보고서 요약과 일치. 가용률은 가동 초기 6개월 제외 값. docs.nrel.gov는 현재 접속 불가(docs.nlr.gov로 이전)."
+  },
+  {
+   "researchKey": "system",
+   "claim": "(사례) NEDO·Toshiba ESS·Tohoku Electric·Iwatani: 설계 사양 전해조 10MW급, 태양광 20MW(부지 180,000m²), 정격 수소 생산 1,200Nm³/h. 운전 성과 정량 공개자료 미확인.",
+   "verdict": "verified",
+   "correctedClaim": "NEDO·Toshiba ESS·Tohoku Electric·Iwatani(FH2R, 후쿠시마현 나미에, 2020년 2월 완공): 10MW급 수소 제조 설비, 태양광 20MW(부지 180,000m²), 정격 운전 시 최대 1,200Nm³/h. 발표자료에 운전 효율·이용률 성과는 없음.",
+   "evidenceUrl": "https://www.nedo.go.jp/english/news/AA5en_100422.html",
+   "note": "NEDO 보도자료와 일치."
+  },
+  {
+   "researchKey": "system",
+   "claim": "(사례) Stadtwerke Mainz·Linde·Siemens·RheinMain 응용과학대: 2015년 9월 전력 432.5 MWh, 수소 72,526 Nm³, HHV 기준 이용효율 59.4%, 운전 146 h. 풍력 예측오차 흡수로 밸런싱 에너지 약 20% 감소.",
+   "verdict": "unverified",
+   "correctedClaim": "(미확인) Energiepark Mainz(IJHE 2017) 운전 수치는 논문 원문에 접근하지 못해 확인하지 못했다.",
+   "evidenceUrl": "https://doi.org/10.1016/j.ijhydene.2016.12.145",
+   "note": "Elsevier 유료벽으로 본문 확인 불가하고 초록 메타데이터도 없음. 사전 발표자료 수치이므로 보고서에서는 '미확인'으로 표시하거나 빼야 함."
+  },
+  {
+   "researchKey": "system",
+   "claim": "(사례) 쓰촨대·칭화대(Qiu 등, arXiv 2301.12242): 22대 플랜트(풍력) 수소 +7.74%, 이익 +8.72%. 사례 평균 풍력 수소 +1.021%·이익 +1.438%, PV 수소 +0.807%·이익 +0.982%(시뮬레이션).",
+   "verdict": "verified",
+   "correctedClaim": "쓰촨대·칭화대(Qiu 등): 풍력 직결 가정 22대(110MW) 플랜트에서 수소 +7.74%, 이익 +8.72%. 5MW급 전해조 플랜트 사례 평균은 풍력 수소 +1.021%·이익 +1.438%, PV 수소 +0.807%·이익 +0.982%(시뮬레이션).",
+   "evidenceUrl": "https://arxiv.org/abs/2301.12242",
+   "note": "본문과 일치."
+  },
+  {
+   "researchKey": "system",
+   "claim": "(사례) 쓰촨대·칭화대(Qiu 등, arXiv 2203.02991): PV 직결 조건에서 기존 스케줄링 대비 이익 +1.627%(시뮬레이션, 실험 검증 모델).",
+   "verdict": "verified",
+   "correctedClaim": "쓰촨대·칭화대(Qiu 등, 2022): PV 직결 조건에서 기존 스케줄링 대비 이익 +1.627%(CNDQ5/3.2 알칼라인 전해조 실험으로 검증한 모델 기반 시뮬레이션).",
+   "evidenceUrl": "https://arxiv.org/abs/2203.02991",
+   "note": "초록·부록과 일치."
+  },
+  {
+   "researchKey": "system",
+   "claim": "(사례) DTU 등(Baumhof, Raheli, Johnsen, Kazempour, arXiv 2301.05310): 한 사례에서 단순 모델은 상세 모델 대비 연간 이익 −1.8%, 수소 생산 −13.5%.",
+   "verdict": "verified",
+   "correctedClaim": "덴마크공과대학(Baumhof 등): 한 사례에서 단순 모델은 상세 모델보다 연간 이익 −1.8%, 수소 생산 −13.5%(시뮬레이션).",
+   "evidenceUrl": "https://arxiv.org/abs/2301.05310",
+   "note": "초록과 일치."
+  },
+  {
+   "researchKey": "system",
+   "claim": "(사례) 쓰촨대·하버드대(Zeng 등, arXiv 2503.17092): 최적 구성이 수익 최대 +13.78%, 무효전력 보상 투자 거의 불필요, TR:IGBT ≈ 3:1(시뮬레이션).",
+   "verdict": "verified",
+   "correctedClaim": "쓰촨대(저자 1인 하버드대 소속, Zeng 등): 최적 정류기 구성이 TR 단독·IGBT 단독·기존 사업 구성 대비 수익 최대 +13.78%, 무효전력 보상 투자 거의 불필요, TR:IGBT 3:1(시뮬레이션).",
+   "evidenceUrl": "https://arxiv.org/abs/2503.17092",
+   "note": "초록·저자 소속과 일치."
+  },
+  {
+   "researchKey": "system",
+   "claim": "(사례) Google DeepMind/Google: 시간 단위 약속을 하지 않던 기준 대비 풍력 에너지 가치 약 20% 증가(기업 발표, 2019년 2월).",
+   "verdict": "verified",
+   "correctedClaim": "Google DeepMind: 미국 중부 700MW 풍력에서 시간 기반 약속을 하지 않던 경우 대비 풍력 에너지 가치 약 20% 증가(기업 발표, 2019).",
+   "evidenceUrl": "https://deepmind.google/discover/blog/machine-learning-can-boost-the-value-of-wind-energy/",
+   "note": "일치."
+  },
+  {
+   "researchKey": "system",
+   "claim": "(사례) NREL: 8.5 GW, 인버터 채널 24,000개, 1,128개 시스템. 시스템 가용률 P50 0.99, P90 0.95. 전 수명 중앙 PI 0.95. 중앙 열화율 −0.75%/년(오염 제외 약 −0.5%/년).",
+   "verdict": "verified",
+   "correctedClaim": "NREL(FY24): 8.5GW·인버터 채널 24,000개, 분석 대상 1,128개 시스템. 초기 6개월 제외 가용률 P50 0.99, P90 0.95. 보정 후 전 수명 중앙 PI 0.95. RdTools YoY 중앙 열화율 −0.75%/년, CODS 오염 제외 시 평균 약 −0.5%/년.",
+   "evidenceUrl": "https://docs.nrel.gov/docs/fy24osti/88769.pdf",
+   "note": "요약과 일치."
+  },
+  {
+   "researchKey": "system",
+   "claim": "(사례) 국내 국책 실증 과제(백종민·김수현 2024 정리): 전해 3.3 MW, 수소 저장 600 kg, 배터리 2 MWh. 운영 성과 정량 공개자료 미확인.",
+   "verdict": "verified",
+   "correctedClaim": "제주 행원 재생에너지 연계 그린수소 생산·저장 실증(2020~2023): 알칼라인 수전해 3.3MW, 수소 저장 600kg, 배터리 2MWh(백종민·김수현, 한국수소및신에너지학회논문집 2024, 표 4). 운영 성과 정량 자료는 미확인.",
+   "evidenceUrl": "https://journal.hydrogen.or.kr/xml/39686/39686.pdf",
+   "note": "논문 표 4에서 확인. 과제 위치(제주 행원)와 수전해 방식(AWE)을 명시할 수 있음."
+  },
+  {
+   "researchKey": "system",
+   "claim": "(AI효과) 발전량 예측: KPX 예측제도 오차율 8% 이하 3~4원/kWh(2020 발표 보도). DeepMind 700MW 풍력 가치 약 20% 향상. 수전해 연계 PV 정량 효과 미확인.",
+   "verdict": "verified",
+   "correctedClaim": "KPX 재생에너지 발전량 예측제도(2020년 9월 발표 기준): 예측오차율 8% 이하일 때 3~4원/kWh 정산. DeepMind: 미국 풍력 700MW에서 36시간 전 예측 기반 하루 전 약속으로 가치 약 20% 향상(기업 발표). 수전해 연계 PV 정량 효과는 미확인.",
+   "evidenceUrl": "https://www.industrynews.co.kr/news/articleView.html?idxno=39594",
+   "note": "두 출처 확인. KPX 현행 정산 규칙은 재확인 필요."
+  },
+  {
+   "researchKey": "system",
+   "claim": "(AI효과) 예측 기반 통합 스케줄링: 22대 플랜트 수소 +7.74%·이익 +8.72%, PV 평균 +0.807%·+0.982%, PV 직결 +1.627%, 단순모델 −1.8%·−13.5%, IRENA 3,000~4,000시간.",
+   "verdict": "partially_verified",
+   "correctedClaim": "모두 시뮬레이션: 풍력 직결 22대 플랜트 단일 사례 수소 +7.74%·이익 +8.72%, PV 연계 사례 평균 수소 +0.807%·이익 +0.982%(Qiu 2023). PV 직결 이익 +1.627%(Qiu 2022). 단순 모델 사용 시 이익 −1.8%·수소 −13.5% 사례(Baumhof 2023). IRENA 2020: 연 3,000~4,000시간이면 투자비 기여를 크게 줄일 수 있음.",
+   "evidenceUrl": "https://arxiv.org/abs/2301.12242",
+   "note": "22대 사례가 풍력 조건이라는 점이 빠져 PV 사이트 기대효과가 부풀려질 수 있음."
+  },
+  {
+   "researchKey": "system",
+   "claim": "(AI효과) 에너지·수소 수지 폐합과 계량 신뢰성 진단: 고시 제12조②는 정밀도·완결성·대표성·일관성·재현성과 물질·에너지 수지를 검토하도록 규정.",
+   "verdict": "verified",
+   "correctedClaim": "청정수소 인증 고시 제12조②: 인증운영기관·인증시험평가기관의 장은 공정 데이터의 정밀도·완결성·대표성·일관성·재현성과 물질 수지·에너지 수지 등을 검토한다. 비용 절감 효과는 정량 근거 미확인.",
+   "evidenceUrl": "https://www.law.go.kr/admRulLsInfoP.do?admRulSeq=2100000237332",
+   "note": "조문 확인."
+  },
+  {
+   "researchKey": "system",
+   "claim": "(AI효과) 탄소집약도·월 매칭 추적: 제12조 월 단위 일치·동일 전력망. SEC 55 kWh/kg × 0.4173 → 약 22.9 kgCO2e/kg, 미매칭 0.44% 초과 시 1등급 초과.",
+   "verdict": "partially_verified",
+   "correctedClaim": "고시 제12조는 수전해 투입 전력이 저탄소 전원과 월 단위로 일치하고 동일 전력망에 연결될 것을 적격 요건으로 한다. (추정) 국가 전력배출계수 0.4173을 그대로 쓰면 계통전력만으로 만든 수소는 약 23 kgCO2e/kg이어서, 계통전력 비중 약 0.44%만으로 1등급 한도에 이른다. 인증 LCA의 계통전력 계수는 따로 확인해야 한다.",
+   "evidenceUrl": "https://www.law.go.kr/admRulLsInfoP.do?admRulSeq=2100000237332",
+   "note": "조문은 확인. 추정 계산의 배출계수 전제는 검증되지 않음."
+  },
+  {
+   "researchKey": "system",
+   "claim": "(AI효과) 시스템 손실 워터폴: PNNL 2022 수소 저장 교류 왕복효율 31~32%(리튬이온 82.59%).",
+   "verdict": "verified",
+   "correctedClaim": "PNNL 2022: 수소 저장 시스템 교류 왕복효율 31%(변압기 포함)~32%(인버터 수준), 직류 34%, 저장 손실 미반영. 리튬이온 교류 왕복효율 82.59%.",
+   "evidenceUrl": "https://www.pnnl.gov/sites/default/files/media/file/ESGC%20Cost%20Performance%20Report%202022%20PNNL-33283.pdf",
+   "note": "확인."
+  },
+  {
+   "researchKey": "system",
+   "claim": "(AI효과) 하이브리드 디지털 트윈: IEA GHR 2025 전해조가 LCOH의 55~65% 차지, IRENA 연 3,000~4,000시간.",
+   "verdict": "verified",
+   "correctedClaim": "IEA Global Hydrogen Review 2025: 전해조가 수소 균등화 원가(LCOH)의 55~65%를 차지. IRENA 2020: 연 3,000~4,000시간 운전이면 투자비 기여를 크게 줄일 수 있음. 트윈 도입 자체의 정량 효과는 미확인.",
+   "evidenceUrl": "https://www.irena.org/-/media/Files/IRENA/Agency/Publication/2020/Dec/IRENA_Green_hydrogen_cost_2020.pdf",
+   "note": "IEA GHR 2025 문장('electrolysers represent 55-65% of the levelised cost of hydrogen')은 로컬에 받아둔 보고서 텍스트로 확인. 출처 URL이 없어 보고서에 IEA URL을 추가해야 함."
+  },
+  {
+   "researchKey": "system",
+   "claim": "(AI효과) 다중 사이트 벤치마킹: NREL PV Fleet 가용률 중앙 0.99, P90 0.95, 중앙 열화율 −0.75%/년(오염 제외 약 −0.5%/년).",
+   "verdict": "verified",
+   "correctedClaim": "NREL PV Fleet(8.5GW, 1,128개 시스템): 초기 6개월 제외 가용률 중앙 0.99, P90 0.95. 중앙 열화율 −0.75%/년(CODS 오염 제외 평균 약 −0.5%/년).",
+   "evidenceUrl": "https://docs.nrel.gov/docs/fy24osti/88769.pdf",
+   "note": "확인."
+  },
+  {
+   "researchKey": "system",
+   "claim": "(AI효과) EMS 운전 품질 코칭: 운전상태 모델링 수준 차이만으로 연간 수소 생산 13.5% 차이 난 시뮬레이션 사례(Baumhof 2023).",
+   "verdict": "verified",
+   "correctedClaim": "운전·정지·대기 상태와 생산곡선 선형화 수준을 달리한 모델 차이로 연간 수소 생산이 13.5%, 이익이 1.8% 차이 난 시뮬레이션 사례가 있다(Baumhof 등 2023, 부분부하 운전이 많은 조건).",
+   "evidenceUrl": "https://arxiv.org/abs/2301.05310",
+   "note": "확인. 차이에는 상태 수뿐 아니라 선형화 구간 수도 포함됨."
+  },
+  {
+   "researchKey": "system",
+   "claim": "(AI효과) 출력제어 예측: 제주는 연 100회 안팎 출력제어가 발생했고, 2023년 4월부터 호남·영남 등 육지로 확대되었다(환경일보).",
+   "verdict": "unverified",
+   "correctedClaim": "(미확인) 제주 출력제어 연 100회 안팎, 2023년 4월 육지 확대 — 출처 URL이 없어 확인하지 못함.",
+   "evidenceUrl": "",
+   "note": "URL 미제공. KPX·산업부 자료로 횟수와 시점을 다시 확인해야 함."
+  },
+  {
+   "researchKey": "system",
+   "claim": "(AI효과) 게이트웨이 헬스: NTP 조용한 LAN 1 ms 이내, 인터넷 약 5~100 ms.",
+   "verdict": "verified",
+   "correctedClaim": "NTP는 조용한 동일 서브넷에서 1 ms 이내, 인터넷 경유 시 약 5~100 ms 정확도(NTP FAQ).",
+   "evidenceUrl": "https://www.ntp.org/ntpfaq/ntp-s-algo/",
+   "note": "확인."
+  },
+  {
+   "researchKey": "system",
+   "claim": "(AI효과) 정비 일정 최적화: 미국 DOE FEMP O&M 가이드(Release 3.0)는 예지보전이 예방보전만 할 때보다 8~12% 비용 절감한다고 제시.",
+   "verdict": "verified",
+   "correctedClaim": "미국 DOE FEMP O&M Best Practices Guide(Release 3.0): 예지보전 프로그램은 예방보전만 하는 프로그램보다 8~12% 비용을 절감할 수 있다(과거 산업 조사 기반 추정치).",
+   "evidenceUrl": "https://www.energy.gov/femp",
+   "note": "가이드 본문 텍스트(로컬 사본)에서 '8% to 12%' 문장 확인. 보고서에는 가이드 PDF의 정확한 URL을 달아야 함. 수소·태양광 사이트 적용 효과는 아님."
+  }
+ ],
+ "systemicIssues": [
+  "[벤더·언론 수치의 일반화] ACCURE(±15%→±2%), 화웨이(12.1%·1.5%), Raptor Maps(5.08%, 연 5회 점검 3%), Honeywell(2~30분), DeepMind(20%), AI타임스·인더스트리뉴스 보도 수치가 핵심주장에 섞여 있다. 수치 자체는 출처와 맞지만 독립 검증되지 않은 자사·보도 수치이므로 본문에서 '일반적 효과'로 서술하지 말고 '제조사·업계 주장'으로 표시해야 한다.",
+  "[출처에 없는 부가 수치 끼워넣기] Raptor '도킹 드론 사이트 평균 3%'(PV Tech 기사에 없음), SunEdison '티켓 43%·손실 36%'(슬라이드에 없음), Sci Rep 2025 EKF '모델 미갱신 시 약 3%'(초록에 없음), MPPT '둘 다 99% 이상'(초록에 없음), SMA RCMU '300mA 연속'(매뉴얼에 없음), Micheli '연 오염 손실 2.8%'(초록은 '3% 이내'). 인용 URL 하나에 다른 출처 수치를 섞는 패턴이 반복된다.",
+  "[조건 누락으로 인한 과대 적용] Qiu 2023의 수소 +7.74%·이익 +8.72%는 풍력 직결 22대(110MW) 단일 사례인데, 핵심주장과 AI효과 항목에서 조건이 빠져 PV 연계 사이트 기대효과처럼 읽힌다(PV 평균은 약 +1%). PNNL 수소 왕복효율 31~32%는 저장 손실을 뺀 값이다. NREL 가용률 0.99는 초기 6개월 제외 값이다. Jin 2020의 639초·769초는 8.8kWh LFP팩 과충전 실험, Aitio 2021은 12V 20Ah 납축전지, Xu 2018은 가정한 5분 정산 시장, eTransportation 2023은 차량용 모듈 시험이다. 모두 조건을 문장 안에 넣어야 한다.",
+  "[제품 세대 혼동] Tiger Neo 3.0 페이지를 인용하면서 온도계수 −0.29%/°C·양면율 80±5%(이전 세대 값)를 적었다. 페이지 값은 −0.26%/°C·85±5%다. 데이터시트는 모델명·세대·발행일을 함께 적어야 한다.",
+  "[과잉 일반화 표현] '상용 인버터 대부분이 임피던스 검출+양의 궤환을 쓴다'(NREL 입문서는 흔한 방법을 나열하고 제조사 독자 방식을 인정할 뿐임), '가동 전후 36개월'(45V는 수소설비 가동 시점 기준 36개월 이내 상업운전), 'KPX 오차율 8% 이하 3~4원'(2020년 도입 계획 기사 기준이라 현행 규칙 재확인 필요).",
+  "[원리 기술 오류·부정확 1: 패러데이 효율 정의] 수소 계량 원리에서 η_F = H1(정제기·건조기 후 제품 수소) ÷ 패러데이 이론량으로 정의했다. 하지만 H1에는 탈산소기 소모, 건조기 재생 퍼지, 벤트 손실이 이미 빠져 있으므로 이 값은 '시스템 수소 수율'이지 스택의 패러데이 효율(전류효율)이 아니다. 크로스오버 증가를 따로 진단하려면 스택 출구(정제 전) 유량이나 HTO/OTH 농도가 필요하다.",
+  "[원리 기술 오류·부정확 2: 수소 수지 이중계상 위험] 수지식 H1 = ΔH4 + H5 + H6 + H2 + ε에서 H2(벤트·퍼지·건조기 재생 손실)를 H1 하류 항처럼 넣었다. 건조기 재생 가스를 제품 유량계(H1) 앞에서 뽑는 설계라면 손실이 이중으로 빠진다. 계량점 P&ID 기준으로 H1 하류 손실만 수지에 넣도록 명시해야 한다.",
+  "[원리 부정확 3: PV 셀·스트링] 'Voc는 온도에 반비례'는 틀린 표현이다. 실리콘 셀 Voc는 온도에 따라 대략 선형으로 줄어든다(약 −2.2 mV/°C/셀). '병렬 스트링이 3개를 넘으면 스트링 퓨즈 필요'도 부정확하다. IEC 62548 판단 기준은 역전류((병렬수−1)×Isc)가 모듈 최대 역전류(과전류 보호) 정격을 넘는지이며, 통상 3병렬 '이상'부터 검토한다.",
+  "[원리 불일치 4: SOC 상한] 시스템 EMS 원리는 ESS SOC 상한을 '옥내 80%·옥외 90% 이하'로만 적었다. 2022년 대책 이후 신규 설비는 보증수명 용량 이내 운영으로 바뀌었고 기존 설비만 고정 제한이 유지된다. ESS 항목 서술과 맞추고, 설비 인허가 시점별로 구분해야 한다.",
+  "[원리 보완 5: Modbus 바이트 순서] 'Modbus는 빅엔디안'은 16비트 필드 표현에 한정된다. 32비트 정수·부동소수의 레지스터(워드) 순서는 사양에 정의돼 있지 않아 제조사마다 다르다. 게이트웨이 매핑 오류의 주원인이므로 엔지니어용 서술에 명시해야 한다.",
+  "[추정 계산 전제 6: 청정수소 탄소집약도] 국가 전력배출계수 0.4173 tCO2eq/MWh(Scope 2 산정용)를 청정수소 전과정평가의 계통전력 배출계수로 그대로 썼다. 인증은 고시의 '기본 제공 데이터'를 따르므로 계수가 다를 수 있다. 또 제12조상 미매칭 전력은 비율 배분이 아니라 데이터 적격성 문제로 다뤄질 수 있다. 산술(22.95 kgCO2e/kg, 0.44%, 17%)은 맞지만 '추정'과 전제를 함께 적어야 한다.",
+  "[출처 내부 불일치 7: IRENA PEM 냉간기동] IRENA 2020 표 6은 PEM 냉간기동을 2020 현황 '<20분'(2050 목표 <5분)으로, 본문은 'PEM은 5분 미만 냉간기동 가능'으로 적는다. 인용 시 어느 쪽인지 밝혀야 한다. 또 '1초 이내 증감 보증'은 Eichman(2014)이 아니라 제조사(ITM Power·Siemens) 자료 인용이다.",
+  "[URL·접근성] NREL이 National Laboratory of the Rockies로 바뀌며 docs.nrel.gov·www.nrel.gov 링크가 이 환경에서 접속되지 않았다(docs.nlr.gov로 이전). ScienceDirect(eTransportation 2023, Micheli), RSC(열폭주 온도), Cell(Joule), TWAICE, IJHE(Energiepark Mainz)는 403이나 유료벽으로 본문을 확인하지 못했다. 이 중 NMC811 371.6°C·LFP 436.6°C, 셀별 최고온도 ± 값, Mainz 운전 수치는 미확인으로 남는다.",
+  "[2차 자료 의존] 청정수소 등급(법무법인 뉴스레터), 전력배출계수(k-esg 뉴스), ESS 안전대책(법무법인 뉴스레터), 한전 ESS 절감(2017 보도 예상치) 등 정부 원문 대신 2차 자료를 인용한 항목이 있다. 경영진 보고서라면 산업부·환경부·온실가스종합정보센터 원문으로 바꾸는 것을 권고한다."
+ ]
+}
