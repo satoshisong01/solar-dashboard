@@ -90,8 +90,9 @@ export const DETECTOR_METRICS: Readonly<Record<string, readonly string[]>> = {
   'wx.station': ['poa.irradiance', 'module.temp', 'ambient.temp'],
   'h2.elz': ['ac.power', 'h2.flow.mass', 'op.state'],
   'h2.elz.stack': ['stack.voltage', 'stack.current', 'stack.temp', 'cell.voltage.avg', 'run.hours'],
-  'fc.plant': ['fc.ac.power', 'op.state', 'start.count'],
+  'fc.plant': ['fc.ac.power', 'fc.h2.consumption', 'op.state', 'start.count'],
   'fc.stack': ['stack.voltage', 'stack.current', 'stack.temp', 'cell.voltage.avg', 'run.hours'],
+  'fc.blower': ['blower.power'],
 };
 
 export const detectorPointFilter = (point: MemoryPoint): boolean => DETECTOR_METRICS[point.classKey]?.includes(point.metricKey) ?? false;

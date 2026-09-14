@@ -70,11 +70,11 @@ interface Expectation {
 }
 
 const TYPED_FAULT_EXPECTATION: Readonly<Record<TypedFaultKind, Expectation>> = {
-  'fault.battery_capacity_fade': { failureModes: ['capacity_fade'], detectors: ['ess.capacity_fade'] },
-  'fault.cell_imbalance': { failureModes: ['cell_imbalance'], detectors: ['ess.cell_imbalance'] },
-  'fault.inverter_efficiency_drop': { failureModes: ['inverter_efficiency_drop'], detectors: ['pv.inverter_peer'] },
-  'fault.elz_stack_degradation': { failureModes: ['stack_voltage_rise'], detectors: ['el.voltage_rise'] },
-  'fault.fc_voltage_decay': { failureModes: ['stack_voltage_decay'], detectors: ['fc.voltage_decay'] },
+  'fault.battery_capacity_fade': { failureModes: ['ess.capacity_fade'], detectors: ['ess.capacity_fade'] },
+  'fault.cell_imbalance': { failureModes: ['ess.cell_imbalance'], detectors: ['ess.cell_imbalance'] },
+  'fault.inverter_efficiency_drop': { failureModes: ['pv.inverter_underperformance'], detectors: ['pv.inverter_peer'] },
+  'fault.elz_stack_degradation': { failureModes: ['el.stack_voltage_degradation'], detectors: ['el.voltage_rise'] },
+  'fault.fc_voltage_decay': { failureModes: ['fc.stack_voltage_decay'], detectors: ['fc.voltage_decay'] },
 };
 
 /** 원시 hook(kind 'fault')은 파라미터로 고장모드를 정한다. P3 탐지기 대상은 탐지기 목록을 비워 둔다. */
@@ -173,7 +173,7 @@ function dqTruths(site: SiteDef, plan: SiteScenarioPlan, { fromMs, toMs }: RunWi
       startTs: w.startMs,
       endTs: w.endMs,
       params: { sourceKey: w.sourceKey },
-      expectedFailureModes: ['sensor_flatline'],
+      expectedFailureModes: ['dq.data_gap_flatline'],
       expectedDetectors: ['dq.gap_flatline'],
     })),
     ...plan.spikes.map((s): InjectionTruth => ({ ...base, assetPath: assetPathOfSource(site, s.sourceKey), kind: 'dq.spike', startTs: fromMs, endTs: toMs, params: { sourceKey: s.sourceKey, perDay: s.perDay, magnitude: s.magnitude }, expectedFailureModes: ['sensor_spike'] })),

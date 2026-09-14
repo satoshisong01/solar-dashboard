@@ -20,11 +20,11 @@ describe('buildTruth — demo120', () => {
     const summary = truth.injections.map((i) => [i.siteCode, i.assetPath, i.kind, i.startTs, i.endTs, i.expectedFailureModes, i.expectedDetectors]);
 
     expect(summary).toEqual([
-      ['SIM-A', 'SIM-A/ESS1/RACK01', 'fault.battery_capacity_fade', day(45), TO, ['capacity_fade'], ['ess.capacity_fade']],
-      ['SIM-A', 'SIM-A/PV1/INV01', 'fault.inverter_efficiency_drop', day(60), TO, ['inverter_efficiency_drop'], ['pv.inverter_peer']],
-      ['SIM-A', 'SIM-A/ESS1/RACK03', 'fault.cell_imbalance', day(30), TO, ['cell_imbalance'], ['ess.cell_imbalance']],
-      ['SIM-B', 'SIM-B/ELZ1/STACK1', 'fault.elz_stack_degradation', day(30), TO, ['stack_voltage_rise'], ['el.voltage_rise']],
-      ['SIM-B', 'SIM-B/FC1/STACK1', 'fault.fc_voltage_decay', day(30), TO, ['stack_voltage_decay'], ['fc.voltage_decay']],
+      ['SIM-A', 'SIM-A/ESS1/RACK01', 'fault.battery_capacity_fade', day(45), TO, ['ess.capacity_fade'], ['ess.capacity_fade']],
+      ['SIM-A', 'SIM-A/PV1/INV01', 'fault.inverter_efficiency_drop', day(60), TO, ['pv.inverter_underperformance'], ['pv.inverter_peer']],
+      ['SIM-A', 'SIM-A/ESS1/RACK03', 'fault.cell_imbalance', day(30), TO, ['ess.cell_imbalance'], ['ess.cell_imbalance']],
+      ['SIM-B', 'SIM-B/ELZ1/STACK1', 'fault.elz_stack_degradation', day(30), TO, ['el.stack_voltage_degradation'], ['el.voltage_rise']],
+      ['SIM-B', 'SIM-B/FC1/STACK1', 'fault.fc_voltage_decay', day(30), TO, ['fc.stack_voltage_decay'], ['fc.voltage_decay']],
     ]);
     expect(truth.injections[0]?.params).toMatchObject({ totalPct: 7, days: 30, fullEffectTs: day(75) });
     expect(truth.injections[3]?.params).toEqual({ uvPerH: 25, baselineUvPerH: 4, fullEffectTs: day(30) });
