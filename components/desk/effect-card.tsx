@@ -1,6 +1,6 @@
 import { Panel } from '@/components/ui/panel';
 import type { FindingDetail } from '@/lib/data/finding-workspace';
-import { formatEffectCi, formatEffectLevels, formatEffectValue } from '@/lib/desk/effect';
+import { formatEffectLevels, formatEffectWithCi } from '@/lib/desk/effect';
 import type { EvidenceView, WindowView } from '@/lib/desk/evidence-types';
 import { evidenceConditionText } from '@/lib/desk/evidence-summary';
 import { formatKstDate, formatKstDateTime } from '@/lib/format';
@@ -27,7 +27,8 @@ type EffectCardProps = Readonly<{ finding: FindingDetail; chargeTimeText: string
 /** 효과 카드: 기준 대비 효과 크기 + 95% CI + 같은 조건 문장 */
 export function EffectCard({ finding, chargeTimeText }: EffectCardProps) {
   const { effect, evidence } = finding;
-  const ci = formatEffectCi(effect, 2);
+  const effectText = formatEffectWithCi(effect, 2);
+  const ci = effectText.ci;
   const levels = formatEffectLevels(effect, 2);
   const condition = evidenceConditionText(evidence);
   const trendText = evidence.kind === 'stack' || evidence.kind === 'cell_imbalance' || evidence.kind === 'capacity' ? (evidence.trend?.slopeText ?? null) : null;
@@ -36,7 +37,7 @@ export function EffectCard({ finding, chargeTimeText }: EffectCardProps) {
     <Panel title="효과" meta={finding.evidenceAtMs === null ? undefined : `근거 계산 ${formatKstDateTime(finding.evidenceAtMs)} KST`}>
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <p className="font-mono text-3xl font-semibold text-ink tabular-nums">{formatEffectValue(effect, 2)}</p>
+          <p className="font-mono text-3xl font-semibold text-ink tabular-nums">{effectText.value}</p>
           {ci && <p className="font-mono text-sm text-ink-2 tabular-nums">{ci}</p>}
         </div>
         <dl className="grid gap-2 text-sm sm:grid-cols-2">

@@ -79,7 +79,10 @@ export interface CapacityPackEvidence {
   readonly slopeCiLow: number | null;
   readonly slopeCiHigh: number | null;
   readonly sohTargetPct: number | null;
+  /** 외삽 가드를 통과했을 때만 날짜 (lib/desk/projection.ts) */
   readonly sohTargetDate: number | null;
+  /** 가드를 통과하지 못했으면 추세 데이터 기간 [일] ("추세 확인 중(데이터 N일)"), 통과했거나 추세가 없으면 null */
+  readonly sohProjectionPendingDays: number | null;
   readonly series: PackSeries | null;
   readonly checks: readonly PackCheck[];
 }

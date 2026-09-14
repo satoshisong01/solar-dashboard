@@ -6,7 +6,7 @@ import { startTransition, useActionState, useState, type FormEvent } from 'react
 import { dismissFindingsAction, triageFindingsAction, type BulkResultData } from '@/app/(console)/desk/actions';
 import { ActionMessage, buttonClass } from '@/components/forms/controls';
 import { NUM_CLASS, TABLE_CLASS, TD_CLASS, TH_CLASS, TableScroll } from '@/components/ui/panel';
-import { formatEffectCi, formatEffectValue } from '@/lib/desk/effect';
+import { formatEffectWithCi } from '@/lib/desk/effect';
 import type { InboxRow } from '@/lib/desk/inbox';
 import { CATEGORY_LABELS, detectorLabel } from '@/lib/desk/labels';
 import { IDLE_STATE, type ActionState } from '@/lib/forms/action-state';
@@ -30,7 +30,8 @@ function BulkResult({ data }: Readonly<{ data: BulkResultData }>) {
 }
 
 function FindingCells({ row }: Readonly<{ row: InboxRow }>) {
-  const ci = formatEffectCi(row.effect);
+  const effectText = formatEffectWithCi(row.effect);
+  const ci = effectText.ci;
   return (
     <>
       <td className={TD_CLASS}>
@@ -55,7 +56,7 @@ function FindingCells({ row }: Readonly<{ row: InboxRow }>) {
         )}
       </td>
       <td className={`${TD_CLASS} whitespace-nowrap`}>
-        <span className="font-mono text-ink tabular-nums">{formatEffectValue(row.effect)}</span>
+        <span className="font-mono text-ink tabular-nums">{effectText.value}</span>
         {ci && <span className="block text-xs text-muted">{ci}</span>}
       </td>
       <td className={TD_CLASS}>

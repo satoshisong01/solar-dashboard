@@ -63,7 +63,8 @@ function capacity(e: CapacityEvidence, levels: EffectLevels): PackEvidence {
     slopeCiLow: perMonth(e.trend?.ciLow ?? null),
     slopeCiHigh: perMonth(e.trend?.ciHigh ?? null),
     sohTargetPct: e.sohTarget?.pct ?? null,
-    sohTargetDate: e.sohTarget?.estimate ?? null,
+    sohTargetDate: e.sohTarget?.projection?.kind === 'date' ? e.sohTarget.projection.estimate : null,
+    sohProjectionPendingDays: e.sohTarget?.projection?.kind === 'pending' ? e.sohTarget.projection.spanDays : null,
     series: seriesOf(e.trend, 3),
     checks: checksOf(e.checks),
   };

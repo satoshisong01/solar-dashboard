@@ -10,7 +10,7 @@ const period = resolveReportPeriod({ kind: 'month', month: '2026-09' });
 if (!period.ok) throw new Error('fixture period');
 export const SEPTEMBER = period.period;
 
-const capacitySnapshot = (points = 60) => ({
+export const capacitySnapshot = (points = 70) => ({
   method: 'matched_ratio',
   metric: 'capacity_ah_soc',
   reference: { n: 20, from: KST_2026_09_01 - 100 * DAY, to: KST_2026_09_01 - 70 * DAY },

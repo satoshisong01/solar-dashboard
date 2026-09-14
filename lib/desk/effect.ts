@@ -54,6 +54,37 @@ export function formatEffectCi(effect: Pick<EffectView, 'ciLow' | 'ciHigh'>, dig
   return `95% CI ${formatSigned(effect.ciLow, digits)} ~ ${formatSigned(effect.ciHigh, digits)}`;
 }
 
+/** 효과·CI 표시 자릿수 상한 */
+export const MAX_EFFECT_DIGITS = 3;
+
+/**
+ * 점추정과 CI 경계가 표시상 같아지지 않는 자릿수: digits부터 시작해 값이 CI 하한·상한 중 하나와 같은 글자로 보이면
+ * 자릿수를 하나씩 늘린다 (최대 MAX_EFFECT_DIGITS). 실제 값이 같으면 늘려도 같으므로 상한에서 멈춘다.
+ * format은 표시 방식(부호 붙은 수 또는 보통 수) — 리포트 토큰(signed·number)과 같은 표기로 비교해야 한다.
+ */
+export function effectCiDigits(effect: Pick<EffectView, 'value' | 'ciLow' | 'ciHigh'>, digits = 1, format: (value: number, digits: number) => string = formatSigned): number {
+  const { value, ciLow, ciHigh } = effect;
+  if (value === null || !Number.isFinite(value)) return digits;
+  const collides = (d: number): boolean => [ciLow, ciHigh].some((bound) => bound !== null && Number.isFinite(bound) && format(bound, d) === format(value, d));
+  let chosen = digits; // 자릿수를 늘려 가며 찾는 값
+  while (collides(chosen) && chosen < MAX_EFFECT_DIGITS) chosen += 1;
+  return chosen;
+}
+
+export interface EffectWithCiText {
+  /** '−7.40%' */
+  readonly value: string;
+  /** '95% CI −7.43 ~ −7.38' (CI가 없으면 null) */
+  readonly ci: string | null;
+  readonly digits: number;
+}
+
+/** 효과 크기와 95% CI를 서로 구분되는 같은 자릿수로 표기한다 (분석 데스크·리포트 공용 규칙) */
+export function formatEffectWithCi(effect: Pick<EffectView, 'value' | 'unit' | 'ciLow' | 'ciHigh'>, digits = 1): EffectWithCiText {
+  const chosen = effectCiDigits(effect, digits);
+  return { value: formatEffectValue(effect, chosen), ci: formatEffectCi(effect, chosen), digits: chosen };
+}
+
 /** '586.5 Ah → 543.1 Ah' (둘 다 있을 때만) */
 export function formatEffectLevels(effect: Pick<EffectView, 'baseline' | 'current' | 'levelUnit'>, digits = 1): string | null {
   if (effect.baseline === null || effect.current === null) return null;

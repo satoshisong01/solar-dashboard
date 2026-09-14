@@ -1,6 +1,7 @@
 import { EmptyNote, Panel } from '@/components/ui/panel';
 import { formatSigned } from '@/lib/desk/effect';
 import { cautionLabel } from '@/lib/desk/labels';
+import { pendingProjectionText } from '@/lib/desk/projection';
 import type { CapacityEvidence, EvidenceView, SohTargetView } from '@/lib/desk/evidence-types';
 import type { TrendView } from '@/lib/desk/trend';
 import { formatKstDate } from '@/lib/format';
@@ -10,9 +11,11 @@ import { PeerChart } from './peer-chart';
 import { TrendChart } from './trend-chart';
 
 function sohTargetText(target: SohTargetView | null): string | null {
-  if (!target || target.estimate === null) return null;
-  const range = target.early !== null && target.late !== null ? ` (기울기 95% CI로 ${formatKstDate(target.early)} ~ ${formatKstDate(target.late)})` : target.early !== null ? ` (빠르면 ${formatKstDate(target.early)})` : '';
-  return `SOH ${target.pct}% 도달 예상일 ${formatKstDate(target.estimate)}${range} — 현재 추세가 이어진다고 가정한 외삽입니다.`;
+  const projection = target?.projection;
+  if (!target || !projection) return null;
+  if (projection.kind === 'pending') return `SOH ${target.pct}% 도달 예상일: ${pendingProjectionText(projection.spanDays)} — 데이터 기간이 짧거나 감소 기울기가 유의하지 않거나 예상 시점이 10년 넘게 떨어져 날짜를 쓰지 않습니다.`;
+  const range = projection.early !== null && projection.late !== null ? ` (기울기 95% CI로 ${formatKstDate(projection.early)} ~ ${formatKstDate(projection.late)})` : projection.early !== null ? ` (빠르면 ${formatKstDate(projection.early)})` : '';
+  return `SOH ${target.pct}% 도달 예상일 ${formatKstDate(projection.estimate)}${range} — 현재 추세가 이어진다고 가정한 외삽입니다.`;
 }
 
 function TrendPanel({ trend, label, footnote }: Readonly<{ trend: TrendView | null; label: string; footnote?: string | null }>) {

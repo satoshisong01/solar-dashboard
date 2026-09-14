@@ -14,7 +14,7 @@ const original = findBlock(review, MESSAGE)?.text ?? '';
 
 describe('숫자 토큰 잠금 편집', () => {
   it('숫자·이름을 그대로 두고 문장만 바꾸면 저장되고 검증도 통과한다 (원본 초안은 그대로)', () => {
-    const edited = original.replace('으로 충전을 비교하면', '에서 충전 세션을 맞춰 보면').replace(' 변했습니다.', ' 줄었습니다.');
+    const edited = original.replace('으로 충전을 비교하면', '에서 충전 세션을 맞춰 보면').replace(' 감소했습니다.', ' 줄었습니다.');
     const result = editBlockText(review, MESSAGE, edited, ADMIN, NOW);
     expect(result.ok).toBe(true);
     if (!result.ok) return;

@@ -3,6 +3,7 @@
 import type { CheckStatus } from '@/lib/analytics/detectors/types';
 import type { BinWidths, CapacityBinView, CapacityMetric, SessionRules } from './conditions';
 import type { ChargeCurve } from './overlay';
+import type { ProjectionView } from './projection';
 import type { TrendView } from './trend';
 
 export type MeasuredValue = number | string | boolean | null;
@@ -27,6 +28,8 @@ export interface SohTargetView {
   readonly estimate: number | null;
   readonly early: number | null;
   readonly late: number | null;
+  /** 외삽 표시 가드 결과: 날짜를 써도 되면 date, 아니면 pending(데이터 N일) */
+  readonly projection: ProjectionView | null;
 }
 
 export interface CapacityEvidence {

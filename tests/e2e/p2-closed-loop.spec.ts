@@ -176,7 +176,7 @@ test('(6) 리포트 만들기(SIM-A) → 검증 통과 → 숫자 편집 거부�
   await textarea.fill(original.replace(/유효용량이 [\d.]+ Ah/, '유효용량이 999.9 Ah'));
   await expect(block.getByRole('alert')).toContainText('숫자는 편집할 수 없습니다');
   await expect(block.getByRole('button', { name: '문장 저장' })).toBeDisabled();
-  await textarea.fill(original.replace('변했습니다.', '줄었습니다.'));
+  await textarea.fill(original.replace('감소했습니다.', '줄었습니다.'));
   await block.getByRole('button', { name: '문장 저장' }).click();
   await expect(block).toContainText('줄었습니다.');
   await expect(panel(page, '검증기 결과')).toContainText('검증 통과');

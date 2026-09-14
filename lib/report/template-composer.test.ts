@@ -3,7 +3,7 @@ import { SAFETY_NOTICE, type ReportDraft } from './composer';
 import { buildEvidencePack } from './evidence-pack';
 import { resolveReportPeriod } from './period';
 import { templateComposer, TEMPLATE_COMPOSER_ID } from './template-composer';
-import { capacityFinding, cellFinding, KST_2026_09_01, packInput, pvFinding, stackFinding } from './test-fixtures';
+import { capacityFinding, capacitySnapshot, cellFinding, KST_2026_09_01, packInput, pvFinding, stackFinding } from './test-fixtures';
 import { validateDraft } from './validate';
 
 const DAY = 86_400_000;
@@ -47,7 +47,7 @@ describe('탐지기별 메시지 템플릿', () => {
     const draft = templateComposer.compose(buildEvidencePack(packInput({ findings: [capacityFinding()] })));
     expect(textOf(draft, 'finding.1.message')).toBe(
       '[SIM-A/ESS1/RACK01] 배터리 유효용량 감소 (확정, 신뢰도 85%·탐지 3회): 같은 조건(충전전류 0.1~0.2C, 셀온도 20~25°C, SOC 변화 ≥ 40%인 부분 충전, 기준 20회·최근 12회)으로 충전을 비교하면 ' +
-        '유효용량이 586.5 Ah → 543.1 Ah로 −7.4%(95% CI −7.5 ~ −7.2) 변했습니다. 59 A 기준 환산 충전시간은 10h 00m → 9h 16m입니다. ' +
+        '유효용량이 586.5 Ah → 543.1 Ah로 −7.4%(95% CI −7.5 ~ −7.2) 감소했습니다. 59 A 기준 환산 충전시간은 10h 00m → 9h 16m입니다. ' +
         '정격 대비 추세 −2.5%p/월(95% CI −2.72 ~ −2.29), SOH 80% 도달 추정 2027-05-01. 함께 확인된 신호: 셀 불균형으로 인한 조기 종료.',
     );
     expect(textOf(draft, 'finding.1.advice')).toBe('권고: 기준 조건 용량시험으로 감소 폭 확정; 셀 밸런싱 후 같은 조건으로 재평가. 기각 전 확인할 오탐 요인: 운영 SOC 상한 변경, 셀 불균형으로 인한 조기 종료.');
@@ -73,6 +73,23 @@ describe('탐지기별 메시지 템플릿', () => {
     const text = textOf(draft, 'finding.1.message');
     expect(text).toContain('같은 조건(셀온도 20~25°C, 30분 이상 휴지 끝 SOC 두 점, SOC 변화 ≥ 25%, 기준 10쌍·최근 41쌍)으로 휴지 앵커 사이 충방전을 비교하면 유효용량이 598.1 Ah → 561 Ah로 −6.2%');
     expect(text).toContain('주의: SOC 기반 용량 추정은 BMS SOC 재보정 품질에 의존합니다.');
+    expect(validateDraft(draft, pack)).toMatchObject({ ok: true, issues: [] });
+  });
+
+  it('효과와 CI 경계가 표시상 같아지면 자릿수를 늘리고(최대 3자리), 데이터 기간이 짧은 SOH 도달일은 날짜 대신 추세 확인 중으로 쓴다', () => {
+    const snapshot = capacityFinding().snapshot as Record<string, Record<string, unknown>>;
+    const shortTrend = capacitySnapshot(40) as unknown as Record<string, Record<string, unknown>>;
+    const narrow = capacityFinding({
+      effect: { metric: 'capacity_ah_soc', value: -7.396, unit: '%', ciLow: -7.43, ciHigh: -7.38, baseline: 586.52, current: 543.14, levelUnit: 'Ah' },
+      snapshot: { ...snapshot, trend: shortTrend.trend },
+    });
+    const pack = buildEvidencePack(packInput({ findings: [narrow] }));
+    const draft = templateComposer.compose(pack);
+    const text = textOf(draft, 'finding.1.message');
+    expect(text).toContain('−7.4%(95% CI −7.43 ~ −7.38) 감소했습니다.');
+    expect(text).toContain('SOH 80% 도달 시점은 추세 확인 중(데이터 39일).');
+    expect(text).not.toContain('2027-05-01');
+    expect(textOf(draft, 'todo.1')).toContain('배터리 유효용량 감소 −7.4%');
     expect(validateDraft(draft, pack)).toMatchObject({ ok: true, issues: [] });
   });
 
@@ -117,7 +134,7 @@ describe('탐지기별 메시지 템플릿', () => {
 
   it('셀 편차: 기준 → 최근 mV·추세·동종 비교', () => {
     const draft = templateComposer.compose(buildEvidencePack(packInput({ findings: [cellFinding()] })));
-    expect(textOf(draft, 'finding.2.message')).toContain('기준 8 mV(15회) → 최근 31.7 mV(20회)로 +23.7 mV(95% CI +22.8 ~ +25.6) 변했습니다. 추세 +10.1 mV/월(95% CI +9.4 ~ +10.9). 동종 랙 3대 대비 수정 z 5.2.');
+    expect(textOf(draft, 'finding.2.message')).toContain('기준 8 mV(15회) → 최근 31.7 mV(20회)로 +23.7 mV(95% CI +22.8 ~ +25.6) 증가했습니다. 추세 +10.1 mV/월(95% CI +9.4 ~ +10.9). 동종 랙 3대 대비 수정 z 5.2.');
   });
 
   it('데이터 품질·검증된 조치·KPI 문장', () => {

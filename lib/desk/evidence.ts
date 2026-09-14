@@ -10,6 +10,7 @@ import { formatSigned } from './effect';
 import type { CapacityEvidence, CellImbalanceEvidence, CheckView, DqEvidence, EvidenceView, MeasuredValue, PvPeerEvidence, Span, StackEvidence } from './evidence-types';
 import { asArray, asBoolean, asNumber, asRecord, asString, xyPoints, type JsonRecord } from './json-read';
 import { measuredLabel } from './measured-labels';
+import { projectionOf } from './projection';
 import type { ChargeCurve } from './overlay';
 import type { TrendView } from './trend';
 
@@ -77,6 +78,16 @@ function parseCapacity(s: JsonRecord): CapacityEvidence {
   const widths = asRecord(s.bin_widths);
   const trend = asRecord(s.trend);
   const target = asRecord(trend.soh_target_date);
+  const trendView = capacityTrend(trend);
+  const projection = projectionOf({
+    estimate: asNumber(target.estimate),
+    early: asNumber(target.early),
+    late: asNumber(target.late),
+    slopeCiHigh: asNumber(trend.ci_high_pct_per_month),
+    firstTs: trendView?.points[0]?.[0] ?? null,
+    lastTs: trendView?.points.at(-1)?.[0] ?? null,
+    minSpanDays: asNumber(trend.min_span_days_for_projection),
+  });
   const window = (value: unknown) => ({ n: asNumber(asRecord(value).n) ?? 0, from: asNumber(asRecord(value).from), to: asNumber(asRecord(value).to) });
   const restRules = asRecord(s.rest_pair_rules);
   return {
@@ -102,8 +113,8 @@ function parseCapacity(s: JsonRecord): CapacityEvidence {
       .sort(byCapacityBin),
     reference: window(s.reference),
     recent: window(s.recent),
-    trend: capacityTrend(trend),
-    sohTarget: asNumber(trend.soh_target_pct) === null ? null : { pct: asNumber(trend.soh_target_pct) ?? 80, estimate: asNumber(target.estimate), early: asNumber(target.early), late: asNumber(target.late) },
+    trend: trendView,
+    sohTarget: asNumber(trend.soh_target_pct) === null ? null : { pct: asNumber(trend.soh_target_pct) ?? 80, estimate: asNumber(target.estimate), early: asNumber(target.early), late: asNumber(target.late), projection },
     referenceCurrentA: asNumber(asRecord(s.charge_time).reference_current_a),
     overlay: { reference: parseCurve(asRecord(s.overlay).reference), recent: parseCurve(asRecord(s.overlay).recent) },
     checks: parseChecks(s.checks),

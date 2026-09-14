@@ -1,7 +1,7 @@
 // ess.capacity_fade 메시지 (설계 §3.1 리포트 행): 같은 조건 문장 + 유효용량 Ah + 효과 % + 95% CI + 기준 전류 환산 충전시간 + 추세·SOH 도달 추정.
 import { cautionLabel } from '@/lib/desk/labels';
 import type { PackFinding } from '../pack-types';
-import { ciNote, genericMessage, head, judgementNote, supportsNote } from './common';
+import { ciNote, effectDigits, effectVerb, genericMessage, head, judgementNote, supportsNote } from './common';
 import { joinPresent, seq, when, type Piece, type Scope } from './scope';
 
 function conditionPieces(s: Scope, f: PackFinding): Piece | null {
@@ -32,6 +32,7 @@ export function essCapacityFadeMessage(s: Scope, f: PackFinding): Piece {
   if (f.evidence.kind !== 'capacity' || conditions === null || !s.has('effect.value') || !s.has('effect.baseline') || !s.has('effect.current')) return genericMessage(s, f);
   const hasChargeTime = s.has('evidence.referenceCurrentA') && s.has('evidence.baselineHours') && s.has('evidence.currentHours');
   const hasTrend = s.has('evidence.slopePerMonth');
+  const digits = effectDigits(f, 1);
   return seq(
     head(s),
     judgementNote(s, f),
@@ -42,10 +43,10 @@ export function essCapacityFadeMessage(s: Scope, f: PackFinding): Piece {
     ' Ah → ',
     s.num('effect.current', 1),
     ' Ah로 ',
-    s.signed('effect.value', 1),
+    s.signed('effect.value', digits),
     '%',
-    ciNote(s, 'effect.ciLow', 'effect.ciHigh', 1),
-    ' 변했습니다.',
+    ciNote(s, 'effect.ciLow', 'effect.ciHigh', digits),
+    ` ${effectVerb(f)}.`,
     when(hasChargeTime, () => seq(' ', s.num('evidence.referenceCurrentA'), ' A 기준 환산 충전시간은 ', s.dur('evidence.baselineHours'), ' → ', s.dur('evidence.currentHours'), '입니다.')),
     when(hasTrend, () =>
       seq(
@@ -54,6 +55,7 @@ export function essCapacityFadeMessage(s: Scope, f: PackFinding): Piece {
         '%p/월',
         ciNote(s, 'evidence.slopeCiLow', 'evidence.slopeCiHigh', 2),
         when(s.has('evidence.sohTargetPct') && s.has('evidence.sohTargetDate'), () => seq(', SOH ', s.num('evidence.sohTargetPct'), '% 도달 추정 ', s.date('evidence.sohTargetDate'))),
+        when(s.has('evidence.sohTargetPct') && s.has('evidence.sohProjectionPendingDays'), () => seq(', SOH ', s.num('evidence.sohTargetPct'), '% 도달 시점은 추세 확인 중(데이터 ', s.num('evidence.sohProjectionPendingDays'), '일)')),
         '.',
       ),
     ),

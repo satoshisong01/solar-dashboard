@@ -4,7 +4,9 @@
 import { verdictLabel } from '@/lib/desk/labels';
 import { SAFETY_NOTICE, type DraftBlock, type DraftSection, type ReportComposer, type ReportDraft } from './composer';
 import { ENERGY_KEYS, ENERGY_LABELS, KPI_TEXT_KEYS, kpiDisplay } from './kpi-labels';
+import { effectCiDigits, formatSigned } from '@/lib/desk/effect';
 import { adviceMessage, findingMessage, scopeOf, type Scope } from './messages';
+import { effectDigits } from './messages/common';
 import { joinPresent, seq, when, type Piece } from './messages/scope';
 import type { EvidencePack, PackFinding } from './pack-types';
 
@@ -50,7 +52,7 @@ function todoSection(pack: EvidencePack, s: Scope): DraftSection {
     const f = pack.findings[todo.findingIndex];
     if (!f) return [];
     const fs = s.at(`findings[${todo.findingIndex}]`);
-    const effect = when(fs.has('effect.value'), () => seq(' ', fs.signed('effect.value', 1), unitSuffix(f.effect.unit)));
+    const effect = when(fs.has('effect.value'), () => seq(' ', fs.signed('effect.value', effectDigits(f, 1)), unitSuffix(f.effect.unit)));
     const piece = seq(s.num(`todo[${i}].rank`), '. [', fs.label('assetPath'), '] ', s.label(`todo[${i}].action`), ' — ', fs.label('detectorLabel'), effect, ' (심각도 ', fs.num('severity'), ', 신뢰도 ', fs.pct('confidence'), '%)');
     return [block(`todo.${todo.rank}`, piece, [`finding:${f.id}`])];
   });
@@ -84,7 +86,7 @@ function dataQualitySection(pack: EvidencePack, s: Scope): DraftSection {
 function verifiedActionsSection(pack: EvidencePack, s: Scope): DraftSection {
   const blocks = pack.verifiedActions.map((action, i) => {
     const as = s.at(`verifiedActions[${i}]`);
-    const digits = action.unit === 'V' ? 4 : 1;
+    const digits = effectCiDigits({ value: action.effect, ciLow: action.ciLow, ciHigh: action.ciHigh }, action.unit === 'V' ? 4 : 1, formatSigned);
     const result =
       action.verdict === 'insufficient_data' || !as.has('effect')
         ? seq(' 전후 비교 표본이 부족해 판정하지 못했습니다(전 ', as.num('beforeN'), '회·후 ', as.num('afterN'), '회).')

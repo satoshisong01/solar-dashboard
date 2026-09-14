@@ -1,6 +1,6 @@
 // pv.inverter_peer 메시지: 평가일 중 낮은 날 + 동종 중앙값 → 이 인버터 kWh/kWp + 편차 % + 95% CI + 제외일.
 import type { PackFinding } from '../pack-types';
-import { ciNote, genericMessage, head, judgementNote } from './common';
+import { ciNote, effectDigits, genericMessage, head, judgementNote } from './common';
 import { seq, when, type Piece, type Scope } from './scope';
 
 export function pvInverterPeerMessage(s: Scope, f: PackFinding): Piece {
@@ -20,9 +20,9 @@ export function pvInverterPeerMessage(s: Scope, f: PackFinding): Piece {
     ' → 이 인버터 ',
     s.num('effect.current', 2),
     ' kWh/kWp, ',
-    s.signed('effect.value', 2),
+    s.signed('effect.value', effectDigits(f, 2)),
     '%',
-    ciNote(s, 'effect.ciLow', 'effect.ciHigh', 2),
+    ciNote(s, 'effect.ciLow', 'effect.ciHigh', effectDigits(f, 2)),
     '.',
     when(e.excludedDays > 0, () => seq(' 출력제한·클리핑·정지일 ', s.num('evidence.excludedDays'), '일은 제외했습니다.')),
   );

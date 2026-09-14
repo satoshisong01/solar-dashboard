@@ -31,6 +31,22 @@ describe('validateDraft', () => {
     expect(result.issues[0]).toMatchObject({ blockId: 'finding.1.message', message: expect.stringContaining('"600"') });
   });
 
+  it('방향 단어: 효과 값 뒤 같은 문장의 방향이 부호와 반대면 direction_mismatch (같은 방향 다른 표현·다른 문장의 단어는 허용)', () => {
+    const { pack, draft } = setup();
+    const flipped = withBlock(draft, 'finding.1.message', (b) => ({ ...b, text: b.text.replace('감소했습니다.', '증가했습니다.') }));
+    const result = validateDraft(flipped, pack);
+    expect(codes(result)).toEqual(['direction_mismatch']);
+    expect(result.issues[0]?.message).toContain('"증가"');
+    const synonym = withBlock(draft, 'finding.1.message', (b) => ({ ...b, text: b.text.replace('감소했습니다.', '줄었습니다.') }));
+    expect(validateDraft(synonym, pack).ok).toBe(true);
+    const stack = buildEvidencePack(packInput({ findings: [stackFinding()] }));
+    const stackDraft = templateComposer.compose(stack);
+    const withLabel = withBlock(stackDraft, 'finding.4.message', (b) => ({ ...b, text: `${b.text} 함께 확인된 신호: 셀 전압 감소 동반.` }));
+    expect(validateDraft(withLabel, stack).ok).toBe(true);
+    const stackFlipped = withBlock(stackDraft, 'finding.4.message', (b) => ({ ...b, text: b.text.replace('로 상승하고 있습니다.', '로 하락하고 있습니다.') }));
+    expect(codes(validateDraft(stackFlipped, stack))).toEqual(['direction_mismatch']);
+  });
+
   it('표시 반올림은 허용한다 (−7.396 → −7.40 표기)', () => {
     const { pack, draft } = setup();
     const rounded = withBlock(draft, 'finding.1.message', (b) => ({ ...b, text: b.text.replace('−7.4%', '−7.40%'), numberTokens: b.numberTokens.map((t) => (t.text === '−7.4' ? { ...t, text: '−7.40' } : t)) }));

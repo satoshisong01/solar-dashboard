@@ -1,4 +1,7 @@
 // 발견사항 메시지 공통 조각 (순수): 머리말 · 확정/잠정 표기 · 95% CI · 판정 보류 · 함께 확인된 신호 · 권고.
+import { effectCiDigits, formatSigned } from '@/lib/desk/effect';
+import { formatNumber } from '@/lib/format';
+import { directionVerb, effectDirection } from '../direction';
 import type { PackCheck, PackFinding } from '../pack-types';
 import { joinPresent, seq, when, type Piece, type Scope } from './scope';
 
@@ -10,6 +13,16 @@ export function head(s: Scope): Piece {
 /** ' (확정, 신뢰도 85%·탐지 3회)' 또는 ' (잠정, …)' */
 export function judgementNote(s: Scope, f: PackFinding): Piece {
   return seq(` (${f.judgement === 'confirmed' ? '확정' : '잠정'}, 신뢰도 `, s.pct('confidence'), '%·탐지 ', s.num('history.detectionCount'), '회)');
+}
+
+/** 효과·CI 표시 자릿수: base부터 점추정과 CI 경계가 같은 글자로 보이면 늘린다 (분석 데스크와 같은 규칙, 토큰 표기 형식으로 비교) */
+export function effectDigits(f: PackFinding, base: number, signed = true): number {
+  return effectCiDigits(f.effect, base, signed ? formatSigned : (value, digits) => formatNumber(value, digits));
+}
+
+/** 효과 부호로 만든 동사: '감소했습니다' · '증가하고 있습니다' */
+export function effectVerb(f: PackFinding, form: 'past' | 'progressive' = 'past'): string {
+  return directionVerb(effectDirection(f.effect.metric, f.effect.value), form);
 }
 
 /** '(95% CI −7.5 ~ −7.2)' — 둘 다 있을 때만 */

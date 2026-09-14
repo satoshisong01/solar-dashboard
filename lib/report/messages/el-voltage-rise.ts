@@ -4,5 +4,5 @@ import type { Piece, Scope } from './scope';
 import { stackVoltageMessage } from './stack';
 
 export function elVoltageRiseMessage(s: Scope, f: PackFinding): Piece {
-  return stackVoltageMessage(s, f, { subject: '셀 평균 전압', verb: '상승' });
+  return stackVoltageMessage(s, f, { subject: '셀 평균 전압' });
 }

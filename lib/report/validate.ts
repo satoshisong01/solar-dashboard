@@ -4,13 +4,15 @@
 //   3) 본문 숫자 = 토큰 = 팩 값 (표시 반올림 허용), 추적되지 않은 숫자 없음
 //   4) 심각도 4 이상 발견사항은 포함한 블록이 모두 인용
 //   5) 금지 표현(법정 안전 판단 대체·안전 보장 등) 없음, 안전 고정 문구는 포함·원문 그대로
+//   6) 효과 값 뒤 같은 문장의 방향 단어가 효과 부호와 맞음 (편집으로 '감소'를 '증가'로 바꾸면 불일치, lib/report/direction.ts)
 import { SAFETY_NOTICE, type DraftBlock, type ReportDraft } from './composer';
+import { DIRECTION_WORDS, directionIssues } from './direction';
 import { computePackHash } from './evidence-pack';
 import type { EvidencePack } from './pack-types';
 import { SEVERE_THRESHOLD } from './planner';
 import { blockTokenIssues, type TokenIssueCode } from './tokens';
 
-export type ValidationIssueCode = TokenIssueCode | 'pack_hash_mismatch' | 'citation_missing' | 'severity_not_mentioned' | 'forbidden_expression' | 'safety_notice_missing' | 'exclude_reason_missing' | 'empty_text';
+export type ValidationIssueCode = TokenIssueCode | 'pack_hash_mismatch' | 'citation_missing' | 'severity_not_mentioned' | 'forbidden_expression' | 'safety_notice_missing' | 'exclude_reason_missing' | 'empty_text' | 'direction_mismatch';
 
 export interface ValidationIssue {
   readonly code: ValidationIssueCode;
@@ -67,6 +69,7 @@ function blockIssues(block: ValidatableBlock, pack: EvidencePack, citations: Rea
     ...block.citations.filter((id) => !citations.has(id)).map((id) => at('citation_missing', `인용 근거 ${id}이(가) 팩에 없습니다`)),
     ...blockTokenIssues(block, pack).map((issue) => at(issue.code, issue.message)),
     ...forbiddenReasons(block.text).map((reason) => at('forbidden_expression', `금지 표현: ${reason}`)),
+    ...directionIssues(block, pack).map((issue) => at('direction_mismatch', `발견사항 #${issue.findingId} 효과는 ${issue.expected === 'increase' ? '증가' : '감소'} 방향인데 본문에 "${issue.found}" 표현이 있습니다 (예: ${DIRECTION_WORDS[issue.expected][0]})`)),
   ];
 }
 
