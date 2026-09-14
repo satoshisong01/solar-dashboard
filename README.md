@@ -108,6 +108,26 @@
 - 같은 시간대(같은 적재 창)에 같은 시드·옵션으로 다시 실행하면 본문이 같아 모든 배치가 200 duplicate가 되고 원시는 늘지 않습니다. 이 방식 이전 전송기(`sent_at`을 전송 시각으로 바꿔 보냄)로 적재한 데이터에 다시 보내면 409가 날 수 있습니다(샘플은 이미 들어 있음). 다른 시각에 다시 실행하면 기간이 겹쳐 (a)가 맞지 않습니다. 처음부터 다시 만들려면 `npm run db:reset` → `npm run db:seed` → `npm run admin:create`(계정도 지워짐) 후 4~6단계를 반복하세요.
 - 실시간 전송: `npm run sim:live -- --sites SIM-A,SIM-B,SIM-C` 는 현재 시각부터 5분 창마다 보냅니다(시나리오 없음, Ctrl+C로 종료). 설비 상태를 시작 시각으로 추정하므로 적재한 과거 데이터와 값이 이어지지는 않습니다.
 
+### 분석 실행 (`lib/analysis`)
+
+분석은 **수동 실행만** 있습니다(설계 §0). 관리자가 사이트·설비·기간을 고르면 `runAnalysis(db, { siteIds, assetIds?, from, to, requestedBy })`가 결과를 발견사항(finding)으로만 저장하고, 리포트는 만들지 않습니다. 콘솔 버튼(다음 단계)과 로컬 확인용 CLI가 같은 함수를 씁니다.
+
+```bash
+npm run analyze -- --sites SIM-A,SIM-B,SIM-C --days 120        # 끝 시각 기본값 = 지금
+npm run analyze -- --sites SIM-B --days 30 --to 2026-09-15T00:00:00+09:00 --assets 57,58 --budget-min 10
+```
+
+1. `om.analysis_run` 행을 만들고, 전용 연결의 트랜잭션에서 사이트 id 순서대로 `pg_try_advisory_xact_lock(hashtext('om.analysis_run'), site_id)`를 잡습니다. 하나라도 못 잡으면 실행 행을 `failed`로 남기고 거절합니다(`AnalysisBusyError`). 잡은 뒤 같은 사이트를 포함한 채 `running`으로 남은 이전 실행은 중단된 실행으로 보고 `failed`로 정리합니다.
+2. 대상 사이트 포인트의 남은 dirty 롤업을 처리합니다.
+3. 설비별 에피소드 추출: `[from − 6시간의 KST 0시, to)`(앞 실행이 끝에 걸려 `open`으로 저장한 에피소드가 있으면 그 시작부터)를 다시 뽑아, 그 구간의 기존 에피소드를 지우고 새로 넣습니다.
+4. `om.kpi_daily` upsert (인버터 발전량·비발전량·동종 비율·가용률, 사이트 합계, 랙 왕복효율, 전해조 SEC, 연료전지 원단위·기준 전류밀도 전압).
+5. 탐지기 6종: 저장된 에피소드 전체 이력(기준선부터)과 `om.asset_event`(설비·상위 설비, `resets_baseline` 반영), 활성 `om.detector_config`(default < class < asset)로 `lib/analytics/pipeline`이 입력을 조립합니다. `dq.gap_flatline`은 1시간 롤업 공백과 원시 고착 구간을 SQL로 요약합니다(사이트에 데이터가 있는 구간만). 용량 감소 finding이 나면 대표 세션 충전 곡선을 읽어 오버레이를 채웁니다.
+6. finding upsert: `dedup_key = 탐지기|설비|고장모드`. 열린 건은 갱신(`last_detected_at`·`detection_count`·심각도·신뢰도·효과, 조치 이후 악화면 system이 `reopened`), 없으면 억제 기간 안의 기각 건이면 건너뛰고 아니면 새로 만듭니다(닫힌 이전 건은 `previous_finding_id`). 근거는 매번 `finding_evidence`에 추가합니다(`input_hash`).
+7. 조치 효과 검증: 후 창(`performed_at + stabilization_days`부터 `window_days`, 기본 30일)이 `to`까지 채워진 정비 조치를 `matched_before_after@1`로 비교해 `om.action_verification`에 upsert하고, `improved`이면 연결 발견사항을 system이 `verified`로 옮깁니다.
+8. 설비·탐지기 단위 오류와 시간 예산(기본 15분) 초과는 기록하고 계속해 `partial`, 실행 전체가 실패하면 `failed`로 끝납니다. `stats`에 사이트별 설비·에피소드·KPI 행·탐지기별 ok/부족/오류/finding·finding 생성·갱신·억제·재발·검증 결과·소요시간이 남습니다.
+
+상태 전이(`lib/analysis/transitions.ts`, 규칙은 `transition-rules.ts`): `triageFinding`(new·reopened → triaged), `dismissFinding`(사유 필수, 억제 기간, 사유가 '운영 조건 변경'이면 `resetBaseline`으로 기준선 분할 `asset_event` 생성), `reopenFinding`, `markFindingsInReport`(리포트 승인 시), `registerMaintenanceAction`(조치 기록 + `action_taken`). `verified`는 조치 검증(system)만 기록합니다.
+
 ### 시뮬레이터 평가 게이트 (`sim:eval`)
 
 DB·서버 없이 메모리 모드로 1년치 가상 데이터를 만들어 탐지기 성능을 재고, 설계 §5.5 CI 게이트를 판정합니다. 에피소드 추출·탐지기 입력 조립은 분석 실행(`lib/analysis`)과 같은 `lib/analytics/pipeline` 함수를 씁니다.
