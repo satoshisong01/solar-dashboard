@@ -7,7 +7,7 @@ import type { SimEvent } from './events';
 import { MS_PER_MINUTE, MS_PER_SECOND, toEpochMs, type TimeInput } from './math';
 import { createPlant, type Plant, type PlantSample } from './plant';
 import { deriveRng, type Rng } from './rng';
-import { EMPTY_PLAN, planScenarios, type Scenario, type SiteScenarioPlan } from './scenarios';
+import { clockSkewAt, EMPTY_PLAN, planScenarios, type Scenario, type SiteScenarioPlan } from './scenarios';
 import { createGatewayTransport, type GatewayTransport, type PendingBatch, type Transmission } from './transport';
 
 export const DEFAULT_STEP_S = 60;
@@ -128,17 +128,21 @@ function splitWindow(buffer: WindowBuffer, windowIndex: number, windowEndMs: num
   }));
 }
 
-/** 시계 오차 시나리오면 NTP 미동기, 아니면 동기 상태와 작은 오프셋 */
-function gatewayClock(runner: SiteRunner): GatewayClock {
-  if (runner.plan.clockSkewMs !== 0) return { ntp_synced: false };
+/**
+ * 시계 오차가 있는 배치는 NTP 미동기, 아니면 동기 상태와 작은 오프셋.
+ * lib/ingest 스키마는 ntp_offset_ms를 필수로 받으므로 미동기일 때는 알 수 없는 오프셋을 0으로 보낸다.
+ */
+function gatewayClock(runner: SiteRunner, skewMs: number): GatewayClock {
+  if (skewMs !== 0) return { ntp_synced: false, ntp_offset_ms: 0 };
   return { ntp_synced: true, ntp_offset_ms: Math.round(4 * runner.clockRng.gaussian()) };
 }
 
 function toSimulatedBatches(runner: SiteRunner, transmissions: readonly Transmission[], config: RunConfig): SimulatedBatch[] {
-  const skewMs = runner.plan.clockSkewMs;
   const sentBySeq = new Map<number, IngestEnvelope>();
   return transmissions.map((transmission): SimulatedBatch => {
     const { batch } = transmission;
+    // 시계 오차는 배치 단위: 전송 시각이 오차 구간 안이면 그 배치의 샘플·이벤트·sent_at을 모두 민다.
+    const skewMs = clockSkewAt(runner.plan, transmission.sentAtMs);
     const cached = transmission.resend ? sentBySeq.get(batch.seq) : undefined;
     if (transmission.resend && !cached) throw new Error(`재전송할 원본 봉투가 없습니다: seq ${batch.seq}`);
     const envelope =
@@ -148,7 +152,7 @@ function toSimulatedBatches(runner: SiteRunner, transmissions: readonly Transmis
         gateway: runner.site.gateway.code,
         seq: batch.seq,
         sentAtMs: transmission.sentAtMs + skewMs,
-        clock: gatewayClock(runner),
+        clock: gatewayClock(runner, skewMs),
         samples: batch.samples.map((s) => ({ sourceKey: s.sourceKey, unit: s.unit, periodS: s.periodS, ts: s.ts + skewMs, value: s.value })),
         events: batch.events.map((e) => ({ ...e, ts: e.ts + skewMs })),
       });

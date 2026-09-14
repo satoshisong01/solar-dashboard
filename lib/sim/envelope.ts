@@ -1,8 +1,10 @@
-// 샘플·이벤트를 om.ingest.v1 봉투(JSON 객체)로 묶는다. 서명·gzip은 lib/ingest가 맡는다(다음 단계).
+// 샘플·이벤트를 om.ingest.v1 봉투(JSON 객체)로 묶는다. 서명·gzip·HTTP 전송은 emit-http.ts가 lib/ingest/signature로 한다.
+// 스키마 이름·이벤트 심각도·clock 필드는 lib/ingest/envelope(zod)와 같아야 한다 (ingest-compat.test.ts가 검사).
 import { createHash } from 'node:crypto';
+import { INGEST_SCHEMA } from '@/lib/ingest/envelope';
 import type { SimEvent } from './events';
 
-export const INGEST_SCHEMA = 'om.ingest.v1';
+export { INGEST_SCHEMA };
 
 /** 시뮬레이터 batch_id용 UUID v5 네임스페이스 (고정값) */
 export const SIM_BATCH_NAMESPACE = 'd2279329-5c90-44d8-a3d7-d56d2661e063';
@@ -38,7 +40,7 @@ export interface IngestEvent {
 
 export interface GatewayClock {
   readonly ntp_synced: boolean;
-  readonly ntp_offset_ms?: number;
+  readonly ntp_offset_ms: number;
 }
 
 export interface IngestEnvelope {

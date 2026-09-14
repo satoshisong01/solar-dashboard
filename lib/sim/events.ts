@@ -1,6 +1,8 @@
 // 시뮬레이터가 내보내는 이산 이벤트와 운전 상태 코드.
+import type { EventSeverity } from '@/lib/ingest/envelope';
 
-export type EventSeverity = 'info' | 'warning' | 'major' | 'critical';
+/** 수집 봉투 스키마의 심각도와 같다: info | minor | major | critical */
+export type { EventSeverity };
 
 export interface SimEvent {
   /** `${설비 코드}/EVENT`(운전) 또는 `${설비 코드}/ALARM`(안전). 설비 코드 = 마지막 '/' 앞부분 */

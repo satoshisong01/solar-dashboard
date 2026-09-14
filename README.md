@@ -57,6 +57,53 @@
 | `admin:create` / `admin:create:test` | 개발 / 테스트 DB에 관리자 계정 생성. 이미 있으면 안내 후 종료 |
 | `typecheck` / `lint` | `tsc --noEmit` / ESLint |
 
+### 데모 데이터 만들기
+
+시뮬레이터(`lib/sim`)로 가상 사이트 SIM-A/B/C의 과거 데이터를 만들어 **실제 수집 API**(`POST /api/ingest/v1`, HMAC 서명·gzip)로 적재하고 DB에서 검증합니다. 개발 DB(`hysol`)에만 넣습니다.
+
+1. 별도 터미널에서 DB 서버를 켭니다: `npm run db:up`
+2. `npm run db:migrate`
+3. `npm run db:seed` — 게이트웨이 키가 없으면 `.env.development.local`에 `SIM_GATEWAY_SECRET_*`를 만듭니다.
+4. 별도 터미널에서 서버를 켭니다: `npm run dev`
+5. 과거 30일치를 적재합니다.
+   ```bash
+   npm run sim:backfill -- --days 30 --sites SIM-A,SIM-B,SIM-C --seed 42 --base-url http://localhost:3000 --scenario dq
+   ```
+6. 적재 결과를 검증합니다: `npm run verify:ingest`
+
+30일 × 3사이트는 샘플 약 738만 개, 1시간 배치 2,279개(재전송 포함)입니다. 이 PC 기준으로 적재에 `next dev` 약 1분(`next build` + `next start` 약 46초), 검증에 약 15초가 걸리고 DB가 약 750 MB 늘어납니다.
+
+**`sim:backfill` 옵션**
+
+| 옵션 | 기본값 | 설명 |
+|---|---|---|
+| `--days` | 30 | 적재 기간(일). 끝은 실행 시각을 배치 단위로 내림한 시각 |
+| `--sites` | `SIM-A,SIM-B,SIM-C` | 적재할 사이트 |
+| `--seed` | 42 | 같은 시드·기간이면 같은 데이터 |
+| `--base-url` | `http://localhost:3000` | 수집 API 서버 |
+| `--scenario` | `healthy` | `healthy`(시나리오 없음) 또는 `dq`(아래) |
+| `--batch-minutes` | 60 | 게이트웨이 배치 길이(분) |
+| `--max-samples` | 5000 | 배치당 최대 샘플 수. 넘으면 나눠 보냄 |
+| `--concurrency` | 4 | 동시에 보내는 요청 수 |
+| `--manifest` | `.data/sim/backfill-manifest.json` | `verify:ingest`가 읽는 적재 기록 |
+
+`dq` 시나리오(3일 이상, SIM-A·SIM-B 필요): 전 사이트 중복 배치 5%, SIM-B 게이트웨이 6시간 단절 후 역순 백필, SIM-A +200초 시계 오차 12시간, SIM-A 일사계(`WX1/POA`) 8시간 고착, SIM-B 저장탱크 압력 스파이크, SIM-B 수소 누출 1차 경보 1회. 대조군 SIM-C에는 값을 바꾸는 시나리오를 넣지 않습니다.
+
+**`verify:ingest` 검사 항목** (하나라도 실패하면 종료 코드 1)
+
+- (a) 사이트별 `om.measurement` 행 수 = 적재 기록의 기대 고유 샘플 수 (미매핑 제외, 적재 샘플 시각 범위 안)
+- (b) 남은 dirty를 모두 롤업한 뒤 `om.m_1h` 전체 = 원시 전체 재집계 (n·n_good·min·max·first·last 완전 일치, avg·sum 상대 오차 1e-9)
+- (c) `om.unmapped_source`에 일부러 매핑하지 않은 태그만 있음
+- (d) 보낸 critical 경보가 안전 이벤트(`is_safety`)로 기록됨
+- (e) `CLOCK_SUSPECT` 샘플 수 = 시계 오차 배치의 기대 샘플 수, `LATE` 비트 존재
+
+**알아 둘 점**
+
+- 과거분을 지금 한꺼번에 보내므로 수신 시각보다 1시간 넘게 지난 샘플에는 모두 `LATE` 비트가 붙습니다(설계 §5.1 규칙 6). 그래서 `m_1h.n_good`(quality = 0 개수)은 거의 0입니다.
+- 봉투의 `sent_at`은 실제 전송 시각으로 찍습니다. 따라서 `CLOCK_SUSPECT`는 시계 오차 구간의 배치에만 붙습니다.
+- 같은 시간대에 같은 옵션으로 다시 실행하면 409(같은 `batch_id`에 `sent_at`만 다른 본문)가 나옵니다. 샘플은 이미 들어 있습니다. 다른 시각에 다시 실행하면 기간이 겹쳐 (a)가 맞지 않습니다. 처음부터 다시 만들려면 `npm run db:reset` → `npm run db:seed` → `npm run admin:create`(계정도 지워짐) 후 4~6단계를 반복하세요.
+- 실시간 전송: `npm run sim:live -- --sites SIM-A,SIM-B,SIM-C` 는 현재 시각부터 5분 창마다 보냅니다(시나리오 없음, Ctrl+C로 종료). 설비 상태를 시작 시각으로 추정하므로 적재한 과거 데이터와 값이 이어지지는 않습니다.
+
 ### 테스트
 
 테스트용 환경변수 파일을 한 번 만듭니다. `DATABASE_URL`의 DB 이름을 `hysol_test`로 바꾸고, `BETTER_AUTH_SECRET`·`INGEST_KEY_ENC_KEY`는 개발용과 다른 값, `E2E_ADMIN_PASSWORD`(12자 이상)를 채웁니다. E2E 브라우저도 한 번 설치합니다.

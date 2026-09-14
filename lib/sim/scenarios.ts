@@ -66,8 +66,11 @@ export interface SpikeScenario {
 export interface ClockSkewScenario {
   readonly kind: 'dq.clock_skew';
   readonly site: string;
-  /** 게이트웨이 시계 오차 [초] (+면 빠름). 실행 내내 일정 */
+  /** 게이트웨이 시계 오차 [초] (+면 빠름) */
   readonly skewS: number;
+  /** 오차 구간 시작. start·durationS를 생략하면 실행 내내 일정한 오차 */
+  readonly start?: TimeInput;
+  readonly durationS?: number;
 }
 export interface H2LeakAlarmScenario {
   readonly kind: 'safety.h2_leak_alarm';
@@ -105,6 +108,8 @@ export interface SiteScenarioPlan {
   readonly outages: readonly TimeWindow[];
   readonly duplicateRatio: number;
   readonly clockSkewMs: number;
+  /** clockSkewMs를 적용하는 전송 시각 구간. null이면 실행 내내 */
+  readonly clockSkewWindow: TimeWindow | null;
   readonly stuckSensors: readonly (TimeWindow & { readonly sourceKey: string })[];
   readonly spikes: readonly { readonly sourceKey: string; readonly perDay: number; readonly magnitude: number }[];
   readonly leakAlarms: readonly { readonly atMs: number; readonly detector: string }[];
@@ -115,6 +120,7 @@ export const EMPTY_PLAN: SiteScenarioPlan = Object.freeze({
   outages: [],
   duplicateRatio: 0,
   clockSkewMs: 0,
+  clockSkewWindow: null,
   stuckSensors: [],
   spikes: [],
   leakAlarms: [],
@@ -171,14 +177,24 @@ function applyScenario(plan: SiteScenarioPlan, site: SiteDef, scenario: Exclude<
         ...plan,
         spikes: [...plan.spikes, { sourceKey: requireSourceKey(site, scenario.sourceKey), perDay: requirePositive(scenario.perDay, `${label} perDay`), magnitude: requirePositive(scenario.magnitude ?? DEFAULT_SPIKE_MAGNITUDE, `${label} magnitude`) }],
       };
-    case 'dq.clock_skew':
+    case 'dq.clock_skew': {
       if (!Number.isFinite(scenario.skewS)) throw new Error(`${label} skewS가 올바르지 않습니다`);
-      return { ...plan, clockSkewMs: Math.round(scenario.skewS * MS_PER_SECOND) };
+      if ((scenario.start === undefined) !== (scenario.durationS === undefined)) throw new Error(`${label} start와 durationS는 함께 지정해야 합니다`);
+      const window = scenario.start === undefined || scenario.durationS === undefined ? null : windowOf(scenario.start, scenario.durationS, label);
+      return { ...plan, clockSkewMs: Math.round(scenario.skewS * MS_PER_SECOND), clockSkewWindow: window };
+    }
     case 'safety.h2_leak_alarm':
       return { ...plan, leakAlarms: [...plan.leakAlarms, { atMs: toEpochMs(scenario.at, label), detector: resolveDetector(site, scenario.detector) }] };
     case 'fault':
       return { ...plan, faults: [...plan.faults, validateFault(site, scenario)] };
   }
+}
+
+/** 그 시각에 보내는 배치에 적용할 게이트웨이 시계 오차 [ms] */
+export function clockSkewAt(plan: Pick<SiteScenarioPlan, 'clockSkewMs' | 'clockSkewWindow'>, sentAtMs: number): number {
+  const window = plan.clockSkewWindow;
+  if (window === null) return plan.clockSkewMs;
+  return sentAtMs >= window.startMs && sentAtMs < window.endMs ? plan.clockSkewMs : 0;
 }
 
 /** 시나리오를 검증하고 사이트별 계획으로 모은다. 모르는 사이트를 가리키면 오류. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SIM_SITES } from '@/db/seed/sites';
-import { createDegradationResolver, DEGRADATION_PARAMS, planScenarios, type FaultScenario } from './scenarios';
+import { clockSkewAt, createDegradationResolver, DEGRADATION_PARAMS, EMPTY_PLAN, planScenarios, type FaultScenario } from './scenarios';
 
 const T0 = Date.parse('2026-09-01T00:00:00+09:00');
 
@@ -26,6 +26,18 @@ describe('planScenarios', () => {
     expect(plans.get('SIM-C')?.spikes).toEqual([{ sourceKey: 'ELZ1/DRYER/PURITY', perDay: 2, magnitude: 3 }]);
   });
 
+  it('dq.clock_skew에 구간을 주면 그 구간에만 오차를 적용하고, 생략하면 실행 내내 적용한다', () => {
+    const windowed = planScenarios(SIM_SITES, [{ kind: 'dq.clock_skew', site: 'SIM-A', skewS: 200, start: T0, durationS: 3_600 }]).get('SIM-A');
+    const always = planScenarios(SIM_SITES, [{ kind: 'dq.clock_skew', site: 'SIM-A', skewS: 200 }]).get('SIM-A');
+    if (!windowed || !always) throw new Error('계획이 없습니다');
+
+    expect(windowed.clockSkewWindow).toEqual({ startMs: T0, endMs: T0 + 3_600_000 });
+    expect([T0 - 1, T0, T0 + 3_599_999, T0 + 3_600_000].map((t) => clockSkewAt(windowed, t))).toEqual([0, 200_000, 200_000, 0]);
+    expect(always.clockSkewWindow).toBeNull();
+    expect(clockSkewAt(always, 0)).toBe(200_000);
+    expect(clockSkewAt(EMPTY_PLAN, T0)).toBe(0);
+  });
+
   it('미매핑 예정 태그도 센서 시나리오 대상으로 받는다', () => {
     const plans = planScenarios(SIM_SITES, [{ kind: 'dq.stuck_sensor', site: 'SIM-B', sourceKey: 'COMP1/VIB_RMS', start: T0, durationS: 60 }]);
 
@@ -39,6 +51,7 @@ describe('planScenarios', () => {
     [{ kind: 'dq.gateway_outage', site: 'SIM-A', start: T0, durationS: 0 }, '0보다 커야'],
     [{ kind: 'dq.gateway_outage', site: 'SIM-A', start: 'not-a-date', durationS: 10 }, '해석할 수 없습니다'],
     [{ kind: 'safety.h2_leak_alarm', site: 'SIM-A', at: T0 }, '수소 검지기'],
+    [{ kind: 'dq.clock_skew', site: 'SIM-A', skewS: 200, start: T0 }, 'start와 durationS'],
   ] as const)('잘못된 시나리오는 거부한다: %o', (scenario, message) => {
     expect(() => planScenarios(SIM_SITES, [scenario])).toThrow(message);
   });
