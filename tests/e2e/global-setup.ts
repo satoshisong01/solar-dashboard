@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { assertDbServerUp, assertTestDatabaseUrl, readTestEnvFile } from '../support/test-env';
+import { loadClosedLoopFixture } from './closed-loop-fixture';
 import { E2E_ADMIN_EMAIL, E2E_ADMIN_NAME, E2E_BASE_URL, getE2eAdminPassword } from './e2e-env';
 import { ingestSimulatedSite } from './sim-ingest';
 import { resetTestDatabase, simGatewaySecrets } from './test-db';
@@ -17,7 +18,8 @@ function createAdmin(env: Readonly<Record<string, string>>, password: string): v
 
 /**
  * webServer(프로덕션 빌드, 3100) 기동 후, 테스트 전에 한 번 실행된다.
- * 테스트 DB 초기화(마이그레이션 down → up) → 시드 → 테스트 관리자 생성 → 시뮬레이터 데이터를 실제 수집 API로 적재.
+ * 테스트 DB 초기화(마이그레이션 down → up) → 시드 → 테스트 관리자 생성 → 시뮬레이터 데이터를 실제 수집 API로 적재
+ * → 폐루프 시나리오용 SIM-A 고장 주입 80일(과거 고정 기간)을 원시에 직접 적재.
  * 이전 실행이 남긴 매핑·안전 확인·계정·rate limit 기록을 지워 매번 같은 상태에서 시작한다.
  */
 export default async function globalSetup(): Promise<void> {
@@ -30,4 +32,5 @@ export default async function globalSetup(): Promise<void> {
   await resetTestDatabase(databaseUrl, env, secrets);
   createAdmin(env, password);
   await ingestSimulatedSite(E2E_BASE_URL, secrets);
+  await loadClosedLoopFixture(databaseUrl);
 }

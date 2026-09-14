@@ -1,8 +1,9 @@
 import { expect, test, type Page, type Response } from '@playwright/test';
+import { LOOP_SITE } from './closed-loop-plan';
 import { E2E_BASE_URL, E2E_INGEST_SITE, SIGNED_OUT } from './e2e-env';
 
 // chromium 프로젝트의 storageState(auth.setup.ts에서 로그인한 세션)를 쓴다.
-// 데이터: globalSetup이 E2E_INGEST_SITE(SIM-B) 최근 2일을 실제 수집 API로 적재했고, SIM-A·SIM-C는 수신 기록이 없다.
+// 데이터: globalSetup이 E2E_INGEST_SITE(SIM-B) 최근 2일을 실제 수집 API로 적재했고, SIM-A는 폐루프 픽스처(과거 80일)만 있고, SIM-C는 수신 기록이 없다.
 
 const SITE_CODES = ['SIM-A', 'SIM-B', 'SIM-C'];
 /** lib/data/fleet-status.ts의 신선도 사유 문구 */
@@ -37,10 +38,9 @@ test('플릿 매트릭스에 사이트 3곳이 보이고, 적재한 사이트는
   await expect(ingested.getByText(FRESHNESS_REASON)).toHaveCount(0);
   await expect(ingested.getByText('데이터 없음', { exact: true })).toHaveCount(0);
 
-  // 대조: 적재하지 않은 사이트는 같은 규칙으로 "수신 기록 없음"이 보인다 (위 검사가 빈 화면에서 통과하는 것이 아님)
-  for (const code of SITE_CODES.filter((site) => site !== E2E_INGEST_SITE)) {
-    await expect(rowOf(code).getByText('수신 기록 없음').first()).toBeVisible();
-  }
+  // 대조: 같은 규칙으로 적재하지 않은 SIM-C는 "수신 기록 없음", 과거 기간만 적재한 SIM-A는 "수신 끊김"이 보인다 (위 검사가 빈 화면에서 통과하는 것이 아님)
+  await expect(rowOf('SIM-C').getByText('수신 기록 없음').first()).toBeVisible();
+  await expect(rowOf(LOOP_SITE).getByText(/^수신 끊김/).first()).toBeVisible();
 });
 
 test('사이트 상세 → 전해 스택 → 시계열 차트 캔버스가 그려지고, 확대하면 /api/series가 200과 데이터 점을 준다', async ({ page }) => {

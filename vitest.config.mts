@@ -42,8 +42,8 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       include: ['lib/**'],
-      // P0에서는 임계치를 강제하지 않는다. P2에서 lib/analytics/** 80%를 강제할 예정:
-      // thresholds: { 'lib/analytics/**': { lines: 80, functions: 80, branches: 80, statements: 80 } },
+      // 설계 §8 P2 완료 기준: lib/analytics 커버리지 80% (--coverage로 실행할 때 검사)
+      thresholds: { 'lib/analytics/**': { lines: 80, functions: 80, branches: 80, statements: 80 } },
     },
   },
 });

@@ -148,7 +148,7 @@ npm run analyze -- --sites SIM-B --days 30 --to 2026-09-15T00:00:00+09:00 --asse
 - **인박스**: 필터(사이트·도메인·카테고리·최소 심각도·상태, URL 쿼리)와 정렬(심각도×신뢰도 → 심각도 → 최근 탐지)은 `lib/desk/inbox.ts` 순수 규칙입니다. 일괄 분류(triaged)와 일괄 기각(사유 필수, 억제 기간, '운영 조건 변경'이면 발생 시점에 기준선 분할 이벤트)을 합니다. 최근 탐지 500건 안에서 거릅니다.
 - **워크스페이스**: 탐지기 신뢰 배지(`lib/analytics/scorecard.json`), 효과 카드(효과 크기·95% CI·같은 조건 문장·기준 전류 환산 충전시간), 같은 조건 비교표, 에피소드 오버레이(경과시간/누적 Ah/SOC 축), 추세 산점도(Theil–Sen 선·기울기 CI 밴드·CUSUM 변화 시작·SOH 80% 도달 예상일), 원시 시계열(에피소드·결측 구간 밴드, 확대 시 `/api/series`), 동종 비교, 원인 후보 판별 체크와 플레이북, 권고 조치 기록(→ `maintenance_action`, `action_taken`), 활동 타임라인. 근거 스냅샷 jsonb는 `lib/desk/evidence.ts`가 표시 모델로 읽습니다.
 - **오늘**: 할 일 카운터(새 발견사항·조사 중·조치 후 검증 대기·최근 7일 검증 결과)와 새 발견·다시 열림 상위 10건. **플릿**: 열린 발견사항 최고 심각도 4 이상 위험, 2 이상 주의.
-- **시뮬레이터**(`/sim`): `HYSOL_SHOW_SIM=1`일 때만 메뉴·라우트가 열리며 스코어카드의 게이트·탐지기별 성능·최소 탐지 크기 곡선을 보여 줍니다.
+- **시뮬레이터**(`/sim`): `HYSOL_SHOW_SIM=1`일 때만 메뉴·라우트가 열리며 스코어카드의 게이트·탐지기별 성능·최소 탐지 크기 곡선을 보여 줍니다. 플래그가 없으면 `proxy.ts`가 HTTP 404로 응답합니다(화면은 '찾을 수 없습니다').
 
 ### 코칭 리포트 (`/reports`, `/reports/[id]`, `/reports/[id]/print`, `lib/report`)
 
@@ -199,10 +199,12 @@ integration·e2e는 `npm run db:up`이 떠 있어야 합니다. 꺼져 있으면
 | 명령 | 내용 |
 |---|---|
 | `npm test` / `npm run test:unit` | Vitest unit (`lib/**`, `components/**`의 `*.test.ts`). DB 불필요 |
-| `npm run test:integration` | Vitest integration (`tests/integration`). 테스트 DB를 최신으로 migrate한 뒤 스키마·마이그레이션 왕복을 검사 |
-| `npm run test:e2e` | Playwright (`tests/e2e`, chromium). `next build` 후 `next start -p 3100`을 띄우고, 테스트 DB 초기화(마이그레이션 down → up)·시드·테스트 관리자(`e2e-admin@hysol.local`) 생성, SIM-B 최근 2일을 실제 수집 API로 적재한 뒤 실행. 끝나면 테스트 DB를 migrate·seed 직후 상태로 되돌린다 |
+| `npm run test:integration` | Vitest integration (`tests/integration`). 테스트 DB를 최신으로 migrate한 뒤 스키마·마이그레이션 왕복·수집·분석 실행(재실행 멱등·동시 실행 잠금·partial/failed)·리포트·조치를 검사 |
+| `npm run test:e2e` | Playwright (`tests/e2e`, chromium). `next build` 후 `next start -p 3100`을 띄우고, 테스트 DB 초기화(마이그레이션 down → up)·시드·테스트 관리자(`e2e-admin@hysol.local`) 생성, SIM-B 최근 2일을 실제 수집 API로 적재, 폐루프 시나리오용 SIM-A 과거 80일(고장 주입, `tests/e2e/closed-loop-plan.ts`)을 원시에 직접 적재한 뒤 실행(적재 약 30초). 끝나면 테스트 DB를 migrate·seed 직후 상태로 되돌린다 |
 | `npm run test:all` | unit → integration → e2e 순서로 모두 실행 |
-| `npx vitest run --project unit --coverage` | `lib/**` 커버리지 (`coverage/`) |
+| `npx vitest run --project unit --coverage` | `lib/**` 커버리지 (`coverage/`). `lib/analytics/**`는 구문·분기·함수·라인 중 하나라도 80% 미만이면 실패 |
+
+`tests/e2e/p2-closed-loop.spec.ts`는 한 흐름을 순서대로 이어 갑니다(serial): SIM-A 1차 기간 분석 → 용량 감소 워크스페이스(효과·CI·비교표·오버레이·판별 체크) → 셀 불균형 분류·조치 → 조치 뒤 비교 창이 지난 기간까지 재분석해 `improved` → `verified` → 인버터 발견사항 '운영 조건 변경' 기각·기준선 재설정 → 재분석에서 같은 발견사항 없음 → 리포트 만들기·숫자 잠금·승인(`in_report`)·인쇄 화면 → 분석이 리포트를 만들지 않음 → 조치 CSV 행 오류 → 비로그인 차단(가로챈 실제 Server Action 재전송 포함) → `/sim` 404.
 
 integration과 e2e는 둘 다 테스트 DB의 마이그레이션을 모두 되돌렸다가 다시 적용하므로 동시에 실행하지 마세요. e2e가 끝난 테스트 DB에는 수집 데이터·테스트 계정이 남지 않습니다.
 
