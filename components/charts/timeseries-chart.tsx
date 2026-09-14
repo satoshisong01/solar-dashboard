@@ -6,12 +6,14 @@ import { SERIES_LIMITS, buildSeriesSearch, type SeriesPayload } from '@/lib/data
 import { formatDuration } from '@/lib/format';
 import { useChartTheme } from './chart-theme';
 import { EChart, type ZoomRange } from './echart';
-import { buildSeriesOption, type ChartEventMark, type ChartPointMeta } from './series-options';
+import { buildSeriesOption, type ChartBandMark, type ChartEventMark, type ChartPointMeta } from './series-options';
 import { assignAxes, isFullZoom, mergeWindow, zoomWindow } from './series-window';
 
-export type { ChartEventMark, ChartPointMeta };
+export type { ChartBandMark, ChartEventMark, ChartPointMeta };
 
 const ZOOM_DEBOUNCE_MS = 350;
+const NO_EVENTS: readonly ChartEventMark[] = [];
+const NO_BANDS: readonly ChartBandMark[] = [];
 
 type FetchState = Readonly<{ kind: 'idle' } | { kind: 'loading' } | { kind: 'error'; message: string }>;
 
@@ -20,6 +22,10 @@ type TimeseriesChartProps = Readonly<{
   /** 서버에서 전체 기간으로 먼저 조회한 데이터 */
   initial: SeriesPayload;
   events?: readonly ChartEventMark[];
+  /** 시작~끝 구간 밴드 (에피소드 등) */
+  bands?: readonly ChartBandMark[];
+  /** 구간 밴드 토글 문구 (예: 충전 세션) */
+  bandLabel?: string;
 }>;
 
 function isSeriesPayload(value: unknown): value is SeriesPayload {
@@ -47,11 +53,12 @@ async function fetchDetail(query: Parameters<typeof buildSeriesSearch>[0], signa
  * 여러 포인트의 시계열(버킷 평균 선, 툴팁에 최소·최대). 단위별 y축은 최대 2개.
  * 확대하면 디바운스 후 /api/series로 그 구간을 더 촘촘하게 다시 받아 끼워 넣는다.
  */
-export function TimeseriesChart({ points, initial, events = [] }: TimeseriesChartProps) {
+export function TimeseriesChart({ points, initial, events = NO_EVENTS, bands = NO_BANDS, bandLabel = '구간' }: TimeseriesChartProps) {
   const theme = useChartTheme();
   const [detail, setDetail] = useState<SeriesPayload | null>(null);
   const [fetchState, setFetchState] = useState<FetchState>({ kind: 'idle' });
   const [showEvents, setShowEvents] = useState(true);
+  const [showBands, setShowBands] = useState(true);
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -94,8 +101,8 @@ export function TimeseriesChart({ points, initial, events = [] }: TimeseriesChar
 
   const data = useMemo(() => (detail ? mergeWindow(initial, detail) : initial), [initial, detail]);
   const option = useMemo(
-    () => (theme ? buildSeriesOption({ theme, points, data, events: showEvents ? events : [] }) : null),
-    [theme, points, data, events, showEvents],
+    () => (theme ? buildSeriesOption({ theme, points, data, events: showEvents ? events : NO_EVENTS, bands: showBands ? bands : NO_BANDS }) : null),
+    [theme, points, data, events, showEvents, bands, showBands],
   );
 
   const { axisIndexes } = assignAxes(points.map((point) => point.unit));
@@ -116,6 +123,12 @@ export function TimeseriesChart({ points, initial, events = [] }: TimeseriesChar
               <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin" />
               불러오는 중
             </span>
+          )}
+          {bands.length > 0 && (
+            <label className="inline-flex items-center gap-1.5">
+              <input type="checkbox" checked={showBands} onChange={(event) => setShowBands(event.target.checked)} className="accent-accent" />
+              {bandLabel} 밴드 {bands.length}건
+            </label>
           )}
           {events.length > 0 && (
             <label className="inline-flex items-center gap-1.5">

@@ -23,6 +23,14 @@ export interface ChartEventMark {
   readonly severity: EventSeverity;
 }
 
+/** 시작~끝이 있는 구간 (에피소드·결측 등) */
+export interface ChartBandMark {
+  readonly id: string;
+  readonly fromMs: number;
+  readonly toMs: number;
+  readonly label: string;
+}
+
 type MarkAreaData = NonNullable<MarkAreaComponentOption['data']>[number];
 
 const escapeHtml = (text: string): string =>
@@ -80,9 +88,10 @@ interface BuildOptions {
   readonly points: readonly ChartPointMeta[];
   readonly data: SeriesPayload;
   readonly events: readonly ChartEventMark[];
+  readonly bands?: readonly ChartBandMark[];
 }
 
-export function buildSeriesOption({ theme, points, data, events }: BuildOptions): EChartOption {
+export function buildSeriesOption({ theme, points, data, events, bands = [] }: BuildOptions): EChartOption {
   const spanMs = data.toMs - data.fromMs;
   const { axisUnits, axisIndexes } = assignAxes(points.map((point) => point.unit));
   const rowsById = new Map(data.series.map((series) => [series.pointId, series.rows]));
@@ -108,16 +117,22 @@ export function buildSeriesOption({ theme, points, data, events }: BuildOptions)
       connectNulls: false,
       data: rows.map((row) => [...row]),
       encode: { x: 0, y: 2 },
-      ...(order === 0 && events.length > 0
+      ...(order === 0 && events.length + bands.length > 0
         ? {
             markArea: {
               silent: false,
               label: { show: false, color: theme.ink2, fontSize: 11 },
               emphasis: { label: { show: true, position: 'insideTop' as const } },
-              data: events.map((event): MarkAreaData => [
-                { name: event.label, xAxis: event.tsMs, itemStyle: { color: eventColor(theme, event.severity), opacity: 0.28 } },
-                { xAxis: event.tsMs + bandWidthMs },
-              ]),
+              data: [
+                ...bands.map((band): MarkAreaData => [
+                  { name: band.label, xAxis: band.fromMs, itemStyle: { color: theme.accent, opacity: 0.12 } },
+                  { xAxis: Math.max(band.toMs, band.fromMs + bandWidthMs / 4) },
+                ]),
+                ...events.map((event): MarkAreaData => [
+                  { name: event.label, xAxis: event.tsMs, itemStyle: { color: eventColor(theme, event.severity), opacity: 0.28 } },
+                  { xAxis: event.tsMs + bandWidthMs },
+                ]),
+              ],
             },
           }
         : {}),

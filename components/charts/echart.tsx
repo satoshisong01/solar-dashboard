@@ -1,16 +1,18 @@
 'use client';
 
-import { BarChart, LineChart, type BarSeriesOption, type LineSeriesOption } from 'echarts/charts';
+import { BarChart, LineChart, ScatterChart, type BarSeriesOption, type LineSeriesOption, type ScatterSeriesOption } from 'echarts/charts';
 import {
   DataZoomComponent,
   GridComponent,
   LegendComponent,
   MarkAreaComponent,
+  MarkLineComponent,
   TooltipComponent,
   type DataZoomComponentOption,
   type GridComponentOption,
   type LegendComponentOption,
   type MarkAreaComponentOption,
+  type MarkLineComponentOption,
   type TooltipComponentOption,
 } from 'echarts/components';
 import { init, use as registerChartParts, type ComposeOption, type ECharts } from 'echarts/core';
@@ -18,15 +20,17 @@ import { CanvasRenderer } from 'echarts/renderers';
 import { useEffect, useRef } from 'react';
 
 // 쓰는 구성요소만 등록한다 (트리셰이킹).
-registerChartParts([LineChart, BarChart, GridComponent, TooltipComponent, DataZoomComponent, MarkAreaComponent, LegendComponent, CanvasRenderer]);
+registerChartParts([LineChart, BarChart, ScatterChart, GridComponent, TooltipComponent, DataZoomComponent, MarkAreaComponent, MarkLineComponent, LegendComponent, CanvasRenderer]);
 
 export type EChartOption = ComposeOption<
   | LineSeriesOption
   | BarSeriesOption
+  | ScatterSeriesOption
   | GridComponentOption
   | TooltipComponentOption
   | DataZoomComponentOption
   | MarkAreaComponentOption
+  | MarkLineComponentOption
   | LegendComponentOption
 >;
 
