@@ -1,26 +1,123 @@
 @import "tailwindcss";
 
+/* 디자인 토큰. 제안서(docs/renewal/hysol-desk-renewal-proposal.html)와 같은 계열. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  color-scheme: light dark;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --ground: #f2f5f4;
+  --surface: #ffffff;
+  --sunken: #e8eeec;
+  --ink: #13201c;
+  --ink-2: #33433e;
+  --muted: #5d6d68;
+  --rule: #d2dbd7;
+  --rule-strong: #7f8d88; /* 입력 테두리 등 3:1 이상이 필요한 경계 */
+
+  --solar: #9a5c00;
+  --solar-fill: #f6d9a3;
+  --solar-edge: #d99a2b;
+  --hydrogen: #0c6674;
+  --hydrogen-fill: #cfe8ec;
+  --hydrogen-edge: #4aa3b1;
+
+  --accent: #0c6674;
+  --accent-ink: #ffffff;
+
+  /* 시맨틱 상태색: 액센트와 별개로 쓴다 */
+  --ok: #2f6b3a;
+  --ok-fill: #dcefdf;
+  --warn: #7a5a00;
+  --warn-fill: #f5e7b5;
+  --crit: #a8321e;
+  --crit-fill: #f8ded7;
+
+  --font-body: var(--font-plex-sans), "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-code: var(--font-plex-mono), ui-monospace, "SFMono-Regular", Consolas, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --ground: #0d1412;
+    --surface: #141d1a;
+    --sunken: #1a2521;
+    --ink: #e3ebe7;
+    --ink-2: #c4d0cb;
+    --muted: #93a39d;
+    --rule: #28342f;
+    --rule-strong: #66766f;
+
+    --solar: #f0b54a;
+    --solar-fill: #3a2c12;
+    --solar-edge: #a8772a;
+    --hydrogen: #6cc6d3;
+    --hydrogen-fill: #10313a;
+    --hydrogen-edge: #2f7f8c;
+
+    --accent: #6cc6d3;
+    --accent-ink: #0d1412;
+
+    --ok: #8fcb98;
+    --ok-fill: #15301b;
+    --warn: #e3c565;
+    --warn-fill: #322a0e;
+    --crit: #f08a74;
+    --crit-fill: #3b1b15;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@theme inline {
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-rule: var(--rule);
+  --color-rule-strong: var(--rule-strong);
+
+  --color-solar: var(--solar);
+  --color-solar-fill: var(--solar-fill);
+  --color-solar-edge: var(--solar-edge);
+  --color-hydrogen: var(--hydrogen);
+  --color-hydrogen-fill: var(--hydrogen-fill);
+  --color-hydrogen-edge: var(--hydrogen-edge);
+
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+
+  --color-ok: var(--ok);
+  --color-ok-fill: var(--ok-fill);
+  --color-warn: var(--warn);
+  --color-warn-fill: var(--warn-fill);
+  --color-crit: var(--crit);
+  --color-crit-fill: var(--crit-fill);
+
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-code);
+}
+
+@layer base {
+  body {
+    background-color: var(--ground);
+    color: var(--ink);
+    font-family: var(--font-body);
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
