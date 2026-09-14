@@ -103,7 +103,12 @@ describe('코칭 리포트·조치 추적 (hysol_test)', () => {
     const checked = await checkActionCsvText(db, [header, good].join('\n'), at(STEP_DAY).getTime());
     expect(checked.errorCount).toBe(0);
     expect(checked.rows[0]?.expectedEffect).toEqual({ metric: 'el.v_cell_v', direction: 'decrease', min_delta: 0, stabilization_days: 7 });
-    expect(await applyActionCsvRows(db, checked.rows, ADMIN)).toEqual({ inserted: 1, transitioned: 1, withExpectedEffect: 1 });
+    expect(await applyActionCsvRows(db, checked.rows, ADMIN)).toEqual({ inserted: 1, duplicates: 0, transitioned: 1, withExpectedEffect: 1 });
+    // 검증과 적용 사이에 같은 파일이 먼저 들어간 경우(동시 가져오기): 같은 검증 결과를 다시 적용해도 중복 행 없이 건너뛴 수만 센다
+    expect(await applyActionCsvRows(db, checked.rows, ADMIN)).toEqual({ inserted: 0, duplicates: 1, transitioned: 0, withExpectedEffect: 0 });
+    expect(await db.selectFrom('om.maintenance_action').select('id').where('site_id', '=', fixture.siteId).execute()).toHaveLength(1);
+    const duplicateManual = registerMaintenanceAction(db, { siteId: fixture.siteId, assetId: fixture.stackId, findingId: null, actionType: ' 루프 이온교환수지 교체 ', performedAt: new Date(checked.rows[0]?.performedAt ?? 0), expectedEffect: null, source: 'manual', actor: ADMIN });
+    await expect(duplicateManual).rejects.toMatchObject({ code: 'conflict', message: expect.stringContaining('이미 등록') });
     expect(await findingStatus()).toBe('action_taken');
     const action = await db.selectFrom('om.maintenance_action').selectAll().where('site_id', '=', fixture.siteId).executeTakeFirstOrThrow();
     expect(action).toMatchObject({ source: 'csv', created_by: ADMIN, performed_by: '현장팀', finding_id: findingId });

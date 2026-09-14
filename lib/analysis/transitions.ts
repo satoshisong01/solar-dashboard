@@ -164,8 +164,10 @@ export async function registerMaintenanceAction(db: Kysely<DB>, input: Maintenan
   return db.transaction().execute((trx) => registerMaintenanceActionInTransaction(trx, input));
 }
 
-/** registerMaintenanceAction의 트랜잭션 안 버전 (CSV 가져오기는 모든 행을 한 트랜잭션에서 넣는다) */
-export async function registerMaintenanceActionInTransaction(trx: Transaction<DB>, input: MaintenanceActionInput): Promise<RegisterActionResult> {
+export const DUPLICATE_ACTION_MESSAGE = '같은 설비·조치 종류·수행일시의 조치가 이미 등록되어 있습니다';
+
+/** 조치 행을 넣는다. 같은 (설비, 조치 종류, 수행일시)가 이미 있으면(유니크 인덱스) 넣지 않고 null */
+async function insertActionRow(trx: Transaction<DB>, input: MaintenanceActionInput): Promise<string | null> {
   const effect = input.expectedEffect === null ? null : expectedEffectSchema.parse(input.expectedEffect);
   if (input.actionType.trim() === '') throw new TransitionError('invalid', '조치 종류를 입력하세요');
   const asset = await trx.selectFrom('om.asset').select('id').where('id', '=', input.assetId).where('site_id', '=', input.siteId).executeTakeFirst();
@@ -173,13 +175,31 @@ export async function registerMaintenanceActionInTransaction(trx: Transaction<DB
   const action = await trx
     .insertInto('om.maintenance_action')
     .values({ site_id: input.siteId, asset_id: input.assetId, finding_id: input.findingId, action_type: input.actionType.trim(), performed_at: input.performedAt, performed_by: input.performedBy ?? null, notes: input.notes ?? null, expected_effect: effect === null ? null : JSON.stringify(effect), source: input.source, created_by: requireActor(input.actor) })
+    .onConflict((oc) => oc.columns(['asset_id', 'action_type', 'performed_at']).doNothing())
     .returning('id')
-    .executeTakeFirstOrThrow();
-  if (input.findingId === null) return { actionId: action.id, transition: null };
+    .executeTakeFirst();
+  return action?.id ?? null;
+}
+
+async function linkAction(trx: Transaction<DB>, actionId: string, input: MaintenanceActionInput): Promise<RegisterActionResult> {
+  if (input.findingId === null) return { actionId, transition: null };
   const current = await trx.selectFrom('om.finding').select('status').where('id', '=', input.findingId).executeTakeFirst();
   if (!current) throw new TransitionError('not_found', `발견사항 ${input.findingId}을(를) 찾을 수 없습니다`);
-  if (current.status === 'action_taken') return { actionId: action.id, transition: null };
-  return { actionId: action.id, transition: await applyTransition(trx, input.findingId, 'action', input.actor, { note: `조치 기록: ${input.actionType.trim()}` }) };
+  if (current.status === 'action_taken') return { actionId, transition: null };
+  return { actionId, transition: await applyTransition(trx, input.findingId, 'action', input.actor, { note: `조치 기록: ${input.actionType.trim()}` }) };
+}
+
+/** registerMaintenanceAction의 트랜잭션 안 버전. 같은 조치가 이미 있으면 TransitionError('conflict') */
+export async function registerMaintenanceActionInTransaction(trx: Transaction<DB>, input: MaintenanceActionInput): Promise<RegisterActionResult> {
+  const actionId = await insertActionRow(trx, input);
+  if (actionId === null) throw new TransitionError('conflict', DUPLICATE_ACTION_MESSAGE);
+  return linkAction(trx, actionId, input);
+}
+
+/** CSV 가져오기용: 같은 조치가 이미 있으면(검증 뒤 다른 가져오기가 먼저 넣은 경우) 오류 없이 건너뛰고 null */
+export async function registerMaintenanceActionIfAbsent(trx: Transaction<DB>, input: MaintenanceActionInput): Promise<RegisterActionResult | null> {
+  const actionId = await insertActionRow(trx, input);
+  return actionId === null ? null : linkAction(trx, actionId, input);
 }
 
 /** 조치 효과 검증이 개선을 확인하면 system이 verified로 옮긴다 (action_taken일 때만) */

@@ -131,9 +131,9 @@ npm run analyze -- --sites SIM-A,SIM-B,SIM-C --days 120        # 끝 시각 기�
 npm run analyze -- --sites SIM-B --days 30 --to 2026-09-15T00:00:00+09:00 --assets 57,58 --budget-min 10
 ```
 
-1. `om.analysis_run` 행을 만들고, 전용 연결의 트랜잭션에서 사이트 id 순서대로 `pg_try_advisory_xact_lock(hashtext('om.analysis_run'), site_id)`를 잡습니다. 하나라도 못 잡으면 실행 행을 `failed`로 남기고 거절합니다(`AnalysisBusyError`). 잡은 뒤 같은 사이트를 포함한 채 `running`으로 남은 이전 실행은 중단된 실행으로 보고 `failed`로 정리합니다.
+1. `om.analysis_run` 행을 만들고, 전용 연결의 트랜잭션에서 사이트 id 순서대로 `pg_try_advisory_xact_lock(hashtext('om.analysis_run'), site_id)`를 잡습니다. 하나라도 못 잡으면 실행 행을 `failed`로 남기고 거절합니다(`AnalysisBusyError`). 잡은 뒤 같은 사이트를 포함한 채 시간 예산의 두 배보다 오래 `running`으로 남은 실행만 중단된 실행으로 보고 `failed`로 정리합니다(방금 들어와 잠금을 기다리는 다른 요청의 행은 건드리지 않음).
 2. 대상 사이트 포인트의 남은 dirty 롤업을 처리합니다.
-3. 설비별 에피소드 추출: `[from − 6시간의 KST 0시, to)`(앞 실행이 끝에 걸려 `open`으로 저장한 에피소드가 있으면 그 시작부터)를 다시 뽑아, 그 구간의 기존 에피소드를 지우고 새로 넣습니다.
+3. 설비별 에피소드 추출: `[from − 6시간의 KST 0시, to)`(앞 실행이 끝에 걸려 `open`으로 저장한 에피소드가 있으면 그 시작부터)를 다시 뽑아, 그 구간의 기존 에피소드를 지우고 새로 넣습니다. 전해조·연료전지 스택은 창 시작 전 마지막 운전 샘플을 따로 조회해(기본키 인덱스 역순) 창 첫 기동의 꺼짐 시간·냉간 여부를 전체 추출과 같게 잽니다.
 4. `om.kpi_daily` upsert (인버터 발전량·비발전량·동종 비율·가용률, 사이트 합계, 랙 왕복효율, 전해조 SEC, 연료전지 원단위·기준 전류밀도 전압).
 5. 탐지기 6종: 저장된 에피소드 전체 이력(기준선부터)과 `om.asset_event`(설비·상위 설비, `resets_baseline` 반영), 활성 `om.detector_config`(default < class < asset)로 `lib/analytics/pipeline`이 입력을 조립합니다. `dq.gap_flatline`은 1시간 롤업 공백과 원시 고착 구간을 SQL로 요약합니다(사이트에 데이터가 있는 구간만). 용량 감소 finding이 나면 대표 세션 충전 곡선을 읽어 오버레이를 채웁니다.
 6. finding upsert: `dedup_key = 탐지기|설비|고장모드`. 열린 건은 갱신(`last_detected_at`·`detection_count`·심각도·신뢰도·효과, 조치 이후 악화면 system이 `reopened`), 없으면 억제 기간 안의 기각 건이면 건너뛰고 아니면 새로 만듭니다(닫힌 이전 건은 `previous_finding_id`). 근거는 매번 `finding_evidence`에 추가합니다(`input_hash`).
@@ -165,7 +165,7 @@ npm run analyze -- --sites SIM-B --days 30 --to 2026-09-15T00:00:00+09:00 --asse
 
 - **조치 목록**: 사이트·설비·조치 유형·수행일·연결 발견사항·검증 상태(개선 확인·변화 없음·악화·데이터 부족 / 대기: 안정화 n/d일·after 창 n/d일·창 채워짐 / 검증 안 함). **검증 대기 큐**는 진행률과 함께 보여 줍니다.
 - **직접 등록**: 사이트 → 설비 → (선택) 같은 설비의 열린 발견사항, 기대 효과(설비 종류로 계산할 수 있는 검증 지표만). 발견사항을 연결하면 `action_taken`이 됩니다.
-- **CSV 가져오기**: 헤더 `site_code,asset_path,action_type,performed_at,performed_by,notes[,finding_id]`, `performed_at`은 `YYYY-MM-DD` 또는 `YYYY-MM-DD HH:mm`(KST). 파일을 고르면 서버가 사이트·설비·발견사항·중복을 대조해 행 번호별 오류를 보여 주고, 오류가 없을 때만 한 트랜잭션으로 가져옵니다. `finding_id`가 있으면 그 탐지기의 기본 검증 지표로 기대 효과(최소 변화량 0, 기본 안정화 일수)를 채웁니다.
+- **CSV 가져오기**: 헤더 `site_code,asset_path,action_type,performed_at,performed_by,notes[,finding_id]`, `performed_at`은 `YYYY-MM-DD` 또는 `YYYY-MM-DD HH:mm`(KST). 파일을 고르면 서버가 사이트·설비·발견사항·중복을 대조해 행 번호별 오류를 보여 주고, 오류가 없을 때만 한 트랜잭션으로 가져옵니다. 같은 설비·조치 종류·수행일시는 유니크 인덱스로 한 행만 두며, 검증 뒤 다른 가져오기가 먼저 넣은 행은 `ON CONFLICT DO NOTHING`으로 건너뛰고 결과 문구에 건수를 알립니다(직접 등록에서 중복이면 오류). `finding_id`가 있으면 그 탐지기의 기본 검증 지표로 기대 효과(최소 변화량 0, 기본 안정화 일수)를 채웁니다.
 - **효과 검증**은 분석 실행 때 함께 계산됩니다(`lib/analysis/verification.ts`). 조치 상세의 "검증만 실행"은 `runAnalysis(..., { stages: 'verify' })`로 그 설비의 저장된 에피소드만 써서 전후 비교를 다시 계산합니다(롤업·추출·탐지 없음, 실행 이력에 "조치 효과 검증만"으로 남음). 상세 화면은 전후 같은 조건 bin 중앙값 차트·표와 효과·95% CI·판정을 보여 줍니다.
 
 ### 시뮬레이터 평가 게이트 (`sim:eval`)

@@ -75,7 +75,8 @@ const statusOf = (stats: AnalysisRunStats): AnalysisStatus => (stats.errors.leng
 async function execute(db: Kysely<DB>, request: AnalysisRequest, runId: string, startedAt: Date, options: RunAnalysisOptions): Promise<AnalysisRunStats> {
   const now = options.now ?? (() => new Date());
   const log = options.log ?? (() => {});
-  const abandoned = await failAbandonedRuns(db, runId, request.siteIds, startedAt);
+  const budgetMs = options.timeBudgetMs ?? DEFAULT_TIME_BUDGET_MS;
+  const abandoned = await failAbandonedRuns(db, runId, request.siteIds, new Date(now().getTime() - 2 * budgetMs));
   const sites = await loadSites(db, request.siteIds);
   if (sites.length !== request.siteIds.length) throw new Error(`없는 사이트가 있습니다: ${request.siteIds.filter((id) => !sites.some((s) => s.id === id)).join(', ')}`);
   const verifyOnly = options.stages === 'verify';
@@ -93,7 +94,7 @@ async function execute(db: Kysely<DB>, request: AnalysisRequest, runId: string, 
     seed: options.seed ?? 1,
     configs: await loadActiveDetectorConfigs(db),
     now,
-    deadline: startedAt.getTime() + (options.timeBudgetMs ?? DEFAULT_TIME_BUDGET_MS),
+    deadline: startedAt.getTime() + budgetMs,
     errors,
     log,
     verifyOnly,

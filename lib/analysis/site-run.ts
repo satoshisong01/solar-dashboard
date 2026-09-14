@@ -3,7 +3,7 @@
 import { sql, type Kysely } from 'kysely';
 import { essCapacityFade } from '@/lib/analytics/detectors/ess-capacity-fade';
 import { runSiteDetectors, type DetectOptions } from '@/lib/analytics/pipeline/detect';
-import { extractAssetEpisodes } from '@/lib/analytics/pipeline/extract';
+import { extractAssetEpisodes, stackRunningCurrentA } from '@/lib/analytics/pipeline/extract';
 import { dailyKpiRows, type KpiRow } from '@/lib/analytics/pipeline/kpis';
 import { indexSnapshot, type SiteSnapshot } from '@/lib/analytics/pipeline/snapshot';
 import { isExtractable, seriesRequests } from '@/lib/analytics/pipeline/sources';
@@ -15,7 +15,7 @@ import { loadAssetEvents, loadSiteAssets, loadSitePoints, type PointRow, type Si
 import { loadDqInput } from './dq-summary';
 import { extractionStart, kindsOfClass, loadEpisodes, replaceEpisodes } from './episodes';
 import { EMPTY_PERSIST_STATS, persistFindings, type FindingPersistStats } from './findings';
-import { loadAssetSeries, loadChargeCurves, loadHourly } from './series';
+import { loadAssetSeries, loadChargeCurves, loadHourly, loadStackPriorState } from './series';
 import { verifyActions, type VerificationStats } from './verification';
 
 /** 원시 조회 앞 여유: 휴지 후 시작 판정(1시간)·직전 SOC·기상값 조회용 */
@@ -67,12 +67,19 @@ const recordError = (ctx: SiteRunContext, error: Omit<RunError, 'message'>, caus
 };
 const overBudget = (ctx: SiteRunContext): boolean => ctx.now().getTime() > ctx.deadline;
 
+/** 스택이면 창 시작 전 운전 상태(끝 구간만 다시 추출해도 창 첫 기동의 꺼짐 시간을 잃지 않게), 아니면 null */
+async function stackPrior(ctx: SiteRunContext, asset: PipelineAsset, points: readonly PointRow[], windowStart: number) {
+  const runningA = stackRunningCurrentA(asset);
+  const currentPoint = points.find((p) => p.assetId === asset.id && p.metricKey === 'stack.current');
+  return runningA === null || !currentPoint ? null : loadStackPriorState(ctx.db, currentPoint.pointId, windowStart, runningA);
+}
+
 async function extractAsset(ctx: SiteRunContext, asset: PipelineAsset, assets: readonly PipelineAsset[], points: readonly PointRow[]): Promise<number> {
   if (!isExtractable(asset.classKey)) return 0;
   const start = await extractionStart(ctx.db, asset.id, kstDayStart(ctx.window.start - ctx.overlapMs));
   const window = { start, end: ctx.window.end };
   const series = await loadAssetSeries(ctx.db, seriesRequests(asset, assets), points, { start: start - SERIES_LEAD_MS, end: window.end });
-  const episodes = extractAssetEpisodes(asset, series, window);
+  const episodes = extractAssetEpisodes(asset, series, window, {}, { stackPrior: await stackPrior(ctx, asset, points, start) });
   return replaceEpisodes(ctx.db, asset.id, kindsOfClass(asset.classKey), window, episodes, ctx.runId);
 }
 

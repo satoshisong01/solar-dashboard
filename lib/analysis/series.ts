@@ -1,6 +1,8 @@
 // 원시 측정값·1시간 롤업 조회. 원시는 대용량이라 기간을 청크로 나눠 읽고, 시각은 DB에서 epoch ms로 바꿔 받는다.
 import { sql, type Kysely } from 'kysely';
 import { chargeCurve, type ChargeCurvePoint } from '@/lib/analytics/episodes/ess-features';
+import type { StackPriorState } from '@/lib/analytics/episodes/stack';
+import { BAD_MASK } from '@/lib/ingest/quality';
 import type { HourlyPointRow } from '@/lib/analytics/pipeline/kpis';
 import type { SeriesRequest } from '@/lib/analytics/pipeline/sources';
 import type { AssetSeries, Sample, TimeWindow } from '@/lib/analytics/types';
@@ -83,4 +85,22 @@ export async function loadChargeCurves(db: Kysely<DB>, rackId: number, points: r
     curves.push({ start: session.start, points: chargeCurve(series, session) });
   }
   return curves;
+}
+
+/**
+ * 스택 추출 창 시작 전 운전 상태: 창 앞 마지막 good 전류 샘플이 비운전인지와 마지막 운전 샘플 시각.
+ * 파티션마다 (point_id, ts) 기본키 인덱스를 역순으로 읽어 첫 행만 쓴다.
+ */
+export async function loadStackPriorState(db: Kysely<DB>, currentPointId: number, before: number, runningA: number): Promise<StackPriorState> {
+  const { rows } = await sql<{ last_value: number | null; running_ms: number | null }>`
+    SELECT
+      (SELECT m.value FROM om.measurement m
+        WHERE m.point_id = ${currentPointId} AND m.ts < ${iso(before)}::timestamptz AND m.value IS NOT NULL AND (m.quality & ${BAD_MASK}::int2) = 0
+        ORDER BY m.ts DESC LIMIT 1) AS last_value,
+      (SELECT (extract(epoch FROM m.ts) * 1000)::float8 FROM om.measurement m
+        WHERE m.point_id = ${currentPointId} AND m.ts < ${iso(before)}::timestamptz AND m.value >= ${runningA}::float8 AND (m.quality & ${BAD_MASK}::int2) = 0
+        ORDER BY m.ts DESC LIMIT 1) AS running_ms
+  `.execute(db);
+  const row = rows[0];
+  return { lastRunningTs: row?.running_ms ?? null, offBeforeWindow: row?.last_value !== null && row?.last_value !== undefined && row.last_value < runningA };
 }

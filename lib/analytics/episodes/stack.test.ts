@@ -55,6 +55,19 @@ describe('el.steady_run@1 / el.start@1', () => {
     expect(starts[1]?.end).toBeGreaterThan(starts[1]?.start ?? 0);
   });
 
+  it('창 앞 운전 상태를 주면 창 첫 기동의 꺼짐 시간·냉간 여부를 전체 추출과 같게 잰다 (끝 구간 재추출)', () => {
+    const tail = { ...input, window: { start: T0 + 5 * MS_PER_MINUTE, end: WINDOW.end } };
+    const prior = { lastRunningTs: T0 - 180 * MS_PER_MINUTE, offBeforeWindow: true };
+    const [first] = extractElStarts({ ...tail, prior });
+    expect(first?.features.off_duration_s).toBe(210 * 60);
+    expect(first?.conditions.cold).toBe(true);
+    // 창 시작 직전이 운전 중이면 창 첫 운전 샘플은 기동이 아니다 (이어지는 운전)
+    const running = stackProfile(T0, [{ minutes: 60, currentA: 550 }, { minutes: 30, currentA: 0 }, { minutes: 30, currentA: 550 }], { cells: 210, areaCm2: 550, startHours: 10 });
+    const starts = extractElStarts({ ...input, series: running, window: { start: T0, end: T0 + 120 * MS_PER_MINUTE }, prior: { lastRunningTs: T0 - MS_PER_MINUTE, offBeforeWindow: false } });
+    expect(starts.map((s) => s.features.off_duration_s)).toEqual([31 * 60]);
+    expect(extractElStarts({ ...tail }).at(0)?.features.off_duration_s).toBeNull();
+  });
+
   it('짧은 정지(10분 미만)는 기동으로 세지 않고 명판 오류는 예외', () => {
     const short = stackProfile(T0, [{ minutes: 15, currentA: 0 }, { minutes: 30, currentA: 550 }, { minutes: 5, currentA: 0 }, { minutes: 30, currentA: 550 }], { cells: 210, areaCm2: 550, startHours: 10 });
     expect(extractElStarts({ ...input, series: short })).toHaveLength(1);

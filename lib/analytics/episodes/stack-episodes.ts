@@ -4,7 +4,7 @@
 //   전해조 h2.flow.mass(kg/h) · ac.power(kW)   연료전지 fc.h2.consumption(kg/h) · fc.ac.power(kW) · blower.power(kW)
 import { MS_PER_HOUR, MS_PER_MINUTE, MS_PER_SECOND } from '../types';
 import { binFloor, goodPoints, meanValue, metricDq, nominalPeriodMs, pointsIn, rangeIntegral, round, roundOrNull, valueAtOrBefore, valueNear, worstDq, type TimedValue } from './series';
-import { DEFAULT_STACK_RUN_RULES, startEvents, steadyWindows, type StackRunRules, type SteadyWindow } from './stack';
+import { DEFAULT_STACK_RUN_RULES, startEvents, steadyWindows, type StackPriorState, type StackRunRules, type SteadyWindow } from './stack';
 import { extractorId, validity, type Episode, type EpisodeDq, type ExtractInput } from './types';
 
 export interface StackNameplate {
@@ -68,6 +68,9 @@ export type ElSteadyEpisode = Episode<'el.steady_run', ElSteadyFeatures, StackSt
 export type FcSteadyEpisode = Episode<'fc.steady_run', FcSteadyFeatures, StackSteadyConditions>;
 export type ElStartEpisode = Episode<'el.start', StackStartFeatures, StackStartConditions>;
 export type FcStartEpisode = Episode<'fc.start', StackStartFeatures, StackStartConditions>;
+
+/** 기동 추출 입력: 창 시작 전 운전 상태(마지막 운전 샘플 시각 등)는 load 계층이 원시에서 따로 조회해 넘긴다 */
+export type StackStartInput = ExtractInput<StackNameplate> & { readonly prior?: StackPriorState | null };
 
 interface MetricPoints {
   readonly points: readonly TimedValue[];
@@ -197,11 +200,11 @@ export function extractFcSteadyRuns(input: ExtractInput<StackNameplate>, overrid
   });
 }
 
-function extractStarts<K extends 'el.start' | 'fc.start'>(kind: K, input: ExtractInput<StackNameplate>, overrides: Partial<StackExtractorParams>): Episode<K, StackStartFeatures, StackStartConditions>[] {
+function extractStarts<K extends 'el.start' | 'fc.start'>(kind: K, input: StackStartInput, overrides: Partial<StackExtractorParams>): Episode<K, StackStartFeatures, StackStartConditions>[] {
   const ctx = contextOf(input, overrides);
   const windows = windowsOf(ctx);
   const counts = ctx.metric('start.count').points;
-  return startEvents(ctx.current, input.nameplate.rated_current_a, ctx.params).map((event) => {
+  return startEvents(ctx.current, input.nameplate.rated_current_a, ctx.params, input.prior ?? null).map((event) => {
     const steady = windows.find((w) => w.start >= event.ts && w.start - event.ts <= ctx.params.startSteadyLookupS * MS_PER_SECOND);
     const end = steady && steady.start > event.ts ? steady.start : event.ts + ctx.periodMs;
     const before = valueAtOrBefore(counts, event.ts - 1, MS_PER_HOUR);
@@ -227,5 +230,5 @@ function extractStarts<K extends 'el.start' | 'fc.start'>(kind: K, input: Extrac
   });
 }
 
-export const extractElStarts = (input: ExtractInput<StackNameplate>, overrides: Partial<StackExtractorParams> = {}): ElStartEpisode[] => extractStarts('el.start', input, overrides);
-export const extractFcStarts = (input: ExtractInput<StackNameplate>, overrides: Partial<StackExtractorParams> = {}): FcStartEpisode[] => extractStarts('fc.start', input, overrides);
+export const extractElStarts = (input: StackStartInput, overrides: Partial<StackExtractorParams> = {}): ElStartEpisode[] => extractStarts('el.start', input, overrides);
+export const extractFcStarts = (input: StackStartInput, overrides: Partial<StackExtractorParams> = {}): FcStartEpisode[] => extractStarts('fc.start', input, overrides);

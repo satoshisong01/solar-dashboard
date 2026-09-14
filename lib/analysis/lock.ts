@@ -24,12 +24,16 @@ export async function withSiteLocks<T>(db: Kysely<DB>, siteIds: readonly number[
   });
 }
 
-/** 잠금을 잡은 뒤: 같은 사이트를 포함한 채 running으로 남은 이전 실행은 잠금이 없으므로 중단된 실행이다 */
-export async function failAbandonedRuns(db: Kysely<DB>, runId: string, siteIds: readonly number[], startedAt: Date): Promise<number> {
+/**
+ * 잠금을 잡은 뒤: 같은 사이트를 포함한 채 running으로 남은 실행 중 startedBefore(= 지금 − 시간 예산 × 2)보다 먼저 시작한 행만 중단된 실행으로 정리한다.
+ * 방금 들어와 잠금을 기다리는(곧 AnalysisBusyError로 끝날) 다른 요청의 행을 중단 실행으로 잘못 덮지 않기 위해서다.
+ * 정상 실행은 시간 예산 안에서 끝나므로 예산의 두 배가 지나도 running이면 프로세스가 죽은 것으로 본다.
+ */
+export async function failAbandonedRuns(db: Kysely<DB>, runId: string, siteIds: readonly number[], startedBefore: Date): Promise<number> {
   const result = await sql`
     UPDATE om.analysis_run r
     SET status = 'failed', finished_at = greatest(now(), r.started_at), error = '중단된 실행: 잠금 없이 running 상태로 남아 있었습니다'
-    WHERE r.status = 'running' AND r.id <> ${runId}::int8 AND r.started_at <= ${startedAt.toISOString()}::timestamptz
+    WHERE r.status = 'running' AND r.id <> ${runId}::int8 AND r.started_at < ${startedBefore.toISOString()}::timestamptz
       AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(r.scope -> 'siteIds') AS e(site_id) WHERE e.site_id::int = ANY(${[...siteIds]}::int4[]))
   `.execute(db);
   return Number(result.numAffectedRows ?? 0);

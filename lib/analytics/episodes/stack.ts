@@ -84,14 +84,27 @@ export function steadyWindows(current: readonly TimedValue[], window: TimeWindow
   return windows;
 }
 
-/** 전류 샘플 → 기동 이벤트 */
-export function startEvents(current: readonly TimedValue[], ratedCurrentA: number, rules: StackRunRules): StartEvent[] {
+/** 추출 창 시작 전 운전 상태 (load 계층이 원시에서 따로 조회한다) */
+export interface StackPriorState {
+  /** 창 시작 전 마지막 운전 샘플 시각. 없으면 null */
+  readonly lastRunningTs: number | null;
+  /** 창 시작 직전 마지막 good 샘플이 비운전 */
+  readonly offBeforeWindow: boolean;
+}
+
+/**
+ * 전류 샘플 → 기동 이벤트.
+ * prior를 주면 창 첫 기동의 꺼짐 시간을 창 앞 마지막 운전 시각부터 잰다 (끝 구간만 다시 추출해도 전체 추출과 같은 off_duration_s·cold).
+ * 없으면 창 앞은 모르는 것으로 보고 창 첫 기동의 꺼짐 시간은 null.
+ */
+export function startEvents(current: readonly TimedValue[], ratedCurrentA: number, rules: StackRunRules, prior: StackPriorState | null = null): StartEvent[] {
   const runningA = rules.runningFraction * ratedCurrentA;
   const minOffMs = rules.startOffMinS * MS_PER_SECOND;
   const events: StartEvent[] = [];
   const firstTs = current[0]?.ts ?? 0;
-  let lastRunningTs: number | null = null;
-  let sawOff = false;
+  const priorRunning = prior?.lastRunningTs ?? null;
+  let lastRunningTs: number | null = priorRunning !== null && priorRunning < firstTs ? priorRunning : null;
+  let sawOff = prior?.offBeforeWindow ?? false;
   for (const point of current) {
     if (point.value < runningA) {
       sawOff = true;

@@ -1,7 +1,7 @@
 // 정비 조치 CSV 가져오기 DB 계층: 검증용 조회(catalog)와 한 트랜잭션 적용.
 // 'server-only'를 넣지 않는다: integration 테스트에서도 쓴다. 호출 전 관리자 확인은 Server Action이 한다.
 import type { Kysely } from 'kysely';
-import { registerMaintenanceActionInTransaction } from '@/lib/analysis/transitions';
+import { registerMaintenanceActionIfAbsent } from '@/lib/analysis/transitions';
 import type { DB } from '@/lib/db/types';
 import { actionDuplicateKey, checkActionCsv, readActionCsv, type ActionCsvCatalog, type ActionCsvResult, type ActionCsvRow, type RawActionRow } from './action-csv';
 
@@ -41,17 +41,24 @@ export async function checkActionCsvText(db: Kysely<DB>, text: string, nowMs: nu
 
 export interface ApplyCsvResult {
   readonly inserted: number;
+  /** 검증 뒤 같은 조치가 먼저 들어와(동시 가져오기 등) 건너뛴 행 수 */
+  readonly duplicates: number;
   /** 연결한 발견사항을 조치 완료로 옮긴 수 */
   readonly transitioned: number;
   readonly withExpectedEffect: number;
 }
 
-/** 검증을 통과한 행을 한 트랜잭션으로 넣는다. 한 행이라도 실패하면 모두 되돌린다 */
+/**
+ * 검증을 통과한 행을 한 트랜잭션으로 넣는다. 한 행이라도 실패하면 모두 되돌린다.
+ * 중복은 유니크 인덱스(설비, 조치 종류, 수행일시) + ON CONFLICT DO NOTHING으로 원자적으로 막는다: 검증과 적용 사이에 같은 조치가 들어오면 건너뛰고 duplicates로 센다.
+ */
 export async function applyActionCsvRows(db: Kysely<DB>, rows: readonly ActionCsvRow[], actor: string): Promise<ApplyCsvResult> {
   return db.transaction().execute(async (trx) => {
-    let transitioned = 0; // 트랜잭션 안에서만 세는 누적값
+    let inserted = 0; // 트랜잭션 안에서만 세는 누적값
+    let transitioned = 0;
+    let withExpectedEffect = 0;
     for (const row of rows) {
-      const result = await registerMaintenanceActionInTransaction(trx, {
+      const result = await registerMaintenanceActionIfAbsent(trx, {
         siteId: row.siteId,
         assetId: row.assetId,
         findingId: row.findingId,
@@ -63,8 +70,11 @@ export async function applyActionCsvRows(db: Kysely<DB>, rows: readonly ActionCs
         source: 'csv',
         actor,
       });
+      if (result === null) continue;
+      inserted += 1;
       transitioned += result.transition ? 1 : 0;
+      withExpectedEffect += row.expectedEffect !== null ? 1 : 0;
     }
-    return { inserted: rows.length, transitioned, withExpectedEffect: rows.filter((r) => r.expectedEffect !== null).length };
+    return { inserted, duplicates: rows.length - inserted, transitioned, withExpectedEffect };
   });
 }

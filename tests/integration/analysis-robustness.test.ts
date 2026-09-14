@@ -121,17 +121,17 @@ describe('분석 실행기 견고성 (hysol_test)', () => {
     }
   }, 180_000);
 
-  it('겹침 재처리: 끝 3일만 다시 분석해도 에피소드 수·구간·정상운전 특징, KPI는 같고 finding은 중복되지 않는다', async () => {
+  it('겹침 재처리: 끝 3일만 다시 분석해도 에피소드(기동 꺼짐 시간 포함 features)·KPI는 같고 finding은 중복되지 않는다', async () => {
     const tail = await runAnalysis(db, request({ from: at(STEP_DAY - 3) }), { now: () => at(STEP_DAY + 0.05) });
     expect(tail.status).toBe('succeeded');
     expect(tail.stats.sites[0]?.episodesSaved).toBeGreaterThan(0);
     const snapshot = await snapshotOf(db, fixture);
     const outline = (e: EpisodeRow) => [e.asset_id, e.kind, e.start_ts, e.end_ts, e.valid, e.invalid_reason];
     expect(snapshot.episodes.map(outline)).toEqual(baseline.episodes.map(outline));
-    // 기동(start) 에피소드의 정지 시간·냉간 여부는 비교하지 않는다: 직전 정지가 재추출 창 시작 − 2시간보다 앞이면 원시를 읽지 않아 null이 된다
-    // (전체 창 재실행의 내용 멱등은 위 테스트가 확인한다)
-    const steady = (episodes: readonly EpisodeRow[]) => episodes.filter((e) => !e.kind.endsWith('.start'));
-    expect(steady(snapshot.episodes)).toEqual(steady(baseline.episodes));
+    // 기동(start) 에피소드도 features까지 같다: 창 첫 기동의 꺼짐 시간·냉간 여부를 창 앞 마지막 운전 샘플 조회로 이어 잰다
+    expect(snapshot.episodes).toEqual(baseline.episodes);
+    const starts = snapshot.episodes.filter((e) => e.kind === 'el.start' && e.start_ts.getTime() >= at(STEP_DAY - 3).getTime());
+    expect(starts.length).toBeGreaterThan(0);
     expect(snapshot.kpis).toEqual(baseline.kpis);
     expect(snapshot.findings.map((f) => [f.id, f.dedup_key, f.status])).toEqual(baseline.findings.map((f) => [f.id, f.dedup_key, f.status]));
   }, 120_000);
@@ -175,10 +175,31 @@ describe('분석 실행기 견고성 (hysol_test)', () => {
     expect(rejected).toHaveLength(1);
     expect(fulfilled[0]?.value.status).toBe('succeeded');
     expect(rejected[0]?.reason).toBeInstanceOf(AnalysisBusyError);
-    expect((await runRow(db, (rejected[0]?.reason as AnalysisBusyError).runId)).status).toBe('failed');
+    // 진 쪽 행은 "중단된 실행"이 아니라 잠금 거절 사유로 끝난다 (이긴 쪽의 중단 실행 정리가 덮지 않는다)
+    expect(await runRow(db, (rejected[0]?.reason as AnalysisBusyError).runId)).toMatchObject({ status: 'failed', error: expect.stringContaining('이미 진행 중') });
     const snapshot = await snapshotOf(db, fixture);
     expect(snapshot.episodes).toEqual(baseline.episodes);
     expect(snapshot.findings).toHaveLength(1);
+  }, 120_000);
+
+  it('중단 실행 정리: 잠금을 잡은 실행은 자기 사이트의 오래된(시간 예산×2 이전) running 행만 정리하고, 방금 들어온 다른 요청 행은 건드리지 않는다', async () => {
+    const nowAt = at(STEP_DAY + 0.09);
+    const budgetMs = 10 * 60_000;
+    const insertRunning = (startedAt: Date, siteIds: readonly number[]) =>
+      db.insertInto('om.analysis_run').values({ requested_by: ADMIN, scope: JSON.stringify({ siteIds, from: at(0).toISOString(), to: at(1).toISOString() }), started_at: startedAt }).returning('id').executeTakeFirstOrThrow();
+    const stale = await insertRunning(new Date(nowAt.getTime() - 2 * budgetMs - 60_000), [fixture.siteId]);
+    const fresh = await insertRunning(new Date(nowAt.getTime() - 60_000), [fixture.siteId]); // 잠금을 기다리다 곧 거절될 요청
+    const otherSite = await insertRunning(new Date(nowAt.getTime() - 3 * budgetMs), [32_001]);
+    try {
+      const result = await runAnalysis(db, request(), { now: () => nowAt, timeBudgetMs: budgetMs });
+      expect(result.status).toBe('succeeded');
+      expect(result.stats.abandonedRunsFailed).toBe(1);
+      expect(await runRow(db, stale.id)).toMatchObject({ status: 'failed', error: expect.stringContaining('중단된 실행') });
+      expect(await runRow(db, fresh.id)).toMatchObject({ status: 'running', error: null });
+      expect(await runRow(db, otherSite.id)).toMatchObject({ status: 'running' });
+    } finally {
+      await db.deleteFrom('om.analysis_run').where('id', 'in', [fresh.id, otherSite.id]).execute();
+    }
   }, 120_000);
 
   it('단계 오류: 탐지기 하나가 예외를 내면 오류를 기록하고 나머지 단계는 계속해 partial, finding은 그대로 두고 다음 실행은 정상', async () => {

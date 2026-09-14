@@ -71,7 +71,8 @@ export async function applyActionCsvAction(prev: ActionState<CsvPreviewData>, fo
     if (result.errorCount > 0) return errorState(prev, `검증 오류 ${result.errorCount}건이 있어 적용하지 않았습니다. 첫 오류: ${result.errors[0]?.line}행 ${result.errors[0]?.message}`);
     const applied = await applyActionCsvRows(db, result.rows, session.user.email);
     revalidatePath('/', 'layout');
-    return successState(prev, `조치 ${applied.inserted}건을 가져왔습니다. 연결 발견사항 ${applied.transitioned}건을 조치 완료로 옮겼고, 기대 효과가 채워진 ${applied.withExpectedEffect}건은 분석 실행 때 효과를 검증합니다.`, { result, applied: true, inserted: applied.inserted, transitioned: applied.transitioned });
+    const duplicates = applied.duplicates > 0 ? ` 그 사이 같은 조치가 이미 등록된 ${applied.duplicates}건은 건너뛰었습니다.` : '';
+    return successState(prev, `조치 ${applied.inserted}건을 가져왔습니다.${duplicates} 연결 발견사항 ${applied.transitioned}건을 조치 완료로 옮겼고, 기대 효과가 채워진 ${applied.withExpectedEffect}건은 분석 실행 때 효과를 검증합니다.`, { result, applied: true, inserted: applied.inserted, transitioned: applied.transitioned });
   } catch (error) {
     if (error instanceof TransitionError) return errorState(prev, error.message);
     console.error('[actions/csv] CSV 적용 실패:', error);
