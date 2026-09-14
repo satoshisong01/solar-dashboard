@@ -1,10 +1,15 @@
 import * as z from 'zod';
 
-// 서버 전용 환경변수. 인증 등 다음 단계 변수는 이 객체에 필드를 추가한다.
+// 서버 전용 환경변수. 새 변수는 이 객체에 필드를 추가한다.
 const serverEnvSchema = z.object({
   DATABASE_URL: z.url({
     protocol: /^postgres(ql)?$/,
     error: 'postgres:// 형식의 URL이어야 합니다',
+  }),
+  BETTER_AUTH_SECRET: z.string().min(32, '32자 이상의 랜덤 문자열이어야 합니다'),
+  BETTER_AUTH_URL: z.url({
+    protocol: /^https?$/,
+    error: 'http(s):// 형식의 URL이어야 합니다',
   }),
 });
 

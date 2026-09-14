@@ -9,7 +9,67 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
 
+export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
+
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
+
+export interface AuthAccount {
+  accessToken: string | null;
+  accessTokenExpiresAt: Timestamp | null;
+  accountId: string;
+  createdAt: Generated<Timestamp>;
+  id: string;
+  idToken: string | null;
+  password: string | null;
+  providerId: string;
+  refreshToken: string | null;
+  refreshTokenExpiresAt: Timestamp | null;
+  scope: string | null;
+  updatedAt: Timestamp;
+  userId: string;
+}
+
+export interface AuthRateLimit {
+  count: number;
+  id: string;
+  key: string;
+  lastRequest: Int8;
+}
+
+export interface AuthSession {
+  createdAt: Generated<Timestamp>;
+  expiresAt: Timestamp;
+  id: string;
+  impersonatedBy: string | null;
+  ipAddress: string | null;
+  token: string;
+  updatedAt: Timestamp;
+  userAgent: string | null;
+  userId: string;
+}
+
+export interface AuthUser {
+  banExpires: Timestamp | null;
+  banned: boolean | null;
+  banReason: string | null;
+  createdAt: Generated<Timestamp>;
+  email: string;
+  emailVerified: boolean;
+  id: string;
+  image: string | null;
+  name: string;
+  role: string | null;
+  updatedAt: Generated<Timestamp>;
+}
+
+export interface AuthVerification {
+  createdAt: Generated<Timestamp>;
+  expiresAt: Timestamp;
+  id: string;
+  identifier: string;
+  updatedAt: Generated<Timestamp>;
+  value: string;
+}
 
 export interface Pgmigrations {
   id: Generated<number>;
@@ -18,5 +78,10 @@ export interface Pgmigrations {
 }
 
 export interface DB {
+  auth_account: AuthAccount;
+  auth_rate_limit: AuthRateLimit;
+  auth_session: AuthSession;
+  auth_user: AuthUser;
+  auth_verification: AuthVerification;
   pgmigrations: Pgmigrations;
 }

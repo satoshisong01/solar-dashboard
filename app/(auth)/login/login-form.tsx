@@ -1,0 +1,67 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { useState, type FormEvent } from 'react';
+import { authClient } from '@/lib/auth/client';
+
+function toErrorMessage(status: number): string {
+  if (status === 401) return '이메일 또는 비밀번호가 올바르지 않습니다.';
+  if (status === 403) return '로그인할 수 없는 계정입니다.';
+  if (status === 429) return '로그인 시도가 너무 많습니다. 잠시 후 다시 시도하세요.';
+  return '로그인에 실패했습니다. 잠시 후 다시 시도하세요.';
+}
+
+export function LoginForm({ initialError }: { initialError?: string }) {
+  const router = useRouter();
+  const [error, setError] = useState(initialError);
+  const [pending, setPending] = useState(false);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    setPending(true);
+    setError(undefined);
+
+    try {
+      const result = await authClient.signIn.email({
+        email: String(form.get('email') ?? ''),
+        password: String(form.get('password') ?? ''),
+      });
+      if (!result.error) {
+        router.replace('/');
+        return;
+      }
+      setError(toErrorMessage(result.error.status));
+    } catch {
+      setError(toErrorMessage(0)); // 네트워크 오류
+    }
+    setPending(false);
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <label className="flex flex-col gap-1">
+        <span>이메일</span>
+        <input name="email" type="email" autoComplete="username" required className="rounded border px-3 py-2" />
+      </label>
+      <label className="flex flex-col gap-1">
+        <span>비밀번호</span>
+        <input
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+          className="rounded border px-3 py-2"
+        />
+      </label>
+      {error && (
+        <p role="alert" className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
+      <button type="submit" disabled={pending} className="rounded border px-3 py-2 disabled:opacity-50">
+        {pending ? '로그인 중…' : '로그인'}
+      </button>
+    </form>
+  );
+}

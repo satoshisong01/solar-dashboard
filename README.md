@@ -14,6 +14,8 @@ cp .env.example .env.development.local   # DATABASE_URL …/hysol
 cp .env.example .env.test.local          # DB 이름만 hysol_test 로 수정
 ```
 
+두 파일 각각에 `BETTER_AUTH_SECRET`(32자 이상 랜덤, 파일마다 다르게)을 채웁니다. 생성 명령은 `.env.example`에 있습니다.
+
 **터미널 1** — DB 서버를 켜 두기 (데이터: `.data/pg`, 포트 54320, 최초 실행 시 `hysol`·`hysol_test` DB 생성)
 
 ```bash
@@ -26,7 +28,8 @@ npm run db:up      # Ctrl+C로 종료
 npm run db:migrate        # 개발 DB 마이그레이션
 npm run db:migrate:test   # 테스트 DB 마이그레이션
 npm run db:types          # DB에서 lib/db/types.ts 생성 (om, public 스키마)
-npm run dev
+npm run admin:create -- --email admin@hysol.local --password '<12자 이상>' --name 관리자
+npm run dev               # http://localhost:3000/login
 npm run db:down           # 서버 종료 (터미널 1을 닫지 못할 때)
 ```
 
@@ -34,6 +37,15 @@ npm run db:down           # 서버 종료 (터미널 1을 닫지 못할 때)
 |---|---|
 | `db:migrate:down` | 마지막 마이그레이션 1개 되돌리기 |
 | `db:reset` | **로컬 전용.** 개발 DB 스키마를 모두 지우고 다시 migrate. `localhost:54320`이 아니면 중단 |
+| `admin:create` / `admin:create:test` | 개발 / 테스트 DB에 관리자 계정 생성. 가입은 비활성이라 계정은 이 스크립트로만 만든다. 이미 있으면 안내 후 종료 |
+
+## 인증
+
+Better Auth(이메일+비밀번호, 가입 비활성, admin 플러그인, DB 세션·rate limit)를 씁니다. 테이블은 `auth_*`이고 `db/migrations`로만 관리합니다(`auth migrate`를 직접 실행하지 않음).
+
+- `proxy.ts`는 세션 쿠키가 있는지만 보고 없으면 `/login`으로 보냅니다.
+- 실제 검사는 `lib/auth/dal.ts`의 `requireAdmin()`입니다. 콘솔의 모든 page, Server Action, Route Handler 첫 줄에서 호출합니다.
+- 로그인은 브라우저에서 `/api/auth/sign-in/email`로 보냅니다. 서버의 `auth.api.*` 호출에는 rate limit이 적용되지 않기 때문입니다.
 
 새 마이그레이션은 SQL 파일로 만듭니다.
 
