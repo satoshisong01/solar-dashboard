@@ -1,0 +1,2070 @@
+{
+ "domain": "태양광(PV 스트링/어레이) + 접속반 + 인버터 + 계통연계/변압기 + 기상센서 + ESS(배터리 랙·모듈·셀/BMS/PCS/HVAC) O&M 데이터",
+ "assetHierarchy": [
+  {
+   "assetType": "site",
+   "name_ko": "발전소 사이트",
+   "parentType": "fleet",
+   "subComponents": [
+    "weather_station",
+    "inverter",
+    "grid_interconnection",
+    "ess_system",
+    "data_logger_rtu"
+   ],
+   "notes": "사이트 메타: 위경도, 경사각/방위각, P_STC(kWp), 모듈 온도계수(γ), 설치형태(Sandia a,b,ΔT 계수), 준공일, 출력제어 대상 여부, 계통 전압(22.9kV 등)."
+  },
+  {
+   "assetType": "weather_station",
+   "name_ko": "기상관측 설비",
+   "parentType": "site",
+   "subComponents": [
+    "poa_pyranometer",
+    "ghi_pyranometer",
+    "module_temp_sensor",
+    "ambient_temp_humidity_sensor",
+    "anemometer",
+    "rain_gauge"
+   ],
+   "notes": "IEC 61724-1 Class A: 샘플 ≤3초, 기록 ≤1분. 강우는 기상청 API로 대체 가능."
+  },
+  {
+   "assetType": "inverter",
+   "name_ko": "태양광 인버터(PCS)",
+   "parentType": "site",
+   "subComponents": [
+    "mppt_input",
+    "igbt_stack",
+    "dc_link_capacitor",
+    "cooling_fan",
+    "ac_filter",
+    "insulation_monitor"
+   ],
+   "notes": "국내 소규모(≤1MW)는 50~100kW급 스트링 인버터 다수(접속반 없이 MPPT 직결), 대형은 센트럴 인버터+접속반 구조."
+  },
+  {
+   "assetType": "mppt_input",
+   "name_ko": "MPPT 입력 채널",
+   "parentType": "inverter",
+   "subComponents": [
+    "combiner_box",
+    "pv_string"
+   ],
+   "notes": "SunSpec 160(Multiple MPPT) 단위. 동일 MPPT 내 스트링은 전압 공통."
+  },
+  {
+   "assetType": "combiner_box",
+   "name_ko": "접속반",
+   "parentType": "mppt_input",
+   "subComponents": [
+    "pv_string",
+    "string_fuse",
+    "spd",
+    "dc_disconnect",
+    "string_current_sensor"
+   ],
+   "notes": "SunSpec 401~404(String Combiner, InDCA 스트링 전류). 스트링 CT가 없는 접속반도 흔함."
+  },
+  {
+   "assetType": "pv_string",
+   "name_ko": "PV 스트링",
+   "parentType": "combiner_box",
+   "subComponents": [
+    "pv_module"
+   ],
+   "notes": "parentType은 접속반이 없는 경우 mppt_input. 피어 그룹 키 = (인버터, MPPT, 방위/경사, 모듈모델, 직렬수)."
+  },
+  {
+   "assetType": "pv_module",
+   "name_ko": "PV 모듈",
+   "parentType": "pv_string",
+   "subComponents": [
+    "cell_substring",
+    "bypass_diode",
+    "junction_box",
+    "connector_mc4"
+   ],
+   "notes": "모듈당 바이패스 다이오드 통상 3개(서브스트링 1/3 단위). 원격 데이터로는 개별 모듈 식별 불가(MLPE 제외) → 스트링 단위 추론 후 드론 IR로 확인."
+  },
+  {
+   "assetType": "grid_interconnection",
+   "name_ko": "계통연계/수배전 설비",
+   "parentType": "site",
+   "subComponents": [
+    "step_up_transformer",
+    "vcb_switchgear",
+    "protection_relay",
+    "revenue_meter",
+    "aux_power_meter"
+   ],
+   "notes": "한전 거래용 계량기(AMI 15분) 데이터가 발전량 기준값."
+  },
+  {
+   "assetType": "step_up_transformer",
+   "name_ko": "승압 변압기",
+   "parentType": "grid_interconnection",
+   "subComponents": [
+    "winding",
+    "insulating_oil",
+    "cooling_fan_radiator",
+    "temperature_relay",
+    "buchholz_relay"
+   ],
+   "notes": "유입식은 유온/권선온도, 몰드(건식)는 권선온도 감시."
+  },
+  {
+   "assetType": "ess_system",
+   "name_ko": "ESS 시스템",
+   "parentType": "site",
+   "subComponents": [
+    "ess_pcs",
+    "battery_bank",
+    "battery_room",
+    "ems"
+   ],
+   "notes": "태양광 연계형: 과거 REC 가중치 규정상 10~16시 충전, 그 외 시간 방전 패턴이 대부분 → 1일 1사이클 조건 매칭 비교에 유리."
+  },
+  {
+   "assetType": "ess_pcs",
+   "name_ko": "ESS PCS(양방향 전력변환장치)",
+   "parentType": "ess_system",
+   "subComponents": [
+    "igbt_stack",
+    "dc_link_capacitor",
+    "cooling_fan",
+    "ac_filter",
+    "dc_breaker"
+   ],
+   "notes": "REMS 기준 계측: (전)전압·전류·출력, (후)전압·전류·출력, 고장여부."
+  },
+  {
+   "assetType": "battery_bank",
+   "name_ko": "배터리 뱅크(BBMS)",
+   "parentType": "ess_system",
+   "subComponents": [
+    "battery_rack",
+    "bank_bms",
+    "dc_insulation_monitor",
+    "main_contactor"
+   ],
+   "notes": "SunSpec 802(Battery Base), 803(Lithium-Ion Bank)."
+  },
+  {
+   "assetType": "battery_rack",
+   "name_ko": "배터리 랙(RBMS)",
+   "parentType": "battery_bank",
+   "subComponents": [
+    "battery_module",
+    "rack_bms",
+    "rack_contactor",
+    "rack_fuse",
+    "current_sensor"
+   ],
+   "notes": "병렬 랙 간 전류 분담이 핵심 지표. 랙 전압 600~1500V DC(추정 범위)."
+  },
+  {
+   "assetType": "battery_module",
+   "name_ko": "배터리 모듈(MBMS)",
+   "parentType": "battery_rack",
+   "subComponents": [
+    "battery_cell",
+    "module_bms_board",
+    "temperature_sensor",
+    "busbar",
+    "module_fan"
+   ],
+   "notes": "모듈 온도센서는 보통 모듈당 2~4점(추정)."
+  },
+  {
+   "assetType": "battery_cell",
+   "name_ko": "배터리 셀",
+   "parentType": "battery_module",
+   "subComponents": [],
+   "notes": "LFP: 공칭 3.2V, 운용 2.5~3.65V, OCV 평탄(20~80% SOC). NMC: 3.0~4.2V. 셀 단위 전압 배열은 BMS 로컬 HMI에만 있는 경우가 많아 데이터 계약 협상 필요."
+  },
+  {
+   "assetType": "battery_room",
+   "name_ko": "배터리실/컨테이너 환경",
+   "parentType": "ess_system",
+   "subComponents": [
+    "hvac_unit",
+    "fire_detection",
+    "fire_suppression",
+    "off_gas_detector",
+    "door_sensor",
+    "emergency_stop"
+   ],
+   "notes": "국내 ESS 화재 원인조사(2019)에서 '운영환경 관리 미흡'(온도·습도·먼지·결로)이 주요 원인 중 하나."
+  },
+  {
+   "assetType": "hvac_unit",
+   "name_ko": "공조기(HVAC)",
+   "parentType": "battery_room",
+   "subComponents": [
+    "compressor",
+    "evaporator_fan",
+    "condenser_fan",
+    "filter",
+    "controller"
+   ],
+   "notes": "설정 20~25°C 운전이 일반적(추정)."
+  },
+  {
+   "assetType": "data_logger_rtu",
+   "name_ko": "RTU/데이터로거",
+   "parentType": "site",
+   "subComponents": [
+    "serial_ports_rs485",
+    "lte_or_ethernet_modem",
+    "local_buffer"
+   ],
+   "notes": "REMS RTU 요건: RS485/422/232 전기 2포트 이상, TCP/IP 양방향, 통신오류 시 90일 이상 저장, OPC-UA 보안. 데이터 결손 판정의 주체."
+  }
+ ],
+ "telemetry": [
+  {
+   "assetType": "weather_station",
+   "metricKey": "poa_irradiance",
+   "name_ko": "경사면 일사량(POA)",
+   "unit": "W/m²",
+   "priority": "must",
+   "typicalRange": "0~1400 (구름 반사로 1000 초과 순간값 가능)",
+   "typicalSampling": "Class A 3초 샘플/1분 기록, 실무 1~5분 평균",
+   "commonSource": "일사계(ISO 9060) 또는 기준셀, RS485 Modbus RTU / SunSpec 302"
+  },
+  {
+   "assetType": "weather_station",
+   "metricKey": "ghi_irradiance",
+   "name_ko": "수평면 전일사량(GHI)",
+   "unit": "W/m²",
+   "priority": "should",
+   "typicalRange": "0~1200",
+   "typicalSampling": "1분",
+   "commonSource": "일사계 Modbus, 없으면 위성일사(추정치) API"
+  },
+  {
+   "assetType": "weather_station",
+   "metricKey": "module_temperature",
+   "name_ko": "모듈 후면 온도",
+   "unit": "°C",
+   "priority": "must",
+   "typicalRange": "-20~85",
+   "typicalSampling": "1분",
+   "commonSource": "PT100/PT1000 후면 부착, SunSpec 303"
+  },
+  {
+   "assetType": "weather_station",
+   "metricKey": "ambient_temperature",
+   "name_ko": "외기 온도",
+   "unit": "°C",
+   "priority": "must",
+   "typicalRange": "-25~40 (국내)",
+   "typicalSampling": "1분",
+   "commonSource": "기상센서 Modbus / 기상청 ASOS·동네예보 API"
+  },
+  {
+   "assetType": "weather_station",
+   "metricKey": "wind_speed",
+   "name_ko": "풍속",
+   "unit": "m/s",
+   "priority": "should",
+   "typicalRange": "0~30",
+   "typicalSampling": "1분",
+   "commonSource": "풍속계 / 기상청 API"
+  },
+  {
+   "assetType": "weather_station",
+   "metricKey": "relative_humidity",
+   "name_ko": "상대습도",
+   "unit": "%RH",
+   "priority": "should",
+   "typicalRange": "10~100",
+   "typicalSampling": "1~10분",
+   "commonSource": "온습도센서 / 기상청 API (절연저항 해석용)"
+  },
+  {
+   "assetType": "weather_station",
+   "metricKey": "rainfall_daily",
+   "name_ko": "일 강수량",
+   "unit": "mm",
+   "priority": "should",
+   "typicalRange": "0~300",
+   "typicalSampling": "1시간/1일",
+   "commonSource": "우량계 / 기상청 API (오염 리셋 판정: ≥1mm/일)"
+  },
+  {
+   "assetType": "weather_station",
+   "metricKey": "snow_depth",
+   "name_ko": "적설",
+   "unit": "cm",
+   "priority": "nice",
+   "typicalRange": "0~50",
+   "typicalSampling": "1시간",
+   "commonSource": "기상청 API (적설 기간 분석 제외용)"
+  },
+  {
+   "assetType": "mppt_input",
+   "metricKey": "dc_voltage",
+   "name_ko": "MPPT 입력 전압(PV 전압)",
+   "unit": "V",
+   "priority": "must",
+   "typicalRange": "200~1500 (시스템 최대전압 1000/1100/1500V)",
+   "typicalSampling": "1~5분",
+   "commonSource": "SunSpec 160 DCV / 103 DCV, 제조사 Modbus 맵, REMS 'PV 전압'"
+  },
+  {
+   "assetType": "mppt_input",
+   "metricKey": "dc_current",
+   "name_ko": "MPPT 입력 전류(PV 전류)",
+   "unit": "A",
+   "priority": "must",
+   "typicalRange": "0~(스트링수×Isc, 스트링당 ~10~18)",
+   "typicalSampling": "1~5분",
+   "commonSource": "SunSpec 160 DCA / REMS 'PV 전류'"
+  },
+  {
+   "assetType": "mppt_input",
+   "metricKey": "dc_power",
+   "name_ko": "MPPT 입력 전력",
+   "unit": "kW",
+   "priority": "must",
+   "typicalRange": "0~인버터 정격×1.3",
+   "typicalSampling": "1~5분",
+   "commonSource": "SunSpec 160 DCW / 103 DCW"
+  },
+  {
+   "assetType": "pv_string",
+   "metricKey": "string_current",
+   "name_ko": "스트링 전류",
+   "unit": "A",
+   "priority": "must",
+   "typicalRange": "0~18",
+   "typicalSampling": "1~5분",
+   "commonSource": "접속반 CT(SunSpec 403 InDCA) 또는 스트링 인버터 스트링 전류 레지스터"
+  },
+  {
+   "assetType": "combiner_box",
+   "metricKey": "combiner_bus_voltage",
+   "name_ko": "접속반 출력 전압",
+   "unit": "V",
+   "priority": "should",
+   "typicalRange": "200~1500",
+   "typicalSampling": "1~5분",
+   "commonSource": "SunSpec 403 DCV"
+  },
+  {
+   "assetType": "combiner_box",
+   "metricKey": "combiner_temperature",
+   "name_ko": "접속반 내부 온도",
+   "unit": "°C",
+   "priority": "nice",
+   "typicalRange": "-20~70",
+   "typicalSampling": "5분",
+   "commonSource": "SunSpec 403 Tmp"
+  },
+  {
+   "assetType": "combiner_box",
+   "metricKey": "spd_fuse_status",
+   "name_ko": "SPD/퓨즈 상태",
+   "unit": "enum",
+   "priority": "should",
+   "typicalRange": "정상/동작/열화",
+   "typicalSampling": "변화 시(이벤트)",
+   "commonSource": "접속반 DI 접점, SunSpec 403 Evt"
+  },
+  {
+   "assetType": "inverter",
+   "metricKey": "ac_active_power",
+   "name_ko": "교류 유효전력(출력)",
+   "unit": "kW",
+   "priority": "must",
+   "typicalRange": "0~정격(과부하 1.1배)",
+   "typicalSampling": "1분",
+   "commonSource": "SunSpec 103 W / REMS '출력'"
+  },
+  {
+   "assetType": "inverter",
+   "metricKey": "ac_reactive_power",
+   "name_ko": "교류 무효전력",
+   "unit": "kvar",
+   "priority": "should",
+   "typicalRange": "±0.44×정격",
+   "typicalSampling": "1~5분",
+   "commonSource": "SunSpec 103 VAr"
+  },
+  {
+   "assetType": "inverter",
+   "metricKey": "power_factor",
+   "name_ko": "역률",
+   "unit": "-",
+   "priority": "should",
+   "typicalRange": "0.9~1.0 (지상/진상 설정)",
+   "typicalSampling": "1~5분",
+   "commonSource": "SunSpec 103 PF / REMS '역률'"
+  },
+  {
+   "assetType": "inverter",
+   "metricKey": "ac_voltage_ll",
+   "name_ko": "교류 선간전압(상별)",
+   "unit": "V",
+   "priority": "must",
+   "typicalRange": "380/400/480/800V 정격 ±10%",
+   "typicalSampling": "1분",
+   "commonSource": "SunSpec 103 PPVphAB/BC/CA / REMS '출력전압'"
+  },
+  {
+   "assetType": "inverter",
+   "metricKey": "ac_current_phase",
+   "name_ko": "교류 상전류",
+   "unit": "A",
+   "priority": "must",
+   "typicalRange": "0~정격",
+   "typicalSampling": "1분",
+   "commonSource": "SunSpec 103 AphA/B/C / REMS '출력전류'"
+  },
+  {
+   "assetType": "inverter",
+   "metricKey": "grid_frequency",
+   "name_ko": "계통 주파수",
+   "unit": "Hz",
+   "priority": "must",
+   "typicalRange": "59.8~60.2 (정상)",
+   "typicalSampling": "1분",
+   "commonSource": "SunSpec 103 Hz / REMS '주파수'"
+  },
+  {
+   "assetType": "inverter",
+   "metricKey": "energy_total",
+   "name_ko": "누적 발전량",
+   "unit": "kWh",
+   "priority": "must",
+   "typicalRange": "단조 증가 카운터",
+   "typicalSampling": "5~15분",
+   "commonSource": "SunSpec 103 WH / 122 ActWh / REMS '누적발전량'"
+  },
+  {
+   "assetType": "inverter",
+   "metricKey": "heatsink_temperature",
+   "name_ko": "방열판 온도",
+   "unit": "°C",
+   "priority": "must",
+   "typicalRange": "20~85 (70~80 부근 디레이팅 시작, 제조사별)",
+   "typicalSampling": "1~5분",
+   "commonSource": "SunSpec 103 TmpSnk"
+  },
+  {
+   "assetType": "inverter",
+   "metricKey": "cabinet_temperature",
+   "name_ko": "함체 내부 온도",
+   "unit": "°C",
+   "priority": "should",
+   "typicalRange": "0~60",
+   "typicalSampling": "5분",
+   "commonSource": "SunSpec 103 TmpCab (미제공 시 외부 센서 추가 권장 - NREL O&M)"
+  },
+  {
+   "assetType": "inverter",
+   "metricKey": "insulation_resistance",
+   "name_ko": "절연저항(Riso)",
+   "unit": "kΩ",
+   "priority": "should",
+   "typicalRange": "수백 kΩ~수 MΩ (야간/비운전 시 더 높음)",
+   "typicalSampling": "기동 시 1회/일 또는 연속",
+   "commonSource": "SunSpec 122 Ris(ohms) / 제조사 레지스터"
+  },
+  {
+   "assetType": "inverter",
+   "metricKey": "residual_current",
+   "name_ko": "누설(잔류)전류",
+   "unit": "mA",
+   "priority": "nice",
+   "typicalRange": "0~300",
+   "typicalSampling": "1분",
+   "commonSource": "제조사 Modbus 레지스터"
+  },
+  {
+   "assetType": "inverter",
+   "metricKey": "operating_state",
+   "name_ko": "운전 상태/고장 코드",
+   "unit": "enum/bitfield",
+   "priority": "must",
+   "typicalRange": "Off/Sleeping/Starting/MPPT/Throttled/Fault/Standby",
+   "typicalSampling": "변화 시 + 1분 폴링",
+   "commonSource": "SunSpec 103 St, Evt1, EvtVnd1~4 / REMS '고장여부'"
+  },
+  {
+   "assetType": "inverter",
+   "metricKey": "active_power_limit_setpoint",
+   "name_ko": "출력 제한 설정값(출력제어 지령)",
+   "unit": "%",
+   "priority": "must",
+   "typicalRange": "0~100",
+   "typicalSampling": "변화 시",
+   "commonSource": "SunSpec 123 WMaxLimPct / 122 StActCtl, 중개사업자·KPX 지령 로그"
+  },
+  {
+   "assetType": "inverter",
+   "metricKey": "fan_status",
+   "name_ko": "냉각팬 상태/회전수",
+   "unit": "rpm 또는 enum",
+   "priority": "nice",
+   "typicalRange": "0~수천 rpm",
+   "typicalSampling": "5분",
+   "commonSource": "제조사 레지스터(대부분 이벤트 비트로만 제공)"
+  },
+  {
+   "assetType": "grid_interconnection",
+   "metricKey": "export_energy",
+   "name_ko": "송전(거래) 전력량",
+   "unit": "kWh",
+   "priority": "must",
+   "typicalRange": "15분 적산",
+   "typicalSampling": "15분",
+   "commonSource": "한전 AMI 거래용 계량기 / 전력량계 Modbus(DLMS)"
+  },
+  {
+   "assetType": "grid_interconnection",
+   "metricKey": "aux_import_energy",
+   "name_ko": "수전(소내·보조) 전력량",
+   "unit": "kWh",
+   "priority": "should",
+   "typicalRange": "15분 적산",
+   "typicalSampling": "15분",
+   "commonSource": "보조 전력량계"
+  },
+  {
+   "assetType": "grid_interconnection",
+   "metricKey": "relay_trip_event",
+   "name_ko": "보호계전기 동작(OCR/OCGR/OVR/UVR/OFR/UFR)",
+   "unit": "event",
+   "priority": "must",
+   "typicalRange": "-",
+   "typicalSampling": "이벤트",
+   "commonSource": "디지털 보호계전기 Modbus/DNP3, VCB 보조접점"
+  },
+  {
+   "assetType": "step_up_transformer",
+   "metricKey": "transformer_top_oil_temperature",
+   "name_ko": "변압기 유온/권선온도",
+   "unit": "°C",
+   "priority": "should",
+   "typicalRange": "20~95 (경보 설정 통상 85~95, 추정)",
+   "typicalSampling": "5분",
+   "commonSource": "온도계전기 4-20mA → PLC/RTU"
+  },
+  {
+   "assetType": "battery_bank",
+   "metricKey": "bank_voltage",
+   "name_ko": "뱅크(DC) 전압",
+   "unit": "V",
+   "priority": "must",
+   "typicalRange": "600~1500",
+   "typicalSampling": "1~10초 (DCIR용 ≤2초 권장)",
+   "commonSource": "BMS CAN/Modbus TCP, SunSpec 802 V / REMS 충방전기 '전압'"
+  },
+  {
+   "assetType": "battery_bank",
+   "metricKey": "bank_current",
+   "name_ko": "뱅크 전류(부호: 충전 +)",
+   "unit": "A",
+   "priority": "must",
+   "typicalRange": "±(0.5~1C)",
+   "typicalSampling": "1~10초 (DCIR용 ≤2초)",
+   "commonSource": "BMS 션트/홀센서, SunSpec 802 A / REMS '전류'"
+  },
+  {
+   "assetType": "battery_bank",
+   "metricKey": "soc",
+   "name_ko": "충전상태(SOC)",
+   "unit": "%",
+   "priority": "must",
+   "typicalRange": "운영 5~90 (옥내 80/옥외 90 제한 적용 설비)",
+   "typicalSampling": "10초~1분",
+   "commonSource": "BMS, SunSpec 802 SoC / REMS 'SOC'"
+  },
+  {
+   "assetType": "battery_bank",
+   "metricKey": "soh_bms",
+   "name_ko": "BMS 보고 SOH",
+   "unit": "%",
+   "priority": "should",
+   "typicalRange": "70~100",
+   "typicalSampling": "1시간~1일",
+   "commonSource": "SunSpec 802 SoH / REMS 'SOH' (제조사 산식 비공개·계단식 → 독립 추정과 교차검증용)"
+  },
+  {
+   "assetType": "battery_rack",
+   "metricKey": "rack_current",
+   "name_ko": "랙별 전류",
+   "unit": "A",
+   "priority": "must",
+   "typicalRange": "±랙 정격",
+   "typicalSampling": "1~10초",
+   "commonSource": "RBMS CAN/Modbus"
+  },
+  {
+   "assetType": "battery_rack",
+   "metricKey": "rack_voltage",
+   "name_ko": "랙별 전압",
+   "unit": "V",
+   "priority": "must",
+   "typicalRange": "600~1500",
+   "typicalSampling": "1~10초",
+   "commonSource": "RBMS"
+  },
+  {
+   "assetType": "battery_rack",
+   "metricKey": "cell_voltage_max",
+   "name_ko": "최고 셀 전압(+셀 위치 ID)",
+   "unit": "V",
+   "priority": "must",
+   "typicalRange": "LFP 2.5~3.65 / NMC 3.0~4.2",
+   "typicalSampling": "1~10초",
+   "commonSource": "SunSpec 803 CellVMax, CellVMaxMod/Stk"
+  },
+  {
+   "assetType": "battery_rack",
+   "metricKey": "cell_voltage_min",
+   "name_ko": "최저 셀 전압(+셀 위치 ID)",
+   "unit": "V",
+   "priority": "must",
+   "typicalRange": "LFP 2.5~3.65 / NMC 3.0~4.2",
+   "typicalSampling": "1~10초",
+   "commonSource": "SunSpec 803 CellVMin, CellVMinMod/Stk"
+  },
+  {
+   "assetType": "battery_rack",
+   "metricKey": "cell_voltage_avg",
+   "name_ko": "평균 셀 전압",
+   "unit": "V",
+   "priority": "must",
+   "typicalRange": "LFP 3.2~3.35 평탄구간",
+   "typicalSampling": "1~10초",
+   "commonSource": "SunSpec 802 CellVAvg"
+  },
+  {
+   "assetType": "battery_cell",
+   "metricKey": "cell_voltage",
+   "name_ko": "개별 셀 전압 배열",
+   "unit": "V",
+   "priority": "should",
+   "typicalRange": "LFP 2.5~3.65",
+   "typicalSampling": "1분 (휴지 구간 스냅샷만이라도)",
+   "commonSource": "MBMS → BMS 로컬 DB/HMI, 제조사 협의 필요"
+  },
+  {
+   "assetType": "battery_rack",
+   "metricKey": "cell_temperature_max",
+   "name_ko": "최고 셀/모듈 온도(+위치)",
+   "unit": "°C",
+   "priority": "must",
+   "typicalRange": "15~45 (운전 권장 20~35)",
+   "typicalSampling": "10초~1분",
+   "commonSource": "SunSpec 803 ModTmpMax/ModTmpMaxMod / REMS 온도(최고)"
+  },
+  {
+   "assetType": "battery_rack",
+   "metricKey": "cell_temperature_min",
+   "name_ko": "최저 셀/모듈 온도(+위치)",
+   "unit": "°C",
+   "priority": "must",
+   "typicalRange": "15~40",
+   "typicalSampling": "10초~1분",
+   "commonSource": "SunSpec 803 ModTmpMin / REMS 온도(최저)"
+  },
+  {
+   "assetType": "battery_rack",
+   "metricKey": "cell_temperature_avg",
+   "name_ko": "평균 셀/모듈 온도",
+   "unit": "°C",
+   "priority": "must",
+   "typicalRange": "15~40",
+   "typicalSampling": "10초~1분",
+   "commonSource": "SunSpec 803 ModTmpAvg / REMS 온도(평균)"
+  },
+  {
+   "assetType": "battery_module",
+   "metricKey": "module_temperature_points",
+   "name_ko": "모듈별 온도 배열",
+   "unit": "°C",
+   "priority": "should",
+   "typicalRange": "15~45",
+   "typicalSampling": "1분",
+   "commonSource": "MBMS"
+  },
+  {
+   "assetType": "battery_bank",
+   "metricKey": "charge_current_limit",
+   "name_ko": "충전 전류 한계(CCL)",
+   "unit": "A",
+   "priority": "should",
+   "typicalRange": "0~정격",
+   "typicalSampling": "10초~1분",
+   "commonSource": "BMS → PCS CAN (SunSpec 802 AChaMax)"
+  },
+  {
+   "assetType": "battery_bank",
+   "metricKey": "discharge_current_limit",
+   "name_ko": "방전 전류 한계(DCL)",
+   "unit": "A",
+   "priority": "should",
+   "typicalRange": "0~정격",
+   "typicalSampling": "10초~1분",
+   "commonSource": "SunSpec 802 ADisChaMax"
+  },
+  {
+   "assetType": "battery_bank",
+   "metricKey": "cycle_count",
+   "name_ko": "사이클 수",
+   "unit": "cycles",
+   "priority": "nice",
+   "typicalRange": "0~10000",
+   "typicalSampling": "1일",
+   "commonSource": "SunSpec 802 NCyc"
+  },
+  {
+   "assetType": "battery_bank",
+   "metricKey": "dc_charge_energy_total",
+   "name_ko": "DC 누적 충전량",
+   "unit": "kWh",
+   "priority": "should",
+   "typicalRange": "단조 증가",
+   "typicalSampling": "1~15분",
+   "commonSource": "BMS 적산 카운터"
+  },
+  {
+   "assetType": "battery_bank",
+   "metricKey": "dc_discharge_energy_total",
+   "name_ko": "DC 누적 방전량",
+   "unit": "kWh",
+   "priority": "should",
+   "typicalRange": "단조 증가",
+   "typicalSampling": "1~15분",
+   "commonSource": "BMS 적산 카운터"
+  },
+  {
+   "assetType": "battery_bank",
+   "metricKey": "dc_insulation_resistance",
+   "name_ko": "배터리 DC 절연저항",
+   "unit": "kΩ",
+   "priority": "must",
+   "typicalRange": "수백 kΩ~MΩ (제조사 기준 이하 시 경보 의무)",
+   "typicalSampling": "1분",
+   "commonSource": "절연감시장치(IMD) Modbus"
+  },
+  {
+   "assetType": "battery_bank",
+   "metricKey": "bms_alarm_bits",
+   "name_ko": "BMS 경보/보호 비트",
+   "unit": "bitfield",
+   "priority": "must",
+   "typicalRange": "-",
+   "typicalSampling": "이벤트 + 10초 폴링",
+   "commonSource": "SunSpec 802 Evt1/Evt2, 제조사 비트맵"
+  },
+  {
+   "assetType": "battery_cell",
+   "metricKey": "balancing_active",
+   "name_ko": "셀 밸런싱 동작 여부/시간",
+   "unit": "bool / s",
+   "priority": "nice",
+   "typicalRange": "-",
+   "typicalSampling": "1분",
+   "commonSource": "MBMS (제공 시 자가방전 이상 셀 탐지에 매우 유효)"
+  },
+  {
+   "assetType": "battery_rack",
+   "metricKey": "contactor_state",
+   "name_ko": "랙 접촉기 상태",
+   "unit": "enum",
+   "priority": "should",
+   "typicalRange": "Open/Closed/Precharge",
+   "typicalSampling": "이벤트",
+   "commonSource": "RBMS"
+  },
+  {
+   "assetType": "ess_pcs",
+   "metricKey": "pcs_dc_power",
+   "name_ko": "PCS DC측 전력(전)",
+   "unit": "kW",
+   "priority": "must",
+   "typicalRange": "±정격",
+   "typicalSampling": "1~10초",
+   "commonSource": "PCS Modbus / REMS (전)출력"
+  },
+  {
+   "assetType": "ess_pcs",
+   "metricKey": "pcs_ac_active_power",
+   "name_ko": "PCS AC측 유효전력(후)",
+   "unit": "kW",
+   "priority": "must",
+   "typicalRange": "±정격",
+   "typicalSampling": "1~10초",
+   "commonSource": "PCS Modbus / REMS (후)출력"
+  },
+  {
+   "assetType": "ess_pcs",
+   "metricKey": "pcs_ac_voltage",
+   "name_ko": "PCS AC 전압",
+   "unit": "V",
+   "priority": "should",
+   "typicalRange": "정격 ±10%",
+   "typicalSampling": "1분",
+   "commonSource": "PCS Modbus"
+  },
+  {
+   "assetType": "ess_pcs",
+   "metricKey": "pcs_ac_charge_energy_total",
+   "name_ko": "AC 누적 충전 전력량",
+   "unit": "kWh",
+   "priority": "must",
+   "typicalRange": "단조 증가",
+   "typicalSampling": "15분",
+   "commonSource": "PCS 또는 양방향 전력량계"
+  },
+  {
+   "assetType": "ess_pcs",
+   "metricKey": "pcs_ac_discharge_energy_total",
+   "name_ko": "AC 누적 방전 전력량",
+   "unit": "kWh",
+   "priority": "must",
+   "typicalRange": "단조 증가",
+   "typicalSampling": "15분",
+   "commonSource": "PCS 또는 양방향 전력량계"
+  },
+  {
+   "assetType": "ess_pcs",
+   "metricKey": "igbt_temperature",
+   "name_ko": "IGBT/스택 온도",
+   "unit": "°C",
+   "priority": "should",
+   "typicalRange": "25~100",
+   "typicalSampling": "1분",
+   "commonSource": "PCS Modbus"
+  },
+  {
+   "assetType": "ess_pcs",
+   "metricKey": "pcs_state_fault",
+   "name_ko": "PCS 운전 상태/고장",
+   "unit": "enum/bitfield",
+   "priority": "must",
+   "typicalRange": "-",
+   "typicalSampling": "이벤트 + 10초",
+   "commonSource": "PCS Modbus / REMS '고장여부'"
+  },
+  {
+   "assetType": "battery_room",
+   "metricKey": "room_temperature",
+   "name_ko": "배터리실 온도",
+   "unit": "°C",
+   "priority": "must",
+   "typicalRange": "18~30",
+   "typicalSampling": "1분",
+   "commonSource": "환경센서/HVAC 컨트롤러 Modbus"
+  },
+  {
+   "assetType": "battery_room",
+   "metricKey": "room_humidity",
+   "name_ko": "배터리실 습도",
+   "unit": "%RH",
+   "priority": "must",
+   "typicalRange": "30~70 (결로 방지)",
+   "typicalSampling": "1분",
+   "commonSource": "환경센서"
+  },
+  {
+   "assetType": "hvac_unit",
+   "metricKey": "hvac_status",
+   "name_ko": "공조기 운전/압축기 상태",
+   "unit": "enum",
+   "priority": "must",
+   "typicalRange": "Off/Cool/Heat/Fault",
+   "typicalSampling": "이벤트 + 1분",
+   "commonSource": "HVAC 컨트롤러 Modbus"
+  },
+  {
+   "assetType": "hvac_unit",
+   "metricKey": "hvac_supply_air_temperature",
+   "name_ko": "공조 토출 공기 온도",
+   "unit": "°C",
+   "priority": "should",
+   "typicalRange": "12~25",
+   "typicalSampling": "1분",
+   "commonSource": "HVAC 컨트롤러"
+  },
+  {
+   "assetType": "hvac_unit",
+   "metricKey": "hvac_return_air_temperature",
+   "name_ko": "공조 흡입(환기) 공기 온도",
+   "unit": "°C",
+   "priority": "should",
+   "typicalRange": "20~35",
+   "typicalSampling": "1분",
+   "commonSource": "HVAC 컨트롤러"
+  },
+  {
+   "assetType": "hvac_unit",
+   "metricKey": "hvac_power",
+   "name_ko": "공조 소비전력",
+   "unit": "kW",
+   "priority": "should",
+   "typicalRange": "0~수 kW(컨테이너당)",
+   "typicalSampling": "1~15분",
+   "commonSource": "보조전력 계량기/CT"
+  },
+  {
+   "assetType": "battery_room",
+   "metricKey": "off_gas_concentration",
+   "name_ko": "오프가스(H2/CO/VOC) 농도",
+   "unit": "ppm",
+   "priority": "nice",
+   "typicalRange": "0 (정상)",
+   "typicalSampling": "1~10초",
+   "commonSource": "가스감지기 4-20mA/Modbus"
+  },
+  {
+   "assetType": "battery_room",
+   "metricKey": "fire_detector_state",
+   "name_ko": "화재(연기/열) 감지기 상태",
+   "unit": "enum",
+   "priority": "must",
+   "typicalRange": "정상/경보",
+   "typicalSampling": "이벤트",
+   "commonSource": "화재수신기 접점"
+  },
+  {
+   "assetType": "data_logger_rtu",
+   "metricKey": "comm_status",
+   "name_ko": "통신 상태/마지막 수신 시각",
+   "unit": "s",
+   "priority": "must",
+   "typicalRange": "-",
+   "typicalSampling": "1분",
+   "commonSource": "수집 서버 측 산출(heartbeat)"
+  }
+ ],
+ "derivedIndicators": [
+  {
+   "key": "reference_yield",
+   "name_ko": "기준 발전시간(Yr)",
+   "formula": "Yr = Σ(G_POA·Δt) / G_STC  [h], G_STC = 1000 W/m²",
+   "inputs": [
+    "poa_irradiance"
+   ],
+   "normalization": "일/월 단위. 일사계 결손 시 위성일사로 대체하고 플래그.",
+   "reveals": "PR 분모. 일사계 드리프트 검증(인근 사이트/위성 대비 비율)."
+  },
+  {
+   "key": "specific_yield",
+   "name_ko": "비발전량(Yf, kWh/kWp)",
+   "formula": "Yf = E_AC / P_STC",
+   "inputs": [
+    "energy_total",
+    "export_energy"
+   ],
+   "normalization": "날씨 영향 제거를 위해 동일 날짜·동일 권역 피어 사이트 중앙값 대비 비율(Yf/median(Yf_peers))로 비교.",
+   "reveals": "사이트 간 성과 순위, 날씨가 아닌 사이트 고유 저하."
+  },
+  {
+   "key": "pr",
+   "name_ko": "성능비(PR, IEC 61724-1)",
+   "formula": "PR = Yf / Yr = ΣE_AC / Σ(P_STC·G_POA/G_STC)",
+   "inputs": [
+    "energy_total",
+    "poa_irradiance"
+   ],
+   "normalization": "계절(온도)에 따라 ±10% 변동 → 추세 분석에는 pr_temp_corrected 사용. 출력제어·클리핑·정지 구간 제외 버전 병행.",
+   "reveals": "전체 손실 합(온도, 오염, 고장, 인버터)."
+  },
+  {
+   "key": "pr_temp_corrected",
+   "name_ko": "온도보정 성능비(NREL Weather-Corrected PR)",
+   "formula": "PR_corr = ΣE_AC,i / Σ[P_STC·(G_POA,i/1000)·(1 − (δ/100)·(T_cell_typ_avg − T_cell,i))], δ=전력 온도계수(%/°C, 음수). T_cell = T_m + (G_POA/1000)·ΔT, T_m = G_POA·exp(a + b·WS) + T_a (Sandia; glass/polymer open rack a=−3.56, b=−0.075, ΔT=3). 모듈 후면온도 실측 시 T_cell = T_mod + (G_POA/1000)·ΔT. T_cell_typ_avg = 1년 일사가중 평균 셀온도 Σ(G·T_cell)/ΣG. IEC식 대안: 분모에 (1 + γ·(T_cell − 25)).",
+   "inputs": [
+    "energy_total",
+    "poa_irradiance",
+    "module_temperature",
+    "ambient_temperature",
+    "wind_speed"
+   ],
+   "normalization": "POA ≥ 600 W/m² 청천 구간 또는 일 일사량 ≥ 3,000 Wh/m² 일 우선 사용(NREL 시험 기준). 출력제어/클리핑/정지/적설 구간 제외.",
+   "reveals": "계절 편향 제거 후 오염·열화·고장 손실. 장기 열화율과 오염 탐지의 기본 시계열."
+  },
+  {
+   "key": "degradation_rate_yoy",
+   "name_ko": "연간 열화율(Year-on-Year)",
+   "formula": "각 날짜 d에 대해 r_d = (PR_corr(d)/PR_corr(d−365) − 1)·100; Rd = median(r_d) [%/yr], 신뢰구간은 부트스트랩",
+   "inputs": [
+    "pr_temp_corrected"
+   ],
+   "normalization": "청천 필터·클리핑 제외 일 단위 정규화 발전량 사용(RdTools 방식). 최소 2년 데이터. 동일 계절 비교라 오염·계절 성분 상쇄.",
+   "reveals": "모듈 비가역 열화(문헌 중앙값 약 −0.5%/yr). −1%/yr 이하 지속 시 PID/열화 과다 의심."
+  },
+  {
+   "key": "string_current_ratio",
+   "name_ko": "스트링 전류 비(피어 대비)",
+   "formula": "R_s = I_s / median(I_peer) (피어 = 동일 인버터·MPPT·방위·모듈·직렬수). 보조: CPI_s = I_s / (Isc_stc·G_POA/1000)",
+   "inputs": [
+    "string_current",
+    "poa_irradiance"
+   ],
+   "normalization": "동일 시각 동일 조건 비교라 날씨 자동 상쇄. POA ≥ 300~400 W/m², 태양고도 > 20°, 음영 시간대 제외 후 일 중앙값 사용. 이상 판정은 Hampel(중앙값±3·1.4826·MAD).",
+   "reveals": "스트링 개방(≈0), 퓨즈 단선, 커넥터 소손, 바이패스 다이오드 단락(병렬 MPPT에서 전류로 나타남), 국부 오염/음영, 모듈 열화."
+  },
+  {
+   "key": "mppt_voltage_ratio",
+   "name_ko": "MPPT 전압 비(기대 Vmp 대비)",
+   "formula": "V_ratio = V_dc / (N_series·Vmp_stc·(1 + β_Vmp·(T_cell − 25))), β_Vmp ≈ −0.3~−0.45 %/°C(모듈 데이터시트)",
+   "inputs": [
+    "dc_voltage",
+    "module_temperature",
+    "poa_irradiance"
+   ],
+   "normalization": "셀온도 보정 + POA ≥ 400 W/m². 동일 인버터 내 MPPT 간 피어 비교 병행.",
+   "reveals": "바이패스 다이오드 단락(모듈 1개당 약 Vmp/3 계단 강하), PID(전압 감소), 직렬 모듈 수 오결선."
+  },
+  {
+   "key": "low_irradiance_pr_ratio",
+   "name_ko": "저일사/고일사 PR 비",
+   "formula": "LIR = PR_corr(200~400 W/m² bin) / PR_corr(800~1000 W/m² bin), 월 단위",
+   "inputs": [
+    "pr_temp_corrected",
+    "poa_irradiance"
+   ],
+   "normalization": "입사각(IAM) 영향 줄이기 위해 동일 계절·동일 시각대 비교. 기준 = 준공 초기 동월 값.",
+   "reveals": "PID·션트저항 저하 초기 신호(저조도에서 먼저 손실 발생)."
+  },
+  {
+   "key": "inverter_efficiency_binned",
+   "name_ko": "인버터 변환효율(부하율·전압 bin)",
+   "formula": "η = P_AC / P_DC, 부하율 bin(10/20/30/50/75/100% of P_rated) × DC전압 bin(Vmin/Vnom/Vmax)별 중앙값. 가중: η_EU = 0.03η5+0.06η10+0.13η20+0.10η30+0.48η50+0.20η100, η_CEC = 0.04η10+0.05η20+0.12η30+0.21η50+0.53η75+0.05η100",
+   "inputs": [
+    "dc_power",
+    "ac_active_power",
+    "dc_voltage",
+    "heatsink_temperature"
+   ],
+   "normalization": "동일 bin끼리만 과거/피어 비교(부하·전압 의존성 제거), 디레이팅·출력제한 구간 제외, 방열판 온도 bin 추가 가능.",
+   "reveals": "IGBT/DC링크 커패시터 열화, 센서 오차, 내부 손실 증가."
+  },
+  {
+   "key": "inverter_thermal_rise",
+   "name_ko": "인버터 온도상승(방열판−외기) 매칭 지표",
+   "formula": "ΔT_hs = T_heatsink − T_ambient, 부하율 70~90% bin 및 외기 온도 bin(5°C)별 일 중앙값",
+   "inputs": [
+    "heatsink_temperature",
+    "ambient_temperature",
+    "ac_active_power"
+   ],
+   "normalization": "동일 부하·외기 bin 기준선(준공 후 90일 또는 전년 동월) 대비 차이.",
+   "reveals": "냉각팬 고장, 필터·방열핀 막힘, 설치 환기 불량 → 열 디레이팅·수명 단축."
+  },
+  {
+   "key": "clipping_loss_ratio",
+   "name_ko": "클리핑 손실률",
+   "formula": "클리핑 판정: P_AC ≥ 임계값(일 전력곡선 99.5% 분위, 정규화 기울기 < 0.0035, 1시간 이상 평탄 – PVAnalytics threshold 방식) & POA 높음. 손실 = Σmax(0, P_expected·η − P_AC)·Δt / ΣP_expected·Δt",
+   "inputs": [
+    "ac_active_power",
+    "poa_irradiance",
+    "active_power_limit_setpoint"
+   ],
+   "normalization": "출력제어 지령 구간은 curtailment로 분리. 계절(겨울 저온 고출력)별 집계.",
+   "reveals": "DC/AC비 과대 설계, 정격 미만 평탄=출력제한 설정 오류(지령 해제 후에도 유지)."
+  },
+  {
+   "key": "soiling_ratio",
+   "name_ko": "오염비(SR) 및 오염률",
+   "formula": "SR_d = PR_corr(d) / PR_clean, PR_clean = 직전 세척/강우(≥1mm/일) 직후 3~5일 PR_corr 중앙값. 오염률 = 강우 간 구간 SR의 Theil–Sen 기울기 [%/day] (SRR 방식)",
+   "inputs": [
+    "pr_temp_corrected",
+    "rainfall_daily"
+   ],
+   "normalization": "청천일, 정오 ±2h, 클리핑·출력제어 제외. 모든 스트링 동시 하락 여부 확인.",
+   "reveals": "오염(황사·꽃가루·조류 배설물) 손실과 세척 경제성(세척비 < 손실 전력량×단가 시점)."
+  },
+  {
+   "key": "availability",
+   "name_ko": "가동률(시간/에너지 기준)",
+   "formula": "A_time = (POA>50 W/m² 이면서 운전 중인 시간)/(POA>50 W/m² 시간); A_energy = E_actual/(E_actual + E_lost), E_lost는 피어 인버터 비발전량×용량으로 추정",
+   "inputs": [
+    "operating_state",
+    "ac_active_power",
+    "poa_irradiance"
+   ],
+   "normalization": "출력제어·계통정지(한전 측)·통신두절은 별도 분류하여 분모에서 분리.",
+   "reveals": "고장 정지 손실, 복구 지연."
+  },
+  {
+   "key": "insulation_resistance_morning",
+   "name_ko": "아침 기동 시 절연저항 추세",
+   "formula": "Riso_morning = 일 최초 기동 시 Riso; 건조 조건(RH<70%, 24h 무강우) 필터 후 30일 이동 중앙값 대비 비율",
+   "inputs": [
+    "insulation_resistance",
+    "relative_humidity",
+    "rainfall_daily"
+   ],
+   "normalization": "습도/강우 bin별 기준선. 인버터 운전 중 값은 비운전 대비 절반 수준까지 낮아지므로 운전 상태 구분(Sandia).",
+   "reveals": "케이블·커넥터·모듈 절연 열화, 지락 전조, 습윤 아침 기동 실패."
+  },
+  {
+   "key": "curtailment_loss",
+   "name_ko": "출력제어 손실량",
+   "formula": "Σ max(0, P_expected − P_AC)·Δt (지령 구간 또는 여러 사이트 동시 평탄 구간)",
+   "inputs": [
+    "active_power_limit_setpoint",
+    "ac_active_power",
+    "poa_irradiance"
+   ],
+   "normalization": "P_expected = P_STC·(G/1000)·온도보정·η·(1−오염) 모델 또는 비제어 피어 비율.",
+   "reveals": "고장이 아닌 제도적 손실 분리(오탐 방지), 보상/수익 영향."
+  },
+  {
+   "key": "capacity_ah_anchored",
+   "name_ko": "앵커 구간 충전용량(쿨롱카운팅 SOH)",
+   "formula": "Q_seg = ∫|I|dt (앵커 시작→종료). SOH_Ah = Q_seg / Q_seg_baseline(동일 조건 bin). 풀충전 추정: Q_full = Q_seg / (SOC_OCV,end − SOC_OCV,start), SOC_OCV는 휴지 ≥1h 후 OCV 기반. DOE 방식 보조: E(t)=Σ(P_chg·√η − P_dis/√η)Δt, E_demonstrated = max−min",
+   "inputs": [
+    "bank_current",
+    "cell_voltage_max",
+    "cell_voltage_avg",
+    "soc",
+    "cell_temperature_avg"
+   ],
+   "normalization": "C-rate bin(±0.05C), 평균 셀온도 bin(±3°C), 동일 앵커(예: 휴지 OCV 기반 시작 SOC 20±3% → CV 종료 전류 도달, 또는 NMC는 셀 평균 3.60V→4.05V). LFP는 20~80% OCV 평탄 → 상단 앵커(CV 종료)나 dV/dQ 피크 사용. BMS SOC만으로 ΔSOC를 쓰면 BMS가 정격용량 기준 쿨롱카운팅이라 순환논리 → 반드시 전압/OCV 앵커.",
+   "reveals": "가용 용량 감소(사용자 예시: 동일 V/I에서 0→100% 8h→7.5h ⇒ 약 6.25% 용량 감소)."
+  },
+  {
+   "key": "matched_charge_duration",
+   "name_ko": "조건 매칭 충전 소요시간",
+   "formula": "t_seg(동일 앵커) 및 Ah 환산: 추정 용량비 = (Ī_now·t_now)/(Ī_base·t_base)",
+   "inputs": [
+    "bank_current",
+    "soc",
+    "cell_voltage_max",
+    "cell_temperature_avg"
+   ],
+   "normalization": "태양광 연계 ESS는 충전전류가 일사에 따라 변동 → 시간 단독 비교 금지, PCS 충전 한계에 붙은(정전류 유사) 청천 정오 세그먼트만 사용하거나 Ah로 환산.",
+   "reveals": "사용자에게 직관적인 '같은 조건에서 충전이 빨리 끝남' 지표(내부적으로는 Ah 기준으로 판정)."
+  },
+  {
+   "key": "dcir",
+   "name_ko": "직류 내부저항(DCIR, ΔV/ΔI)",
+   "formula": "R = |ΔV/ΔI|, ΔI = 스텝 전후 전류차(|ΔI| ≥ 0.2C), ΔV = 스텝 직전 안정값과 스텝 후 Δt(1~10초 고정) 시점 전압차. 랙 단위 R_cell_eq = R_rack/N_series, 최고/최저 셀 전압 채널로 극단 셀 R 추정. 온도 정규화: R25 = R_T·exp(−(Ea/R_gas)·(1/T − 1/298.15)), Ea ≈ 20~40 kJ/mol(추정; 전하이동 성분 35~50 kJ/mol 문헌)",
+   "inputs": [
+    "bank_current",
+    "bank_voltage",
+    "rack_current",
+    "rack_voltage",
+    "cell_voltage_max",
+    "cell_voltage_min",
+    "soc",
+    "cell_temperature_avg"
+   ],
+   "normalization": "SOC 30~70% bin, 온도 bin(±2.5°C) 우선(보정식은 보조), 동일 Δt·동일 방향(충전/방전) 스텝만 비교. 샘플링 ≥10초면 분극 포함 값이 되므로 동일 샘플링 조건끼리만 추세화.",
+   "reveals": "저항 증가(출력 제한, 발열 증가), 체결 불량(랙 저항만 급증), 셀 열화. 저항 증가가 용량보다 먼저·크게 나타나는 경우 많음."
+  },
+  {
+   "key": "cell_voltage_spread",
+   "name_ko": "셀 전압 편차(ΔV)",
+   "formula": "ΔV = V_cell_max − V_cell_min; 상태별 산출: (a) 휴지(|I|<0.02C ≥30분) (b) 충전 종료 직전(상단) (c) 방전 종료 직전(하단) (d) 중간 SOC 부하 중. 셀별 편차 z_i = (V_i − median)/ (1.4826·MAD)",
+   "inputs": [
+    "cell_voltage_max",
+    "cell_voltage_min",
+    "cell_voltage",
+    "bank_current",
+    "soc"
+   ],
+   "normalization": "같은 상태·같은 SOC bin(±5%)·온도 bin끼리만 비교. LFP는 평탄구간에서 편차가 작고 상·하단에서 크게 벌어짐.",
+   "reveals": "용량 불균형(상단 ΔV 확대), 밸런싱 불량, 약한 셀, 센서 이상. 휴지 ΔV 10~20mV는 양호, 50~100mV 이상 유의미 불균형(EV 기준, ESS는 추정)."
+  },
+  {
+   "key": "weak_cell_recurrence",
+   "name_ko": "최초 상한 도달 셀 반복도",
+   "formula": "충전 세션별 CellVMax 위치 ID(및 방전 시 CellVMin ID) 최빈값의 점유율 = count(동일 ID)/세션수, 최근 30세션",
+   "inputs": [
+    "cell_voltage_max",
+    "cell_voltage_min"
+   ],
+   "normalization": "세션 종료 조건이 동일한 세션만 집계.",
+   "reveals": "특정 셀이 반복적으로 충전/방전을 조기 종료시킴 → 모듈 교체/밸런싱 대상 특정."
+  },
+  {
+   "key": "self_discharge_rate",
+   "name_ko": "자가방전율(시스템/셀)",
+   "formula": "시스템: ΔSOC_OCV/day (휴지 ≥12h, PCS 대기, 보조전원 외부 공급 구간). 셀: 휴지 구간 시작/끝의 (V_i − median(V)) 변화량 / 경과일 [mV/day], 밸런싱 동작 시간 누적 비교",
+   "inputs": [
+    "cell_voltage",
+    "cell_voltage_min",
+    "soc",
+    "bank_current",
+    "balancing_active",
+    "cell_temperature_avg"
+   ],
+   "normalization": "동일 온도 bin, 동일 SOC bin(LFP 평탄구간은 전압 해상도 한계 → 상단 SOC 휴지 구간 선호), BMS 자체 소비전류 보정.",
+   "reveals": "미세 내부단락(soft short) 셀: 피어 대비 지속적으로 전압이 떨어지는 셀 → 화재 전조로 취급."
+  },
+  {
+   "key": "cell_temperature_spread",
+   "name_ko": "셀/모듈 온도 편차(ΔT)",
+   "formula": "ΔT_rack = T_max − T_min; 모듈별 편차 = T_module − median(T_modules in rack); 온도상승률 = ΔT_module/Ah (세션)",
+   "inputs": [
+    "cell_temperature_max",
+    "cell_temperature_min",
+    "module_temperature_points",
+    "bank_current",
+    "hvac_status"
+   ],
+   "normalization": "동일 전력 bin·동일 HVAC 상태·배터리실 온도 bin에서 비교. 설계 기준 셀간 ΔT < 5°C(제조사 사양 예).",
+   "reveals": "냉각 풍량 불균일, 모듈 팬 고장, 체결 저항 증가(국부 발열), 내부저항 이상 셀."
+  },
+  {
+   "key": "rack_current_share",
+   "name_ko": "병렬 랙 전류 분담률",
+   "formula": "S_r = I_r / mean(I_racks) (|I_total| ≥ 0.2C 구간), 일 중앙값",
+   "inputs": [
+    "rack_current"
+   ],
+   "normalization": "동일 총전류 bin·동일 SOC bin. 기준선=준공 초기 분담률.",
+   "reveals": "접촉기·퓨즈·버스바 접촉저항 증가, 랙 간 노화 차이(저항/용량 차)."
+  },
+  {
+   "key": "round_trip_efficiency",
+   "name_ko": "왕복효율(RTE, DC/AC/시스템)",
+   "formula": "사이클(충전→방전, |SOC_end − SOC_start| ≤ 2%): RTE_DC = E_dis,DC/E_chg,DC; RTE_AC = E_dis,AC/E_chg,AC; RTE_sys = E_dis,AC/(E_chg,AC + E_aux). 장기: η = ∫P_dis dt / ∫P_chg dt (1년 구간, DOE BESS 평가법)",
+   "inputs": [
+    "pcs_ac_charge_energy_total",
+    "pcs_ac_discharge_energy_total",
+    "dc_charge_energy_total",
+    "dc_discharge_energy_total",
+    "aux_import_energy",
+    "soc"
+   ],
+   "normalization": "월/계절 bin(HVAC 부하), 평균 C-rate bin. 잔여 ΔSOC는 E_rated·ΔSOC로 보정.",
+   "reveals": "PCS 손실 증가(AC−DC 격차 확대), 배터리 저항 증가(DC RTE 하락), 보조전력 과다. 참고: 미국 유틸리티 배터리 평균 월 RTE 약 82%(EIA 2019)."
+  },
+  {
+   "key": "pcs_efficiency_binned",
+   "name_ko": "PCS 효율(방향·부하 bin)",
+   "formula": "충전 η_c = P_DC/P_AC, 방전 η_d = P_AC/P_DC, 부하율 bin별 중앙값",
+   "inputs": [
+    "pcs_dc_power",
+    "pcs_ac_active_power",
+    "igbt_temperature"
+   ],
+   "normalization": "동일 방향·부하율·IGBT 온도 bin.",
+   "reveals": "PCS 스택/필터 열화, 냉각 문제."
+  },
+  {
+   "key": "aux_load_ratio",
+   "name_ko": "보조전력 비율 및 공조 효율",
+   "formula": "AUX = E_aux/ E_throughput; HVAC 일 소비량 / 냉방도일(CDD, 기준 24°C 추정) ; 압축기 듀티 = 운전시간/24h",
+   "inputs": [
+    "hvac_power",
+    "aux_import_energy",
+    "ambient_temperature",
+    "pcs_ac_discharge_energy_total"
+   ],
+   "normalization": "외기 온도 bin(또는 CDD)·ESS 발열(손실 kWh) bin 매칭.",
+   "reveals": "HVAC 성능 저하(냉매 부족, 필터 막힘, 단열/도어 불량), 대기손실 증가."
+  },
+  {
+   "key": "hvac_effectiveness",
+   "name_ko": "공조 냉방 유효도",
+   "formula": "ΔT_hvac = T_return − T_supply (압축기 운전 중); 오차 = T_room − T_setpoint; 복귀시간 = 경보온도→설정온도 소요시간",
+   "inputs": [
+    "hvac_supply_air_temperature",
+    "hvac_return_air_temperature",
+    "room_temperature",
+    "hvac_status"
+   ],
+   "normalization": "외기 온도 bin·ESS 전력 bin 매칭 과거 대비.",
+   "reveals": "냉방능력 저하, 센서 고장, 제어 오류."
+  },
+  {
+   "key": "soc_recalibration_jump",
+   "name_ko": "SOC 재보정 점프 크기",
+   "formula": "J = SOC(t+1) − SOC(t) − (∫I dt / Q_rated·100) (충전 종료/완전방전 시점)",
+   "inputs": [
+    "soc",
+    "bank_current"
+   ],
+   "normalization": "동일 종료 조건 세션만. 추세는 EWMA.",
+   "reveals": "BMS 가정 용량과 실제 용량 불일치 확대(상단에서 +점프 증가 = 실제 용량 감소 추정), 전류센서 오프셋."
+  },
+  {
+   "key": "stress_exposure",
+   "name_ko": "열화 스트레스 노출(등가사이클·SOC/온도 체류)",
+   "formula": "EFC = ΣE_dis / E_rated; SOC>90% 체류시간×평균온도; C-rate 히스토그램; 셀온도>35°C 누적시간",
+   "inputs": [
+    "soc",
+    "cell_temperature_max",
+    "bank_current",
+    "pcs_ac_discharge_energy_total"
+   ],
+   "normalization": "월별 누적, 보증 조건(연간 사이클·온도)과 비교.",
+   "reveals": "보증 조건 위반 위험, 열화 원인 설명(코칭 리포트 근거)."
+  },
+  {
+   "key": "transformer_thermal_rise",
+   "name_ko": "변압기 유온 상승 매칭 지표",
+   "formula": "ΔΘ = Θ_top_oil − T_ambient, 부하율 K=S/S_rated bin별; 기대 ΔΘ ∝ ((K²R+1)/(R+1))^n (IEEE C57.91 형태, n≈0.8~0.9 추정)",
+   "inputs": [
+    "transformer_top_oil_temperature",
+    "ambient_temperature",
+    "ac_active_power"
+   ],
+   "normalization": "부하·외기 bin 매칭.",
+   "reveals": "냉각 불량(팬·방열기), 내부 손실 증가."
+  }
+ ],
+ "events": [
+  {
+   "key": "pv_production_day",
+   "name_ko": "일 발전 구간",
+   "extractionRule": "사이트 로컬(KST) 날짜별, 최초 P_AC>0 & POA>20 W/m² 시각 ~ 마지막 P_AC>0 시각. 데이터 결손율 >10%면 품질플래그.",
+   "featuresPerEvent": [
+    "E_AC",
+    "H_POA",
+    "PR",
+    "PR_corr",
+    "specific_yield",
+    "peak_P_AC",
+    "clipping_minutes",
+    "curtailment_minutes",
+    "availability_time",
+    "first_start_time",
+    "riso_morning",
+    "max_heatsink_temp",
+    "data_completeness"
+   ]
+  },
+  {
+   "key": "clear_sky_window",
+   "name_ko": "청천 안정 구간",
+   "extractionRule": "POA ≥ 600 W/m², 5분 POA 변동계수 < 2~3%, |POA − 청천모델| < 10%, 연속 ≥ 60분(NREL 수용시험은 600 W/m² 이상 3시간 연속). 출력제어·클리핑 구간 제외.",
+   "featuresPerEvent": [
+    "PR_corr",
+    "string_current_ratio_min",
+    "mppt_voltage_ratio",
+    "inverter_efficiency",
+    "thermal_rise",
+    "mean_T_cell"
+   ]
+  },
+  {
+   "key": "inverter_outage",
+   "name_ko": "인버터 정지/트립",
+   "extractionRule": "operating_state ∈ {Fault, Off, Standby} 또는 P_AC=0 이면서 POA>100 W/m² 이고 동일 사이트 피어 인버터는 발전 중, 5분 이상. 3분 이내 재정지는 동일 이벤트로 병합.",
+   "featuresPerEvent": [
+    "start_ts",
+    "duration_min",
+    "fault_code",
+    "lost_energy_est_kWh",
+    "ac_voltage_at_trip",
+    "frequency_at_trip",
+    "riso_at_trip",
+    "heatsink_temp_at_trip",
+    "auto_recovered"
+   ]
+  },
+  {
+   "key": "curtailment_event",
+   "name_ko": "출력제어 구간",
+   "extractionRule": "active_power_limit_setpoint < 100% 시작~복귀, 또는 지령 로그 없을 때 동일 권역 복수 사이트에서 동시에 P_AC가 정격 미만 수평(기울기≈0)이고 POA 높음 ≥ 15분.",
+   "featuresPerEvent": [
+    "start_ts",
+    "duration_min",
+    "limit_pct",
+    "curtailed_energy_est_kWh",
+    "source(지령/추정)"
+   ]
+  },
+  {
+   "key": "clipping_episode",
+   "name_ko": "클리핑 구간",
+   "extractionRule": "P_AC ≥ 클리핑 임계(PVAnalytics threshold) & 출력제한 지령 없음, 연속 ≥ 10분.",
+   "featuresPerEvent": [
+    "duration_min",
+    "clip_level_kW",
+    "clip_level_vs_rated",
+    "lost_energy_est_kWh",
+    "mean_POA",
+    "mean_T_cell"
+   ]
+  },
+  {
+   "key": "cleaning_or_rain_event",
+   "name_ko": "세척/강우 회복 이벤트",
+   "extractionRule": "일 강수 ≥ 1 mm 또는 O&M 세척 기록, 또는 전 스트링 동시 PR_corr 일간 상승 ≥ 2%p(적설 해소 제외).",
+   "featuresPerEvent": [
+    "event_date",
+    "source(강우/세척/추정)",
+    "PR_corr_pre_3d",
+    "PR_corr_post_3d",
+    "recovery_pct",
+    "soiling_rate_before_pct_per_day",
+    "days_since_last_clean"
+   ]
+  },
+  {
+   "key": "string_underperformance_episode",
+   "name_ko": "스트링 저성과 에피소드",
+   "extractionRule": "string_current_ratio < 0.90(또는 Hampel 하한 이탈)이 유효 시간(POA≥300) 중 70% 이상인 날이 연속 ≥ 2일; ratio < 0.1이면 즉시 '개방' 에피소드.",
+   "featuresPerEvent": [
+    "string_id",
+    "start_date",
+    "median_ratio",
+    "min_ratio",
+    "time_of_day_profile(음영 여부)",
+    "voltage_ratio",
+    "days_persisted"
+   ]
+  },
+  {
+   "key": "insulation_alarm",
+   "name_ko": "절연 저하/지락 경보",
+   "extractionRule": "Riso < 인버터 설정 임계(IEC 62109-2: Vmax/30mA, 1000V→33.3kΩ) 또는 제조사 경보 비트, 또는 건조 조건 Riso_morning < 기준선 50%.",
+   "featuresPerEvent": [
+    "ts",
+    "riso_kohm",
+    "humidity",
+    "rain_24h",
+    "inverter_start_failed",
+    "duration"
+   ]
+  },
+  {
+   "key": "charge_session",
+   "name_ko": "ESS 충전 세션",
+   "extractionRule": "충전 부호 전류 I > +0.02C가 시작(연속 ≥ 2분). 2분 이하 중단/부호 반전은 병합. 종료: I ≤ 0.02C가 ≥ 5분 지속, 또는 CV 종료전류 도달, 또는 SOC ≥ 운영 상한(99% 또는 80/90% 제한값). 분류: full(시작 휴지 OCV 기반 SOC ≤ 20% & 상한 도달), top(상한 도달), partial. 정전류 유사 구간 = |I − median(I)| ≤ 5% 연속 구간 별도 태깅.",
+   "featuresPerEvent": [
+    "start_ts",
+    "end_ts",
+    "duration_min",
+    "start_soc",
+    "end_soc",
+    "start_ocv_soc",
+    "Ah",
+    "kWh_DC",
+    "kWh_AC",
+    "mean_c_rate",
+    "cc_like_duration",
+    "cv_duration",
+    "cv_taper_end_current",
+    "mean_cell_temp",
+    "max_cell_temp",
+    "delta_T_end",
+    "delta_V_end",
+    "cellVmax_id_at_end",
+    "ccl_derate_minutes",
+    "soc_jump_at_end",
+    "hvac_duty",
+    "room_temp_mean"
+   ]
+  },
+  {
+   "key": "discharge_session",
+   "name_ko": "ESS 방전 세션",
+   "extractionRule": "방전 부호 I < −0.02C 연속 ≥ 2분 시작, 2분 이하 중단 병합, |I| ≤ 0.02C ≥ 5분 또는 SOC ≤ 운영 하한/셀 하한전압 도달 시 종료.",
+   "featuresPerEvent": [
+    "start_ts",
+    "end_ts",
+    "duration_min",
+    "start_soc",
+    "end_soc",
+    "Ah",
+    "kWh_DC",
+    "kWh_AC",
+    "mean_c_rate",
+    "initial_voltage_sag_dcir",
+    "min_cell_V",
+    "cellVmin_id_at_end",
+    "delta_V_end",
+    "temp_rise_per_kWh",
+    "dcl_derate_minutes"
+   ]
+  },
+  {
+   "key": "rest_period",
+   "name_ko": "휴지 구간",
+   "extractionRule": "|I| < 0.01C 연속 ≥ 30분(OCV 앵커용은 ≥ 60분, 자가방전용은 ≥ 12시간). 종료 5분 전 전압을 OCV로 사용.",
+   "featuresPerEvent": [
+    "duration_h",
+    "ocv_end",
+    "ocv_soc",
+    "relaxation_dVdt",
+    "delta_V_rest",
+    "per_cell_deviation_mV",
+    "soc_change_per_day",
+    "mean_temp",
+    "standby_aux_kWh"
+   ]
+  },
+  {
+   "key": "current_step",
+   "name_ko": "전류 스텝(DCIR 측정 기회)",
+   "extractionRule": "직전 10초 |dI| < 0.02C로 안정 후, 한 샘플 내 |ΔI| ≥ 0.2C 변화, SOC 20~80%, 샘플 간격 ≤ 2초 권장(≤10초 허용·별도 bin), 스텝 후 Δt초 동안 전류 유지.",
+   "featuresPerEvent": [
+    "ts",
+    "delta_I",
+    "delta_V_rack",
+    "delta_V_cell_max",
+    "delta_V_cell_min",
+    "R_rack",
+    "R_cell_eq",
+    "sample_interval_s",
+    "soc",
+    "temp",
+    "direction"
+   ]
+  },
+  {
+   "key": "full_cycle",
+   "name_ko": "완결 사이클(충전+방전 쌍)",
+   "extractionRule": "charge_session 후 24시간 이내 discharge_session, 사이클 전후 SOC 차 ≤ 2%(초과 시 E_rated·ΔSOC 보정 후 플래그).",
+   "featuresPerEvent": [
+    "cycle_date",
+    "EFC",
+    "depth_soc",
+    "RTE_DC",
+    "RTE_AC",
+    "RTE_sys",
+    "aux_kWh",
+    "mean_temp",
+    "season_bin"
+   ]
+  },
+  {
+   "key": "thermal_excursion",
+   "name_ko": "온도 이탈 이벤트",
+   "extractionRule": "cell_temperature_max > 운영 상한(예 40°C, 제조사값) 또는 dT/dt > 1°C/min(추정) 또는 room_temperature > 설정+5°C가 ≥ 10분.",
+   "featuresPerEvent": [
+    "ts",
+    "max_temp",
+    "location_id",
+    "dTdt",
+    "ess_power",
+    "hvac_status",
+    "room_temp",
+    "ambient_temp"
+   ]
+  },
+  {
+   "key": "hvac_malfunction_episode",
+   "name_ko": "공조 이상 구간",
+   "extractionRule": "hvac_status=Cool & room_temperature − setpoint > 3°C가 ≥ 30분, 또는 hvac_status=Fault/Off & room > setpoint+2°C, 또는 습도 > 75%RH ≥ 1시간.",
+   "featuresPerEvent": [
+    "duration_min",
+    "max_room_temp",
+    "max_humidity",
+    "supply_return_delta",
+    "ambient_temp",
+    "ess_power_mean"
+   ]
+  },
+  {
+   "key": "bms_protection_event",
+   "name_ko": "BMS 보호동작/접촉기 개방",
+   "extractionRule": "bms_alarm_bits 신규 비트 set 또는 contactor_state Closed→Open(명령 없음).",
+   "featuresPerEvent": [
+    "ts",
+    "alarm_code",
+    "rack_id",
+    "cell_V_max",
+    "cell_V_min",
+    "temp_max",
+    "current",
+    "soc",
+    "recovered_ts"
+   ]
+  },
+  {
+   "key": "soc_recalibration",
+   "name_ko": "SOC 재보정 점프",
+   "extractionRule": "한 샘플 내 |ΔSOC| > 2%이면서 해당 구간 쿨롱카운팅 변화 < 0.5%.",
+   "featuresPerEvent": [
+    "ts",
+    "jump_pct",
+    "direction",
+    "trigger(상단/하단/휴지)",
+    "session_id"
+   ]
+  },
+  {
+   "key": "data_gap",
+   "name_ko": "데이터 결손/정체",
+   "extractionRule": "기대 샘플 주기의 3배 이상 미수신, 또는 동일 값 연속(stuck) N회(주간 POA/전력 30분 이상), 누적 카운터 역행/리셋.",
+   "featuresPerEvent": [
+    "asset_id",
+    "metric",
+    "start_ts",
+    "duration",
+    "type(gap/stuck/reset/out_of_range)"
+   ]
+  }
+ ],
+ "failureModes": [
+  {
+   "assetType": "pv_array",
+   "mode_ko": "모듈 오염(황사·꽃가루·조류 배설물·먼지)",
+   "dataSignature": "PR_corr가 강우 사이 톱니 모양으로 서서히 하락 후 강우/세척 시 계단식 회복. 모든 스트링이 비슷하게 하락(피어 비율은 정상).",
+   "detectionMethod": "강우(≥1mm/일) 간 구간별 SR Theil–Sen 기울기 계산. SR < 0.95(손실 5%) 또는 오염률 < −0.1%/day(추정) 시 경보. 세척 편익 = 손실률×일평균발전량×남은기간×단가 > 세척비 시 세척 권고.",
+   "severity": "medium",
+   "recommendedAction_ko": "세척 일정 수립(봄철 황사·송화가루 기간 우선), 세척 전후 PR_corr로 효과 검증, 조류 배설물은 핫스팟 유발하므로 조기 제거.",
+   "falsePositiveTraps": "일사계 자체 오염(PR이 오히려 상승하는 착시), 적설, 출력제어/클리핑, 계절 IAM 변화, 연무로 산란광 비율 증가.",
+   "typicalLeadTime": "수 주~수 개월(점진)"
+  },
+  {
+   "assetType": "pv_array",
+   "mode_ko": "부분 음영(수목 성장·신규 구조물·전선)",
+   "dataSignature": "특정 시각대·계절에 반복되는 PR/스트링 전류 비 하락, 해당 스트링만 영향.",
+   "detectionMethod": "시각(15분)×일자 잔차 히트맵(PR_corr 또는 string ratio). 전년 동일 태양위치(±7일) 대비 동일 시각 bin 잔차 ≤ −10%가 연속 ≥ 5일 반복되면 음영 후보.",
+   "severity": "low",
+   "recommendedAction_ko": "현장 확인 후 수목 전지, 원인 구조물 확인. 영구 음영이면 스트링 재구성 검토.",
+   "falsePositiveTraps": "구름 통과, 오염 편중, 역전 추적 오류(트래커), 겨울 저태양고도 행간 음영(설계상 예상 손실).",
+   "typicalLeadTime": "계절 단위"
+  },
+  {
+   "assetType": "pv_string",
+   "mode_ko": "스트링 개방(퓨즈 단선·커넥터 탈락/소손·케이블 단선)",
+   "dataSignature": "string_current ≈ 0 (피어는 정상), MPPT 전류가 1/N 스트링만큼 감소.",
+   "detectionMethod": "POA ≥ 300 W/m²에서 R_s < 0.1이 30분 이상 → 즉시 경보. 접속반 CT가 없으면 MPPT 전류/설계 스트링수 비 ÷ 피어 MPPT 비로 추정(계단 크기 ≈ 1/N).",
+   "severity": "high",
+   "recommendedAction_ko": "퓨즈·MC4 커넥터 점검(소손 흔적 확인), 동일 로트 커넥터 전수 열화상 점검.",
+   "falsePositiveTraps": "CT 센서 고장/통신 결손(0 vs null 구분), 유지보수 중 개방, 새벽·저녁 저일사.",
+   "typicalLeadTime": "즉시(돌발)"
+  },
+  {
+   "assetType": "pv_module",
+   "mode_ko": "바이패스 다이오드 단락/셀 크랙에 의한 서브스트링 손실",
+   "dataSignature": "단일 스트링 MPPT: 전압이 모듈 Vmp의 약 1/3 단위로 계단 강하(서브스트링 1개 비활성 시 해당 모듈 출력 약 34~37% 감소). 병렬 MPPT: 해당 스트링 전류 비가 계단식으로 하락.",
+   "detectionMethod": "mppt_voltage_ratio 일 중앙값의 계단 변화 탐지: 변화량 ≈ k·(Vmp_module/3)/(N·Vmp_module) (k=1,2..)이면서 이후 지속. CUSUM(k=0.5σ, h=5σ)로 변화점 검출 후 계단 크기 매칭. 전류 비는 Hampel 하한 지속 이탈.",
+   "severity": "medium",
+   "recommendedAction_ko": "해당 스트링 I-V 커브 측정·열화상으로 모듈 특정, 다이오드/정션박스 또는 모듈 교체(단락 다이오드는 발열·화재 위험).",
+   "falsePositiveTraps": "부분 음영 시 정상 바이패스 동작(일시적), 온도보정 계수 오류, 인버터 MPPT 로컬 최대점 추종.",
+   "typicalLeadTime": "돌발 후 지속(수 일 내 확정)"
+  },
+  {
+   "assetType": "pv_module",
+   "mode_ko": "PID(전위유도열화)",
+   "dataSignature": "수 개월에 걸친 PR_corr 하락, 저일사 효율이 먼저 저하(low_irradiance_pr_ratio 하락), MPPT 전압 비 감소, 음극 측 모듈 영향 집중, 고온다습 계절 가속.",
+   "detectionMethod": "low_irradiance_pr_ratio와 mppt_voltage_ratio 월별 Theil–Sen 기울기가 동시에 음수이고 기준 대비 −2% 이상(추정). 동일 설계 피어 사이트 대비 degradation_rate_yoy가 −1%/yr 이하. 인버터별 비교(음극 접지/PID 복구기 유무).",
+   "severity": "high",
+   "recommendedAction_ko": "EL/야간 PID 복구장치 적용 검토, 음극 접지 또는 PID 방지 인버터 설정 확인, 모듈 제조사 보증 청구 자료 확보.",
+   "falsePositiveTraps": "오염(저일사 비율에 영향 적음), 일사계 교정 변화, 계절 IAM, 모듈 LID/LeTID 초기 열화.",
+   "typicalLeadTime": "수 개월~1년(초기 1~2% 손실 단계에서 탐지 목표)"
+  },
+  {
+   "assetType": "pv_module",
+   "mode_ko": "핫스팟·셀 손상·EVA 변색/박리 등 모듈 열화",
+   "dataSignature": "특정 스트링 전류 비가 서서히 하락(계단 아님), 전압 비 소폭 하락, 주간 내내 일정 비율.",
+   "detectionMethod": "R_s 90일 Theil–Sen 기울기 < −2%/년(추정) 또는 피어 대비 robust z < −3 지속 14일. 드론 IR 점검 대상 리스트 우선순위화.",
+   "severity": "medium",
+   "recommendedAction_ko": "드론 열화상·EL 점검으로 불량 모듈 특정 후 교체, 보증 조건(출력보증 곡선) 대비 검토.",
+   "falsePositiveTraps": "스트링별 모듈 로트 차이(초기부터 존재하는 편차 → 기준선 대비 변화로 판정), 부분 음영, CT 오차(±1~5%).",
+   "typicalLeadTime": "수 개월"
+  },
+  {
+   "assetType": "pv_array",
+   "mode_ko": "절연저항 저하/지락",
+   "dataSignature": "아침 기동 시 Riso 하락 추세, 습윤 아침 기동 실패·지연, 절연 경보 반복, 누설전류 상승.",
+   "detectionMethod": "건조 조건 Riso_morning이 30일 기준선 대비 50% 이하 또는 하향 CUSUM 경보. Riso < Vmax/30mA(IEC 62109-2)의 2배 이내 접근 시 선제 경보. 동일 사이트 인버터 간 비교.",
+   "severity": "high",
+   "recommendedAction_ko": "메거(절연저항계)로 스트링별 절연 측정, 케이블 피복 손상(설치 마찰·설치류)·커넥터 침수 점검, 지락 위치 특정.",
+   "falsePositiveTraps": "이슬·강우 직후 일시 저하(정상), 인버터 운전 중 측정값은 비운전 대비 절반 수준(Sandia), 대규모 어레이일수록 기준값 낮음.",
+   "typicalLeadTime": "수 일~수 주"
+  },
+  {
+   "assetType": "inverter",
+   "mode_ko": "냉각계통 열화(팬 고장·필터/방열핀 막힘)",
+   "dataSignature": "동일 부하·외기에서 방열판−외기 온도차 상승, 외기 35°C 미만에서도 열 디레이팅(Throttled) 발생, 오후 출력 평탄화.",
+   "detectionMethod": "inverter_thermal_rise를 bin별 기준선과 비교, EWMA(λ=0.2) 편차 > +5°C(추정) 또는 피어 인버터 대비 robust z > 3이 7일 지속. 디레이팅 분 수 주간 집계.",
+   "severity": "medium",
+   "recommendedAction_ko": "팬 동작·필터 청소, 방열핀 먼지 제거, 설치 환기 확인. 반복 시 팬 교체 예방정비 일정화.",
+   "falsePositiveTraps": "직사광선 노출 위치 변화, 외기센서 위치(인버터 배기 근처), 여름 폭염, 펌웨어 디레이팅 곡선 변경.",
+   "typicalLeadTime": "수 주"
+  },
+  {
+   "assetType": "inverter",
+   "mode_ko": "변환효율 저하(IGBT·DC링크 커패시터 열화, 측정 오류)",
+   "dataSignature": "동일 부하율·DC전압 bin에서 η가 기준 대비 하락, 발열 증가 동반.",
+   "detectionMethod": "bin별 η 중앙값 비교: 기준 대비 −1%p 이상 30일 지속(추정) 또는 동일 모델 피어 대비 robust z < −3. 가중효율(η_EU/CEC) 월 추세 Theil–Sen.",
+   "severity": "medium",
+   "recommendedAction_ko": "제조사 진단 요청, DC/AC 계측 교차검증(외부 전력량계), 커패시터 ESR 점검, 보증기간 내 교체 청구.",
+   "falsePositiveTraps": "DC 측정 센서 오차가 효율처럼 보임(외부 계량기와 교차확인), 출력제한·무효전력 운전(역률 지령) 시 효율 저하, 저부하 bin 노이즈.",
+   "typicalLeadTime": "수 주~수 개월"
+  },
+  {
+   "assetType": "inverter",
+   "mode_ko": "반복 트립/정지(계통 과전압·지락·과열·내부 고장)",
+   "dataSignature": "주간 정지 이벤트 빈도 증가, 특정 고장코드 군집, 트립 시 계통전압 상한 근접.",
+   "detectionMethod": "고장코드별 주간 건수 Poisson 기준 대비 초과(과거 평균 λ에서 P<0.01), 트립 시점 AC 전압이 상한 −2% 이내 비율 > 50%면 계통 원인 분류, 동일 권역 사이트 동시 트립이면 계통 이벤트.",
+   "severity": "high",
+   "recommendedAction_ko": "고장코드별 조치(계통 원인은 한전 협의·전압 설정 검토, 과열은 냉각 점검, 지락은 절연 점검), 부품 교체 이력 기록.",
+   "falsePositiveTraps": "계획 정전·한전 작업, 출력제어 정지 명령, 통신 두절을 정지로 오인.",
+   "typicalLeadTime": "수 일~수 주(빈도 증가 단계)"
+  },
+  {
+   "assetType": "inverter",
+   "mode_ko": "MPPT 추종 불량/설정 오류",
+   "dataSignature": "동일 조건 피어 대비 DC 전력 낮음, DC 전압이 기대 Vmp에서 벗어나거나 진동, 특정 MPPT만 이상.",
+   "detectionMethod": "동일 인버터 내 MPPT별 (P_DC/설계 kWp) 비 robust z < −3 & mppt_voltage_ratio 이탈(|1−V_ratio| > 10%, 추정) 지속 3일.",
+   "severity": "medium",
+   "recommendedAction_ko": "펌웨어·MPPT 전압 범위 설정 확인, 스트링 구성(직렬 수) 재확인, 제조사 기술지원.",
+   "falsePositiveTraps": "음영에 의한 다중 극대점, 겨울 고전압 한계 근접, 스트링 결함.",
+   "typicalLeadTime": "설정 변경 직후 또는 수 주"
+  },
+  {
+   "assetType": "inverter",
+   "mode_ko": "클리핑 과다 또는 출력제한 설정 잔존",
+   "dataSignature": "정격 근처 평탄(설계상) 또는 정격 미만 레벨에서 장기 평탄(지령 없음).",
+   "detectionMethod": "clipping_loss_ratio 월 > 3%(추정) 시 설계 검토 리포트, 평탄 레벨 < 0.95×정격이 출력제어 지령 없이 3일 이상이면 설정 오류 경보.",
+   "severity": "low",
+   "recommendedAction_ko": "출력제한 설정값 원복, DC/AC 비 재검토(인버터 증설 경제성 분석).",
+   "falsePositiveTraps": "실제 출력제어(지령 로그 누락), 계통 전압 상승에 따른 volt-watt 저감, 열 디레이팅.",
+   "typicalLeadTime": "설정 변경 즉시"
+  },
+  {
+   "assetType": "combiner_box",
+   "mode_ko": "접속반 단자 과열·SPD 열화",
+   "dataSignature": "접속반 온도가 피어 대비 상승(동일 전류), SPD 상태 경보, 간헐적 스트링 전류 0.",
+   "detectionMethod": "(T_combiner − T_ambient) / I_total² 정규화 값 robust z > 3(피어 접속반) 7일 지속, SPD DI 변화 즉시.",
+   "severity": "high",
+   "recommendedAction_ko": "열화상 점검, 단자 재체결(토크 관리), SPD 교체, 퓨즈 홀더 소손 확인.",
+   "falsePositiveTraps": "접속반 설치 방향(직사광), 센서 위치 차이, 낙뢰 후 SPD 정상 동작.",
+   "typicalLeadTime": "수 주"
+  },
+  {
+   "assetType": "weather_station",
+   "mode_ko": "일사계/온도센서 오염·드리프트·오설치",
+   "dataSignature": "PR이 갑자기 개선되거나(일사계 오염) 급변, 인근 사이트·위성 대비 POA 비율 변화, 모듈온도 비현실적 값.",
+   "detectionMethod": "POA/위성 추정 POA 비율의 30일 이동 중앙값이 기준 대비 ±5% 벗어나면 센서 경보. 모듈온도 − Sandia 추정 셀온도 차 |Δ| > 10°C 지속. 모든 PR 기반 경보는 센서 건전성 통과 시에만 발행.",
+   "severity": "medium",
+   "recommendedAction_ko": "일사계 청소·수평 확인, 교정 주기(통상 1~2년, 추정) 준수, 센서 교체.",
+   "falsePositiveTraps": "실제 날씨 급변, 위성 데이터 해상도 한계(구름 경계).",
+   "typicalLeadTime": "수 주"
+  },
+  {
+   "assetType": "step_up_transformer",
+   "mode_ko": "변압기 과열·냉각 불량",
+   "dataSignature": "동일 부하·외기에서 유온 상승폭 증가, 온도 1단 경보 빈발.",
+   "detectionMethod": "transformer_thermal_rise bin 기준 대비 +5°C 지속 7일(추정), 기대 모델 잔차 CUSUM.",
+   "severity": "high",
+   "recommendedAction_ko": "냉각팬·방열기 점검, 절연유 분석(DGA) 의뢰, 부하 조정.",
+   "falsePositiveTraps": "센서 위치/교정, 폭염, 무효전력 운전에 따른 전류 증가(유효전력만 보면 부하 과소평가 → 피상전력 사용).",
+   "typicalLeadTime": "수 주~수 개월"
+  },
+  {
+   "assetType": "data_logger_rtu",
+   "mode_ko": "통신 두절·데이터 정체",
+   "dataSignature": "샘플 결손, 동일 값 반복(stuck), 누적 카운터 리셋/역행, 시각 오류(KST/UTC 혼동).",
+   "detectionMethod": "data_gap 이벤트 규칙 적용, 누적발전량 일증분 vs 전력 적분 차 > 5% 경보.",
+   "severity": "medium",
+   "recommendedAction_ko": "통신 모뎀·RTU 점검, 로컬 버퍼(REMS 기준 90일) 백필, NTP 시각 동기.",
+   "falsePositiveTraps": "야간 인버터 슬립으로 인한 정상 결손, 계획 정비.",
+   "typicalLeadTime": "즉시"
+  },
+  {
+   "assetType": "battery_rack",
+   "mode_ko": "용량 감소(SOH 저하)",
+   "dataSignature": "동일 C-rate·온도·앵커 조건에서 충전 Ah·소요시간 감소(사용자 예: 8h→7.5h), 충전 종료 시 SOC +점프 증가, 실증 용량(E_demonstrated) 하락.",
+   "detectionMethod": "capacity_ah_anchored를 조건 bin별 기준선(준공 후 첫 20개 유효 세션 중앙값)과 비교. 세션 값 EWMA(λ=0.1). 경보: 90일 내 −3%p 초과 하락(추정) 또는 Theil–Sen 기울기 외삽 시 보증 SOH 곡선보다 빠름. bin당 세션 ≥ 5개 미만이면 '데이터 부족' 표시.",
+   "severity": "medium",
+   "recommendedAction_ko": "정기 용량시험(완충→완방 기준 조건) 실시로 확정, 보증 조건(사이클·온도·SOC 체류) 위반 여부 점검, 운영 SOC 범위·C-rate 조정, 밸런싱 후 재평가.",
+   "falsePositiveTraps": "운영 SOC 상한 변경(80/90% 제한·보증수명제도), 셀 불균형으로 인한 조기 종료(회복 가능), 온도 차(저온 시 용량 감소), 태양광 연계로 전류 변동(시간 비교 금지·Ah 사용), 전류센서 오프셋, BMS 펌웨어 업데이트로 SOC 산식 변경.",
+   "typicalLeadTime": "수 개월~수 년"
+  },
+  {
+   "assetType": "battery_cell",
+   "mode_ko": "내부저항 증가",
+   "dataSignature": "동일 SOC·온도·스텝 크기에서 ΔV/ΔI 증가, 부하 중 전압 강하 확대, Ah당 온도상승 증가, DCL/CCL 디레이팅 빈발.",
+   "detectionMethod": "R25(dcir) bin 기준선 대비 +30%(medium)·+50%(high) (추정; 수명말 기준은 흔히 초기 대비 2배로 정의). 랙 내 극단 셀/모듈 R robust z > 3.5. 랙 전체 동시 급증 & 셀 R 정상 → 체결/접속 저항 의심.",
+   "severity": "medium",
+   "recommendedAction_ko": "토크 점검(버스바·단자), 해당 모듈 교체 검토, 운전 C-rate·온도 관리 강화.",
+   "falsePositiveTraps": "저온(15°C 미만에서 저항 급증), 샘플링 간격 차이(분극 포함 정도), SOC 극단 구간, 전류·전압 샘플 시각 비동기.",
+   "typicalLeadTime": "수 개월"
+  },
+  {
+   "assetType": "battery_cell",
+   "mode_ko": "셀 불균형·밸런싱 불량",
+   "dataSignature": "충전 종료 시 ΔV 확대 추세, 동일 셀 ID가 반복적으로 먼저 상한 도달, 가용 용량 감소, 충전 조기 종료.",
+   "detectionMethod": "cell_voltage_spread(상단 상태) 세션 값 Theil–Sen 기울기 > 0 유의 & 기준 대비 +50%(추정), weak_cell_recurrence > 60%, 휴지 ΔV > 50mV(추정) 지속 7일.",
+   "severity": "medium",
+   "recommendedAction_ko": "완충 유지로 패시브 밸런싱 시간 확보, BMS 밸런싱 파라미터 점검, 반복 셀 포함 모듈 교체.",
+   "falsePositiveTraps": "LFP 상단 급경사 구간 특성(정상적으로 벌어짐), 온도 편차에 따른 전압 차, 전압센서 오프셋(해당 채널만 상시 일정 편차).",
+   "typicalLeadTime": "수 주~수 개월"
+  },
+  {
+   "assetType": "battery_cell",
+   "mode_ko": "미세 내부단락·자가방전 증가(화재 전조)",
+   "dataSignature": "휴지 중 특정 셀 전압이 피어 대비 지속 하락(mV/day), 해당 셀 밸런싱 반복, 이후 국부 온도 상승 가능.",
+   "detectionMethod": "휴지 구간별 셀 편차(V_i − median) 변화율을 14~30일 Theil–Sen으로 추정, 기울기 < −1 mV/day(추정) 또는 편차 CUSUM 경보 → critical. 셀 데이터 없으면 CellVMin 위치 ID 고정 + CellVMin−Avg 차 확대로 대체.",
+   "severity": "critical",
+   "recommendedAction_ko": "즉시 해당 랙 운영 SOC 하향·출력 제한, 제조사 긴급 점검 요청, 모듈 격리/교체, 화재 감지·소화설비 상태 확인.",
+   "falsePositiveTraps": "셀 전압 센서 드리프트(개방 회로 측정 오류), 밸런싱 회로 고장(방전 저항 상시 ON), 온도 차에 따른 OCV 차.",
+   "typicalLeadTime": "수 일~수 주(추정)"
+  },
+  {
+   "assetType": "battery_module",
+   "mode_ko": "국부 발열·온도 편차 확대",
+   "dataSignature": "동일 전력·HVAC 조건에서 특정 모듈 온도가 랙 중앙값 대비 상승, ΔT_rack > 5°C.",
+   "detectionMethod": "모듈 편차 robust z > 3이 세션 3회 연속, ΔT_rack이 bin 기준 대비 +3°C(추정), 모듈 Ah당 온도상승 증가.",
+   "severity": "high",
+   "recommendedAction_ko": "모듈 팬·풍도 점검, 버스바 체결 토크 확인, 열화상 촬영, 필요 시 모듈 교체.",
+   "falsePositiveTraps": "랙 위치(상단·출구측) 고유 온도차 → 기준선 대비 변화로 판정, HVAC 토출구 인접, 온도센서 탈락.",
+   "typicalLeadTime": "수 일~수 주"
+  },
+  {
+   "assetType": "battery_rack",
+   "mode_ko": "병렬 랙 전류 불균형(접촉기·퓨즈·버스바 접촉저항)",
+   "dataSignature": "특정 랙 전류 분담률 감소/증가, 해당 랙 저항 급증, 과부하 랙은 온도·열화 가속.",
+   "detectionMethod": "rack_current_share 기준 대비 |변화| > 10%(추정) 7일 지속, 또는 계단 변화 CUSUM.",
+   "severity": "high",
+   "recommendedAction_ko": "접촉기·퓨즈·케이블 러그 점검 및 재체결, 랙 간 SOH 편차 조사, 교체 랙 혼용 시 운전 방식 검토.",
+   "falsePositiveTraps": "랙 SOC 차이로 인한 일시 불균형(휴지 후 해소), 랙 전류센서 오차.",
+   "typicalLeadTime": "수 주"
+  },
+  {
+   "assetType": "battery_bank",
+   "mode_ko": "BMS SOC 추정 오류·센서 이상",
+   "dataSignature": "SOC 재보정 점프 빈발/확대, 휴지 OCV 기반 SOC와 BMS SOC 괴리, 대기 중 비영 전류, 물리적으로 불가능한 셀 값(고정·음수).",
+   "detectionMethod": "soc_recalibration_jump EWMA > 3%(추정), 휴지 시 |SOC_BMS − SOC_OCV| > 5%(NMC 기준, LFP는 상단 앵커만), 대기 전류 |I| > 0.5% C 지속, 셀 채널 분산 0(stuck) 검출.",
+   "severity": "medium",
+   "recommendedAction_ko": "BMS 캘리브레이션(완충 재보정), 전류센서 영점 조정, 셀 전압 채널 점검, 펌웨어 업데이트 검토.",
+   "falsePositiveTraps": "실제 용량 감소도 점프를 키움(용량 지표와 함께 해석), 보조전원을 배터리에서 공급하는 구조.",
+   "typicalLeadTime": "수 주"
+  },
+  {
+   "assetType": "battery_bank",
+   "mode_ko": "DC 절연 저하(지락)",
+   "dataSignature": "절연감시장치 값 하락, 결로·습도와 상관, 경보 발생.",
+   "detectionMethod": "dc_insulation_resistance 30일 기준선 대비 50% 이하 또는 제조사 경보 임계 접근(2배 이내), 습도 bin 매칭. 제조사 기준 미만은 safety interlock.",
+   "severity": "critical",
+   "recommendedAction_ko": "운전 정지 후 절연 측정·지락 위치 특정, 배터리실 결로·누수 점검, 제습 강화.",
+   "falsePositiveTraps": "PCS 운전 상태에 따른 측정값 변동, 절연감시장치 간 상호 간섭(복수 IMD).",
+   "typicalLeadTime": "수 일~수 주"
+  },
+  {
+   "assetType": "ess_pcs",
+   "mode_ko": "PCS 효율 저하·과열",
+   "dataSignature": "동일 방향·부하 bin에서 PCS 효율 하락, IGBT 온도 상승, AC RTE와 DC RTE 격차 확대.",
+   "detectionMethod": "pcs_efficiency_binned 기준 대비 −1%p(추정) 30일 지속, (RTE_DC − RTE_AC) 격차 +2%p 증가, IGBT 온도 bin 편차 +5°C.",
+   "severity": "medium",
+   "recommendedAction_ko": "PCS 냉각·필터 점검, 제조사 진단, 커패시터·스택 점검.",
+   "falsePositiveTraps": "무효전력 운전, 저부하 운전 비중 증가(효율 곡선 특성), 계측점(DC/AC) 교정 차.",
+   "typicalLeadTime": "수 주~수 개월"
+  },
+  {
+   "assetType": "hvac_unit",
+   "mode_ko": "공조 성능 저하·고장",
+   "dataSignature": "동일 외기·ESS 부하에서 배터리실 온도 상승·압축기 듀티 증가·토출/흡입 온도차 감소, 습도 상승.",
+   "detectionMethod": "hvac_effectiveness·aux_load_ratio를 외기 bin 기준과 비교: 듀티 +20%p 또는 T_room − setpoint > 2°C가 3일 지속(추정). 고장/정지 & 온도 상승은 즉시 경보.",
+   "severity": "high",
+   "recommendedAction_ko": "필터 청소·냉매 점검·실외기 주변 장애물 제거, 이중화 공조 전환 확인, 고장 시 ESS 출력 제한.",
+   "falsePositiveTraps": "폭염일, 도어 개방(점검 중), 설정온도 변경, 겨울 난방 모드.",
+   "typicalLeadTime": "수 일~수 주"
+  },
+  {
+   "assetType": "ess_system",
+   "mode_ko": "왕복효율 저하·보조전력 과다",
+   "dataSignature": "동일 계절·C-rate에서 RTE_sys 하락, 대기 손실 증가.",
+   "detectionMethod": "full_cycle RTE 월 중앙값을 전년 동월과 비교(YoY), −2%p 이상(추정) 시 원인 분해(DC/AC/aux 중 어느 항이 변했는지).",
+   "severity": "low",
+   "recommendedAction_ko": "손실 항목별 조치(PCS·배터리·HVAC), 대기 모드 설정(야간 보조전원) 최적화.",
+   "falsePositiveTraps": "사이클 SOC 불일치, 계량 주기·카운터 반올림, 계절 HVAC 부하.",
+   "typicalLeadTime": "수 개월"
+  },
+  {
+   "assetType": "battery_bank",
+   "mode_ko": "운영 한계 이탈(SOC 상한 초과·셀 전압 상하한 초과 충방전)",
+   "dataSignature": "SOC가 규제/보증 상한 초과, 셀 전압이 제조사 한계 근접·초과, 보호동작 발생.",
+   "detectionMethod": "규칙 기반 즉시 판정: SOC > 설비별 상한(기존 설비 옥내 80%/옥외 90%, 신규는 보증수명 기준 설정값), CellVMax > 한계 − 마진(예 LFP 3.60V), CellVMin < 하한 + 마진. 주간 위반 분 수 리포트.",
+   "severity": "critical",
+   "recommendedAction_ko": "EMS/BMS 상한 설정 즉시 교정, 위반 이력 보존(사고 조사·보험 대비), 제조사 통보.",
+   "falsePositiveTraps": "SOC 재보정 순간 점프, 센서 일시 스파이크(1샘플) → 2샘플 이상 지속 조건.",
+   "typicalLeadTime": "즉시"
+  }
+ ],
+ "safetyInterlocks": [
+  "ESS 화재 감지기(연기/열) 동작 또는 소화설비 방출 신호 → 분석 파이프라인 우회, 즉시 최상위 알림",
+  "오프가스(H2/CO/전해액 VOC) 감지기 경보(제조사·감지기 설정값) → 즉시 알림",
+  "셀 온도 BMS 차단 한계 도달(예 LFP 55~60°C, 제조사값) 또는 셀 온도 상승률 > 1°C/min(추정) → 즉시 알림",
+  "셀 전압 상한/하한 초과(예 LFP > 3.65V 또는 < 2.5V, NMC > 4.25V 또는 < 2.8V, 제조사값) 2샘플 이상",
+  "BMS 보호동작·명령 없는 접촉기 개방, 비상정지(E-stop) 동작(KEC: 자동 비상정지 5초 이내 동작 요구)",
+  "배터리 DC 절연저항이 제조사 기준 미만(KEC: 경보 및 자동 차단 요구)",
+  "PV 인버터 절연저항 < Vmax/30mA(IEC 62109-2) 또는 지락/아크(AFCI) 경보",
+  "잔류전류 급변 30mA/60mA/150mA 스텝(0.3/0.15/0.04초 트립 기준) 또는 연속 300mA(≤30kVA) 트립 기록",
+  "ESS SOC 운영 상한 초과(기존 설비 옥내 80%/옥외 90%, 신규 설비는 보증수명제도 설정값)",
+  "배터리실 온도 설계 상한 초과(예 35°C, 추정) 또는 습도 과다(결로 위험)이면서 HVAC 정지/고장",
+  "보호계전기 트립(OCR/OCGR/OVR/UVR/OFR/UFR)·VCB 개방",
+  "변압기 온도 2단 경보·부흐홀츠 계전기 동작",
+  "ESS 통신 두절(안전 상태 불명) N분 이상(예 5분, 추정) → 운영자 즉시 확인 요청"
+ ],
+ "koreanContext": "[REMS(신·재생에너지 통합모니터링시스템, 한국에너지공단)] 보급사업(주택·건물·융복합·공공기관 등) 설비가 대상. 공단 표준 통신규격 인증 인버터/RTU로 연동. 계측요소(공단 설명자료 2019.2): (태양광) 계측점 인버터 입력단·출력단 - PV 전압, PV 전류, PV 출력, 출력전압, 출력전류, 출력, 역률, 주파수, 누적발전량, 고장여부. (ESS) 인버터 (전)전압·전류·출력, (후)전압·전류·출력, 고장여부 + 충방전기 (배터리) 상태, SOC, SOH, 온도(최고·최저·평균), 전압, 전류. (연료전지) 인버터 (전/후) 전압·전류·출력, 역률, 주파수, 누적발전량, 고장여부 + 축열조 열생산열량·누적생산열량·누적사용열량·전일누적사용열량·급수온도·온수출구온도. RTU 요건: 시리얼(RS485/422/232) 전기에너지 2포트 이상, TCP/IP 양방향(수집주기·수집항목·재수집 제어), OPC-UA 사용 시 국정원 8대 보안취약점 준수(SHA256/SSL/TLS), 통신오류 시 90일 이상 저장. 시사점: REMS 항목만으로는 일사량·모듈온도·스트링 전류·셀 단위 데이터가 없어 온도보정 PR·스트링 진단·SOH 독립 추정이 불가 → 자체 데이터 계약에서 확장 필요(REMS 항목은 최소 공통분모로 매핑). RPS 상업 발전사업자 설비의 REMS 연동 의무 여부는 확인 필요(추정: 보급사업 중심).\n[계통·시장] 60Hz, 배전 22.9kV. SMP + REC(RPS) 수익, 한전 AMI 15분 계량. 재생에너지 출력제어: 제주 2015년부터(연 100회 안팎), 육지는 2023년 호남 중심 시작 후 수도권 제외 전 지역 확대, 2025년 4월말까지 20회(2024년 연 15회) → 발전량 저하 분석 시 출력제어 구간 분리 필수. 재생에너지 입찰제도 제주 2024.6 본격 운영 후 전국 확대 예정. 재생에너지 발전량 예측제도: 20MW 이상 또는 1MW 이하 설비 20MW 이상 모집 중개사업자, 예측오차율 8% 이하 시 3~4원/kWh 정산(등록시험 월평균 오차율 10% 이하).\n[ESS 안전 규제] 2017~2019 ESS 화재 → 2019.6 민관합동 조사: 원인 4가지(전기적 충격에 대한 배터리 보호시스템 미흡, 운영환경 관리 미흡, 설치 부주의, ESS 통합제어·보호체계 미흡), 5건 추가조사에서 셀 단락, 상·하한 전압 범위 초과 충방전, 음극 돌기, 양극판 접힘·분리막 갈변 등 확인. 대책: 충전율 제한 옥내 80%/옥외 90%, 운영데이터 기록장치(블랙박스), 절연 실시간 감시, 특수소화설비. 2022.5 3차 대책: 신규 설비는 보증수명제도(수명 초기 충전율 하향 운영), 절연저항 저하 시 경보, 안전관리자 월 1회 점검, 사용후 배터리 인증. KEC 510(전기저장장치): 자동·수동 비상정지(자동 5초 이내), IT 접지계통 절연저항 저하 시 경보·자동차단. 전기안전관리법 시행규칙 별표4 정기검사(한국전기안전공사).\n[태양광 연계 ESS] REC 가중치 5.0(10~16시 태양광 전력 충전, 그 외 시간 방전 시 적용) 정책으로 대량 보급, 2020년 이후 축소·일몰(정확한 단계는 추정 → 확인 필요). 결과적으로 1일 1회 '주간 충전/야간 방전' 패턴이 대부분이라 동일 조건 세션 비교에 유리하나, 충전전류가 일사에 따라 변동함.\n[제조사 예시(추정)] 인버터: 화웨이, 선그로우, SMA, 그로와트, 다쓰테크, 헥스파워, 동양이엔피, LS ELECTRIC, 효성중공업 등. ESS 배터리: LG에너지솔루션, 삼성SDI 등. PCS: LS ELECTRIC, 효성중공업 등. 대부분 Modbus RTU/TCP 제공, SunSpec 준수 여부는 제조사별 상이 → 메트릭 레지스트리에 벤더 레지스터 매핑 계층 필요.",
+ "notes_md": "# PV+ESS O&M 인텔리전스 설계용 리서치 요약\n\n## 1. 조건 매칭 비교 패턴(핵심)\n사용자 예시(같은 V/I에서 0→100% 충전 8h → 7.5h = 가용 용량 약 6.25% 감소)를 일반화하면 **\"조건 bin 키 + 지표 + 기준선\"** 3요소로 거의 모든 진단을 표현할 수 있다.\n\n| # | 비교 조건(bin 키) | 지표 | 드러나는 것 |\n|---|---|---|---|\n| 1 | C-rate(±0.05C)·셀온도(±3°C)·시작/종료 앵커(OCV SOC·CV 종료) | 충전 Ah / 소요시간 | 배터리 용량 감소(SOH) |\n| 2 | SOC 30~70%·온도 bin·스텝 크기·샘플링 간격 | ΔV/ΔI | 내부저항 증가, 체결 불량 |\n| 3 | 충전 종료 동일 조건 | 셀 ΔV spread, 최초 상한 도달 셀 ID | 불균형, 약한 셀 |\n| 4 | 휴지 ≥12h·동일 SOC·온도 | 셀별 편차 변화(mV/day), 시스템 ΔSOC/day | 자가방전·미세단락(화재 전조) |\n| 5 | 동일 총전류·SOC | 랙 전류 분담률 | 접촉기/퓨즈 접촉저항 |\n| 6 | 동일 전력·HVAC 상태·실내온도 | 모듈 온도 편차, Ah당 온도상승 | 국부 발열·냉각 불균일 |\n| 7 | ΔSOC≤2% 사이클·계절 bin | RTE(DC/AC/시스템) | PCS/배터리/보조전력 손실 |\n| 8 | 외기 온도 bin(CDD)·ESS 손실열 | HVAC 듀티·소비전력·토출/흡입 ΔT | 공조 성능 저하 |\n| 9 | 부하율·DC전압 bin | 인버터/PCS 효율 | 전력반도체·커패시터 열화 |\n| 10 | 부하율·외기 bin | 방열판−외기 ΔT | 팬 고장·필터 막힘 |\n| 11 | 일사·셀온도(온도보정 PR) | PR_corr | 오염·열화·고장 합계 |\n| 12 | 전년 동일일(YoY) | PR_corr 비의 중앙값 | 비가역 열화율(%/yr) |\n| 13 | 동일 시각·동일 MPPT 피어 | 스트링 전류 비 | 스트링 개방·다이오드·국부 결함 |\n| 14 | 셀온도 보정 | MPPT 전압/기대 Vmp | 바이패스 다이오드 단락(1/3 계단), PID |\n| 15 | 저일사 vs 고일사 bin | PR 비 | PID·션트저항 저하 초기 |\n| 16 | 태양위치(시각×계절) | 잔차 히트맵 | 음영(수목 성장) |\n| 17 | 습도·무강우·운전상태 | 아침 Riso | 절연 열화 |\n| 18 | 강우(≥1mm) 사이 구간 | SR 기울기 | 오염률, 세척 시점 |\n| 19 | 동일 날짜·권역 피어 사이트 | 비발전량 비 | 사이트 고유 문제 vs 날씨 |\n| 20 | 부하율·외기 | 변압기 유온 상승 | 냉각·내부 손실 |\n| 21 | 동일 종료 조건 | SOC 재보정 점프 | BMS 용량 가정 오차(실용량 감소) |\n| 22 | 일사계 vs 위성/피어 | POA 비율 | 센서 오염·드리프트(모든 PR 경보의 전제) |\n\n**태양광 연계 ESS 주의**: 충전전류가 일사에 따라 변하므로 \"시간\"이 아니라 **Ah(전하량)** 로 비교하고, 가능하면 PCS 충전 한계에 붙은 청천 정오 구간(정전류 유사)만 사용한다. BMS SOC로 ΔSOC를 계산하면 BMS 자체가 정격용량 기준 쿨롱카운팅이므로 순환논리 → **휴지 OCV 또는 CV 종료 같은 전압 앵커** 사용. LFP는 20~80% OCV가 평탄해 상단 앵커/ dV/dQ 피크가 필요(NMC는 전압 창 방식 용이).\n\n## 2. TypeScript로 구현 가능한 탐지 기법 세트\n- **Robust z**: z = (x − median)/(1.4826·MAD), |z|>3~3.5. **Hampel identifier**(t=3)가 스트링 전류 이상에서 3-sigma보다 강건(Zhao 등).\n- **Theil–Sen 기울기**(쌍별 기울기 중앙값): 추세·열화율, 이상치 강건.\n- **EWMA** λ=0.1~0.3, 관리한계 ±L·σ·√(λ/(2−λ)).\n- **CUSUM**(k=0.5σ, h=4~5σ): 계단 변화(다이오드 단락, 접촉저항 급증) 변화점.\n- **YoY 비율 중앙값**(RdTools 방식) - 계절·오염 상쇄.\n- **조건 bin 기준선**: 준공 후 첫 30~90일 또는 첫 N개 유효 세션의 bin별 중앙값을 버전 관리(교체·펌웨어 변경 시 재설정). bin 샘플 수 부족(예 <5)이면 판정 보류.\n- **Poisson 빈도 검정**: 고장코드 주간 건수.\n- 알림 억제: 지속 조건(N일/N세션), 원인 우선순위(센서 건전성 → 통신 → 출력제어 → 날씨 → 설비).\n\n## 3. 데이터 계약 제안(우선순위)\n- **must(PV)**: POA, 모듈온도, 외기온도, MPPT DC V/I/P, AC P/V/I/Hz, 누적 kWh, 운전상태·고장코드, 출력제한 지령, 거래 계량 15분.\n- **must(ESS)**: 뱅크/랙 V·I(1~10초, DCIR용 ≤2초 버스트), SOC, 셀 V max/min/avg+위치, 셀 온도 max/min/avg+위치, BMS 경보, DC 절연저항, PCS DC/AC 전력·상태, AC 충/방전 kWh, 배터리실 온도·습도, HVAC 상태, 화재감지.\n- **should**: 스트링 전류, Riso, 방열판 온도, 풍속·습도·강수, 셀 전압 배열(휴지 스냅샷이라도), CCL/DCL, 보조전력.\n- 현재 코드베이스의 30분 간격 가짜 데이터는 PR(1~15분)·ESS 세션/DCIR(초 단위) 분석에 부족. 원시 저장은 좁은 long 포맷(asset_id, metric_key, ts, value, quality)로 두고 메트릭 레지스트리(단위·범위·샘플링·SunSpec/REMS/벤더 매핑)로 확장.\n- 품질 게이트(IEC 61724-1 취지): 범위 검사, stuck, 누적 카운터 역행/리셋, KST/UTC, **배터리 전류 부호 규약**(제조사마다 충전 +/− 상이), 스케일팩터(SunSpec *_SF).\n\n## 4. 전형 수치(대략, 추정 표시)\n- PR: 현대 설비 약 0.75~0.90(추정). 모듈 열화 중앙값 약 −0.5%/yr(Jordan & Kurtz).\n- c-Si 전력 온도계수 −0.26~−0.40 %/°C(모듈별), Vmp 온도계수 −0.3~−0.45 %/°C(추정).\n- 오염률 문헌 예 0.02~0.45 %/day(IEA PVPS T13-21), 강우 ≥1mm/일 시 오염 리셋 모델. 국내 세척 효과 보도 수치 9~18%는 조건 불명(참고만).\n- 인버터 최대효율 약 98~99%, 유로효율 약 97~98.5%(추정).\n- Riso 트립 기준: IEC 62109-2 Vmax/30mA(1000V → 33.3kΩ), UL1741 CRD 100kΩ 이상 등. 인버터 운전 시 Riso가 비운전 대비 절반 수준까지 감소한 사례(Sandia, ~350→~200kΩ).\n- ESS RTE: 미국 유틸리티 평균 월 82%(EIA 2019), NREL 가정 85%. 셀 DC RTE 92~96%(추정).\n- 셀 전압 편차: 양호 10~20mV, 50~100mV 이상 유의미(EV 기준, ESS 적용은 추정). 셀간 ΔT < 5°C 설계 목표(제조사 예). LFP 운전 권장 20~35°C.\n- LFP 자가방전 약 1~3%/월(추정). 수명말 기준: 용량 70~80%(용도별), 저항 초기 대비 2배(추정·통용 기준).\n- 내부저항 온도 의존: 전하이동 성분 Ea 35~50 kJ/mol(문헌), 오믹 성분은 약함 → 보정식보다 온도 bin 비교를 우선.\n\n## 5. LLM seam 관점 메모\n탐지 결과는 (failure_mode_key, evidence: 조건 bin·기준선·현재값·기울기·지속기간·오탐 체크 결과, severity, action_template_key) 구조로 남기면 규칙 기반 리포트 템플릿과 향후 LLM 코칭 문장 생성이 같은 입력을 공유할 수 있다.\n\n## 6. 한계\n- REMS 연동가이드 원문(프로토콜 레지스터 표)은 확보하지 못했고, 공단 설명자료(2019)의 계측요소 목록만 확인.\n- 오프가스·온도 차단 임계, 트립 지속시간 등 다수 수치는 제조사 사양 우선이며 본 문서 값은 '추정'.",
+ "sources": [
+  {
+   "title": "NREL/TP-5200-57991 Weather-Corrected Performance Ratio (Dierauf et al., 2013)",
+   "url": "https://docs.nlr.gov/docs/fy13osti/57991.pdf"
+  },
+  {
+   "title": "OSTI - Weather-Corrected Performance Ratio",
+   "url": "https://www.osti.gov/biblio/1078057"
+  },
+  {
+   "title": "IEC 61724-1:2021 preview (PV system performance monitoring)",
+   "url": "https://webstore.ansi.org/preview-pages/iec/preview_iec61724-1%7Bed2.0%7Db.pdf"
+  },
+  {
+   "title": "IEC 61724-1 monitoring classes summary (Hukseflux)",
+   "url": "https://www.hukx.com/us/applications/the-iec-61724-12021-standard-for-pv-monitoring-systems-a-quick-explanation"
+  },
+  {
+   "title": "RdTools soiling_srr documentation",
+   "url": "https://rdtools.readthedocs.io/en/stable/generated/rdtools.soiling.soiling_srr.html"
+  },
+  {
+   "title": "RdTools degradation and soiling example",
+   "url": "https://rdtools.readthedocs.io/en/3.0.0/examples/degradation_and_soiling_example.html"
+  },
+  {
+   "title": "PVAnalytics clipping threshold",
+   "url": "https://pvanalytics.readthedocs.io/en/stable/generated/pvanalytics.features.clipping.threshold.html"
+  },
+  {
+   "title": "Sandia PVPMC - Inverter Saturation or Clipping",
+   "url": "https://pvpmc.sandia.gov/modeling-guide/dc-to-ac-conversion/inverter-saturation-or-clipping/"
+  },
+  {
+   "title": "Sandia - Recommendations for CSM and Riso Ground Fault Detector Trip Thresholds",
+   "url": "https://www.osti.gov/servlets/purl/1313071"
+  },
+  {
+   "title": "Outlier Detection Rules for Fault Detection in Solar PV Arrays (Zhao et al.)",
+   "url": "https://ece.northeastern.edu/groups/power/lehman/Publications/Pub2013/2013_1_Zhao.pdf"
+  },
+  {
+   "title": "Field study on the severity of PV potential induced degradation (Scientific Reports)",
+   "url": "https://www.nature.com/articles/s41598-022-26310-y"
+  },
+  {
+   "title": "pvBuero - Finding shorted bypass diodes in PV systems",
+   "url": "https://photovoltaikbuero.de/en/pv-know-how-blog-en/finding-shorted-bypass-diodes-in-photovoltaic-systems/"
+  },
+  {
+   "title": "From Shadows to Signatures: Bypass Diode Faults (MDPI Electronics)",
+   "url": "https://www.mdpi.com/2079-9292/14/16/3270"
+  },
+  {
+   "title": "IEA-PVPS T13-21:2022 Soiling Losses (Korean translation)",
+   "url": "https://iea-pvps.org/wp-content/uploads/2023/01/Korean-Translation-Report-IEA-PVPS-T13-21_2022-Soiling-Losses.pdf"
+  },
+  {
+   "title": "NREL Best Practices for O&M of PV and Energy Storage Systems, 3rd Ed.",
+   "url": "https://docs.nlr.gov/docs/fy19osti/73822.pdf"
+  },
+  {
+   "title": "DOE Battery Energy Storage System Evaluation Method (2023)",
+   "url": "https://www.energy.gov/sites/default/files/2024-01/bess-evaluation-method.pdf"
+  },
+  {
+   "title": "PNNL-22010 Rev2 Protocol for Measuring and Expressing ESS Performance",
+   "url": "https://www.pnnl.gov/main/publications/external/technical_reports/PNNL-22010Rev2.pdf"
+  },
+  {
+   "title": "EIA - Utility-scale batteries return about 80% of electricity they store",
+   "url": "https://www.eia.gov/todayinenergy/detail.php?id=46756"
+  },
+  {
+   "title": "Photovoltaic Degradation Rates - An Analytical Review (Jordan & Kurtz)",
+   "url": "https://www.osti.gov/biblio/1073525"
+  },
+  {
+   "title": "Lifetime Prediction of Li-ion Batteries: Internal Resistance Growth vs SoH (MDPI Applied Sciences)",
+   "url": "https://www.mdpi.com/2076-3417/15/24/12875"
+  },
+  {
+   "title": "SOH estimation of large format Li-ion cells based on partial charging (J. Energy Storage)",
+   "url": "https://www.sciencedirect.com/science/article/pii/S2352152X21015243"
+  },
+  {
+   "title": "Health feature extraction from BESS field fault data (arXiv)",
+   "url": "https://arxiv.org/abs/2606.26347"
+  },
+  {
+   "title": "Temperature dependence of charge-transfer impedance in NMC Li-ion (J. Energy Storage)",
+   "url": "https://www.sciencedirect.com/science/article/abs/pii/S2352152X21010793"
+  },
+  {
+   "title": "Midtronics - Early signs of cell imbalance in HV batteries",
+   "url": "https://www.midtronics.com/blog/early-signs-of-cell-imbalance-in-high-voltage-ev-batteries/"
+  },
+  {
+   "title": "SunSpec models repository (model 103, 122, 160, 802 json/smdx)",
+   "url": "https://github.com/sunspec/models"
+  },
+  {
+   "title": "SunSpec Energy Storage Models specification",
+   "url": "https://sunspec.org/wp-content/uploads/2019/08/SunSpec-Alliance-Specification-Energy-Storage-ModelsD4rev0.pdf"
+  },
+  {
+   "title": "SunSpec String Combiner Models",
+   "url": "http://sunspec.org/wp-content/uploads/2019/08/SunSpec-String-Combiner-Models-12030.pdf"
+  },
+  {
+   "title": "REMS 신재생에너지 통합모니터링시스템",
+   "url": "https://rems.energy.or.kr/"
+  },
+  {
+   "title": "신재생에너지 통합모니터링시스템(REMS) 소개 및 연동안내(2019.2, 공공기관 태양광사업 설명회)",
+   "url": "http://15887642.com/board/data/notice/108$1$%EC%8B%A0%EC%9E%AC%EC%83%9D%EC%97%90%EB%84%88%EC%A7%80%20%ED%86%B5%ED%95%A9%EB%AA%A8%EB%8B%88%ED%84%B0%EB%A7%81%EC%8B%9C%EC%8A%A4%ED%85%9C(REMS)%20%EC%86%8C%EA%B0%9C%20%EB%B0%8F%20%EC%97%B0%EB%8F%99%EC%95%88%EB%82%B4(%EA%B3%B5%EA%B3%B5%EA%B8%B0%EA%B4%80%20%ED%83%9C%EC%96%91%EA%B4%91%EC%82%AC%EC%97%85%20%EC%84%A4%EB%AA%85%ED%9A%8C,%20190213).pdf"
+  },
+  {
+   "title": "한국에너지공단 신재생에너지센터 - REMS 통신규격(프로토콜) 가이드 공지",
+   "url": "https://www.knrec.or.kr/biz/pds/businoti/view.do?no=1311"
+  },
+  {
+   "title": "대한민국 정책브리핑 - ESS 화재조사 결과 및 안전대책",
+   "url": "https://www.korea.kr/news/policyNewsView.do?newsId=156374464"
+  },
+  {
+   "title": "산업통상자원부 - ESS 사고원인 조사결과 및 안전강화 대책 발표",
+   "url": "https://www.motir.go.kr/kor/article/ATCL3f49a5a8c/161771/view"
+  },
+  {
+   "title": "법무법인 세종 - ESS 안전 강화대책(2022) 뉴스레터",
+   "url": "https://www.shinkim.com/kor/media/newsletter/1815"
+  },
+  {
+   "title": "KEC 510 전기저장장치 해설",
+   "url": "https://cq4l.com/kec510%EC%A0%84%EA%B8%B0%EC%A0%80%EC%9E%A5%EC%9E%A5%EC%B9%98/"
+  },
+  {
+   "title": "전기안전관리법 시행규칙 별표4 정기검사 대상 및 시기",
+   "url": "https://www.law.go.kr/LSW//flDownload.do?flSeq=122612651"
+  },
+  {
+   "title": "공공데이터포털 - 전력거래소 제주 태양광·풍력 제어량 및 제어횟수",
+   "url": "https://www.data.go.kr/data/15108268/fileData.do"
+  },
+  {
+   "title": "환경일보 - 재생E 출력제어 확대",
+   "url": "https://www.hkbs.co.kr/news/articleView.html?idxno=713412"
+  },
+  {
+   "title": "KPX Q&A - 재생에너지 발전량 예측제도",
+   "url": "https://www.kpx.or.kr/board.es?mid=a10504030000&bid=0048&act=view&list_no=71147&tag=&nPage=1"
+  },
+  {
+   "title": "인더스트리뉴스 - 재생에너지 발전량 예측제도 도입",
+   "url": "https://www.industrynews.co.kr/news/articleView.html?idxno=39594"
+  },
+  {
+   "title": "일렉트릭파워 - ESS 만난 태양광, REC 가중치 5.0",
+   "url": "https://www.epj.co.kr/news/articleView.html?idxno=10904"
+  },
+  {
+   "title": "인더스트리뉴스 - 태양광 연계형 ESS REC 5.0 6개월 연장",
+   "url": "https://www.industrynews.co.kr/news/articleView.html?idxno=32586"
+  }
+ ]
+}

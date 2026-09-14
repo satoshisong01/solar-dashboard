@@ -1,0 +1,2480 @@
+{
+ "domain": "수소 저장·압축 + 연료전지 발전 설비 O&M (태양광-수전해 연계형 사이트의 압축기, 고압 저장뱅크, 밸브·레귤레이터, 누출·화염 검지, PEMFC 중심 연료전지 시스템(스택·BOP·인버터·CHP))",
+ "assetHierarchy": [
+  {
+   "assetType": "h2_system",
+   "name_ko": "수소 저장·발전 계통",
+   "parentType": "site",
+   "subComponents": [
+    "h2_compressor",
+    "h2_storage_bank",
+    "h2_valve_train",
+    "h2_safety_system",
+    "fuel_cell_system"
+   ],
+   "notes": "수전해 설비(별도 리서치 범위)의 출구(보통 10~40 bar, 추정)에서 연료전지 입구까지의 계통 단위. 수소 물질수지(생산-재고변화-소비)를 계산하는 경계."
+  },
+  {
+   "assetType": "h2_compressor",
+   "name_ko": "수소 압축기(다이어프램/유압피스톤/왕복동)",
+   "parentType": "h2_system",
+   "subComponents": [
+    "구동모터·인버터",
+    "크랭크/유압 구동부",
+    "다이어프램 헤드(3층 다이어프램·누설검지 포트)",
+    "실린더·피스톤 링·로드 패킹(피스톤형)",
+    "흡입·토출 밸브(단별)",
+    "유압유/윤활유 계통(오일펌프·리밋밸브·필터)",
+    "인터쿨러·애프터쿨러",
+    "냉각수 계통",
+    "흡입필터·분리기·버퍼탱크",
+    "단별 안전밸브",
+    "제어 PLC"
+   ],
+   "notes": "수소충전소 신뢰도 데이터(NREL)에서 압축기는 대표적인 고장·정지 원인이며, 씰 파손이 정지의 주 원인. 다이어프램형은 누설이 거의 없고 순도 유지에 유리하지만 다이어프램 파손이 핵심 리스크(시장 일반 금속 다이어프램 수명 약 4,000 h 수준 보고)."
+  },
+  {
+   "assetType": "h2_storage_bank",
+   "name_ko": "고압 수소 저장뱅크",
+   "parentType": "h2_system",
+   "subComponents": [
+    "h2_storage_vessel",
+    "매니폴드·배관",
+    "인입/인출 자동차단밸브",
+    "압력방출장치(PRD/TPRD)·안전밸브",
+    "압력 전송기(가능하면 이중화)",
+    "가스온도(내부)/용기표면 온도센서",
+    "접지·차양 구조물"
+   ],
+   "notes": "정치형은 Type I/II 강재 용기(대략 200~450 bar), 고압 버퍼·튜브트레일러는 Type III/IV(350~700 bar, 일부 900~1000 bar)가 흔함(대략치). 온도 보정 재고질량과 정지유지 구간 누설률이 핵심 지표."
+  },
+  {
+   "assetType": "h2_storage_vessel",
+   "name_ko": "고압 수소 용기(Type I~IV)",
+   "parentType": "h2_storage_bank",
+   "subComponents": [
+    "용기 본체(강재/복합재)",
+    "라이너(Type III 알루미늄, Type IV 폴리머)",
+    "보스·용기밸브",
+    "TPRD"
+   ],
+   "notes": "Type I: 전금속(무겁고 수소취성·피로 관리), Type II: 금속라이너+후프 감기, Type III: 금속라이너+전체 복합재, Type IV: 폴리머 라이너+전체 복합재(투과·급감압 블리스터 관리, ISO 19881 투과 한계 예: NWP·15°C에서 6 NmL/(h·L) 미만). 재검사(KGS AC116/AC414) 일정 관리 대상."
+  },
+  {
+   "assetType": "h2_valve_train",
+   "name_ko": "수소 공급 밸브·레귤레이터 계통",
+   "parentType": "h2_system",
+   "subComponents": [
+    "고압→중압 감압 레귤레이터",
+    "중압→저압 레귤레이터/인젝터",
+    "자동차단밸브(ESV/SDV, 공압·솔레노이드)",
+    "체크밸브",
+    "과류차단밸브",
+    "수소 필터",
+    "질량유량계",
+    "안전밸브(PSV)·벤트스택"
+   ],
+   "notes": "밸브 작동시간(명령→리밋스위치)과 레귤레이터 무유량 락업 크리프는 조건 매칭 비교가 쉬운 고가치 지표."
+  },
+  {
+   "assetType": "h2_safety_system",
+   "name_ko": "수소 안전계통(검지·차단·환기)",
+   "parentType": "site",
+   "subComponents": [
+    "h2_gas_detector",
+    "flame_detector",
+    "ESD 로직(PLC/SIS)",
+    "비상정지 버튼",
+    "환기팬·환기 감시",
+    "경보기(음향/경광)",
+    "지진 감지기·화재수신반 연동"
+   ],
+   "notes": "인터록은 현장 PLC/SIS에서 로컬로 실행되고, 콘솔은 원시 경보를 분석 파이프라인과 분리된 즉시 경로로 받아 표시·기록만 한다(분석이 억제하거나 지연시키면 안 됨)."
+  },
+  {
+   "assetType": "h2_gas_detector",
+   "name_ko": "수소 가스 누출 검지기",
+   "parentType": "h2_safety_system",
+   "subComponents": [
+    "센서 헤드(촉매연소식/열전도식/전기화학식/MOS/MEMS)",
+    "트랜스미터(4-20 mA/Modbus)",
+    "교정 이력"
+   ],
+   "notes": "권장 측정범위 0~10 vol%, 검출하한 0.1 vol% 수준(h2tools). 교정 3~6개월, 촉매식 센서 교체 3~5년, 실리콘 등에 의한 피독 주의."
+  },
+  {
+   "assetType": "flame_detector",
+   "name_ko": "화염 감지기(UV/IR)",
+   "parentType": "h2_safety_system",
+   "subComponents": [
+    "UV/IR 센서",
+    "자기진단 회로"
+   ],
+   "notes": "수소 화염은 주간에 거의 보이지 않으므로 UV 또는 UV/IR 복합형이 일반적. 이진 경보 + 고장 상태만 수집하면 됨."
+  },
+  {
+   "assetType": "fuel_cell_system",
+   "name_ko": "연료전지 발전 시스템",
+   "parentType": "h2_system",
+   "subComponents": [
+    "fc_stack",
+    "fc_anode_subsystem",
+    "fc_cathode_subsystem",
+    "fc_thermal_subsystem",
+    "fc_power_conditioning",
+    "chp_heat_recovery",
+    "fc_enclosure_ventilation",
+    "시스템 제어기(FCU)"
+   ],
+   "notes": "순수소 연계형이므로 PEMFC가 기본 가정. 국내 발전용은 PAFC(두산 M400, 수소전용 모델 존재)·SOFC(블룸/SK, 두산, HD하이드로젠)도 많음. 종류별 차이는 notes_md 참고."
+  },
+  {
+   "assetType": "fc_stack",
+   "name_ko": "연료전지 스택",
+   "parentType": "fuel_cell_system",
+   "subComponents": [
+    "셀(MEA: 막·촉매층·GDL)",
+    "분리판(바이폴라 플레이트)",
+    "가스켓·씰",
+    "엔드플레이트·체결구조",
+    "집전판",
+    "셀전압 모니터(CVM)",
+    "HFR/임피던스 측정기(선택)"
+   ],
+   "notes": "DOE 수명 정의: 정격출력 전압 10% 저하(중형 정치형 목표 80,000 h, 주거용은 20% 순출력 저하 기준 60,000 h). 셀 단위 전압 데이터가 부품 단위 진단의 핵심."
+  },
+  {
+   "assetType": "fc_anode_subsystem",
+   "name_ko": "연료극(수소) 공급 계통",
+   "parentType": "fuel_cell_system",
+   "subComponents": [
+    "수소 공급 레귤레이터/인젝터",
+    "수소 재순환 펌프 또는 이젝터",
+    "퍼지 밸브",
+    "드레인(물) 밸브",
+    "기액분리기",
+    "애노드 압력센서"
+   ],
+   "notes": "재순환 시 질소 크로스오버·물 축적 → 주기적 퍼지 필요. 퍼지 빈도와 퍼지 사이 전압강하 속도가 막 상태 간접지표."
+  },
+  {
+   "assetType": "fc_cathode_subsystem",
+   "name_ko": "공기극(공기) 공급 계통",
+   "parentType": "fuel_cell_system",
+   "subComponents": [
+    "흡입 공기필터(화학필터 포함)",
+    "공기 블로워/압축기",
+    "가습기(막 가습기)",
+    "배압밸브",
+    "공기 유량계"
+   ],
+   "notes": "블로워 소비전력은 최대 기생부하. 같은 회전수·압력비에서 유량이 줄면 마모/필터 막힘."
+  },
+  {
+   "assetType": "fc_thermal_subsystem",
+   "name_ko": "냉각 계통",
+   "parentType": "fuel_cell_system",
+   "subComponents": [
+    "냉각수 펌프",
+    "라디에이터 또는 판형 열교환기",
+    "3방향(바이패스) 밸브",
+    "이온교환(DI) 필터",
+    "전도도계",
+    "팽창탱크",
+    "냉각수 입·출구 온도센서"
+   ],
+   "notes": "PEMFC 냉각수는 저전도도(대략 5 µS/cm 미만) 유지가 필수(누설전류·절연저하 방지)."
+  },
+  {
+   "assetType": "fc_power_conditioning",
+   "name_ko": "전력변환·계통연계",
+   "parentType": "fuel_cell_system",
+   "subComponents": [
+    "DC-DC 컨버터",
+    "계통연계 인버터",
+    "연계 보호계전(OVR/UVR/OFR/UFR·단독운전 방지)",
+    "절연감시장치",
+    "변압기",
+    "전력량계"
+   ],
+   "notes": "한전 분산형전원 배전계통 연계 기술기준 적용. 동일 부하율 효율 비교와 방열판 온도 상승이 핵심."
+  },
+  {
+   "assetType": "chp_heat_recovery",
+   "name_ko": "열회수(CHP) 계통",
+   "parentType": "fuel_cell_system",
+   "subComponents": [
+    "열회수 열교환기",
+    "온수 순환펌프",
+    "축열조",
+    "열량계(유량·공급/환수 온도)",
+    "방열(덤프) 쿨러"
+   ],
+   "notes": "PEMFC 열은 60~70°C급 저온(추정), PAFC는 고온 120°C/저온 60°C 2단(두산 M400 H2 열효율 35%)."
+  },
+  {
+   "assetType": "fc_enclosure_ventilation",
+   "name_ko": "연료전지 외함 환기 계통",
+   "parentType": "fuel_cell_system",
+   "subComponents": [
+    "환기팬",
+    "풍량/차압 스위치",
+    "외함 내 수소 검지기",
+    "외함 온도센서"
+   ],
+   "notes": "외함 내 가연성가스 농도가 폭발하한계의 1/4 미만으로 유지되도록 환기 설계(KGS 취지). 환기 이상은 안전 인터록."
+  }
+ ],
+ "telemetry": [
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "suction_pressure",
+   "name_ko": "흡입 압력",
+   "unit": "bar(g)",
+   "priority": "must",
+   "typicalRange": "10~40 bar(g) (수전해 출구, 추정)",
+   "typicalSampling": "1~10 s",
+   "commonSource": "압축기 PLC Modbus TCP / OPC UA"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "discharge_pressure",
+   "name_ko": "최종 토출 압력",
+   "unit": "bar(g)",
+   "priority": "must",
+   "typicalRange": "200~500 bar(g) 정치 저장, 최대 900~1000 bar(g)",
+   "typicalSampling": "1~10 s",
+   "commonSource": "압축기 PLC"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "interstage_pressure",
+   "name_ko": "단간(중간단) 압력(단별)",
+   "unit": "bar(g)",
+   "priority": "should",
+   "typicalRange": "설계 압력비에 따름(단당 압력비 약 2~4, 추정)",
+   "typicalSampling": "1~10 s",
+   "commonSource": "압축기 PLC"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "suction_temperature",
+   "name_ko": "흡입 가스 온도",
+   "unit": "°C",
+   "priority": "should",
+   "typicalRange": "10~40 °C",
+   "typicalSampling": "10 s",
+   "commonSource": "압축기 PLC"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "discharge_temperature",
+   "name_ko": "단별 토출 가스 온도",
+   "unit": "°C",
+   "priority": "must",
+   "typicalRange": "설계 120~135 °C 이하(API 618 수소 과다 서비스), 다이어프램형은 보통 더 낮음(추정)",
+   "typicalSampling": "1~10 s",
+   "commonSource": "압축기 PLC"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "valve_cover_temperature",
+   "name_ko": "밸브 커버 온도(밸브별)",
+   "unit": "°C",
+   "priority": "nice",
+   "typicalRange": "동일 단 밸브 간 편차 수 °C 이내(정상, 추정)",
+   "typicalSampling": "10~60 s",
+   "commonSource": "추가 RTD/열전대 → PLC 또는 IoT 게이트웨이"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "cooling_water_inlet_temperature",
+   "name_ko": "압축기 냉각수 입구 온도",
+   "unit": "°C",
+   "priority": "should",
+   "typicalRange": "15~35 °C",
+   "typicalSampling": "10 s",
+   "commonSource": "압축기 PLC"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "cooling_water_outlet_temperature",
+   "name_ko": "압축기 냉각수 출구 온도",
+   "unit": "°C",
+   "priority": "should",
+   "typicalRange": "입구 대비 +3~10 °C(추정)",
+   "typicalSampling": "10 s",
+   "commonSource": "압축기 PLC"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "cooling_water_flow",
+   "name_ko": "압축기 냉각수 유량",
+   "unit": "L/min",
+   "priority": "nice",
+   "typicalRange": "설계치",
+   "typicalSampling": "10 s",
+   "commonSource": "압축기 PLC"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "motor_power",
+   "name_ko": "구동모터 유효전력",
+   "unit": "kW",
+   "priority": "must",
+   "typicalRange": "정격 이내",
+   "typicalSampling": "1~10 s",
+   "commonSource": "전력량계/인버터 Modbus"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "motor_current",
+   "name_ko": "구동모터 상전류(3상)",
+   "unit": "A",
+   "priority": "should",
+   "typicalRange": "정격 이내, 상불평형 < 5%(추정)",
+   "typicalSampling": "1~10 s",
+   "commonSource": "모터 인버터/보호계전기"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "motor_speed",
+   "name_ko": "모터/크랭크 회전수",
+   "unit": "rpm",
+   "priority": "should",
+   "typicalRange": "120~1,800 rpm(왕복동), 고정속 또는 VFD",
+   "typicalSampling": "10 s",
+   "commonSource": "모터 인버터"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "h2_mass_flow",
+   "name_ko": "압축기 토출 수소 질량유량",
+   "unit": "kg/h",
+   "priority": "should",
+   "typicalRange": "설비 용량(수~수백 kg/h)",
+   "typicalSampling": "1~10 s",
+   "commonSource": "코리올리 유량계; 없으면 저장뱅크 재고변화로 추정"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "vibration_velocity_rms",
+   "name_ko": "진동 속도 RMS(프레임/실린더)",
+   "unit": "mm/s",
+   "priority": "should",
+   "typicalRange": "ISO 20816-8 zone 경계 예 7.1/14/28 mm/s (측정 위치별 상이, 원문 확인 필요)",
+   "typicalSampling": "엣지에서 1~10 kHz 수집 → 1 min RMS 전송",
+   "commonSource": "진동 트랜스미터 4-20 mA / 무선 진동센서"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "bearing_temperature",
+   "name_ko": "베어링/크로스헤드 온도",
+   "unit": "°C",
+   "priority": "nice",
+   "typicalRange": "< 80~90 °C(추정)",
+   "typicalSampling": "10~60 s",
+   "commonSource": "압축기 PLC"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "hydraulic_oil_pressure_max",
+   "name_ko": "사이클별 유압(오일) 최대압(다이어프램)",
+   "unit": "bar(g)",
+   "priority": "should",
+   "typicalRange": "가스 토출압보다 약간 높음(리밋밸브 설정)",
+   "typicalSampling": "엣지 kHz 샘플 → 1 min max/min/mean",
+   "commonSource": "오일 압력센서 + 엣지 수집기"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "hydraulic_oil_pressure_min",
+   "name_ko": "사이클별 유압 최소압(다이어프램)",
+   "unit": "bar(g)",
+   "priority": "nice",
+   "typicalRange": "흡입 과정 최저압",
+   "typicalSampling": "1 min 통계",
+   "commonSource": "엣지 수집기"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "hydraulic_oil_temperature",
+   "name_ko": "유압유/윤활유 온도",
+   "unit": "°C",
+   "priority": "should",
+   "typicalRange": "40~70 °C(추정)",
+   "typicalSampling": "10 s",
+   "commonSource": "압축기 PLC"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "lube_oil_pressure",
+   "name_ko": "윤활유 공급압",
+   "unit": "bar(g)",
+   "priority": "should",
+   "typicalRange": "제조사 설정",
+   "typicalSampling": "1~10 s",
+   "commonSource": "압축기 PLC"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "diaphragm_leak_detect_pressure",
+   "name_ko": "다이어프램 누설검지 포트 압력/스위치",
+   "unit": "bar(g)",
+   "priority": "must",
+   "typicalRange": "정상 ≈ 0(대기), 상승 시 파손",
+   "typicalSampling": "1 s (상태변화 이벤트)",
+   "commonSource": "압력스위치 → PLC 인터록"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "packing_vent_h2_concentration",
+   "name_ko": "패킹 벤트 수소 농도/유량(피스톤형)",
+   "unit": "vol%",
+   "priority": "nice",
+   "typicalRange": "기준 대비 추세",
+   "typicalSampling": "10~60 s",
+   "commonSource": "벤트 라인 검지기/유량계"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "run_state",
+   "name_ko": "운전 상태(정지/기동/운전/트립)와 트립 코드",
+   "unit": "enum",
+   "priority": "must",
+   "typicalRange": "-",
+   "typicalSampling": "상태변화 이벤트(ms 타임스탬프)",
+   "commonSource": "압축기 PLC"
+  },
+  {
+   "assetType": "h2_compressor",
+   "metricKey": "operating_hours",
+   "name_ko": "누적 운전시간",
+   "unit": "h",
+   "priority": "must",
+   "typicalRange": "-",
+   "typicalSampling": "1 h",
+   "commonSource": "압축기 PLC 카운터"
+  },
+  {
+   "assetType": "h2_storage_bank",
+   "metricKey": "tank_pressure",
+   "name_ko": "저장뱅크(용기군) 압력",
+   "unit": "bar(g)",
+   "priority": "must",
+   "typicalRange": "Type I/II 약 200~450 bar, Type III/IV 350~700 bar",
+   "typicalSampling": "1~10 s (정지유지 구간 1 min 이상도 가능)",
+   "commonSource": "압력 전송기 → PLC Modbus/OPC UA"
+  },
+  {
+   "assetType": "h2_storage_bank",
+   "metricKey": "tank_gas_temperature",
+   "name_ko": "용기 내부 가스 온도",
+   "unit": "°C",
+   "priority": "should",
+   "typicalRange": "-40~85 °C(복합재 용기 일반 한계)",
+   "typicalSampling": "10 s",
+   "commonSource": "용기 내부 온도센서(있을 때)"
+  },
+  {
+   "assetType": "h2_storage_bank",
+   "metricKey": "tank_wall_temperature",
+   "name_ko": "용기 표면 온도",
+   "unit": "°C",
+   "priority": "must",
+   "typicalRange": "외기±일사 영향",
+   "typicalSampling": "10~60 s",
+   "commonSource": "표면 RTD/열전대"
+  },
+  {
+   "assetType": "h2_storage_bank",
+   "metricKey": "ambient_temperature",
+   "name_ko": "외기 온도",
+   "unit": "°C",
+   "priority": "must",
+   "typicalRange": "-20~40 °C",
+   "typicalSampling": "1 min",
+   "commonSource": "현장 기상센서 또는 날씨 API(보조)"
+  },
+  {
+   "assetType": "h2_storage_bank",
+   "metricKey": "inlet_valve_state",
+   "name_ko": "뱅크 인입 차단밸브 상태",
+   "unit": "enum(open/closed)",
+   "priority": "must",
+   "typicalRange": "-",
+   "typicalSampling": "상태변화 이벤트",
+   "commonSource": "리밋스위치 → PLC"
+  },
+  {
+   "assetType": "h2_storage_bank",
+   "metricKey": "outlet_valve_state",
+   "name_ko": "뱅크 인출 차단밸브 상태",
+   "unit": "enum(open/closed)",
+   "priority": "must",
+   "typicalRange": "-",
+   "typicalSampling": "상태변화 이벤트",
+   "commonSource": "리밋스위치 → PLC"
+  },
+  {
+   "assetType": "h2_valve_train",
+   "metricKey": "regulator_inlet_pressure",
+   "name_ko": "레귤레이터 입구 압력",
+   "unit": "bar(g)",
+   "priority": "should",
+   "typicalRange": "저장압",
+   "typicalSampling": "1~10 s",
+   "commonSource": "PLC"
+  },
+  {
+   "assetType": "h2_valve_train",
+   "metricKey": "regulator_outlet_pressure",
+   "name_ko": "레귤레이터 출구 압력",
+   "unit": "bar(g)",
+   "priority": "must",
+   "typicalRange": "중압 5~20 bar(g) 등 설계치(추정)",
+   "typicalSampling": "1 s",
+   "commonSource": "PLC"
+  },
+  {
+   "assetType": "h2_valve_train",
+   "metricKey": "h2_supply_flow",
+   "name_ko": "연료전지 공급 수소 질량유량",
+   "unit": "kg/h",
+   "priority": "must",
+   "typicalRange": "정격 출력 기준 약 60~75 kg/MWh 상당",
+   "typicalSampling": "1~10 s",
+   "commonSource": "열식/코리올리 질량유량계"
+  },
+  {
+   "assetType": "h2_valve_train",
+   "metricKey": "esv_command",
+   "name_ko": "자동차단밸브 개폐 명령",
+   "unit": "enum",
+   "priority": "must",
+   "typicalRange": "-",
+   "typicalSampling": "이벤트(ms)",
+   "commonSource": "PLC/SIS 이벤트 로그"
+  },
+  {
+   "assetType": "h2_valve_train",
+   "metricKey": "esv_limit_switch",
+   "name_ko": "자동차단밸브 리밋스위치(개/폐 도달)",
+   "unit": "enum",
+   "priority": "must",
+   "typicalRange": "-",
+   "typicalSampling": "이벤트(ms)",
+   "commonSource": "PLC/SIS 이벤트 로그"
+  },
+  {
+   "assetType": "h2_valve_train",
+   "metricKey": "filter_differential_pressure",
+   "name_ko": "수소 필터 차압",
+   "unit": "kPa",
+   "priority": "nice",
+   "typicalRange": "설계치",
+   "typicalSampling": "1 min",
+   "commonSource": "차압계"
+  },
+  {
+   "assetType": "h2_valve_train",
+   "metricKey": "instrument_air_pressure",
+   "name_ko": "계장공기(밸브 구동) 압력",
+   "unit": "bar(g)",
+   "priority": "nice",
+   "typicalRange": "5~7 bar(g)(추정)",
+   "typicalSampling": "1 min",
+   "commonSource": "PLC"
+  },
+  {
+   "assetType": "h2_gas_detector",
+   "metricKey": "h2_concentration",
+   "name_ko": "수소 농도",
+   "unit": "ppm",
+   "priority": "must",
+   "typicalRange": "배경 수~수십 ppm(추정), 경보 ≤ 10,000 ppm(1 vol%)",
+   "typicalSampling": "1 s (경보는 즉시 이벤트)",
+   "commonSource": "검지기 4-20 mA → 가스 수신반/PLC, Modbus"
+  },
+  {
+   "assetType": "h2_gas_detector",
+   "metricKey": "detector_fault_status",
+   "name_ko": "검지기 고장/보수 상태",
+   "unit": "enum",
+   "priority": "must",
+   "typicalRange": "-",
+   "typicalSampling": "이벤트",
+   "commonSource": "가스 수신반"
+  },
+  {
+   "assetType": "h2_gas_detector",
+   "metricKey": "calibration_as_found_error",
+   "name_ko": "교정 시 교정 전 오차(as-found)",
+   "unit": "ppm",
+   "priority": "should",
+   "typicalRange": "허용오차 이내",
+   "typicalSampling": "교정 시(3~6개월)",
+   "commonSource": "정비 기록 입력(수기/모바일)"
+  },
+  {
+   "assetType": "flame_detector",
+   "metricKey": "flame_detected",
+   "name_ko": "화염 감지",
+   "unit": "bool",
+   "priority": "must",
+   "typicalRange": "-",
+   "typicalSampling": "이벤트(즉시)",
+   "commonSource": "화재수신반/SIS"
+  },
+  {
+   "assetType": "h2_safety_system",
+   "metricKey": "esd_state",
+   "name_ko": "비상정지(ESD) 상태·원인",
+   "unit": "enum",
+   "priority": "must",
+   "typicalRange": "-",
+   "typicalSampling": "이벤트(ms)",
+   "commonSource": "SIS/PLC 이벤트 로그"
+  },
+  {
+   "assetType": "h2_safety_system",
+   "metricKey": "ventilation_status",
+   "name_ko": "환기팬 운전/풍량 스위치",
+   "unit": "enum",
+   "priority": "must",
+   "typicalRange": "-",
+   "typicalSampling": "이벤트 + 1 min",
+   "commonSource": "PLC"
+  },
+  {
+   "assetType": "fuel_cell_system",
+   "metricKey": "net_ac_power",
+   "name_ko": "순 송전 출력(AC)",
+   "unit": "kW",
+   "priority": "must",
+   "typicalRange": "0~정격",
+   "typicalSampling": "1~10 s",
+   "commonSource": "FCU Modbus TCP / 전력량계, IEC 61850-7-420 DFCL"
+  },
+  {
+   "assetType": "fuel_cell_system",
+   "metricKey": "bop_power",
+   "name_ko": "보조기기(BOP) 소비전력",
+   "unit": "kW",
+   "priority": "should",
+   "typicalRange": "스택 출력의 5~20%(추정)",
+   "typicalSampling": "10 s",
+   "commonSource": "FCU / 서브미터"
+  },
+  {
+   "assetType": "fuel_cell_system",
+   "metricKey": "operating_state",
+   "name_ko": "운전 상태(정지/기동/발전/정지절차/트립)·고장코드",
+   "unit": "enum",
+   "priority": "must",
+   "typicalRange": "-",
+   "typicalSampling": "상태변화 이벤트(ms)",
+   "commonSource": "FCU"
+  },
+  {
+   "assetType": "fuel_cell_system",
+   "metricKey": "start_count",
+   "name_ko": "누적 기동 횟수",
+   "unit": "count",
+   "priority": "must",
+   "typicalRange": "-",
+   "typicalSampling": "이벤트",
+   "commonSource": "FCU 카운터(없으면 상태 이벤트로 산출)"
+  },
+  {
+   "assetType": "fuel_cell_system",
+   "metricKey": "h2_inlet_pressure",
+   "name_ko": "시스템 수소 입구 압력",
+   "unit": "bar(g)",
+   "priority": "must",
+   "typicalRange": "설계치(수 bar, 추정)",
+   "typicalSampling": "1 s",
+   "commonSource": "FCU"
+  },
+  {
+   "assetType": "fc_stack",
+   "metricKey": "stack_voltage",
+   "name_ko": "스택 전압",
+   "unit": "V",
+   "priority": "must",
+   "typicalRange": "셀수 × 0.6~0.8 V(정격), OCV 셀당 0.95~1.0 V",
+   "typicalSampling": "1 s",
+   "commonSource": "FCU / DC-DC 컨버터, IEC 61850-7-420 DSTK"
+  },
+  {
+   "assetType": "fc_stack",
+   "metricKey": "stack_current",
+   "name_ko": "스택 전류",
+   "unit": "A",
+   "priority": "must",
+   "typicalRange": "0~정격(전류밀도 약 0.3~1.2 A/cm², 정치형은 낮은 편, 추정)",
+   "typicalSampling": "1 s",
+   "commonSource": "FCU / DC-DC 컨버터"
+  },
+  {
+   "assetType": "fc_stack",
+   "metricKey": "cell_voltage",
+   "name_ko": "개별 셀(또는 셀그룹) 전압 배열",
+   "unit": "V",
+   "priority": "must",
+   "typicalRange": "0.6~0.8 V 운전, < 0.3 V 경고/차단, 음전압=역전",
+   "typicalSampling": "CVM 1 s 내부, 저장은 10 s~1 min 스냅샷 + 이벤트 시 1 s",
+   "commonSource": "CVM (CAN 또는 FCU 경유 Modbus)"
+  },
+  {
+   "assetType": "fc_stack",
+   "metricKey": "cell_voltage_min",
+   "name_ko": "최저 셀전압",
+   "unit": "V",
+   "priority": "must",
+   "typicalRange": "> 0.5 V 정상 운전(추정)",
+   "typicalSampling": "1 s",
+   "commonSource": "CVM"
+  },
+  {
+   "assetType": "fc_stack",
+   "metricKey": "cell_voltage_min_index",
+   "name_ko": "최저 셀 번호",
+   "unit": "index",
+   "priority": "must",
+   "typicalRange": "1~N",
+   "typicalSampling": "1~10 s",
+   "commonSource": "CVM"
+  },
+  {
+   "assetType": "fc_stack",
+   "metricKey": "cell_voltage_std",
+   "name_ko": "셀전압 표준편차",
+   "unit": "mV",
+   "priority": "should",
+   "typicalRange": "수~20 mV(정상, 추정)",
+   "typicalSampling": "10 s",
+   "commonSource": "CVM 또는 콘솔 계산"
+  },
+  {
+   "assetType": "fc_stack",
+   "metricKey": "stack_temperature",
+   "name_ko": "스택 온도(보통 냉각수 출구)",
+   "unit": "°C",
+   "priority": "must",
+   "typicalRange": "PEMFC 60~80 °C",
+   "typicalSampling": "1~10 s",
+   "commonSource": "FCU"
+  },
+  {
+   "assetType": "fc_stack",
+   "metricKey": "hfr",
+   "name_ko": "고주파 저항(HFR)",
+   "unit": "mΩ·cm²",
+   "priority": "nice",
+   "typicalRange": "약 50~150 mΩ·cm²(추정)",
+   "typicalSampling": "1 min",
+   "commonSource": "컨버터 리플 기반 또는 임피던스 측정기"
+  },
+  {
+   "assetType": "fc_stack",
+   "metricKey": "anode_inlet_pressure",
+   "name_ko": "애노드 입구 압력",
+   "unit": "kPa(a)",
+   "priority": "should",
+   "typicalRange": "약 120~250 kPa(a)(추정)",
+   "typicalSampling": "1 s",
+   "commonSource": "FCU"
+  },
+  {
+   "assetType": "fc_stack",
+   "metricKey": "cathode_inlet_pressure",
+   "name_ko": "캐소드 입구 압력",
+   "unit": "kPa(a)",
+   "priority": "should",
+   "typicalRange": "상압~250 kPa(a)(추정)",
+   "typicalSampling": "1 s",
+   "commonSource": "FCU"
+  },
+  {
+   "assetType": "fc_stack",
+   "metricKey": "cathode_differential_pressure",
+   "name_ko": "캐소드 입출구 차압",
+   "unit": "kPa",
+   "priority": "should",
+   "typicalRange": "설계치(수~수십 kPa, 추정)",
+   "typicalSampling": "1~10 s",
+   "commonSource": "FCU"
+  },
+  {
+   "assetType": "fc_stack",
+   "metricKey": "anode_differential_pressure",
+   "name_ko": "애노드 입출구 차압",
+   "unit": "kPa",
+   "priority": "nice",
+   "typicalRange": "설계치",
+   "typicalSampling": "1~10 s",
+   "commonSource": "FCU"
+  },
+  {
+   "assetType": "fc_stack",
+   "metricKey": "insulation_resistance",
+   "name_ko": "절연저항(스택·DC 버스 대지)",
+   "unit": "kΩ",
+   "priority": "should",
+   "typicalRange": "제조사 기준(차량 참고치 100 Ω/V DC 이상)",
+   "typicalSampling": "1 min",
+   "commonSource": "절연감시장치(IMD)"
+  },
+  {
+   "assetType": "fc_cathode_subsystem",
+   "metricKey": "air_mass_flow",
+   "name_ko": "공기 질량유량",
+   "unit": "kg/h",
+   "priority": "must",
+   "typicalRange": "공기 스토이키 1.5~2.5 상당(추정)",
+   "typicalSampling": "1 s",
+   "commonSource": "FCU 유량계"
+  },
+  {
+   "assetType": "fc_cathode_subsystem",
+   "metricKey": "blower_speed",
+   "name_ko": "블로워 회전수",
+   "unit": "rpm",
+   "priority": "should",
+   "typicalRange": "설계치",
+   "typicalSampling": "1~10 s",
+   "commonSource": "블로워 인버터"
+  },
+  {
+   "assetType": "fc_cathode_subsystem",
+   "metricKey": "blower_power",
+   "name_ko": "블로워 소비전력(또는 전류)",
+   "unit": "kW",
+   "priority": "should",
+   "typicalRange": "BOP 최대 항목",
+   "typicalSampling": "1~10 s",
+   "commonSource": "블로워 인버터"
+  },
+  {
+   "assetType": "fc_cathode_subsystem",
+   "metricKey": "air_filter_differential_pressure",
+   "name_ko": "흡입 공기필터 차압",
+   "unit": "Pa",
+   "priority": "nice",
+   "typicalRange": "교체 기준 제조사 설정",
+   "typicalSampling": "1 min",
+   "commonSource": "차압계"
+  },
+  {
+   "assetType": "fc_cathode_subsystem",
+   "metricKey": "cathode_inlet_dewpoint",
+   "name_ko": "캐소드 입구 이슬점/상대습도",
+   "unit": "°C",
+   "priority": "nice",
+   "typicalRange": "스택온도 대비 설계치",
+   "typicalSampling": "10 s",
+   "commonSource": "습도센서"
+  },
+  {
+   "assetType": "fc_anode_subsystem",
+   "metricKey": "purge_valve_state",
+   "name_ko": "퍼지 밸브 개폐",
+   "unit": "enum",
+   "priority": "should",
+   "typicalRange": "수 초~수 분 간격(추정)",
+   "typicalSampling": "이벤트(ms)",
+   "commonSource": "FCU 이벤트 로그"
+  },
+  {
+   "assetType": "fc_anode_subsystem",
+   "metricKey": "drain_valve_state",
+   "name_ko": "물 드레인 밸브 개폐",
+   "unit": "enum",
+   "priority": "nice",
+   "typicalRange": "-",
+   "typicalSampling": "이벤트",
+   "commonSource": "FCU"
+  },
+  {
+   "assetType": "fc_anode_subsystem",
+   "metricKey": "recirculation_pump_speed",
+   "name_ko": "수소 재순환 펌프 회전수",
+   "unit": "rpm",
+   "priority": "should",
+   "typicalRange": "설계치",
+   "typicalSampling": "1~10 s",
+   "commonSource": "FCU"
+  },
+  {
+   "assetType": "fc_anode_subsystem",
+   "metricKey": "recirculation_pump_current",
+   "name_ko": "수소 재순환 펌프 전류",
+   "unit": "A",
+   "priority": "should",
+   "typicalRange": "설계치",
+   "typicalSampling": "1~10 s",
+   "commonSource": "FCU"
+  },
+  {
+   "assetType": "fc_anode_subsystem",
+   "metricKey": "exhaust_h2_concentration",
+   "name_ko": "배기 수소 농도",
+   "unit": "vol%",
+   "priority": "should",
+   "typicalRange": "희석 후 수 vol% 미만(차량 GTR13: 3초 평균 4%, 순간 8%)",
+   "typicalSampling": "1 s",
+   "commonSource": "배기 수소센서"
+  },
+  {
+   "assetType": "fc_thermal_subsystem",
+   "metricKey": "coolant_inlet_temperature",
+   "name_ko": "스택 냉각수 입구 온도",
+   "unit": "°C",
+   "priority": "must",
+   "typicalRange": "55~75 °C(추정)",
+   "typicalSampling": "1~10 s",
+   "commonSource": "FCU"
+  },
+  {
+   "assetType": "fc_thermal_subsystem",
+   "metricKey": "coolant_outlet_temperature",
+   "name_ko": "스택 냉각수 출구 온도",
+   "unit": "°C",
+   "priority": "must",
+   "typicalRange": "입구 대비 +3~10 °C",
+   "typicalSampling": "1~10 s",
+   "commonSource": "FCU"
+  },
+  {
+   "assetType": "fc_thermal_subsystem",
+   "metricKey": "coolant_flow",
+   "name_ko": "냉각수 유량",
+   "unit": "L/min",
+   "priority": "should",
+   "typicalRange": "설계치",
+   "typicalSampling": "1~10 s",
+   "commonSource": "FCU 유량계(없으면 열수지로 추정)"
+  },
+  {
+   "assetType": "fc_thermal_subsystem",
+   "metricKey": "coolant_pump_speed",
+   "name_ko": "냉각수 펌프 회전수(또는 지령)",
+   "unit": "rpm",
+   "priority": "should",
+   "typicalRange": "설계치",
+   "typicalSampling": "1~10 s",
+   "commonSource": "FCU"
+  },
+  {
+   "assetType": "fc_thermal_subsystem",
+   "metricKey": "coolant_pump_power",
+   "name_ko": "냉각수 펌프 소비전력/전류",
+   "unit": "W",
+   "priority": "nice",
+   "typicalRange": "설계치",
+   "typicalSampling": "10 s",
+   "commonSource": "FCU"
+  },
+  {
+   "assetType": "fc_thermal_subsystem",
+   "metricKey": "coolant_conductivity",
+   "name_ko": "냉각수 전기전도도",
+   "unit": "µS/cm",
+   "priority": "should",
+   "typicalRange": "< 5 µS/cm 권장(설계에 따라 교체기준 5~20)",
+   "typicalSampling": "1 min",
+   "commonSource": "전도도계 → FCU"
+  },
+  {
+   "assetType": "fc_thermal_subsystem",
+   "metricKey": "radiator_fan_speed",
+   "name_ko": "라디에이터 팬 회전수/지령",
+   "unit": "%",
+   "priority": "nice",
+   "typicalRange": "0~100%",
+   "typicalSampling": "10 s",
+   "commonSource": "FCU"
+  },
+  {
+   "assetType": "fc_power_conditioning",
+   "metricKey": "inverter_dc_power",
+   "name_ko": "인버터 DC 입력 전력",
+   "unit": "kW",
+   "priority": "should",
+   "typicalRange": "0~정격",
+   "typicalSampling": "1~10 s",
+   "commonSource": "인버터 Modbus(SunSpec 호환 모델이면 model 103/113 유사)"
+  },
+  {
+   "assetType": "fc_power_conditioning",
+   "metricKey": "inverter_ac_power",
+   "name_ko": "인버터 AC 출력 전력",
+   "unit": "kW",
+   "priority": "must",
+   "typicalRange": "0~정격",
+   "typicalSampling": "1~10 s",
+   "commonSource": "인버터 Modbus"
+  },
+  {
+   "assetType": "fc_power_conditioning",
+   "metricKey": "inverter_heatsink_temperature",
+   "name_ko": "인버터 방열판 온도",
+   "unit": "°C",
+   "priority": "should",
+   "typicalRange": "제조사 한계 이하",
+   "typicalSampling": "10~60 s",
+   "commonSource": "인버터 Modbus"
+  },
+  {
+   "assetType": "fc_power_conditioning",
+   "metricKey": "grid_voltage",
+   "name_ko": "계통 전압",
+   "unit": "V",
+   "priority": "should",
+   "typicalRange": "공칭 ±10%",
+   "typicalSampling": "1 s",
+   "commonSource": "인버터/보호계전기"
+  },
+  {
+   "assetType": "fc_power_conditioning",
+   "metricKey": "grid_frequency",
+   "name_ko": "계통 주파수",
+   "unit": "Hz",
+   "priority": "should",
+   "typicalRange": "60 ± 0.2 Hz",
+   "typicalSampling": "1 s",
+   "commonSource": "인버터/보호계전기"
+  },
+  {
+   "assetType": "fc_power_conditioning",
+   "metricKey": "grid_trip_event",
+   "name_ko": "계통연계 보호 트립 이벤트·원인",
+   "unit": "enum",
+   "priority": "must",
+   "typicalRange": "-",
+   "typicalSampling": "이벤트(ms)",
+   "commonSource": "인버터/보호계전기 이벤트 로그"
+  },
+  {
+   "assetType": "chp_heat_recovery",
+   "metricKey": "hot_water_supply_temperature",
+   "name_ko": "열회수 온수 공급 온도",
+   "unit": "°C",
+   "priority": "should",
+   "typicalRange": "PEMFC 50~70 °C(추정), PAFC 고온 120 °C/저온 60 °C",
+   "typicalSampling": "10 s",
+   "commonSource": "열량계/PLC"
+  },
+  {
+   "assetType": "chp_heat_recovery",
+   "metricKey": "hot_water_return_temperature",
+   "name_ko": "열회수 온수 환수 온도",
+   "unit": "°C",
+   "priority": "should",
+   "typicalRange": "설계치",
+   "typicalSampling": "10 s",
+   "commonSource": "열량계/PLC"
+  },
+  {
+   "assetType": "chp_heat_recovery",
+   "metricKey": "hot_water_flow",
+   "name_ko": "열회수 온수 유량",
+   "unit": "m³/h",
+   "priority": "should",
+   "typicalRange": "설계치",
+   "typicalSampling": "10 s",
+   "commonSource": "열량계"
+  },
+  {
+   "assetType": "chp_heat_recovery",
+   "metricKey": "heat_output",
+   "name_ko": "회수 열출력",
+   "unit": "kW",
+   "priority": "nice",
+   "typicalRange": "전기출력의 0.7~1.0배(추정)",
+   "typicalSampling": "1 min",
+   "commonSource": "열량계(M-Bus/Modbus)"
+  },
+  {
+   "assetType": "fc_enclosure_ventilation",
+   "metricKey": "enclosure_h2_concentration",
+   "name_ko": "외함 내 수소 농도",
+   "unit": "ppm",
+   "priority": "must",
+   "typicalRange": "배경~경보 ≤ 10,000 ppm",
+   "typicalSampling": "1 s",
+   "commonSource": "외함 검지기 → FCU/SIS"
+  },
+  {
+   "assetType": "fc_enclosure_ventilation",
+   "metricKey": "enclosure_temperature",
+   "name_ko": "외함 내부 온도",
+   "unit": "°C",
+   "priority": "nice",
+   "typicalRange": "5~45 °C(추정)",
+   "typicalSampling": "1 min",
+   "commonSource": "FCU"
+  }
+ ],
+ "derivedIndicators": [
+  {
+   "key": "fc_vcell_at_ref_j",
+   "name_ko": "기준 전류밀도에서의 평균 셀전압(V@j_ref)",
+   "formula": "정상상태 윈도우만 사용. j = I_stack / A_active [A/cm²], V_cell = V_stack / N_cell. |j − j_ref| ≤ 0.02 A/cm² 인 윈도우에서 V_corr = V_cell + k_T·(T_ref − T_stack) (k_T는 기준기간 OLS로 추정; 초기값 셀당 약 1 mV/°C, 추정). 주간 median을 대표값으로 저장. j가 넓게 분포하면 주간 최소자승 V = a − b·log10(j) − R·j 적합 후 V(j_ref) = a − b·log10(j_ref) − R·j_ref 사용.",
+   "inputs": [
+    "stack_voltage",
+    "stack_current",
+    "stack_temperature",
+    "air_mass_flow",
+    "cell_count(메타)",
+    "active_area(메타)"
+   ],
+   "normalization": "전류밀도 bin(±0.02 A/cm²), 스택온도 bin(±2 °C), 공기 스토이키 bin, 기동 후 30분·부하변동 후 5분·퍼지 직후 30초 제외(추정값), 초기 활성화(break-in, 수백 h 추정) 이후를 기준기간으로 설정. 캘린더가 아니라 스택 운전시간 축 사용.",
+   "reveals": "스택 전체 성능 열화 추세. '같은 V/I 조건에서 충전시간 변화'의 연료전지 버전: 같은 전류·온도에서 전압이 얼마나 떨어졌는가."
+  },
+  {
+   "key": "fc_voltage_degradation_rate",
+   "name_ko": "스택 전압 열화율",
+   "formula": "rate[µV/h/셀] = −ThielSen_slope(fc_vcell_at_ref_j, operating_hours) × 1e6; rate[%/1000h] = rate·1000/(V_BOL·1e6)·100. 롤링 1,000~2,000 운전시간 창. 가속비 = 최근창 기울기 / 수명전체 기울기. 잔여수명(10% 기준) = (0.1·V_BOL − 누적손실)/rate.",
+   "inputs": [
+    "fc_vcell_at_ref_j",
+    "operating_hours"
+   ],
+   "normalization": "운전시간 축, 가역손실 분리: 정지·재기동 또는 회복 운전 직후 전압 회복분을 별도 계열로 기록하여 비가역 열화만 기울기 계산.",
+   "reveals": "수명 예측, DOE 목표(주거용 0.3%/1000h, 중형 80,000 h 동안 10% 이내) 대비 위치. 문헌상 일반 허용 2~10 µV/h."
+  },
+  {
+   "key": "fc_ohmic_resistance",
+   "name_ko": "스택 옴저항(ASR) 추세",
+   "formula": "HFR 측정 시 ASR = HFR·A_active [Ω·cm²]. 없으면 주간 회귀의 R 계수 [Ω·cm²] 또는 부하 스텝 이벤트에서 순간 ΔV/ΔI·A_active/N_cell (100 ms 이하 샘플 필요).",
+   "inputs": [
+    "hfr",
+    "stack_voltage",
+    "stack_current",
+    "stack_temperature",
+    "cathode_inlet_dewpoint"
+   ],
+   "normalization": "스택온도·가습(이슬점) bin, 부하 스텝 크기 bin",
+   "reveals": "막 건조·막 열화, 분리판/GDL 접촉저항 증가, 체결압 저하. 활성화 항 b 증가는 촉매 열화, 고전류 영역 이탈은 물질전달(플러딩·GDL 소수성 저하) 쪽을 가리킴."
+  },
+  {
+   "key": "fc_cell_voltage_spread",
+   "name_ko": "셀전압 편차(σ, 평균−최저)",
+   "formula": "σ_cell = stdev(V_i), ΔV_min = mean(V_i) − min(V_i), CV = σ/mean. bin별 기준 median/MAD 대비 robust z = (x − median)/(1.4826·MAD).",
+   "inputs": [
+    "cell_voltage",
+    "stack_current",
+    "stack_temperature"
+   ],
+   "normalization": "전류밀도·온도 bin 필수(저부하에서는 편차가 원래 작음), 과도구간 제외",
+   "reveals": "개별 셀 결함, 반응가스 분배 불균일, 말단셀 저온·플러딩, 국부 결핍"
+  },
+  {
+   "key": "fc_min_cell_persistence",
+   "name_ko": "최저셀 고정도(동일 셀 반복 최저)",
+   "formula": "최근 7일 정상상태 윈도우에서 p_k = count(argmin V_i = k)/count; max p_k, 해당 k, 말단(1~3번, N−2~N번) 여부.",
+   "inputs": [
+    "cell_voltage_min_index",
+    "cell_voltage"
+   ],
+   "normalization": "전류 bin별 별도 집계",
+   "reveals": "p_k > 0.5 지속 = 특정 MEA 결함(핀홀/촉매손실)·유로 막힘 의심. 말단 집중 = 엔드플레이트 열손실·플러딩(열관리) 문제."
+  },
+  {
+   "key": "fc_electrical_efficiency_lhv",
+   "name_ko": "전기효율(LHV, 순AC 기준)",
+   "formula": "η_el = ΣE_ac_net[kWh] / (Σm_H2[kg] × 33.32 kWh/kg). m_H2는 질량유량계 적산; 없으면 저장뱅크 Z보정 재고 감소(무충전 구간) 또는 Faraday(N·I·3.7605e-5 kg/Ah)/가정 이용률(이 경우 '추정' 플래그).",
+   "inputs": [
+    "net_ac_power",
+    "h2_supply_flow",
+    "stack_current",
+    "tank_pressure",
+    "tank_gas_temperature"
+   ],
+   "normalization": "부하율 10% bin, 외기온도 bin(BOP 부하 영향), 기동·정지 과도구간 제외, 일/주 에너지 적산 비",
+   "reveals": "스택 열화 + BOP 기생부하 + 수소 손실(퍼지·누설)의 종합 결과. DOE 중형 목표 > 50% LHV, 두산 M400 H2 공칭 50%, NREL 2013 실측 수명평균 27% HHV(<100 kW, 과도 포함)."
+  },
+  {
+   "key": "fc_h2_specific_consumption",
+   "name_ko": "수소 소비원단위",
+   "formula": "SC[kg/MWh] = 1000 × Σm_H2[kg] / ΣE_ac_net[kWh] = 1000/(33.32·η_el). η 50% → 60.0, 45% → 66.7, 40% → 75.0 kg/MWh.",
+   "inputs": [
+    "h2_supply_flow",
+    "net_ac_power"
+   ],
+   "normalization": "부하율 bin 동일 조건 비교, 월간 추세, 동일 모델 사이트 간 비교",
+   "reveals": "연료비·수익성 직결 KPI. 기준 대비 +5% 이상이면 효율 저하 원인 분해 필요."
+  },
+  {
+   "key": "fc_fuel_utilization",
+   "name_ko": "수소 이용률(Faraday 대비 공급량)",
+   "formula": "U_f = m_Faraday / m_meter, m_Faraday[kg/h] = N_cell × I_stack[A] × 3.7605e-5 (= M_H2/(2F)×3600).",
+   "inputs": [
+    "stack_current",
+    "h2_supply_flow",
+    "cell_count(메타)"
+   ],
+   "normalization": "전류 bin, 동일 퍼지 전략 구간",
+   "reveals": "U_f 하락 = 퍼지 손실 증가(퍼지밸브 누설/빈도↑), 막 크로스오버, 외부 누설, 유량계 드리프트"
+  },
+  {
+   "key": "fc_parasitic_ratio",
+   "name_ko": "기생부하율",
+   "formula": "(P_stack_dc − P_ac_net)/P_stack_dc 및 P_bop/P_stack_dc, P_blower/P_stack_dc 개별",
+   "inputs": [
+    "stack_voltage",
+    "stack_current",
+    "net_ac_power",
+    "bop_power",
+    "blower_power",
+    "coolant_pump_power"
+   ],
+   "normalization": "부하율·외기온도 bin",
+   "reveals": "블로워·펌프·팬 효율 저하, 인버터 손실 증가"
+  },
+  {
+   "key": "blower_specific_airflow_index",
+   "name_ko": "블로워 비유량 지수(마모 지표)",
+   "formula": "기준기간에 (rpm bin × 캐소드 입구압/대기압 비 bin) → 공기 질량유량 median 맵 M 작성. index = air_mass_flow / M(rpm, PR). 보조: 비전력 = blower_power / air_mass_flow [kW per kg/h].",
+   "inputs": [
+    "air_mass_flow",
+    "blower_speed",
+    "blower_power",
+    "cathode_inlet_pressure",
+    "ambient_temperature",
+    "air_filter_differential_pressure"
+   ],
+   "normalization": "흡입 공기밀도 ρ = P_amb/(287·T_amb) 보정, 필터 차압은 별도 추적해 원인 분리",
+   "reveals": "같은 회전수·압력비에서 유량 감소 = 임펠러·베어링 마모, 내부 누설, 흡입필터 막힘(필터 차압↑ 동반), 유량센서 오염"
+  },
+  {
+   "key": "cathode_dp_residual",
+   "name_ko": "캐소드 차압 잔차비",
+   "formula": "기준기간 OLS: ln(ΔP_cath) = ln a + b·ln(Q_air) + c·(T_stack − T_ref). ratio = ΔP_meas / ΔP_expected.",
+   "inputs": [
+    "cathode_differential_pressure",
+    "air_mass_flow",
+    "stack_temperature"
+   ],
+   "normalization": "공기유량·온도 보정 내장, 과도구간 제외",
+   "reveals": "급상승(>1.2, 수분 내) = 플러딩/유로 액적, 서서히 상승 = GDL·유로 오염·막힘, < 0.8 = 센서 이상·바이패스 누설"
+  },
+  {
+   "key": "coolant_pump_hydraulic_index",
+   "name_ko": "냉각 펌프 수력 지수(추정유량/회전수)",
+   "formula": "Q_heat[W] ≈ N_cell × I × (1.253 − V_cell) (LHV 열중립전압, 생성수 기체 가정). ṁ_cool = Q_heat / (cp × ΔT_cool), ΔT_cool = T_out − T_in, cp 물 4.18 kJ/(kg·K)(글리콜 혼합 시 약 3.4, 추정). index = ṁ_cool / f(pump_speed) (기준기간 선형회귀). 유량계 있으면 coolant_flow/pump_speed 직접.",
+   "inputs": [
+    "stack_current",
+    "stack_voltage",
+    "coolant_inlet_temperature",
+    "coolant_outlet_temperature",
+    "coolant_pump_speed",
+    "coolant_flow"
+   ],
+   "normalization": "전류 bin, 냉각수 온도 bin(점도), 정상상태만, 라디에이터 바이패스 밸브 위치 동일 구간",
+   "reveals": "동일 전류에서 ΔT 증가 = 유량 부족(펌프 마모·스트레이너 막힘·에어록) 또는 발열 증가(효율 저하). 두 원인은 V_cell 추세로 분리."
+  },
+  {
+   "key": "coolant_conductivity_slope",
+   "name_ko": "냉각수 전도도 상승속도",
+   "formula": "일간 median 전도도의 14일 Theil–Sen 기울기 [µS/cm/day]; 소진 예상일 = (한계값 − 현재값)/기울기",
+   "inputs": [
+    "coolant_conductivity",
+    "coolant_outlet_temperature"
+   ],
+   "normalization": "25 °C 온도보상값 사용(계측기 보상 여부 확인), DI 필터 교체 이벤트 이후 리셋",
+   "reveals": "이온교환 필터 소진, 계통 부식에 의한 이온 용출. 절연저항 하락과 교차 확인."
+  },
+  {
+   "key": "fc_purge_interval_ah",
+   "name_ko": "퍼지 간 적산전하 및 퍼지 전 전압강하 속도",
+   "formula": "Ah_between = ∫I dt/3600 (연속 두 퍼지 사이). dV/dt_pre = 퍼지 직전 60초 V_cell_mean 기울기 [mV/min]. ΔV_recovery = 퍼지 후 10초 평균 − 퍼지 전 10초 평균.",
+   "inputs": [
+    "purge_valve_state",
+    "stack_current",
+    "stack_voltage",
+    "cell_voltage_min"
+   ],
+   "normalization": "전류 bin, 스택온도 bin. 퍼지가 고정 주기(Ah 또는 시간) 제어이면 Ah_between은 제어상수이므로 dV/dt_pre와 ΔV_recovery만 사용.",
+   "reveals": "전압기반 퍼지에서 Ah/퍼지 감소 = 질소 크로스오버 증가(막 박막화), 물 축적(드레인 불량), 수소 순도 저하"
+  },
+  {
+   "key": "fc_startup_ocv_gap",
+   "name_ko": "기동 시 셀별 OCV 결손",
+   "formula": "기동 이벤트에서 수소·공기 공급 후 무부하 OCV 안정 구간(예: 5~20초, 추정)의 셀전압 V_i. gap_i = median(V) − V_i. 이벤트마다 max gap, 해당 셀 index, 셀별 gap 누적 추세 저장.",
+   "inputs": [
+    "cell_voltage",
+    "operating_state",
+    "h2_inlet_pressure",
+    "stack_temperature"
+   ],
+   "normalization": "정지 경과시간 클래스(냉간/온간), 스택온도 bin, 수소 공급압 동일",
+   "reveals": "핀홀·막 박막화(수소 크로스오버)의 가장 민감한 조기 지표. 동일 셀 gap이 이벤트마다 커지면 확정적."
+  },
+  {
+   "key": "fc_cycle_stress_index",
+   "name_ko": "운전 스트레스 지수(기동정지·부하사이클·고전위 체류)",
+   "formula": "누적: n_start_stop, n_trip, 부하 사이클(전력 시계열 레인플로, ASTM E1049), 고전위 체류시간 h_hp = Σ시간(V_cell_mean > 0.85 V, 추정 임계). D = w1·n_start_stop + w2·n_load_cycles + w3·h_idle + w4·h_high_power (가중치 초기값은 Pei 2008 모델 형태 참조, 사이트 데이터로 fc_voltage_degradation_rate에 재적합).",
+   "inputs": [
+    "operating_state",
+    "net_ac_power",
+    "cell_voltage",
+    "stack_current"
+   ],
+   "normalization": "월간 운전시간당 값으로 비교, 동종 설비 비교",
+   "reveals": "태양광 연계로 일일 기동정지 반복 등 운전패턴이 열화를 유발하는지 코칭 근거(대기운전·최소부하 유지 전략 제안)"
+  },
+  {
+   "key": "fc_startup_duration",
+   "name_ko": "기동 소요시간",
+   "formula": "t(목표출력 또는 정격 90% 도달) − t(기동명령)",
+   "inputs": [
+    "operating_state",
+    "net_ac_power",
+    "ambient_temperature"
+   ],
+   "normalization": "외기온도 bin, 정지 경과시간 클래스(냉간/온간), 목표출력 동일",
+   "reveals": "블로워·펌프·히터·수소공급압 문제, 제어 이상. 동일 조건 대비 증가율이 핵심."
+  },
+  {
+   "key": "inverter_efficiency_matched",
+   "name_ko": "동일조건 인버터 효율",
+   "formula": "η_inv = ΣE_ac/ΣE_dc (부하율 10% bin × 외기온도 5 °C bin), Δη = η − η_baseline[bin] (%p). 보조: ΔT_hs = T_heatsink − T_ambient (동일 bin).",
+   "inputs": [
+    "inverter_dc_power",
+    "inverter_ac_power",
+    "inverter_heatsink_temperature",
+    "ambient_temperature"
+   ],
+   "normalization": "부하율·외기온도 bin, 계통전압 편차 큰 구간 제외",
+   "reveals": "파워모듈·리액터 열화, 냉각팬·필터 막힘(ΔT_hs 상승)"
+  },
+  {
+   "key": "chp_heat_recovery_performance",
+   "name_ko": "열회수 효율 및 열교환기 UA",
+   "formula": "Q_rec = ṁ_w·cp·(T_supply − T_return); η_th = Q_rec/(ṁ_H2·33.32 kWh/kg); UA = Q_rec/LMTD, LMTD = (ΔT1 − ΔT2)/ln(ΔT1/ΔT2) (스택 냉각수 측과 온수 측 온도차).",
+   "inputs": [
+    "hot_water_supply_temperature",
+    "hot_water_return_temperature",
+    "hot_water_flow",
+    "coolant_outlet_temperature",
+    "coolant_inlet_temperature",
+    "h2_supply_flow"
+   ],
+   "normalization": "부하율 bin, 환수온도 bin, 온수유량 bin",
+   "reveals": "열교환기 파울링·스케일, 3방향밸브 고착, 순환펌프 문제. 열 판매/자가사용 수익 손실 추정."
+  },
+  {
+   "key": "availability_mtbf",
+   "name_ko": "가용률·MTBF·MTTR",
+   "formula": "AF = (PH − FOH − POH)/PH; MTBF(강제정지) = 운전시간 / 강제정지 횟수; MTBS(모든 정지) = 운전시간 / 전체 정지 횟수; MTTR = Σ복구시간 / 강제정지 횟수. 출력제한 반영 시 EAF = (가용시간 − 등가감발시간)/PH.",
+   "inputs": [
+    "operating_state",
+    "grid_trip_event",
+    "esd_state",
+    "net_ac_power"
+   ],
+   "normalization": "월·분기 단위, 계획정지 분리, 계통/외부 원인(한전 정전, 입찰 급전지시) 제외 계열 별도, 동일 모델 비교",
+   "reveals": "신뢰도 추세. DOE 목표 99%, NREL 2013 실측: 평균 가용률 93%, 평균 MTBS 2,742 h."
+  },
+  {
+   "key": "tank_h2_mass",
+   "name_ko": "온도·압축성 보정 저장 수소 질량",
+   "formula": "m[kg] = P[Pa]·V[m³]·M / (Z·R·T[K]), M = 2.01588e-3 kg/mol, R = 8.314472 J/(mol·K). Z(T,P) = 1 + Σ_{i=1..9} a_i·(100/T)^b_i·(P/1 MPa)^c_i. (a,b,c) = (0.05888460,1.325,1.0), (−0.06136111,1.87,1.0), (−0.002650473,2.5,2.0), (0.002731125,2.8,2.0), (0.001802374,2.938,2.42), (−0.001150707,3.14,2.63), (0.0009588528,3.37,3.0), (−1.10904e-6,3.75,4.0), (1.26440e-9,4.0,5.0). 유효범위 220~1000 K, 70 MPa까지 밀도 0.01% (NIST Lemmon 2008). P는 절대압.",
+   "inputs": [
+    "tank_pressure",
+    "tank_gas_temperature",
+    "tank_wall_temperature",
+    "water_volume(메타)"
+   ],
+   "normalization": "게이지압 → 절대압 변환, 내부 가스온도 없으면 표면온도+열지연 보정(표면온도 1~2시간 이동평균, 추정)",
+   "reveals": "실제 수소 재고. 뱅크 합계는 저장량 KPI이자 물질수지·누설 추정의 기반."
+  },
+  {
+   "key": "tank_static_leak_rate",
+   "name_ko": "정지유지 구간 온도보정 누설률",
+   "formula": "tank_static_hold 이벤트에서 m(t) 시계열의 Theil–Sen 기울기 → leak[kg/h] = −slope; %/day = leak·24/m_avg·100; Nm³/h = leak/0.08988. 유의성: Δm > 3·u_m, u_m/m = sqrt((u_P/P)² + (u_T/T)²).",
+   "inputs": [
+    "tank_pressure",
+    "tank_gas_temperature",
+    "tank_wall_temperature",
+    "inlet_valve_state",
+    "outlet_valve_state",
+    "ambient_temperature"
+   ],
+   "normalization": "Z(P,T) 보정 필수, |dT/dt| < 0.5 K/h 구간만(추정), 충전 직후 가스 냉각 구간 4~6 h 제외(추정), 일사 없는 야간 구간 우선, 동일 초기압 bin끼리 이벤트 간 비교",
+   "reveals": "피팅·밸브 시트·씰·PRD 미세누설. 사용자 예시와 같은 '같은 조건(무유동·온도안정)에서 과거 대비 질량감소 속도 변화' 패턴."
+  },
+  {
+   "key": "tank_pressure_cycle_fatigue_index",
+   "name_ko": "저장용기 압력사이클 피로 소모율",
+   "formula": "탱크 압력 시계열에 레인플로 카운팅(ASTM E1049) → (ΔP_j, n_j). N_eq = Σ n_j·(ΔP_j/ΔP_design)^m (m ≈ 3~4, 추정). 소모율 = N_eq / 설계 사이클 수(용기 인증서).",
+   "inputs": [
+    "tank_pressure"
+   ],
+   "normalization": "설계 압력 범위(ΔP_design = 설계 최대 − 최소 운전압) 기준",
+   "reveals": "금속 용기·라이너 피로·수소취성 누적 위험도 → 재검사·비파괴검사 우선순위. 데이터로 직접 균열을 보지는 못함."
+  },
+  {
+   "key": "tank_fill_peak_gas_temperature",
+   "name_ko": "충전 중 최고 가스온도 및 충전율",
+   "formula": "tank_fill 이벤트별 T_gas_max, dP/dt 평균, 초기 온도 대비 상승 ΔT",
+   "inputs": [
+    "tank_gas_temperature",
+    "tank_wall_temperature",
+    "tank_pressure"
+   ],
+   "normalization": "충전률(bar/min) bin, 초기 가스온도 bin",
+   "reveals": "85 °C 한계 접근, 충전률 과대, 냉각 부족(Type III/IV 라이너 손상 위험)"
+  },
+  {
+   "key": "compressor_specific_energy",
+   "name_ko": "압축기 비전력 및 등온효율 지수",
+   "formula": "SEC[kWh/kg] = ΣE_motor / Δm (런 이벤트 단위; Δm = 유량계 적산 또는 저장뱅크 재고증가 + 동시 소비). w_iso[kWh/kg] = Z̄·4124.5·T_s·ln(P_d,abs/P_s,abs)/3.6e6. η_iso_index = w_iso/SEC.",
+   "inputs": [
+    "motor_power",
+    "h2_mass_flow",
+    "suction_pressure",
+    "discharge_pressure",
+    "suction_temperature",
+    "tank_pressure"
+   ],
+   "normalization": "흡입압 bin × 토출압 bin(압력비), 흡입온도, 냉각수 입구온도, 기동 직후 5분 제외",
+   "reveals": "밸브·링·다이어프램 내부 누설, 냉각 불량, 모터·인버터 효율 저하. 전형 2~4 kWh/kg(30→350/700 bar 약 2.9/3.8 kWh/kg, 15→900 bar 2.7~4.0)."
+  },
+  {
+   "key": "compressor_discharge_temp_residual",
+   "name_ko": "단별 토출온도 잔차(폴리트로픽 기준)",
+   "formula": "기준기간에 단별 폴리트로픽 지수 적합: ln(T_d/T_s) = ((n−1)/n)·ln(P_d/P_s) (절대온도·절대압). T_d_exp = T_s·(P_d/P_s)^((n−1)/n); residual = T_d − T_d_exp. 밸브 커버 온도가 있으면 동일 단 밸브 간 peer 편차 = T_valve − median(T_valves_same_stage).",
+   "inputs": [
+    "discharge_temperature",
+    "interstage_pressure",
+    "suction_pressure",
+    "discharge_pressure",
+    "suction_temperature",
+    "cooling_water_inlet_temperature",
+    "valve_cover_temperature"
+   ],
+   "normalization": "압력비·흡입온도·냉각수온 보정 내장, 운전속도 bin",
+   "reveals": "특정 단 잔차 상승 = 해당 단 밸브 누설(재압축), 전 단 동시 상승 = 냉각기 파울링/냉각수 부족. 밸브 간 8 °C 이상 편차는 누설 의심(업계 경험치)."
+  },
+  {
+   "key": "compressor_interstage_ratio_shift",
+   "name_ko": "단별 압력비 이동",
+   "formula": "r_k = P_out_k,abs / P_in_k,abs; Δr_k = (r_k − r_k,baseline[bin]) / r_k,baseline[bin], bin = (흡입압, 최종 토출압)",
+   "inputs": [
+    "suction_pressure",
+    "interstage_pressure",
+    "discharge_pressure"
+   ],
+   "normalization": "흡입압·최종 토출압 bin",
+   "reveals": "후단 흡입밸브 누설 시 중간단 압력 상승(앞단 압력비↑, 뒷단↓) 등 누설 위치 식별"
+  },
+  {
+   "key": "compressor_volumetric_index",
+   "name_ko": "압축기 체적효율 지수",
+   "formula": "VI = ṁ / (rpm × ρ_s), ρ_s = P_s·M/(Z·R·T_s); ratio = VI / VI_baseline[압력비 bin]",
+   "inputs": [
+    "h2_mass_flow",
+    "motor_speed",
+    "suction_pressure",
+    "suction_temperature",
+    "discharge_pressure"
+   ],
+   "normalization": "압력비 bin",
+   "reveals": "동일 회전수·흡입밀도에서 토출량 감소 = 밸브·링 누설, 다이어프램 변형, 클리어런스 증가"
+  },
+  {
+   "key": "diaphragm_oil_margin",
+   "name_ko": "다이어프램 오일압 여유(최대 오일압 − 가스 토출압)",
+   "formula": "margin = P_oil_max(1 min) − P_d; robust z = (margin − median_bin)/(1.4826·MAD_bin), bin = P_d 10 bar 단위. 보조: P_oil_min 추세, 사이클당 오일압 파형 피크 수(엣지 계산).",
+   "inputs": [
+    "hydraulic_oil_pressure_max",
+    "hydraulic_oil_pressure_min",
+    "discharge_pressure",
+    "hydraulic_oil_temperature"
+   ],
+   "normalization": "토출압 bin, 오일온도 bin",
+   "reveals": "오일 보충·리밋밸브 이상, 다이어프램 충돌·변형의 전조(문헌상 동적 오일압이 다이어프램 상태 진단에 가장 효과적)"
+  },
+  {
+   "key": "compressor_vibration_trend",
+   "name_ko": "압축기 진동 추세",
+   "formula": "일간 P95(1 min RMS), ratio = P95 / baseline_P95[bin], ISO 20816-8 zone 판정",
+   "inputs": [
+    "vibration_velocity_rms",
+    "discharge_pressure",
+    "motor_speed"
+   ],
+   "normalization": "토출압(부하) bin, 속도 bin",
+   "reveals": "베어링·크로스헤드·체결부 이완, 기초 문제, 맥동"
+  },
+  {
+   "key": "compressor_start_frequency",
+   "name_ko": "압축기 기동 빈도",
+   "formula": "시간당 기동 횟수, 일평균 1회 런타임, 기동/정지 압력 설정 간 히스테리시스 실측(정지압 − 기동압)",
+   "inputs": [
+    "run_state",
+    "tank_pressure"
+   ],
+   "normalization": "수전해 생산량(수소 유입) bin",
+   "reveals": "쇼트 사이클링 → 모터·밸브·다이어프램 피로 가속. 제어 설정 코칭 대상."
+  },
+  {
+   "key": "regulator_lockup_creep",
+   "name_ko": "레귤레이터 락업 크리프율",
+   "formula": "하류 무유량(연료전지 정지, 유량 < 검출한계) 구간에서 출구압 Theil–Sen 기울기 dP/dt [kPa/min]; lockup_offset = 락업 안정압 − 설정압",
+   "inputs": [
+    "regulator_outlet_pressure",
+    "h2_supply_flow",
+    "operating_state",
+    "ambient_temperature"
+   ],
+   "normalization": "온도변화율 작은 구간만, 동일 하류 체적(밸브 구성) 구간끼리 비교",
+   "reveals": "시트 손상·이물질 → 하류 과압 위험(안전밸브 작동 전 단계)"
+  },
+  {
+   "key": "regulator_droop_matched",
+   "name_ko": "유량 bin별 레귤레이터 드룹·헌팅",
+   "formula": "유량 bin별 median(P_out − P_set), stdev(P_out) (정상유량 구간)",
+   "inputs": [
+    "regulator_outlet_pressure",
+    "regulator_inlet_pressure",
+    "h2_supply_flow"
+   ],
+   "normalization": "유량 bin, 입구압 bin(저장압 저하 시 드룹 증가 정상)",
+   "reveals": "스프링·다이어프램 열화, 필터 막힘, 저장압 부족"
+  },
+  {
+   "key": "valve_stroke_time_ratio",
+   "name_ko": "자동밸브 작동시간 비율",
+   "formula": "t_stroke = t(리밋스위치 도달) − t(명령); ratio = t_stroke / median_baseline[방향, 계장공기압 bin, 온도 bin]",
+   "inputs": [
+    "esv_command",
+    "esv_limit_switch",
+    "instrument_air_pressure",
+    "ambient_temperature"
+   ],
+   "normalization": "개/폐 방향 분리, 계장공기압·온도 bin, 장기 미작동 후 첫 작동은 별도 표시",
+   "reveals": "액추에이터·솔레노이드 열화, 스템 고착 → 비상 차단 성능 저하. 부분작동시험(PST) 결과와 결합."
+  },
+  {
+   "key": "detector_health_index",
+   "name_ko": "누출 검지기 건전성 지수",
+   "formula": "(a) 고착: 24 h 동안 값 분산 = 0 또는 동일값 지속(정상 노이즈가 있는 기종) (b) 드리프트: 일간 하위 5% 분위(배경) 30일 Theil–Sen 기울기 [ppm/월] (c) 동일 구역 검지기 간 배경 차 (d) 교정 as-found 오차 추세 (e) 교정 경과일/권장주기(3~6개월). 점수 = 가중 합(규칙 기반).",
+   "inputs": [
+    "h2_concentration",
+    "detector_fault_status",
+    "calibration_as_found_error"
+   ],
+   "normalization": "온도·습도 영향 큰 기종은 외기 bin, 교정 이벤트 후 리셋",
+   "reveals": "안전기능 상실(감도 저하·고착·피독) 위험. 촉매식은 연 수백 ppm 드리프트가 전형이므로 그 2배 초과 시 이상."
+  },
+  {
+   "key": "h2_chain_mass_balance",
+   "name_ko": "수소 계통 물질수지 잔차",
+   "formula": "기간 T에서 residual = m_in(수전해 생산 또는 압축기 유량 적산) − Δm_inventory(Z보정 뱅크 합) − m_fc(연료전지 공급 유량 적산) − m_purge_vent(추정). 잔차율 = residual/m_in. 유의성: |residual| > 2·sqrt(Σu_i²).",
+   "inputs": [
+    "h2_mass_flow",
+    "h2_supply_flow",
+    "tank_pressure",
+    "tank_gas_temperature"
+   ],
+   "normalization": "주/월 단위, 기간 시작·끝을 온도안정 시점으로 정렬",
+   "reveals": "미계측 누설, 유량계 드리프트, 과다 퍼지·벤트 손실"
+  },
+  {
+   "key": "leak_episode_operation_lift",
+   "name_ko": "저농도 검출 에피소드-운전조작 연관도",
+   "formula": "에피소드 E: h2_concentration > 배경 + max(3·MAD, 100 ppm, 추정) 1분 이상. 조작 op ∈ {압축기 기동, 충전 시작, 퍼지, 밸브 조작}의 ±5분 창. lift = P(E | op창) / P(E | 전체시간). lift > 3 이고 동시발생 ≥ 5회면 연관 확정.",
+   "inputs": [
+    "h2_concentration",
+    "run_state",
+    "purge_valve_state",
+    "esv_command",
+    "tank_pressure"
+   ],
+   "normalization": "검지기 위치별, 풍속·환기 상태 동일 구간",
+   "reveals": "간헐 누설원의 위치·조건 추정(예: 압축기 기동 시 패킹, 충전 시 피팅 열팽창)"
+  }
+ ],
+ "events": [
+  {
+   "key": "fc_steady_state_window",
+   "name_ko": "연료전지 정상상태 운전 윈도우",
+   "extractionRule": "operating_state = 발전 AND 최근 10분 동안 stack_current 변동 |max−min|/mean ≤ 2% AND stack_temperature 변동 ≤ 1 °C AND 기동 후 30분·부하변경 후 5분 경과 AND 퍼지 직후 30초 제외(모두 초기값, 추정). 윈도우 길이 10분, 겹치지 않게 분할.",
+   "featuresPerEvent": [
+    "j_mean(A/cm²)",
+    "v_cell_mean",
+    "v_cell_min",
+    "v_cell_min_index",
+    "v_cell_std",
+    "stack_temperature_mean",
+    "air_stoich",
+    "cathode_dp",
+    "h2_flow_kg_h",
+    "net_ac_kw",
+    "bop_kw",
+    "coolant_delta_t",
+    "coolant_pump_speed",
+    "coolant_conductivity",
+    "blower_speed",
+    "blower_kw",
+    "inverter_efficiency",
+    "hfr_mean",
+    "ambient_temperature",
+    "operating_hours_at_window"
+   ]
+  },
+  {
+   "key": "fc_start",
+   "name_ko": "연료전지 기동 이벤트",
+   "extractionRule": "operating_state가 정지→기동으로 전이한 시점부터 발전 상태에서 net_ac_power ≥ 목표출력 90% 도달 또는 30분 경과(실패)까지. 직전 정지 종료 시각으로 off_duration 계산.",
+   "featuresPerEvent": [
+    "off_duration_h",
+    "cold_or_warm_class",
+    "ambient_temperature",
+    "startup_duration_s",
+    "success_flag",
+    "ocv_cell_median",
+    "ocv_cell_min",
+    "ocv_max_gap_mV",
+    "ocv_max_gap_cell_index",
+    "min_cell_voltage_during_ramp",
+    "h2_consumed_kg",
+    "fault_code"
+   ]
+  },
+  {
+   "key": "fc_shutdown",
+   "name_ko": "연료전지 정지 이벤트(정상/트립 구분)",
+   "extractionRule": "발전→정지절차 또는 발전→트립 전이부터 operating_state = 정지 도달까지. 트립 코드 존재 또는 정지절차 미경유 시 trip으로 분류.",
+   "featuresPerEvent": [
+    "shutdown_type(normal/trip/esd)",
+    "trip_code",
+    "power_before_kw",
+    "shutdown_duration_s",
+    "voltage_decay_time_s",
+    "min_cell_voltage_during_shutdown",
+    "cell_reversal_flag",
+    "anode_pressure_decay_kPa_per_min(누설 확인 절차가 있으면)",
+    "stack_temperature_at_stop"
+   ]
+  },
+  {
+   "key": "fc_purge",
+   "name_ko": "애노드 퍼지 이벤트",
+   "extractionRule": "purge_valve_state open 상승엣지부터 close까지 1회. 발전 상태에서만 집계.",
+   "featuresPerEvent": [
+    "open_duration_ms",
+    "interval_since_last_purge_s",
+    "ah_since_last_purge",
+    "current_mean_A",
+    "dv_dt_pre_mV_per_min",
+    "v_recovery_mV",
+    "anode_pressure_drop_kPa",
+    "estimated_h2_lost_g",
+    "exhaust_h2_peak_vol%"
+   ]
+  },
+  {
+   "key": "fc_load_step",
+   "name_ko": "부하 변동(스텝/램프) 이벤트",
+   "extractionRule": "10초 내 출력지령 또는 stack_current 변화가 정격의 10% 이상인 구간, 새 전류에서 60초 안정될 때까지.",
+   "featuresPerEvent": [
+    "delta_current_A",
+    "ramp_rate_A_per_s",
+    "instant_dV_dI_ohm",
+    "min_cell_voltage_undershoot",
+    "air_flow_lag_s",
+    "recovery_time_s",
+    "cathode_dp_peak"
+   ]
+  },
+  {
+   "key": "fc_forced_outage",
+   "name_ko": "강제정지(가용률 손실) 이벤트",
+   "extractionRule": "트립/ESD로 정지된 시점부터 운전 가능 상태(원격 기동 허가) 복귀 또는 재기동 성공까지. 계획정비 작업지시와 겹치면 planned로 재분류.",
+   "featuresPerEvent": [
+    "cause_category(스택/BOP/전력변환/수소공급/안전/계통/외부)",
+    "trip_code",
+    "duration_h(MTTR)",
+    "lost_energy_kwh",
+    "repeat_within_7d_flag"
+   ]
+  },
+  {
+   "key": "tank_static_hold",
+   "name_ko": "저장뱅크 정지유지(무유동) 구간",
+   "extractionRule": "inlet_valve_state = closed AND outlet_valve_state = closed (또는 압축기 정지 AND 연료전지 공급 유량 < 검출한계) 가 연속 6 h 이상. 시작 시점이 직전 충전 종료 후 4~6 h 미만이면 그만큼 앞부분 제외(추정). |dT/dt| > 0.5 K/h 구간은 마스킹.",
+   "featuresPerEvent": [
+    "duration_h",
+    "p_start_bar",
+    "p_end_bar",
+    "t_gas_start_C",
+    "t_gas_end_C",
+    "z_start",
+    "z_end",
+    "m_start_kg",
+    "m_end_kg",
+    "leak_kg_per_day",
+    "leak_pct_per_day",
+    "uncertainty_kg",
+    "ambient_temp_swing_C",
+    "night_fraction",
+    "significant_flag"
+   ]
+  },
+  {
+   "key": "tank_fill",
+   "name_ko": "저장뱅크 충전 이벤트",
+   "extractionRule": "압축기 run_state = 운전 AND tank_pressure 상승(1분 기울기 > 0) 시작부터 압축기 정지 또는 압력 정체까지. 레인플로 사이클 계산용 최저/최고압 기록.",
+   "featuresPerEvent": [
+    "p_min_bar",
+    "p_max_bar",
+    "delta_p_bar",
+    "mass_added_kg",
+    "fill_rate_bar_per_min",
+    "t_gas_max_C",
+    "t_gas_rise_C",
+    "compressor_energy_kwh",
+    "sec_kwh_per_kg"
+   ]
+  },
+  {
+   "key": "tank_rapid_depressurization",
+   "name_ko": "급감압 이벤트(Type IV 블리스터 위험)",
+   "extractionRule": "tank_pressure 감소율이 설정값(예: 제조사 허용 감압률, 미정 시 10 bar/min, 추정)을 1분 이상 초과. 벤트·비상방출·배관 파단 의심 포함.",
+   "featuresPerEvent": [
+    "dp_dt_max_bar_per_min",
+    "p_start_bar",
+    "p_end_bar",
+    "t_gas_min_C",
+    "cause(vent/esd/unknown)"
+   ]
+  },
+  {
+   "key": "compressor_run",
+   "name_ko": "압축기 운전 런 이벤트",
+   "extractionRule": "run_state 기동 명령부터 정지까지 1회. 기동 후 5분은 과도구간으로 별도 통계, 이후를 정상 통계로 사용.",
+   "featuresPerEvent": [
+    "duration_min",
+    "suction_pressure_mean",
+    "discharge_pressure_start",
+    "discharge_pressure_end",
+    "pressure_ratio_mean",
+    "mass_throughput_kg",
+    "energy_kwh",
+    "sec_kwh_per_kg",
+    "eta_iso_index",
+    "discharge_temp_max_per_stage",
+    "discharge_temp_residual_per_stage",
+    "interstage_ratio_shift_per_stage",
+    "vibration_p95",
+    "oil_margin_median",
+    "oil_temp_max",
+    "cooling_water_delta_t",
+    "start_inrush_current_A",
+    "trip_code"
+   ]
+  },
+  {
+   "key": "valve_actuation",
+   "name_ko": "자동차단밸브 작동 이벤트",
+   "extractionRule": "esv_command 변화(개/폐) 시각부터 해당 방향 esv_limit_switch 도달 시각까지. 10초(추정) 내 미도달 시 실패 이벤트.",
+   "featuresPerEvent": [
+    "valve_id",
+    "direction(open/close)",
+    "stroke_time_ms",
+    "instrument_air_pressure",
+    "ambient_temperature",
+    "days_since_last_actuation",
+    "success_flag"
+   ]
+  },
+  {
+   "key": "regulator_no_flow_hold",
+   "name_ko": "레귤레이터 무유량 락업 구간",
+   "extractionRule": "h2_supply_flow < 검출한계 AND 연료전지 정지 AND 상류 차단밸브 open(레귤레이터 가압 상태) 연속 30분 이상.",
+   "featuresPerEvent": [
+    "lockup_pressure_bar",
+    "creep_rate_kPa_per_min",
+    "inlet_pressure_bar",
+    "ambient_temp_change_C",
+    "duration_min"
+   ]
+  },
+  {
+   "key": "h2_detection_episode",
+   "name_ko": "수소 검출 에피소드(경보 미만 포함)",
+   "extractionRule": "h2_concentration > 배경 median + max(3·MAD, 100 ppm)(추정) 가 1분 이상 지속된 구간, 종료는 배경+50% 복귀. 경보 설정치 초과는 별도로 즉시 안전 이벤트로도 기록.",
+   "featuresPerEvent": [
+    "detector_id",
+    "location",
+    "peak_ppm",
+    "duration_s",
+    "area_ppm_s",
+    "concurrent_operations(compressor_start/fill/purge/valve)",
+    "ventilation_state",
+    "wind_speed",
+    "alarm_level_reached"
+   ]
+  },
+  {
+   "key": "safety_interlock_trip",
+   "name_ko": "안전 인터록 작동 이벤트",
+   "extractionRule": "SIS/PLC의 ESD·인터록 비트 상승엣지(ms 타임스탬프). 분석 파이프라인과 별개 즉시 경로로 수신·저장.",
+   "featuresPerEvent": [
+    "interlock_type(leak/overpressure/flame/diaphragm/overtemp/ventilation/insulation/estop/grid)",
+    "trigger_value",
+    "setpoint",
+    "affected_assets",
+    "first_out_signal",
+    "ack_time_s",
+    "reset_time_s"
+   ]
+  },
+  {
+   "key": "detector_calibration",
+   "name_ko": "검지기 교정/점검 이벤트",
+   "extractionRule": "정비 기록 입력(작업지시 완료) 또는 검지기 maintenance 상태 on→off.",
+   "featuresPerEvent": [
+    "detector_id",
+    "as_found_zero_ppm",
+    "as_found_span_error_pct",
+    "as_left_error_pct",
+    "response_time_t90_s",
+    "sensor_replaced_flag",
+    "days_since_last_cal"
+   ]
+  }
+ ],
+ "failureModes": [
+  {
+   "assetType": "h2_compressor",
+   "mode_ko": "다이어프램 피로균열·파손",
+   "dataSignature": "누설검지 포트 압력 상승(파손 시), 최대 오일압 여유(P_oil_max − P_d)의 비정상 변동, 최소 오일압 저하, 토출량(체적효율 지수) 감소, 오일 내 수소·가스 내 오일 흔적",
+   "detectionMethod": "(1) diaphragm_leak_detect_pressure > 설정치 → 안전 인터록(분석 우회). (2) diaphragm_oil_margin의 토출압 bin별 robust z가 |z| > 3을 30분 이상 또는 EWMA(λ=0.1)가 기준 ±3σ 이탈 → 경고. (3) compressor_volumetric_index < 0.9(동일 압력비 bin) 3회 연속 런 → 경고. (4) 다이어프램 누적 운전시간 / 제조사 교체주기(문헌상 약 4,000 h 수준) > 0.9 → 예방정비 알림.",
+   "severity": "critical",
+   "recommendedAction_ko": "경고 단계에서 다음 계획정지 때 다이어프램·오일 리밋밸브 점검 일정 수립, 오일 보충계통(체크밸브·오일펌프) 점검. 누설검지 작동 시 즉시 정지·잠금, 다이어프램 3매 세트 교체 및 오일 분석, 파손 원인(충돌·이물·오일 과보충) 조사.",
+   "falsePositiveTraps": "흡입압 급변(수전해 출구압 변동)·토출압 bin 경계에서 오일압 통계 흔들림, 오일온도 저온 기동 시 점도 영향, 엣지 수집기 샘플링 누락으로 max가 낮게 찍힘, 오일 교체 직후 거동 변화.",
+   "typicalLeadTime": "오일압 패턴 변화는 수일~수주(추정), 파손 자체는 급작스러움"
+  },
+  {
+   "assetType": "h2_compressor",
+   "mode_ko": "흡입/토출 밸브 누설·파손",
+   "dataSignature": "특정 단 토출온도 잔차 상승, 해당 단 밸브 커버 온도가 동일 단 다른 밸브보다 높음, 단간 압력비 이동, 비전력 증가, 토출량 감소",
+   "detectionMethod": "compressor_discharge_temp_residual 단별 CUSUM(k = 0.5σ_base, h = 5σ_base) 경보, 또는 동일 단 밸브 간 peer 편차 > 8 °C가 30분 이상(업계 경험치). compressor_interstage_ratio_shift |Δr| > 5%(추정) 동반 시 위치 확정. SEC가 동일 압력비 bin 기준 대비 +10% 3회 연속이면 교차 확인.",
+   "severity": "high",
+   "recommendedAction_ko": "해당 단 밸브 분해점검·밸브 플레이트/스프링 교체, 흡입필터·이물 확인. 교체 후 새 기준선(baseline) 재학습.",
+   "falsePositiveTraps": "냉각수 온도 상승(여름철)은 전 단 동시 상승으로 나타나므로 단별 비교 필요, 흡입온도 계측 누락, 저부하 운전(바이패스 스필백)에서의 온도 상승, 센서 위치 차이로 인한 밸브 간 고정 편차(기준기간 편차를 빼고 비교).",
+   "typicalLeadTime": "수일~수주"
+  },
+  {
+   "assetType": "h2_compressor",
+   "mode_ko": "피스톤 링·로드 패킹 마모(블로바이, 피스톤형)",
+   "dataSignature": "패킹 벤트 수소 농도·유량 증가, 체적효율 지수 저하, 비전력 증가, 크랭크케이스/디스턴스피스 압력 상승, 기동 시 주변 저농도 검출 에피소드와 연관",
+   "detectionMethod": "packing_vent_h2_concentration 일간 median의 30일 Theil–Sen 기울기 > 0 이고 기준 대비 2배 초과 → 경고. leak_episode_operation_lift(op = 압축기 기동) > 3 & 발생 ≥ 5회 → 패킹 누설 의심. compressor_volumetric_index 추세 동반 확인.",
+   "severity": "high",
+   "recommendedAction_ko": "패킹·링 교체 계획, 금속 파편 유입 여부(필터) 확인(NREL: 씰 파손이 압축기 정지 주원인, 금속 파편이 주요 기여). 벤트 라인 방출 위치 안전성 재확인.",
+   "falsePositiveTraps": "기동 직후 패킹 안착 전 일시 누설, 벤트 검지기 위치가 바람에 영향, 신품 패킹 길들이기 기간.",
+   "typicalLeadTime": "수주"
+  },
+  {
+   "assetType": "h2_compressor",
+   "mode_ko": "인터쿨러/애프터쿨러 냉각 성능 저하",
+   "dataSignature": "전 단 토출온도 동시 상승, 냉각수 ΔT 감소(유량 과다/열전달 저하) 또는 증가(유량 부족), 냉각수 입구온도 대비 가스 출구 접근온도(approach) 증가",
+   "detectionMethod": "approach = T_gas_after_cooler − T_cw_in 의 부하 bin별 기준 대비 +5 °C(추정) 7일 median 초과 → 경고. 전 단 residual 동시 상승 & 밸브 peer 편차 없음 → 냉각 원인으로 분류.",
+   "severity": "medium",
+   "recommendedAction_ko": "냉각수 유량·스트레이너·쿨링타워/칠러 점검, 열교환기 세정(스케일 제거), 냉각수 수질 관리.",
+   "falsePositiveTraps": "하절기 외기·냉각수 온도 상승 자체(approach로 정규화해야 함), 냉각수 유량계 드리프트.",
+   "typicalLeadTime": "수주~수개월"
+  },
+  {
+   "assetType": "h2_compressor",
+   "mode_ko": "유압유/윤활유 계통 이상(오일압 저하·오일 열화·리밋밸브 불량)",
+   "dataSignature": "윤활유 공급압 저하 추세, 오일온도 상승, 최소 오일압 변화, 오일 레벨 저하",
+   "detectionMethod": "lube_oil_pressure 동일 오일온도 bin 기준 대비 −10%(추정) 24 h median → 경고, 트립 설정치 도달은 인터록. hydraulic_oil_temperature 부하 bin 기준 대비 +5 °C 지속 → 경고. 오일 교체 후 경과시간 > 권장주기 → 정비 알림.",
+   "severity": "high",
+   "recommendedAction_ko": "오일 샘플 분석(점도·수분·금속분), 필터 교체, 오일펌프·리밋밸브 점검, 오일 쿨러 점검.",
+   "falsePositiveTraps": "저온 기동 시 고점도로 인한 고압, 오일 교체 직후 기준 변화, 센서 위치(필터 전/후) 혼동.",
+   "typicalLeadTime": "수일~수주"
+  },
+  {
+   "assetType": "h2_compressor",
+   "mode_ko": "베어링·크랭크·체결부 기계적 이상",
+   "dataSignature": "진동 RMS 상승, 베어링 온도 상승, 모터 전류 상불평형·변동 증가",
+   "detectionMethod": "compressor_vibration_trend ratio > 1.5(추정) 또는 ISO 20816-8 zone C 진입 → 경고, zone D → 인터록. bearing_temperature 부하·외기 bin 대비 +10 °C → 경고. 모터 상전류 불평형 > 5% 지속 → 경고.",
+   "severity": "high",
+   "recommendedAction_ko": "진동 스펙트럼 정밀 측정(휴대형 분석기), 기초·앵커볼트·커플링 정렬 점검, 베어링 윤활 및 교체 계획.",
+   "falsePositiveTraps": "토출압(부하) 변화에 따른 정상 진동 변화, 맥동 댐퍼·배관 공진, 센서 부착 이완(값 급변), 인접 설비 진동.",
+   "typicalLeadTime": "수주~수개월"
+  },
+  {
+   "assetType": "h2_compressor",
+   "mode_ko": "쇼트 사이클링(과다 기동·정지)",
+   "dataSignature": "시간당 기동 횟수 증가, 1회 런타임 단축, 저장압 기동/정지 설정 간 폭 협소",
+   "detectionMethod": "compressor_start_frequency 일평균 > 설계 허용(제조사 값, 미정 시 6회/h 추정) 또는 기준 대비 2배 → 코칭 알림. 수전해 생산량이 적은 날(태양광 저일사)과 상관분석.",
+   "severity": "medium",
+   "recommendedAction_ko": "버퍼탱크 압력 히스테리시스 확대, 수전해-압축기 연동 제어(최소 런타임) 조정, 가변속 운전 검토.",
+   "falsePositiveTraps": "시운전·정비 시험 기동, 수동 조작 기간, 일사 급변 날의 일시 증가.",
+   "typicalLeadTime": "누적형(수개월에 걸쳐 피로 누적)"
+  },
+  {
+   "assetType": "h2_compressor",
+   "mode_ko": "압축 효율 저하(비전력 증가, 복합 원인)",
+   "dataSignature": "동일 압력비에서 SEC 증가, η_iso_index 저하",
+   "detectionMethod": "compressor_specific_energy를 (흡입압, 토출압) bin 기준 대비 비율로 계산 → 런 이벤트 계열 EWMA(λ=0.2)가 1.10 초과 → 경고. 원인 분해 규칙: 단별 온도잔차 상승 → 밸브, 체적효율 저하만 → 링/다이어프램, 모터 전류 대비 출력 저하 → 모터/인버터.",
+   "severity": "medium",
+   "recommendedAction_ko": "원인 분해 결과에 따라 밸브/링/냉각/모터 점검. 월간 코칭 리포트에 kWh/kg 손실비용(전력단가 × 초과 kWh) 제시.",
+   "falsePositiveTraps": "질량유량을 재고변화로 추정할 때 동시 소비 누락, 짧은 런(기동 과도 비중 큼), 흡입압 저하일(수전해 저출력) 비교.",
+   "typicalLeadTime": "수주~수개월"
+  },
+  {
+   "assetType": "h2_storage_bank",
+   "mode_ko": "저장뱅크 미세누설(피팅·밸브 시트·씰·PRD 웨핑)",
+   "dataSignature": "정지유지 구간에서 온도·압축성 보정 질량의 지속 감소, 인근 검지기 저농도 에피소드, 물질수지 잔차 양(+)",
+   "detectionMethod": "tank_static_leak_rate 이벤트별 계산. (1) 단일 이벤트 Δm > 3·u_m 이고 leak > 0.5%/day(초기값, 추정) → 의심. (2) 최근 5개 이벤트 중 3개 이상 의심 또는 이벤트 계열 CUSUM(k=0.5σ, h=4σ) 초과 → 누설 경보. (3) 용기별 압력계측이 있으면 용기 간 peer 비교로 위치 특정. (4) h2_chain_mass_balance 잔차와 교차 확인.",
+   "severity": "critical",
+   "recommendedAction_ko": "누설 검사(발포액·휴대용 검지기·초음파)로 피팅·밸브 스템·PRD 확인, 토크 재조임 또는 씰 교체. 확인 전까지 운전압력 하향 검토. 결과를 이벤트에 기록해 탐지 규칙 튜닝.",
+   "falsePositiveTraps": "충전 직후 가스 냉각(압력 하강이 정상), 일사·야간 냉각에 의한 내부 가스온도와 표면온도 불일치(열지연), 게이지압을 절대압으로 변환하지 않음, 압력 전송기 분해능·드리프트, 밸브 리밋스위치는 닫힘인데 내부 통과 누설(하류로 이동)이면 외부 누설 아님.",
+   "typicalLeadTime": "조기(수일 누적으로 탐지), 사고 전 경고 가능"
+  },
+  {
+   "assetType": "h2_storage_vessel",
+   "mode_ko": "금속 용기·라이너 피로 및 수소취성 누적(Type I/II/III)",
+   "dataSignature": "운전 데이터에 직접 신호 거의 없음. 압력사이클 수·진폭 누적, 충전 최고압 빈도",
+   "detectionMethod": "tank_pressure_cycle_fatigue_index 소모율 계산 → 50%/80% 도달 시 비파괴검사·재검사 우선순위 상향 알림. 설계압 95% 이상 도달 횟수 월간 집계.",
+   "severity": "critical",
+   "recommendedAction_ko": "KGS AC116(저장탱크·압력용기)/AC414(복합재료용기) 재검사 일정과 연동, 사이클 소모율 높은 뱅크부터 음향방출(AE)·초음파 검사, 압력 운전범위(사이클 진폭) 축소 운용 코칭.",
+   "falsePositiveTraps": "압력 샘플링이 느리면 사이클 누락(1~10 s 이하 권장), 센서 스파이크를 사이클로 오인(스파이크 필터 필요), 설계 사이클 수 메타데이터 부재.",
+   "typicalLeadTime": "수년 단위 누적(재검사 주기 관리형)"
+  },
+  {
+   "assetType": "h2_storage_vessel",
+   "mode_ko": "Type IV 라이너 블리스터·투과 증가(급감압·과열)",
+   "dataSignature": "급감압 이벤트 발생, 정지유지 누설률의 완만한 상승(투과), 충전 중 가스온도 상승 과다",
+   "detectionMethod": "tank_rapid_depressurization 이벤트 발생 시 즉시 점검 알림. Type IV 뱅크의 tank_static_leak_rate가 기준 대비 2배(단, ISO 19881 투과 한계 수준 환산과 비교) → 경고. tank_fill_peak_gas_temperature > 80 °C(한계 85 °C 전 경고, 추정) → 경고.",
+   "severity": "high",
+   "recommendedAction_ko": "급감압 원인 조사, 제조사 권고에 따라 라이너 내시경·누설 시험, 감압 속도 제한 설정, 충전률 하향.",
+   "falsePositiveTraps": "비상방출 훈련·정비 벤트, 고온 계절 투과율 자연 증가(온도 의존), 표면온도만으로 내부 가스온도 과소평가.",
+   "typicalLeadTime": "급감압은 즉시 영향, 투과 증가는 수개월"
+  },
+  {
+   "assetType": "h2_storage_bank",
+   "mode_ko": "충전 중 과열(가스온도 한계 접근)",
+   "dataSignature": "충전률(bar/min) 과대, 가스온도 급상승, 초기온도 높은 날 최고온도 상승",
+   "detectionMethod": "tank_fill 이벤트별 t_gas_max가 80 °C(추정 경고치) 초과 → 경고, 85 °C 초과 → 인터록(충전 중지). 충전률 bin별 ΔT 기준 대비 +20% → 냉각/차양 문제 경고.",
+   "severity": "high",
+   "recommendedAction_ko": "압축기 토출 애프터쿨러 점검, 충전률 제한, 여름철 차양·살수 설비 점검.",
+   "falsePositiveTraps": "온도센서 직사광선 노출, 표면온도 센서 사용 시 과소 측정, 소형 용기에서 빠른 온도 변화.",
+   "typicalLeadTime": "충전 이벤트 중 수분"
+  },
+  {
+   "assetType": "h2_storage_bank",
+   "mode_ko": "압력·온도 전송기 드리프트/고장",
+   "dataSignature": "이중화 센서 간 편차 증가, 무유동 균압 시 연결된 두 지점 압력 불일치, 값 고착",
+   "detectionMethod": "균압 상태(밸브 open·무유동 10분)에서 |P_a − P_b| > 2 × 합성 정확도 → 드리프트 경고. 24 h 분산 0 → 고착. 압축기 토출압 vs 뱅크압(충전 종료 직후 균압) 비교.",
+   "severity": "medium",
+   "recommendedAction_ko": "전송기 교정 또는 교체, 누설 추정 결과는 교정 완료까지 '신뢰도 낮음' 표시.",
+   "falsePositiveTraps": "실제 유동 중 배관 압손, 온도 차에 의한 일시 편차.",
+   "typicalLeadTime": "수주~수개월"
+  },
+  {
+   "assetType": "h2_valve_train",
+   "mode_ko": "레귤레이터 시트 누설(락업 크리프)",
+   "dataSignature": "하류 무유량 시 출구압이 설정압 이상으로 서서히 상승, 하류 안전밸브 작동 이력",
+   "detectionMethod": "regulator_no_flow_hold 이벤트의 creep_rate > 기준 median + 3·MAD 또는 절대 1 kPa/min(추정) → 경고. lockup_offset이 설정압 대비 +10%(추정) → 경고. 3회 연속이면 정비 요청.",
+   "severity": "high",
+   "recommendedAction_ko": "레귤레이터 시트·다이어프램 교체, 상류 필터 점검(이물), 하류 안전밸브 설정 확인.",
+   "falsePositiveTraps": "하류 배관 온도 상승에 의한 압력 상승(무유동 밀폐 구간 가스 팽창), 하류 밸브 구성 차이, 연료전지 정지 직후 과도.",
+   "typicalLeadTime": "수일~수주"
+  },
+  {
+   "assetType": "h2_valve_train",
+   "mode_ko": "레귤레이터 드룹 증가·헌팅",
+   "dataSignature": "동일 유량에서 출구압 저하 폭 증가, 출구압 진동 증가",
+   "detectionMethod": "regulator_droop_matched를 유량 bin별 기준 대비 비교: median 편차 −5%(추정) 또는 stdev 2배 7일 지속 → 경고. 입구압 bin을 함께 두어 저장압 저하 효과 분리.",
+   "severity": "medium",
+   "recommendedAction_ko": "레귤레이터 스프링·다이어프램 점검, 필터 차압 확인, 필요시 2단 감압 구성 검토.",
+   "falsePositiveTraps": "저장뱅크 압력이 낮을 때의 정상 드룹 증가, 연료전지 부하 급변.",
+   "typicalLeadTime": "수주"
+  },
+  {
+   "assetType": "h2_valve_train",
+   "mode_ko": "자동차단밸브 작동 지연·고착",
+   "dataSignature": "명령→리밋스위치 도달 시간 증가, 부분작동시험 실패, 리밋스위치 미도달",
+   "detectionMethod": "valve_actuation 이벤트의 valve_stroke_time_ratio > 1.5 또는 제조사 최대 작동시간 초과 → 경고, 미도달(실패) → 즉시 고우선 알림. 장기 미작동(> 90일, 추정) 밸브는 부분작동시험 권고 알림.",
+   "severity": "critical",
+   "recommendedAction_ko": "액추에이터·솔레노이드·계장공기 계통 점검, 스템 윤활·패킹 조정, 안전기능 검증(SIL 증빙) 후 복귀.",
+   "falsePositiveTraps": "계장공기압 저하일, 저온 기동, 리밋스위치 자체 불량(밸브는 정상), PLC 스캔타임에 의한 ms 오차.",
+   "typicalLeadTime": "수주~수개월(점진), 고착은 급작"
+  },
+  {
+   "assetType": "h2_valve_train",
+   "mode_ko": "수소 필터 막힘",
+   "dataSignature": "필터 차압 증가, 레귤레이터 입구압 저하, 고유량 시 드룹 증가",
+   "detectionMethod": "filter_differential_pressure 유량 bin 정규화(ΔP/ṁ²) 기준 대비 2배 → 교체 알림.",
+   "severity": "low",
+   "recommendedAction_ko": "필터 교체 및 포집물 분석(압축기 마모분·다이어프램 파편 여부).",
+   "falsePositiveTraps": "저유량 구간 계측 노이즈, 차압계 영점 드리프트.",
+   "typicalLeadTime": "수주~수개월"
+  },
+  {
+   "assetType": "h2_gas_detector",
+   "mode_ko": "검지기 감도 저하·영점 드리프트·고착·피독",
+   "dataSignature": "배경값의 점진적 이동, 동일 구역 검지기 간 불일치, 값이 전혀 변하지 않음, 교정 as-found 오차 증가, 교정 주기 초과",
+   "detectionMethod": "detector_health_index: (a) 24 h 분산 0 → 고착 경보 (b) 배경 기울기 > 연 수백 ppm 수준의 2배(추정) → 드리프트 경고 (c) 동일 구역 peer 배경 차 > 200 ppm(추정) → 경고 (d) 교정 경과일 > 권장 3~6개월 → 정비 알림 (e) as-found 오차 추세 상승 → 교정주기 단축 권고.",
+   "severity": "critical",
+   "recommendedAction_ko": "표준가스로 즉시 기능 점검·교정, 피독원(실리콘 실란트·윤활제) 제거, 센서 교체. 점검 완료 전까지 해당 구역 휴대용 검지기 순회 점검.",
+   "falsePositiveTraps": "실내 완전 청정 환경에서 정상적으로 0 고정 출력하는 기종(분해능 낮은 트랜스미터), 온습도 변화에 따른 일시 이동, 교정 중 값.",
+   "typicalLeadTime": "수주~수개월"
+  },
+  {
+   "assetType": "h2_system",
+   "mode_ko": "간헐적 저농도 수소 누설(반복 검출)",
+   "dataSignature": "경보 미만 저농도 에피소드가 특정 운전조작(압축기 기동, 충전, 퍼지, 밸브 조작) 전후 반복",
+   "detectionMethod": "leak_episode_operation_lift: lift > 3 이고 동시발생 ≥ 5회 → 연관 누설원 경보. 에피소드 빈도(주간)의 포아송 기준 대비 유의 증가(p < 0.01) → 경고.",
+   "severity": "high",
+   "recommendedAction_ko": "연관 조작 대상 설비 주변 정밀 누설점검(피팅 열팽창·진동 이완, 패킹, 퍼지 배기 경로), 환기 흐름 확인.",
+   "falsePositiveTraps": "퍼지·벤트의 설계상 정상 방출이 검지기에 도달하는 배치, 차량·용접 등 외부 수소원, 센서 교차감도(CO, 알코올 등).",
+   "typicalLeadTime": "수일~수주"
+  },
+  {
+   "assetType": "fc_stack",
+   "mode_ko": "스택 전압 열화 가속(촉매 ECSA 손실·탄소 담지체 부식)",
+   "dataSignature": "V@j_ref 하락 기울기 증가, 회귀 활성화 항 b 증가 또는 고전류 영역 이탈, 효율 저하·소비원단위 증가",
+   "detectionMethod": "fc_voltage_degradation_rate 가속비 > 2 또는 절대 열화율 > 10 µV/h/셀(정치형 경고치, 추정) → 경고. 주간 V@j_ref 계열 CUSUM(하방, k=0.5σ, h=5σ) → 급변 경고. 동일 모델 사이트 간 열화율 robust z > 3 → 사이트 특이 열화.",
+   "severity": "medium",
+   "recommendedAction_ko": "운전패턴 점검(기동정지·고전위 대기·저부하 장시간), 공기필터·수소 순도 점검, 회복 운전(제조사 절차) 시행, 잔여수명 기반 스택 교체 예산 계획.",
+   "falsePositiveTraps": "가역 손실(장기 연속운전 후 일시 저하, 재기동 후 회복), 계절 온도·가습 변화, 전류센서 드리프트, 스택 교체·셀 교체 후 기준선 미갱신, 초기 활성화 기간 포함.",
+   "typicalLeadTime": "수백~수천 운전시간"
+  },
+  {
+   "assetType": "fc_stack",
+   "mode_ko": "막 박막화·핀홀(수소 크로스오버)",
+   "dataSignature": "기동 시 특정 셀 OCV 결손 증가, 동일 셀 반복 최저, 퍼지 간격 단축(전압기반 퍼지), 이용률 하락, 캐소드 배기 수소 증가, 국부 발열",
+   "detectionMethod": "fc_startup_ocv_gap: 특정 셀 gap > 30 mV(경고)/> 80 mV(경보)(추정), 또는 동일 셀 gap의 이벤트 계열 Theil–Sen 기울기 > 0 & 5회 연속 증가 → 경고. fc_min_cell_persistence p_k > 0.5 동반 시 확정도 상향. fc_purge_interval_ah 기준 대비 −30%(추정) 동반 확인.",
+   "severity": "critical",
+   "recommendedAction_ko": "제조사 크로스오버/누설 시험(애노드 가압 OCV 시험) 요청, 해당 셀·모듈 교체 계획, 확정 전까지 출력 제한·기동정지 최소화. 크로스오버 급증 시 운전 중지(내부 연소 위험).",
+   "falsePositiveTraps": "기동 직후 가스 치환 불완전(일부 셀 늦게 상승) → OCV 안정 구간 선정 중요, 냉간 기동 셀 온도 편차, 수소 공급압이 다른 기동, CVM 채널 접촉 불량(특정 채널 노이즈).",
+   "typicalLeadTime": "수일~수주(점진 증가 후 급가속)"
+  },
+  {
+   "assetType": "fc_stack",
+   "mode_ko": "캐소드 플러딩·물 관리 불량",
+   "dataSignature": "캐소드 차압 잔차 급상승, 셀전압 편차·진동 증가(말단셀 중심), 저부하·저온에서 빈발, 공기 퍼지(유량 증가) 후 회복",
+   "detectionMethod": "cathode_dp_residual > 1.2가 5분 이상 AND fc_cell_voltage_spread robust z > 3 → 플러딩 이벤트. 주간 발생 횟수 기준 대비 2배 → 경고. 발생 조건(전류·온도 bin) 통계로 운전조건 코칭.",
+   "severity": "medium",
+   "recommendedAction_ko": "가습 설정·스택 운전온도·공기 스토이키 조정, 드레인 밸브·기액분리기 점검, 말단셀 히터/보온 점검.",
+   "falsePositiveTraps": "공기유량계 오차로 차압 기대값 왜곡, 겨울철 기동 초기 응축, 퍼지·드레인 동작 직전 정상적 수분 축적.",
+   "typicalLeadTime": "수분~수시간(이벤트), 빈발 추세는 수주"
+  },
+  {
+   "assetType": "fc_stack",
+   "mode_ko": "막 건조(dry-out)",
+   "dataSignature": "HFR/옴저항 상승, 고전류·고온에서 전압 하락, 입구 이슬점 저하, 셀전압 편차 증가(입구측 셀)",
+   "detectionMethod": "fc_ohmic_resistance가 온도·이슬점 bin 기준 대비 +15%(추정) 1시간 이상 → 건조 이벤트. 가습기 지표 동반 시 원인 가습기로 분류. 여름 고온일 발생 빈도 추적.",
+   "severity": "medium",
+   "recommendedAction_ko": "가습기 점검, 운전온도 하향·공기 스토이키 하향 조정, 냉각 성능 확인.",
+   "falsePositiveTraps": "HFR 미측정 시 회귀 R 계수의 불확실성(전류 분포 좁음), 접촉저항 증가와 구분 어려움(건조는 가역·가습 후 회복).",
+   "typicalLeadTime": "수분~수시간(이벤트), 막 손상 누적은 수주~수개월"
+  },
+  {
+   "assetType": "fc_stack",
+   "mode_ko": "개별 셀 저전압·셀 역전(국부 연료/공기 결핍)",
+   "dataSignature": "최저 셀전압 급락·음전압, 부하 스텝 시 언더슈트, 특정 셀 반복",
+   "detectionMethod": "cell_voltage_min < 0.3 V 또는 음전압 → 제조사 인터록(분석 우회) + 이벤트 기록. 경고: fc_load_step 이벤트의 min_cell_voltage_undershoot 기준 대비 −50 mV 3회 → 공기공급 응답성 점검. 셀별 역전 누적 횟수 집계.",
+   "severity": "high",
+   "recommendedAction_ko": "수소 공급압·재순환·퍼지 상태 점검, 부하 램프율 제한, 반복 셀은 MEA 교체 대상 등록.",
+   "falsePositiveTraps": "CVM 채널 결선 불량(값이 튐), 정지 절차 중 정상적인 전압 붕괴 구간, 기동 가스치환 중.",
+   "typicalLeadTime": "초~분(이벤트), 반복 누적으로 셀 손상은 수주"
+  },
+  {
+   "assetType": "fc_stack",
+   "mode_ko": "스택 외부 누설·가스켓 열화",
+   "dataSignature": "외함 내 수소 농도 배경 상승, 정지 시 애노드 압력 유지시험 감압률 증가, 이용률 하락, 외함 환기 중 저농도 에피소드",
+   "detectionMethod": "enclosure_h2_concentration 일간 배경(하위 5% 분위) 기준 대비 +50 ppm(추정) 7일 지속 → 경고. fc_shutdown 이벤트의 anode_pressure_decay 동일 초기압·온도 bin 기준 대비 1.5배 → 경고. 외함 수소가 경보치 도달 시 인터록.",
+   "severity": "critical",
+   "recommendedAction_ko": "스택 체결 토크 점검, 가스켓·매니폴드 씰 누설점검, 제조사 누설시험 후 교체.",
+   "falsePositiveTraps": "퍼지 배기가 외함 환기 경로로 역류, 환기팬 정지로 인한 일시 축적, 검지기 드리프트(peer 확인).",
+   "typicalLeadTime": "수주"
+  },
+  {
+   "assetType": "fc_stack",
+   "mode_ko": "촉매 피독(연료 불순물·공기 오염)",
+   "dataSignature": "전 셀 동시 전압 하락(편차는 작음), 공기 오염(도로·산업단지 인접 SO2/NOx) 또는 수소 순도 이상 시점과 동기, 부분 회복",
+   "detectionMethod": "V@j_ref 단기(24~72 h) 하락이 전체 셀 균일(σ 변화 없음) AND 전 사이트 공통 아님 → 오염 의심. 수전해 측 순도(O2·H2O) 이상 이벤트, 공기필터 교체 경과와 상관(Spearman). 동일 기간 타 사이트 peer 비교로 기상 영향 분리.",
+   "severity": "medium",
+   "recommendedAction_ko": "수소 품질 분석(ISO 14687 등급 기준, 수전해 탈산소·건조기 점검), 화학 공기필터 교체, 제조사 회복 운전.",
+   "falsePositiveTraps": "계절 온도·습도 변화로 인한 전 셀 동시 변화, 전류센서 오프셋 변화.",
+   "typicalLeadTime": "수시간~수일"
+  },
+  {
+   "assetType": "fc_stack",
+   "mode_ko": "기동·정지·부하사이클 과다에 의한 열화 누적(운전패턴)",
+   "dataSignature": "기동정지 횟수·고전위 체류시간 증가 기간과 열화율 상승이 동행",
+   "detectionMethod": "fc_cycle_stress_index 월간값과 fc_voltage_degradation_rate의 회귀(사이트 내 시간축, 사이트 간 peer)로 가중치 재추정. 월간 기동정지 > 기준(예: 일 1회 초과, 추정) → 코칭 알림.",
+   "severity": "medium",
+   "recommendedAction_ko": "태양광·수소 재고 기반 운전계획 조정(연속운전·최소부하 대기 전략), 정지 시 제조사 보호 절차 준수 여부 확인, 입찰 급전 패턴과 연계 검토.",
+   "falsePositiveTraps": "열화율 증가가 다른 원인(오염·BOP)과 같은 기간에 겹침, 데이터 기간이 짧아 회귀 불안정.",
+   "typicalLeadTime": "누적형(수개월)"
+  },
+  {
+   "assetType": "fc_cathode_subsystem",
+   "mode_ko": "공기 블로워 마모·흡입필터 막힘",
+   "dataSignature": "동일 회전수·압력비에서 유량 감소, 비전력 증가, 필터 차압 증가, 기생부하율 증가",
+   "detectionMethod": "blower_specific_airflow_index 7일 median < 0.93(추정) → 경고, < 0.85 → 정비 요청. 필터 차압이 동일 유량 기준 대비 1.5배면 필터 원인으로 분류, 아니면 블로워 원인. 베어링 소음/진동 데이터 있으면 병행.",
+   "severity": "medium",
+   "recommendedAction_ko": "흡입필터 교체, 블로워 베어링·임펠러 점검, 유량센서 세정/교정.",
+   "falsePositiveTraps": "대기압·외기온도 변화(밀도 보정 필요), 유량센서 오염으로 인한 과소 측정, 배압밸브 개도 변화(압력비 bin으로 통제).",
+   "typicalLeadTime": "수주~수개월"
+  },
+  {
+   "assetType": "fc_cathode_subsystem",
+   "mode_ko": "가습기 막 열화·내부누설",
+   "dataSignature": "동일 조건 입구 이슬점 저하, 옴저항 상승, 캐소드 입구 산소 분압 저하(내부 교차누설 시 전압 하락), 가습기 차압 변화",
+   "detectionMethod": "cathode_inlet_dewpoint 전류·외기 bin 기준 대비 −3 °C(추정) 7일 → 경고. 이슬점 센서 없으면 fc_ohmic_resistance 상승 + 냉각·온도 정상일 때 가습기 의심으로 분류.",
+   "severity": "medium",
+   "recommendedAction_ko": "가습기 막 누설시험, 가습기 교체 계획, 운전온도·스토이키 조정.",
+   "falsePositiveTraps": "습도센서 드리프트·응축, 외기 절대습도 변화.",
+   "typicalLeadTime": "수개월"
+  },
+  {
+   "assetType": "fc_anode_subsystem",
+   "mode_ko": "퍼지/드레인 밸브 고착·누설",
+   "dataSignature": "퍼지 명령에도 애노드 압력 강하·전압 회복 없음(고착 닫힘), 밸브 닫힘 중에도 배기 수소 농도 상승·이용률 하락(누설/고착 열림)",
+   "detectionMethod": "fc_purge 이벤트에서 anode_pressure_drop < 기준 median의 30%(추정) 3회 연속 → 고착 닫힘 경고. 퍼지 밸브 closed 구간 exhaust_h2_concentration 배경 상승 또는 fc_fuel_utilization 기준 대비 −3%p → 누설 경고.",
+   "severity": "high",
+   "recommendedAction_ko": "퍼지·드레인 솔레노이드 밸브 점검·교체, 기액분리기 결빙·이물 확인, 배기 희석 계통 확인.",
+   "falsePositiveTraps": "퍼지 전략 변경(펌웨어 업데이트), 저부하에서 원래 작은 압력 강하, 배기센서 응답 지연.",
+   "typicalLeadTime": "수일~수주"
+  },
+  {
+   "assetType": "fc_anode_subsystem",
+   "mode_ko": "수소 재순환 펌프 마모 / 이젝터 노즐 막힘",
+   "dataSignature": "동일 회전수에서 펌프 전류 변화, 애노드 입구 수소 스토이키 저하, 애노드 차압 변화, 고전류에서 셀 편차 증가",
+   "detectionMethod": "recirculation_pump_current / f(speed, 애노드 차압) 기준 대비 ±15%(추정) 7일 → 경고. 이젝터 시스템은 동일 전류에서 공급압 대비 애노드 입구압 비 변화 −5%(추정) → 노즐 막힘 의심.",
+   "severity": "medium",
+   "recommendedAction_ko": "재순환 펌프 베어링·임펠러 점검, 이젝터 노즐·필터 청소, 퍼지 전략 재점검.",
+   "falsePositiveTraps": "수분 응축·결빙(겨울), 퍼지 직후 가스 조성 변화로 인한 부하 변화.",
+   "typicalLeadTime": "수주~수개월"
+  },
+  {
+   "assetType": "fc_thermal_subsystem",
+   "mode_ko": "냉각수 펌프 성능 저하·유량 부족",
+   "dataSignature": "동일 전류에서 냉각수 ΔT 증가, 추정유량/회전수 지수 저하, 펌프 전류 변화, 스택 온도 제어 편차 증가",
+   "detectionMethod": "coolant_pump_hydraulic_index 7일 median < 0.9(추정) → 경고. 동일 전류 bin 냉각수 ΔT robust z > 3이 2시간 이상 AND V_cell 정상(발열 증가 아님) → 유량 원인 확정. 스택 온도 편차 증가 시 고우선.",
+   "severity": "high",
+   "recommendedAction_ko": "펌프 점검(임펠러·씰·베어링), 스트레이너 청소, 에어 벤팅, 냉각수 보충·누수 확인.",
+   "falsePositiveTraps": "3방향 밸브 바이패스 개도 변화, 냉각수 온도에 따른 점도·cp 변화, 효율 저하로 발열 자체 증가(V_cell 추세로 분리), 과도구간.",
+   "typicalLeadTime": "수주~수개월"
+  },
+  {
+   "assetType": "fc_thermal_subsystem",
+   "mode_ko": "냉각수 전도도 상승(이온교환 필터 소진)·절연저항 저하",
+   "dataSignature": "전도도 지속 상승, 절연저항 하락, 누설전류·지락 경고",
+   "detectionMethod": "coolant_conductivity > 5 µS/cm(경고, 설계 한계 확인)·소진 예상일 < 14일 → 정비 알림. insulation_resistance 7일 Theil–Sen 기울기 음(−) & 기준 대비 −30% → 경고. 제조사 하한 도달은 인터록.",
+   "severity": "high",
+   "recommendedAction_ko": "DI 필터 교체, 냉각수 교체(연료전지 전용 저전도 냉각수), 계통 부식원 점검, 절연 측정.",
+   "falsePositiveTraps": "전도도계 온도보상 미적용(고온에서 높게 측정), 냉각수 교체 직후 안정화, 고습·결로 시 일시적 절연 저하.",
+   "typicalLeadTime": "수주"
+  },
+  {
+   "assetType": "fc_thermal_subsystem",
+   "mode_ko": "라디에이터/열교환기 방열 성능 저하",
+   "dataSignature": "동일 부하·외기에서 냉각수 입구온도 상승, 팬 지령 100% 빈도 증가, 하절기 출력 제한",
+   "detectionMethod": "(T_coolant_in − T_ambient) 부하 bin별 기준 대비 +5 °C(추정) 7일 → 경고. 팬 100% 운전시간 비율 월간 비교. CHP 사이트는 chp_heat_recovery_performance UA와 병행.",
+   "severity": "medium",
+   "recommendedAction_ko": "라디에이터 핀 세척, 팬 모터 점검, 열교환기 스케일 제거.",
+   "falsePositiveTraps": "외기온도 급상승일, 일사 직사, 팬 제어 로직 변경.",
+   "typicalLeadTime": "수주~수개월"
+  },
+  {
+   "assetType": "fc_power_conditioning",
+   "mode_ko": "인버터/DC-DC 효율 저하·과열",
+   "dataSignature": "동일 부하율·외기에서 효율 하락, 방열판-외기 온도차 증가, 출력 디레이팅 빈도 증가",
+   "detectionMethod": "inverter_efficiency_matched Δη < −1.0%p(추정) 7일 median → 경고. ΔT_hs 동일 bin 기준 대비 +8 °C → 냉각팬·필터 경고. 디레이팅 이벤트 월간 횟수 증가 → 경고.",
+   "severity": "medium",
+   "recommendedAction_ko": "냉각팬·흡기필터 청소·교체, 파워모듈 열화상 점검, 제조사 진단.",
+   "falsePositiveTraps": "DC·AC 전력 측정기 간 시간 동기 불일치, 저부하 구간(효율 원래 낮음), 계통전압 편차 큰 날.",
+   "typicalLeadTime": "수주"
+  },
+  {
+   "assetType": "fc_power_conditioning",
+   "mode_ko": "계통연계 트립 빈발",
+   "dataSignature": "OVR/UVR/OFR/UFR·단독운전 검출 트립 증가, 특정 시간대 집중",
+   "detectionMethod": "grid_trip_event 월간 횟수 포아송 기준 대비 유의 증가 → 경고. 트립 직전 grid_voltage 분포로 계통 원인/설비 원인 분류(계통 전압 정상인데 트립 → 설비 보호설정·센서 의심).",
+   "severity": "medium",
+   "recommendedAction_ko": "보호계전 설정값 한전 기준 재확인, 계통 전압 이력 한전 협의, 인버터 펌웨어·센서 점검.",
+   "falsePositiveTraps": "실제 계통 사고·정전, 주변 태양광 역조류로 인한 전압 상승 시간대(설비 결함 아님).",
+   "typicalLeadTime": "수일~수주"
+  },
+  {
+   "assetType": "chp_heat_recovery",
+   "mode_ko": "열회수 열교환기 파울링·순환 이상",
+   "dataSignature": "동일 부하·환수온도에서 회수열·UA 감소, 공급온도 저하, 덤프쿨러 가동 증가",
+   "detectionMethod": "chp_heat_recovery_performance UA 기준 대비 −15%(추정) 14일 median → 경고, η_th 동시 저하 확인.",
+   "severity": "low",
+   "recommendedAction_ko": "판형 열교환기 CIP 세정, 순환펌프·3방향밸브 점검, 온수 수질 관리.",
+   "falsePositiveTraps": "열 수요 감소로 덤프 운전(정상), 열량계 유량 오차, 환수온도 상승일.",
+   "typicalLeadTime": "수개월"
+  },
+  {
+   "assetType": "fuel_cell_system",
+   "mode_ko": "수소 소비원단위 증가·전기효율 저하(복합)",
+   "dataSignature": "동일 부하율에서 kg/MWh 증가, η_el 하락",
+   "detectionMethod": "fc_h2_specific_consumption 부하율 bin 기준 대비 +5% 월간 → 경고. 원인 분해: ΔSC ≈ (스택 전압 손실 기여 = ΔV@j_ref/V) + (기생부하 기여 = Δparasitic_ratio) + (수소 손실 기여 = −ΔU_f) + (인버터 기여 = −Δη_inv). 가장 큰 기여 항목을 리포트에 표기.",
+   "severity": "medium",
+   "recommendedAction_ko": "기여도 1순위 항목의 정비(스택 회복운전/BOP 점검/퍼지·누설 점검/인버터 점검), 연료비 손실액 산정 리포트.",
+   "falsePositiveTraps": "질량유량계 드리프트(물질수지로 교차확인), 저부하 운전 비중 증가(bin 비교로 통제), 겨울철 보온 부하.",
+   "typicalLeadTime": "수주~수개월"
+  },
+  {
+   "assetType": "fuel_cell_system",
+   "mode_ko": "기동 실패·기동시간 증가",
+   "dataSignature": "동일 외기·정지경과시간 조건에서 기동 소요시간 증가, 기동 실패 코드 반복",
+   "detectionMethod": "fc_startup_duration을 (외기 bin, 냉/온간 클래스)별 기준 median 대비 1.3배(추정) 3회 연속 → 경고. 기동 실패율(월) > 5%(추정) → 경고. 실패 코드 빈도 파레토.",
+   "severity": "medium",
+   "recommendedAction_ko": "실패 코드별 점검(수소 공급압·블로워·냉각수 예열·센서), 기동 시퀀스 로그 제조사 분석 요청.",
+   "falsePositiveTraps": "원격 기동 후 급전지시로 목표출력이 다른 경우, 동절기 예열 시간 증가(정상).",
+   "typicalLeadTime": "수일~수주"
+  },
+  {
+   "assetType": "fuel_cell_system",
+   "mode_ko": "강제정지 증가(가용률·MTBF 저하)",
+   "dataSignature": "강제정지 횟수·MTTR 증가, 동일 원인 7일 내 재발",
+   "detectionMethod": "availability_mtbf 월간 AF < 목표(예: 95~99%, 사이트 계약 기준) 또는 MTBF 3개월 연속 하락 → 경고. 원인 카테고리별 파레토, 7일 내 동일 트립 코드 재발 → 근본원인 분석 요청.",
+   "severity": "high",
+   "recommendedAction_ko": "상위 원인 카테고리 근본원인분석(RCA), 예비품 재고 점검(MTTR 단축), 제조사 서비스 계약 SLA 검토.",
+   "falsePositiveTraps": "계통·외부 원인 정지 혼입, 계획정비 미등록으로 강제정지 오분류.",
+   "typicalLeadTime": "월 단위 추세"
+  },
+  {
+   "assetType": "h2_system",
+   "mode_ko": "수소 물질수지 불일치(미계측 손실)",
+   "dataSignature": "생산·재고변화·소비 간 잔차가 불확도를 넘어 지속",
+   "detectionMethod": "h2_chain_mass_balance 주간 잔차율 > 2%(추정) 이고 |residual| > 2·합성불확도가 3주 연속 → 경고. 누설(tank_static_leak_rate)·이용률(fc_fuel_utilization)·유량계 드리프트(구간별 잔차 위치)로 원인 구간 특정.",
+   "severity": "high",
+   "recommendedAction_ko": "잔차 발생 구간의 유량계 교정, 누설 정밀점검, 퍼지·벤트 손실 정량화. 청정수소 인증·입찰 정산 데이터 신뢰성 확보.",
+   "falsePositiveTraps": "기간 경계 시점 온도 불안정으로 재고 오차, 유량계 저유량 컷오프로 소량 유동 누락, 정비 벤트·시료채취 미기록.",
+   "typicalLeadTime": "수주"
+  }
+ ],
+ "safetyInterlocks": [
+  "[설계원칙] 모든 안전 인터록은 현장 PLC/SIS(가스 수신반·화재수신반)에서 로컬로 실행한다. 콘솔은 원시 경보·ESD 이벤트를 분석 파이프라인(집계·이벤트추출·이상탐지)과 분리된 즉시 경로로 받아 최상위 우선순위로 표시·푸시·기록하며, 분석 결과(중복제거, 신뢰도, 억제 규칙)로 지연·억제·자동해제할 수 없다. 경보는 현장 수동 리셋 전까지 유지 표시.",
+  "수소 누출(ppm): KGS 가연성가스 검지경보장치 경보농도는 폭발하한계(수소 4 vol% = 40,000 ppm)의 1/4 이하 → 최대 1 vol%(10,000 ppm). 권장 2단: 1차 경보 예 0.4 vol%(4,000 ppm, 10% LEL) → 경보·환기 강화, 2차 1 vol%(10,000 ppm, 25% LEL) → ESD(차단밸브 폐쇄, 압축기·연료전지 정지). h2tools: 농도가 내려가도 수동 리셋까지 경보 유지. 실제 설정치는 인허가·설계값으로 대체.",
+  "연료전지 외함 내 수소 농도 경보치 도달 → 수소 공급 차단 + 스택 정지, 환기팬은 계속 운전(외함 내 농도를 폭발하한계 1/4 미만으로 유지하는 환기 설계).",
+  "연료전지 배기 수소 농도 과다 → 부하 감발/정지. 차량 참고치 UN GTR 13: 3초 이동평균 4 vol% 이하, 순간 8 vol% 이하(정치형은 제조사·KGS AH371 기준 확인).",
+  "과압: 저장뱅크·배관·압축기 단별 압력 ≥ 고압 트립 설정 → 압축기 정지·인입 차단밸브 폐쇄. 레귤레이터 하류 과압 → 긴급차단장치 작동. 안전밸브(PSV)·PRD 작동은 발생 즉시 무조건 경보 이벤트.",
+  "급감압·배관 파단 의심: 압력 강하율 > 설정치 또는 과류차단밸브 작동 → 계통 격리·ESD.",
+  "화염 감지(UV/IR; 수소 화염은 주간 비가시) → 즉시 ESD(전 차단밸브 폐쇄, 압축기·연료전지 정지, 전원 차단), 소화·살수 연동, 119/관리자 동시 통보.",
+  "압축기 다이어프램 파손(누설검지 포트 압력 스위치 작동) → 즉시 압축기 정지·흡입/토출 차단.",
+  "압축기 보호 트립: 단별 토출온도 고온(설정은 제조사; API 618 수소과다 서비스 설계 토출온도 한계 5판 135 °C, 6판 120 °C 참고), 윤활유/유압유 저압, 냉각수 유량 상실, 진동 트립(ISO 20816-8 zone D 수준), 모터 과부하.",
+  "저장용기 가스온도 > 85 °C(복합재 용기 일반 한계) 또는 < −40 °C → 충전 중지·인입 차단.",
+  "연료전지 셀 최저전압 차단(예: 0.3 V 이하 또는 음전압=셀 역전, 제조사 설정) → 부하 감발 또는 정지.",
+  "스택 과온·냉각수 유량 상실·냉각수 저수위 → 연료전지 정지.",
+  "절연저항 저하(지락) → 연료전지 전력변환 정지·DC 버스 분리.",
+  "환기팬 정지·풍량 스위치 이상 → 수소 공급 차단(환기 확인 전 기동 금지).",
+  "계통 이상(OVR/UVR/OFR/UFR, 단독운전 검출) → 인버터 계통 분리(한전 분산형전원 배전계통 연계 기술기준).",
+  "비상정지 버튼, 지진 감지, 화재수신반 연동 신호, 제어전원/UPS 이상 → ESD.",
+  "검지기·화염감지기 고장 또는 통신 두절(워치독) → 페일세이프: 해당 구역 경보 + 설정에 따라 수소 공급 차단. 콘솔에는 '안전감시 공백' 최고 우선 표시."
+ ],
+ "koreanContext": "[법령·안전] (1) 수소법(수소경제 육성 및 수소 안전관리에 관한 법률): 연료전지·수전해설비는 '수소용품'으로 제조허가·수소용품 검사 대상(KGS AH371 고정형 연료전지, AH271 수전해설비, AH171 수소추출설비). 연료전지를 설치해 전기·열을 사용하는 시설은 '수소연료사용시설'로 KGS FU671(시설·기술·검사기준)의 완성검사·정기검사 대상(정기검사 주기 등 세부는 FU671 원문 확인 필요). 수소 안전 전담기관은 한국가스안전공사(KGS). 청정수소·수소발전 정의도 수소법 제2조에 규정. (2) 고압가스 안전관리법: 1 MPa 이상 압축수소의 압축·저장은 고압가스 제조(KGS FP112), 저장(FU111), 특정고압가스 사용(FU211, 압축가스 저장능력 50 m³ 이상이면 사용신고) 등으로 분류될 수 있어, 설비 구성·저장능력에 따라 인허가 경로가 달라진다(KGS 사전 기술검토 필요). 저장탱크·압력용기 재검사(KGS AC116), 복합재료용기 재검사(AC414), 용기부속품 재검사(AA316) 일정은 O&M 콘솔의 정비 캘린더 기능 대상. (3) 가연성가스 검지경보장치 경보농도는 폭발하한계의 1/4 이하(수소 ≤ 1 vol%)가 KGS 코드 공통 취지. (4) 전기사업법·전기안전관리법: 발전설비 사용전·정기검사(한국전기안전공사), 계통연계는 한전 '분산형전원 배전계통 연계 기술기준'(보호계전·단독운전 방지). [시장] (5) 수소발전 입찰시장(HPS): 관리기관 전력거래소(KPX). 2025년 일반수소발전시장 1,300 GWh/년, 20년 계약, 2027년까지 발전개시, 낙찰 전부 20 MW 이하 소규모. 청정수소발전시장은 2024년 6,500 GWh 공고 중 750 GWh(11%)만 낙찰, 2025년 3,000 GWh·15년·2029년까지 발전개시, 연료비 일부 환율 연동으로 리스크 완화. 정산단가가 고정비·운영비·연료비로 분리되어 수소 소비원단위(kg/MWh)와 가용률이 수익에 직결. (6) 청정수소 인증제: Well-to-Gate 4 kgCO2e/kgH2 이하, 1등급 0~0.1 / 2등급 0.1~1 / 3등급 1~2 / 4등급 2~4 kgCO2e/kgH2. 태양광 수전해 수소는 1등급 후보이나 계통전력 혼입 비율에 따라 등급이 달라지므로, 콘솔이 전력원(태양광/ESS/계통) 비율·kWh/kgH2·수소 물질수지를 기록하면 인증·입찰 증빙 데이터가 된다. (7) REMS(한국에너지공단 신재생에너지 통합모니터링): 표준 프로토콜로 인버터 등 신재생 설비 연동. 연료전지 연동 의무·범위는 보급사업 유형별로 확인 필요(추정). [국내외 벤더] 연료전지: 두산퓨얼셀(국내 발전용 점유율 1위, PAFC PureCell M400 440 kW, 수소전용 모델 공칭 전기효율 50%·열효율 35%·스택 10년, SOFC 양산 추진), SK에코플랜트-블룸에너지(SOFC), HD하이드로젠(SOFC), 현대차 HTWO(PEMFC 발전 패키지), 범한퓨얼셀·에스퓨얼셀(PEMFC, 확인 필요), 해외 Ballard(PEM). 업계 기사 기준 국내 발전용 신규 발주(연 150~200 MW) 중 SOFC 비중 50~60% 이상. 압축기: 광신기계공업(다이어프램·유압피스톤 국산화, 국내 CNG·수소 압축기 최대 납품실적), 해외 PDC Machines, Hofer, Burckhardt, Haskel, Maximator, Nel(Hydro-Pac) 등. 저장용기: 일진하이솔루스·한화솔루션(Type IV), 강재 용기 업체(확인 필요). 검지기: 가스트론·센코(국내), Dräger·Honeywell·MSA 등(확인 필요). 통신: 연료전지 FCU·압축기 PLC는 Modbus TCP·OPC UA가 일반적이며, IEC 61850-7-420에 연료전지 논리노드(DFCL 제어기, DSTK 스택, DFPM 연료처리)가 정의되어 메트릭 명명 참고에 쓸 수 있다. 성능시험 기준은 IEC 62282-3-200(정치형 연료전지 전기·열회수 효율 측정).",
+ "notes_md": "## 1. 파이프라인 설계 관점 요약\n\n- **안전 경로와 분석 경로를 물리적으로 분리**: 인터록·경보(누출 ppm, 과압, 화염, 다이어프램 파손 등)는 PLC/SIS에서 실행하고, 콘솔은 원시 경보를 즉시 경로(별도 테이블·푸시)로 받는다. 분석 파이프라인(수집 → 이벤트 추출 → 정규화 지표 → 추세/이상 → 조치 추천)은 이 경로를 억제하거나 지연시키지 않는다.\n- **메트릭 레지스트리 방식 권장**: 위 telemetry의 `assetType.metricKey`를 등록형으로 두고(단위·샘플링·우선순위·유효범위), 사이트별로 실제 존재하는 센서만 매핑한다. 데이터 계약이 정해지지 않은 상태이므로 `must`가 없는 지표는 계산을 건너뛰고 '데이터 부족'으로 표시한다.\n- **시간축 두 개**: 스택·압축기·다이어프램 열화는 **운전시간** 축, DI 필터·검지기 교정·재검사는 **캘린더** 축으로 계산한다.\n- **엣지 집계**: 다이어프램 오일압(kHz)·진동(kHz)은 현장 게이트웨이에서 1분 max/min/mean/RMS로 줄여 보낸다. CVM 셀전압 배열은 10 s~1 min 스냅샷을 저장하고, 기동·정지·트립 이벤트 때만 1 s 버스트로 저장해 용량을 줄인다.\n\n## 2. \"조건을 맞춘 과거 대비 비교\" 패턴 목록 (사용자 예시 확장)\n\n| # | 비교 대상 | 맞출 조건(bin) | 변화가 의미하는 것 |\n|---|---|---|---|\n| 1 | 스택 평균 셀전압 | 전류밀도·스택온도·공기 스토이키 | 스택 열화(µV/h) |\n| 2 | 셀전압 편차·최저셀 | 전류밀도·온도 | 특정 MEA 결함, 분배 불균일 |\n| 3 | 기동 시 셀별 OCV | 정지경과시간·온도·수소압 | 핀홀·크로스오버(가장 이른 신호) |\n| 4 | 퍼지 사이 적산 Ah / 퍼지 전 전압강하 속도 | 전류·온도 | 질소 크로스오버·물 축적 |\n| 5 | 캐소드 차압 | 공기유량·온도 | 플러딩·유로 막힘 |\n| 6 | 블로워 공기유량 | 회전수·압력비·흡입밀도 | 블로워 마모·필터 막힘 |\n| 7 | 냉각수 ΔT → 추정유량/펌프회전수 | 전류(발열량)·냉각수온 | 펌프 마모·스트레이너 막힘 |\n| 8 | 수소 소비원단위 kg/MWh | 부하율·외기온도 | 종합 효율 저하 |\n| 9 | Faraday 수소 / 계측 수소 | 전류·퍼지 전략 | 퍼지 손실·누설·유량계 드리프트 |\n| 10 | 인버터 효율, 방열판-외기 온도차 | 부하율·외기 | 파워모듈·냉각팬 열화 |\n| 11 | 열교환기 UA | 부하·환수온도·유량 | 파울링 |\n| 12 | 기동 소요시간 | 외기·냉/온간 | 보조기기·공급 문제 |\n| 13 | 정지유지 중 Z보정 수소 질량 감소속도 | 무유동·온도안정·초기압 | 저장뱅크 미세누설 |\n| 14 | 충전 중 가스온도 상승 | 충전률·초기온도 | 냉각 부족 |\n| 15 | 압축기 kWh/kg, 등온효율 지수 | 흡입압·토출압(압력비)·흡입온도 | 내부누설·냉각·모터 |\n| 16 | 단별 토출온도(폴리트로픽 기대값 대비) | 압력비·흡입온도·냉각수온 | 밸브 누설 위치 |\n| 17 | 단간 압력비 | 흡입압·최종토출압 | 어느 단의 밸브가 새는지 |\n| 18 | 체적효율 지수(kg/h ÷ rpm ÷ 흡입밀도) | 압력비 | 링·다이어프램·밸브 누설 |\n| 19 | 최대 오일압 − 토출압 | 토출압·오일온도 | 다이어프램·리밋밸브 이상 |\n| 20 | 진동 P95 | 토출압·속도 | 기계적 이상 |\n| 21 | 레귤레이터 무유량 출구압 상승속도 | 무유량·온도안정 | 시트 누설 |\n| 22 | 레귤레이터 출구압 편차 | 유량·입구압 | 드룹·헌팅 |\n| 23 | 차단밸브 작동시간 | 방향·계장공기압·온도 | 액추에이터 열화·고착 |\n| 24 | 검지기 배경값·동일구역 편차 | 온습도·peer | 드리프트·고착 |\n| 25 | 정지 시 애노드 압력 유지 감압률 | 초기압·스택온도 | 크로스오버·외부누설 |\n\n탐지 공통 도구(모두 TypeScript로 구현 가능): bin별 기준 median/MAD → robust z, EWMA(λ 0.1~0.2), CUSUM(k=0.5σ, h=4~5σ), Theil–Sen 기울기, 최소자승(2~3변수), 레인플로 카운팅(ASTM E1049), 동일 모델 사이트 간 robust z(peer), 포아송 빈도 검정, 동시발생 lift.\n\n**기준선 규칙**: 시운전·초기 활성화 이후 첫 N 운전시간(스택은 수백 h 이후~1,000 h, 압축기는 첫 200 h; 추정)을 bin별 기준으로 동결한다. 부품 교체 이벤트가 오면 해당 부품 기준선만 새로 학습하고, 이전 기준선은 이력으로 보관한다. bin에 표본이 적으면(예: < 20 윈도우) 판정하지 않는다.\n\n## 3. 핵심 상수·공식\n\n- 수소 LHV 33.32 kWh/kg(119.96 MJ/kg), HHV 39.41 kWh/kg. 표준상태 밀도 0.08988 kg/Nm³.\n- 소비원단위: SC[kg/MWh] = 1000/(33.32·η_el) → η 50% = 60.0, 45% = 66.7, 40% = 75.0.\n- Faraday 수소 소비: ṁ[kg/h] = N_cell × I[A] × 3.7605e-5.\n- 스택 발열(LHV 기준): Q[W] ≈ N_cell × I × (1.253 − V_cell).\n- 수소 비기체상수 R_s = 4124.5 J/(kg·K), 비열비 k ≈ 1.41.\n- 등온 압축일: w_iso[kWh/kg] = Z̄·R_s·T_s·ln(P_d/P_s)/3.6e6 (30→450 bar, 298 K에서 약 0.92 kWh/kg; 실측 SEC 2~4 kWh/kg이므로 η_iso_index 0.3~0.5가 전형, 추정).\n- NIST 수소 압축인자(Lemmon·Huber·Leachman 2008): Z = 1 + Σ a_i(100/T)^b_i (P/MPa)^c_i, 9개 계수는 derivedIndicators `tank_h2_mass` 참고. 220~1000 K, 70 MPa까지 밀도 오차 0.01%.\n\n## 4. 탱크 압력 감소의 온도보정 누설 추정 상세\n\n1. 무유동 확정: 인입·인출 차단밸브 닫힘 리밋 + 압축기 정지 + 공급유량 0.\n2. 충전 직후 냉각 구간(4~6 h, 추정)과 |dT/dt| > 0.5 K/h 구간 제외. 옥외 용기는 야간 구간을 우선 사용(일사로 표면·내부 온도 불일치).\n3. 각 샘플에서 m = P_abs·V·M/(Z·R·T) 계산 → Theil–Sen 기울기.\n4. **불확도 한계를 먼저 계산**: u_m/m ≈ sqrt((u_P/P)² + (u_T/T)²). 예: 0.1% FS 전송기(500 bar FS)로 250 bar 측정 시 u_P/P = 0.2%, 온도 ±1 K/300 K = 0.33% → 약 0.4%. 한 이벤트에서 이보다 작은 감소는 '판정불가'이며, 작은 누설은 여러 이벤트의 CUSUM으로 잡는다.\n5. 내부 가스온도 센서가 없으면 표면온도에 1~2 h 이동평균(열지연)을 적용한다(추정). 이 경우 누설 판정 신뢰도를 한 단계 낮춘다.\n6. 대형 뱅크의 이상 판정은 용기별 압력이 있으면 peer 비교로 위치를 좁히고, 물질수지 잔차와 교차 확인한다.\n\n## 5. 연료전지 종류별 차이 (PEMFC 중심, PAFC/SOFC 요약)\n\n| 항목 | PEMFC(저온) | PAFC | SOFC |\n|---|---|---|---|\n| 운전온도 | 60~80 °C | 약 170~210 °C(보통 200 °C) | 약 600~850 °C(추정 범위) |\n| 연료 | 고순도 수소(CO 피독 민감) | 수소·개질가스 | 수소·천연가스 등 연료 유연 |\n| 전기효율(LHV) | 시스템 약 40~50%(추정) | NG 43%, 수소전용 50%(두산 M400 공칭) | 50~60% 이상(추정) |\n| 열 | 저온 60~70 °C급(추정) | 고온 120 °C/저온 60 °C 2단 | 고온 |\n| 기동 | 수 분 | 수 시간(고온 유지 대기 선호, 추정) | 수 시간(IEA: 0→100% 약 4 h 수준) |\n| 주요 열화·주의 | 기동정지 탄소부식, 고전위 체류, 막 크로스오버, 물관리, 냉각수 전도도 | 인산 손실·증발로 옴저항 증가, 저온 응결 시 산 희석(추정), 열사이클 | 열사이클·기동정지 횟수 제한(열응력), 고온 부식·밀봉, 니켈 조대화 |\n| O&M 지표 차이 | 셀전압·퍼지·가습·전도도 핵심 | 옴저항 추세·산 보충/스택 교체주기(약 10년)·열회수 | 기동정지 횟수 최소화, 모듈 온도 분포, 핫스탠바이 연료 소비 |\n\n태양광 연계로 기동정지가 잦아질 사이트라면 PEMFC가 운전 유연성에서 유리하나, 기동정지 스트레스 지수를 반드시 관리해야 한다. SOFC/PAFC는 연속운전 전제이므로 '대기(핫스탠바이) 시간·연료'가 별도 KPI가 된다.\n\n## 6. 참고 기준값(출처 있음)\n\n- DOE 정치형 CHP 목표: 1~25 kW 전기효율 > 45%, CHP 90%, 수명 60,000 h(20% 순출력 저하), 가용률 99%, 사이클 포함 열화 0.3%/1000h. 100 kW~3 MW 전기효율 > 50%, 수명 80,000 h(10% 순출력 저하), 가용률 99%.\n- NREL 정치형 실측(2013, <100 kW): 평균 MTBS 2,742 h, 평균 가용률 93%, 수명평균 전기효율 27% HHV(과도 포함).\n- IEA AFC TCP: 유럽 micro-CHP 90%가 95% 이상 가용, 중형 스택 내구 30,000→80,000 h 목표.\n- 수소충전소(NREL): 압축기가 주요 정비 범주, 씰 파손이 압축기 정지 주원인, 금속 파편 기여.\n- 전압 열화율 일반 허용 2~10 µV/h, DOE 수명 판정 = 정격출력 전압 10% 저하.\n- 촉매식 검지기: 교정 3~6개월, 교체 3~5년, 연 수백 ppm 드리프트.\n- ISO 19881 Type IV 투과: 1.15 NWP·55 °C에서 46 NmL/(h·L), NWP·15 °C에서 6 NmL/(h·L) 미만.\n- 냉각수 전도도: 제형 초기 약 2 µS/cm, 운전 한계 대체로 5 µS/cm(설계에 따라 5~20).\n\n## 7. '추정' 표시 수치 모음 (현장 데이터로 반드시 재튜닝)\n\n정상상태 판정 폭(전류 2%, 온도 1 °C), 온도계수 k_T 1 mV/°C/셀, 열화 경고 10 µV/h/셀, OCV gap 30/80 mV, 고전위 임계 0.85 V/셀, 퍼지 Ah 감소 −30%, 캐소드 차압비 1.2, 블로워 지수 0.93/0.85, 펌프 지수 0.9, 인버터 −1.0%p, 방열판 +8 °C, UA −15%, 충전 후 제외 4~6 h, |dT/dt| 0.5 K/h, 누설 0.5%/day, 압축기 기동 6회/h, 밸브 온도편차 8 °C, 단간 압력비 5%, SEC +10%, 오일온도 +5 °C, 진동비 1.5, 레귤레이터 크리프 1 kPa/min, 밸브 작동시간 1.5배, 검지기 peer 200 ppm, 물질수지 2%, 급감압 10 bar/min, 가스온도 경고 80 °C, 기동시간 1.3배, 기동실패 5%, 레인플로 피로 지수 m = 3~4, 전형 운전범위 중 '추정' 표기 항목 전부.\n\n## 8. 한계·주의\n\n- 셀전압 모니터(CVM)·수소 질량유량계·용기 내부 가스온도가 없으면 핵심 지표(셀 단위 진단, 효율, 누설) 신뢰도가 크게 떨어진다. 데이터 계약 협의 시 이 3가지를 `must`로 요구할 것을 권장한다.\n- 전압만으로는 플러딩과 건조를 구분하기 어렵다(동일 전압강하). 캐소드 차압·HFR·이슬점 중 최소 하나가 필요하다.\n- 금속 용기 균열·수소취성은 운전 데이터로 직접 탐지할 수 없다. 사이클 소모율은 **검사 우선순위** 지표일 뿐이다.\n- 제조사 FCU가 내부 데이터를 제한적으로 제공하는 경우가 많다(특히 PAFC/SOFC 대형 패키지). 서비스 계약 시 원시 데이터 제공 조항을 확인한다.\n- Pei 2008 등 문헌의 운전조건별 열화 계수는 차량용 실험 기반이므로, 정치형에는 형태(가중 합)만 차용하고 계수는 사이트 데이터로 재적합한다.\n- 향후 LLM 연결 지점: 실패모드별 `dataSignature` + 지표 값 + 원인분해 결과를 구조화 JSON으로 리포트 템플릿에 넘기고, LLM은 설명문 생성만 담당하도록 인터페이스를 둔다(판정은 규칙 기반 유지).",
+ "sources": [
+  {
+   "title": "DOE Technical Targets for Fuel Cell Systems for Stationary (Combined Heat and Power) Applications",
+   "url": "https://www.energy.gov/eere/fuelcells/doe-technical-targets-fuel-cell-systems-stationary-combined-heat-and-power"
+  },
+  {
+   "title": "DOE Technical Targets for Polymer Electrolyte Membrane Fuel Cell Components",
+   "url": "https://www.energy.gov/eere/fuelcells/doe-technical-targets-polymer-electrolyte-membrane-fuel-cell-components"
+  },
+  {
+   "title": "NREL - Fuel Cell Technology Status: Degradation",
+   "url": "https://docs.nrel.gov/docs/fy18osti/64220.pdf"
+  },
+  {
+   "title": "NREL - State-of-the-art Fuel Cell Voltage Durability Status",
+   "url": "https://docs.nrel.gov/docs/fy13osti/58613.pdf"
+  },
+  {
+   "title": "NREL - Stationary Fuel Cell System Composite Data Products (NREL/TP-5400-60796)",
+   "url": "https://docs.nlr.gov/docs/fy14osti/60796.pdf"
+  },
+  {
+   "title": "IEA AFC TCP - Stationary Fuel Cell Applications 2021: Current and Future Technologies",
+   "url": "https://ieafuelcell.com/wp-content/uploads/2024/11/2021-stationary-application-performance.pdf"
+  },
+  {
+   "title": "NIST - Revised Standardized Equation for Hydrogen Gas Densities for Fuel Consumption Applications (Lemmon, Huber, Leachman 2008)",
+   "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4652867/"
+  },
+  {
+   "title": "NIST Journal of Research PDF - Revised Standardized Equation for Hydrogen Gas Densities",
+   "url": "https://nvlpubs.nist.gov/nistpubs/jres/113/6/v113.n06.a05.pdf"
+  },
+  {
+   "title": "EFRC - Review of the sixth edition of API 618 (discharge temperature limits for hydrogen-rich service)",
+   "url": "https://www.recip.org/wp-content/uploads/2025/05/EFRC-Report-Review-API-618-6th-edition-API-688-2nd-edition-Part-1-V1.pdf"
+  },
+  {
+   "title": "Ariel - Reciprocating Compressors and the Hydrogen Economy",
+   "url": "https://www.arielcorp.com/company/newsroom/reciprocating-compressors-and-the-hydrogen-economy.html"
+  },
+  {
+   "title": "ISO 20816-8:2018 Reciprocating compressor systems vibration",
+   "url": "https://www.iso.org/standard/75440.html"
+  },
+  {
+   "title": "Overview of diaphragm compressors for hydrogen service: capacity, discharge pressure and operational challenges",
+   "url": "https://www.sciencedirect.com/science/article/pii/S2352152X25019991"
+  },
+  {
+   "title": "Diagnosis method to identify diaphragm state of diaphragm compressors for hydrogen refueling stations based on dynamic oil pressure",
+   "url": "https://www.sciencedirect.com/science/article/abs/pii/S0360319923031671"
+  },
+  {
+   "title": "A non-destructive fault diagnosis method for a diaphragm compressor in the hydrogen refueling station",
+   "url": "https://www.sciencedirect.com/science/article/abs/pii/S0360319919327235"
+  },
+  {
+   "title": "NREL - Next Generation Hydrogen Station Composite Data Products: Retail Stations",
+   "url": "https://docs.nrel.gov/docs/fy21osti/79141.pdf"
+  },
+  {
+   "title": "NREL/OSTI - Retail Hydrogen Station Reliability Status and Advances",
+   "url": "https://www.osti.gov/servlets/purl/1603259"
+  },
+  {
+   "title": "Reciprocating Compressor Valve Leakage Detection Under Varying Load Conditions (temperature-based)",
+   "url": "https://link.springer.com/chapter/10.1007/978-3-319-95711-1_40"
+  },
+  {
+   "title": "DOE/EERE - Technical Assessment of Compressed Hydrogen Storage Tank Systems (compression energy)",
+   "url": "https://www1.eere.energy.gov/hydrogenandfuelcells/pdfs/compressedtank_storage.pdf"
+  },
+  {
+   "title": "Review of the Hydrogen Permeation Test of the Polymer Liner Material of Type IV Cylinders (ISO 19881 limits)",
+   "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC10420304/"
+  },
+  {
+   "title": "H2tools - Hydrogen Leak Detection",
+   "url": "https://h2tools.org/hydrogen-leak-detection"
+  },
+  {
+   "title": "H2tools - Leak Detection Best Practices",
+   "url": "https://h2tools.org/bestpractices/leak-detection"
+  },
+  {
+   "title": "NREL - Summary and Findings from the NREL/DOE Hydrogen Sensor Workshop",
+   "url": "https://docs.nrel.gov/docs/fy12osti/55645.pdf"
+  },
+  {
+   "title": "NREL - Hydrogen Monitoring Requirements in the Global Technical Regulation on Hydrogen and Fuel Cell Vehicles (GTR 13)",
+   "url": "https://docs.nrel.gov/docs/fy16osti/64074.pdf"
+  },
+  {
+   "title": "Dober - How Fuel Cell Coolants Are Different (conductivity)",
+   "url": "https://www.dober.com/performance-fluids/resources/how-fuel-cell-coolants-are-different"
+  },
+  {
+   "title": "SAE 2003-01-0802 Leaching of Ions from Fuel Cell Vehicle Cooling System and Their Removal to Maintain Low Conductivity",
+   "url": "https://www.sae.org/publications/technical-papers/content/2003-01-0802/"
+  },
+  {
+   "title": "Patent - Method and apparatus for monitoring fuel cell voltages (min cell voltage alarm/shutdown thresholds)",
+   "url": "https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/7148654"
+  },
+  {
+   "title": "The effect of hydrogen crossover on open-circuit voltage in PEM fuel cells",
+   "url": "https://www.sciencedirect.com/science/article/abs/pii/S0378775309018254"
+  },
+  {
+   "title": "Anode purge management for hydrogen utilization and stack durability improvement of PEM fuel cell systems",
+   "url": "https://www.sciencedirect.com/science/article/abs/pii/S030626192030622X"
+  },
+  {
+   "title": "Effect of nitrogen crossover on purging strategy in PEM fuel cell systems",
+   "url": "https://www.researchgate.net/publication/273838218_Effect_of_nitrogen_crossover_on_purging_strategy_in_PEM_fuel_cell_systems"
+  },
+  {
+   "title": "Pei et al. 2008 - A quick evaluating method for automotive fuel cell lifetime",
+   "url": "https://www.sciencedirect.com/science/article/abs/pii/S036031990800476X"
+  },
+  {
+   "title": "A review of automotive PEM fuel cell degradation under start-stop operating condition",
+   "url": "https://www.sciencedirect.com/science/article/abs/pii/S030626191830607X"
+  },
+  {
+   "title": "Detection of Membrane Drying, Fuel Cell Flooding, and Anode Catalyst Poisoning on PEMFC Stacks by EIS",
+   "url": "https://iopscience.iop.org/article/10.1149/1.2179200"
+  },
+  {
+   "title": "Analysis of Fuel Cell Stack Performance Attenuation and Individual Cell Voltage Uniformity (PMC)",
+   "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8068073/"
+  },
+  {
+   "title": "Doosan Fuel Cell - PureCell Model 400 Hydrogen",
+   "url": "https://www.doosanfuelcell.com/en/prod/prod-0102/"
+  },
+  {
+   "title": "IEC 62282-3-200 Stationary fuel cell power systems - Performance test methods",
+   "url": "https://webstore.iec.ch/en/publication/23736"
+  },
+  {
+   "title": "IEC 61850-7-420:2009 DER logical nodes (DFCL, DSTK, DFPM)",
+   "url": "https://cdn.standards.iteh.ai/samples/13405/92c4628f823549998e9f9d88013e5b37/IEC-61850-7-420-2009.pdf"
+  },
+  {
+   "title": "KGS Code 가스기술기준정보시스템",
+   "url": "https://cyber.kgs.or.kr/kgscode.codeSearch.listV2.ex.do"
+  },
+  {
+   "title": "수소연료사용시설의 시설·기술·검사 기준(KGS FU671) - H2HUB",
+   "url": "https://h2hub.or.kr/main/info/regulation_info.do?mode=download&articleNo=3039&attachNo=5967"
+  },
+  {
+   "title": "수소 및 수소용품 관련 규제사항 체크리스트('25.8, 연구개발특구진흥재단)",
+   "url": "https://www.innopolis.or.kr/fileDownload?titleId=182136&fileId=1&fileDownType=C&paramMenuId=MENU00318"
+  },
+  {
+   "title": "KAIST 연구실 가스안전 매뉴얼(가연성가스 경보농도 폭발하한계 1/4)",
+   "url": "https://safety.kaist.ac.kr/filesPortalViewer.do?code=C001"
+  },
+  {
+   "title": "전력거래소 - 2025년 일반수소발전시장 경쟁입찰 공고",
+   "url": "https://kpx.or.kr/board.es?mid=a11201000000&bid=0042&list_no=75083&act=view"
+  },
+  {
+   "title": "전력거래소 - 2025년 청정수소발전시장 경쟁입찰 공고",
+   "url": "https://www.kpx.or.kr/board.es?mid=a11201000000&bid=0042&act=view&list_no=75084"
+  },
+  {
+   "title": "월간수소경제 - 정부, 2025년분 수소발전 입찰 물량 1,300GWh로 확정",
+   "url": "https://www.h2news.kr/news/articleView.html?idxno=10795"
+  },
+  {
+   "title": "에너지경제 - 청정수소발전 입찰시장 결과 및 과제",
+   "url": "https://m.ekn.kr/view.php?key=20250305025332661"
+  },
+  {
+   "title": "월간수소경제 - 청정수소 인증제 운영",
+   "url": "https://www.h2news.kr/news/articleView.html?idxno=12249"
+  },
+  {
+   "title": "월간수소경제 - 권환주 광신기계공업 대표 인터뷰(수소 압축기 국산화)",
+   "url": "https://www.h2news.kr/news/articleView.html?idxno=7339"
+  },
+  {
+   "title": "전기신문 - SOFC 시장 쟁탈전(국내 발전용 연료전지 시장)",
+   "url": "https://www.electimes.com/news/articleView.html?idxno=371126"
+  },
+  {
+   "title": "REMS 신재생에너지 통합모니터링시스템(한국에너지공단)",
+   "url": "https://rems.energy.or.kr/"
+  }
+ ]
+}

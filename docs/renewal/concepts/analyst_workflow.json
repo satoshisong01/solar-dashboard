@@ -1,0 +1,414 @@
+{
+ "lens": "analyst_workflow: 분석가의 하루 폐루프(관망 → 트리아지 → 근거 확인 → 원인 가설 → 코칭 리포트 작성·승인 → 발전소 전달 → 조치 효과 검증)를 화면 정보구조와 데이터 모델의 뼈대로 삼는 관점",
+ "productName": "H2-Solar O&M 분석 데스크 (가칭 'Coach Desk')",
+ "thesis": "탐지기가 만드는 finding은 '기계 신호'일 뿐이고, 분석가가 실제로 다루는 업무 단위는 여러 finding을 묶은 '케이스(조사 건)'다. 케이스 하나가 가설 판별 → 권고 조치 → 리포트 발행 → 발전소 조치 → before/after 검증을 거쳐 닫힐 때 코칭 루프가 완성된다. 콘솔은 이 흐름을 따라 '오늘 → 트리아지 → 케이스(분석 데스크) → 리포트 → 조치 추적' 5개 화면을 중심으로 재구성한다. 태양광·ESS·전해조·저장·연료전지는 사이트별 에너지·수소 흐름 원장(flow ledger)과 자산 인과 토폴로지(asset_link)로 연결되어, 하류 증상의 상류 원인을 한 화면에서 추적할 수 있다. 수치와 포함 항목은 결정적 엔진(ReportPlanner)이 정하고 문장화는 교체 가능한 ReportComposer가 맡는다. 그래서 지금은 규칙 템플릿만 쓰고, 나중에 LLM을 붙여도 숫자와 판단은 바뀌지 않는다.",
+ "informationArchitecture": [
+  {
+   "menu": "오늘(브리핑)",
+   "route": "/",
+   "purpose": "출근 직후 5분 안에 오늘 할 일과 밤사이 변화를 파악",
+   "keyWidgets": [
+    "안전 이벤트 스트립(분석 경로와 분리, 확인 전까지 고정)",
+    "내 할 일 카운터: 트리아지 대기/조사 중 케이스/승인 대기 리포트/회신 기한 초과 권고/검증 결과 도착",
+    "밤사이 신규·악화·재발 finding Top 10",
+    "데이터 공백: 끊긴 게이트웨이, 신규 미매핑 태그",
+    "수익 요약 위젯(SMP/REC 월 누계, 추정 손실액)"
+   ]
+  },
+  {
+   "menu": "플릿",
+   "route": "/fleet",
+   "purpose": "여러 사이트를 도메인별 건강 상태로 한눈에 관망",
+   "keyWidgets": [
+    "사이트×도메인(PV/ESS/전해조/저장/연료전지/데이터품질) 히트 매트릭스",
+    "Kakao 지도 토글(react-kakao-maps-sdk)",
+    "연계 KPI 순위: PV→H2 활용률, P2P 효율, 물질수지 잔차율"
+   ]
+  },
+  {
+   "menu": "트리아지",
+   "route": "/triage",
+   "purpose": "새 finding을 키보드 중심으로 빠르게 분류(수락→케이스/병합/기각/스누즈/데이터문제)",
+   "keyWidgets": [
+    "우선순위 점수와 점수 설명 칩",
+    "우측 미리보기(효과 크기·CI·신뢰도 분해·스파크라인)",
+    "관련 케이스 묶음 제안(같은 사이트·시간 겹침·asset_link 인과 엣지)",
+    "기각 사유 입력 → 운영 컨텍스트 이벤트 생성 옵션"
+   ]
+  },
+  {
+   "menu": "케이스(분석 데스크)",
+   "route": "/cases, /cases/[caseId]",
+   "purpose": "근거 확인, 원인 가설 판별, 권고 조치 작성을 한 화면에서 수행",
+   "keyWidgets": [
+    "증거 캔버스: 조건매칭 비교표, 에피소드 산점도(Theil–Sen+CUSUM+조치선), 에피소드 오버레이, 원시 시계열+이벤트 밴드, 동종 비교, 흐름 컨텍스트",
+    "가설 패널: 플레이북 원인 후보별 판별 테스트 자동 결과(지지/반박/불명/데이터없음)",
+    "증거 핀(동결 스냅샷, 리포트 인용)",
+    "권고 조치 빌더(기대효과·검증방식·기한)",
+    "활동 타임라인"
+   ]
+  },
+  {
+   "menu": "사이트",
+   "route": "/sites/[siteCode], /sites/[siteCode]/flow, /sites/[siteCode]/timeline, /sites/[siteCode]/assets/[assetId]",
+   "purpose": "사이트 맥락 파악: 설비 트리, 에너지·수소 흐름, 사건 타임라인, 부품 상세",
+   "keyWidgets": [
+    "흐름 Sankey(전력→전해조→H2 kg→저장→연료전지 kWh, 손실·잔차 노드)",
+    "PV 가용전력 미활용 원인 분해 막대(최소부하/트립/승온/저장만충/출력제어)",
+    "레인 타임라인(알람·정비·설정변경·날씨·finding 활성구간·리포트 전달)",
+    "자산 상세: 명판, 탐지기 커버리지(필요 포인트 4/6), 기준선 구간, 관찰 중 지표"
+   ]
+  },
+  {
+   "menu": "탐색기",
+   "route": "/explore",
+   "purpose": "임의 포인트·에피소드를 탐색하고 저장 뷰나 증거 핀으로 케이스에 첨부",
+   "keyWidgets": [
+    "포인트 피커(자산 트리+메트릭)",
+    "date_bin 다운샘플 차트 + dataZoom 재조회(/api/series)",
+    "에피소드 모드: 조건 bin 필터 산점도",
+    "저장된 뷰"
+   ]
+  },
+  {
+   "menu": "리포트",
+   "route": "/reports, /reports/[reportId], /reports/[reportId]/print",
+   "purpose": "주간·월간·긴급 코칭 리포트 초안 검토, 편집, 승인, 발행, 전달 기록",
+   "keyWidgets": [
+    "Planner가 만든 항목 목록(포함/제외·사유, sev≥4 강제 포함)",
+    "블록 편집기: 수치 토큰 잠금, 문장 변형 선택, 분석가 코멘트",
+    "검증기 결과 패널(인용·수치 일치·누락)",
+    "인쇄용 HTML(서버 SVG 차트)",
+    "전달 기록(채널·수신자·일시)"
+   ]
+  },
+  {
+   "menu": "조치 추적",
+   "route": "/actions",
+   "purpose": "권고가 조치와 검증으로 이어지는지 추적하고, 끊긴 루프(미회신·효과없음)를 찾음",
+   "keyWidgets": [
+    "권고 칸반: 전달됨→수용/거부→조치완료→검증중→효과확인/효과없음/판단불가",
+    "검증 진행바(after 창 12/30일, 표본 6/15)",
+    "before/after 검증 차트(level_shift/slope_change)",
+    "코칭 성과: 수용률, 조치 리드타임, 효과 확인률, 재발률, 회복 kWh·원"
+   ]
+  },
+  {
+   "menu": "안전",
+   "route": "/safety",
+   "purpose": "인터록·ESD·화염·누출 원시 알람을 즉시 경로로 표시하고 확인 이력을 남김",
+   "keyWidgets": [
+    "미확인 안전 이벤트 목록(억제 불가)",
+    "'안전감시 공백' 표시(통신 두절·검지기 고장)",
+    "확인(ack) 기록"
+   ]
+  },
+  {
+   "menu": "카탈로그·설정",
+   "route": "/catalog/metrics, /catalog/unmapped, /catalog/assets, /catalog/detectors, /settings/admins, /settings/gateways, /ops/jobs",
+   "purpose": "데이터 계약 등록, 자산·토폴로지 관리, 탐지기 품질 관리, 운영 잡 상태 확인",
+   "keyWidgets": [
+    "미매핑 태그 → 포인트 등록 + bronze replay",
+    "asset_link 편집(feeds/cools/powers)",
+    "탐지기 품질표: 버전별 수락률·기각률(사유별)·효과 확인률 + 시뮬레이터 재현율",
+    "잡 lease/워터마크/실패 현황"
+   ]
+  }
+ ],
+ "keyWorkflows": [
+  {
+   "name": "아침 관망과 트리아지",
+   "steps": [
+    "/ 에서 안전 스트립을 확인(ack)하고 내 할 일 카운터를 봄",
+    "/triage 에서 우선순위 순으로 j/k 이동, 우측 미리보기로 효과·CI·신뢰도를 확인",
+    "a=수락해 새 케이스 생성, m=제안된 기존 케이스에 병합, d=기각(사유 필수, 필요하면 운영 컨텍스트 이벤트 생성), s=스누즈 7/30일, q=데이터품질 케이스로 재분류",
+    "일일 트리아지 예산(기본 20건)을 넘는 sev≤2 항목은 자동으로 '다음 날'로 넘기고 표시"
+   ]
+  },
+  {
+   "name": "케이스 조사(분석 데스크)",
+   "steps": [
+    "/cases/[id] 진입 시 플레이북 판별 테스트가 자동 실행되고(결과 캐시 + 야간 갱신) 원인 후보가 순위화됨",
+    "증거 캔버스에서 조건매칭 비교, 에피소드 오버레이, 원시 시계열+이벤트 밴드, 동종 비교, 흐름 컨텍스트를 확인",
+    "asset_link 상류 자산(HVAC, PV, 전해조 등)의 활성 finding을 확인하고 필요하면 케이스에 병합",
+    "가설 채택(원인 키 + 분석가 확신도 + 메모). 반박된 후보는 사유와 함께 기록",
+    "중요한 차트를 핀 고정해 동결 스냅샷을 만들고, 리포트 인용 대상으로 표시",
+    "권고 조치 작성: 플레이북 기본 조치에서 선택하고 기한·우선순위·기대효과·검증방식을 확인 → 케이스 상태를 recommended로"
+   ]
+  },
+  {
+   "name": "코칭 리포트 작성·승인·전달",
+   "steps": [
+    "주간 크론(월 03:37 KST)이 변화가 있는 사이트마다 EvidencePack을 만들고 ReportPlanner로 항목을 구성, template@1 Composer로 초안 생성",
+    "sev≥4 케이스는 강제 포함되고, sev≥4 finding이 있으면 긴급 리포트를 즉시 생성",
+    "분석가가 /reports/[id]에서 항목 포함/제외(제외 사유 필수)·문장 변형·코멘트를 편집. 수치 토큰은 잠겨 있음",
+    "validateDraft 통과 후 lead 역할이 승인 → 발행본 불변 스냅샷(pack_hash, 렌더 HTML) 저장, 권고 상태 approved",
+    "인쇄용 HTML을 PDF로 저장해 발전소에 전달하고 report_delivery에 채널·수신자·일시를 기록 → 권고 상태 delivered, 회신 기한 시작"
+   ]
+  },
+  {
+   "name": "조치 결과 추적과 효과 검증",
+   "steps": [
+    "발전소 회신(전화·메일)을 /actions 에서 입력: 수용/거부, 조치일, 작업 내용 → maintenance_action 생성",
+    "권고 상태가 done → verifying로 바뀌고, 검증 잡이 설비별 안정화 기간 후 after 창을 채움",
+    "검증방식별 판정: level_shift는 조건매칭 비율 CI, slope_change는 Theil–Sen 기울기 차이 CI, confirmation은 시험값과 추정치 일치, recurrence는 N일 무재발",
+    "effective면 케이스 close(resolved_verified) 후 다음 리포트 '지난 코칭 효과' 섹션에 자동 포함. not_effective면 케이스를 investigating으로 되돌리고 다음 가설 라운드 시작",
+    "회신 기한이 지나면 조치 추적 보드에 강조하고, 데이터에서 계단형 회복이 감지되면 '조치 추정' 제안 칩 표시"
+   ]
+  },
+  {
+   "name": "사이트 연계 흐름 점검(주 1회)",
+   "steps": [
+    "/sites/[code]/flow 에서 기간을 선택해 Sankey로 PV·ESS·계통 kWh → 전해조 → H2 kg → 저장 → 연료전지 kWh를 확인",
+    "PV 가용전력 중 전해조 미활용 kWh의 원인 분해(최소부하 미달/트립/승온/저장 만충/출력제어)를 확인",
+    "전력원 비율(PV 직접/ESS/계통)로 청정수소 등급 추정과 물질수지 잔차율을 확인",
+    "잔차가 불확도를 넘으면 흐름 노드에서 바로 케이스 생성(h2chain.mass_balance_gap)"
+   ]
+  },
+  {
+   "name": "데이터 계약 확장(메트릭 등록)",
+   "steps": [
+    "/catalog/unmapped 에서 신규 태그와 매핑 제안(SunSpec/벤더 별칭)을 확인",
+    "metric_def(없으면)와 point를 등록하고 단위 변환을 지정",
+    "bronze replay 잡을 실행해 first_seen_at 이후 데이터를 백필",
+    "자산 상세의 탐지기 커버리지가 갱신되고, 조건을 충족한 탐지기가 다음 야간 실행부터 자동 활성화"
+   ]
+  }
+ ],
+ "dataModel": [
+  {
+   "table": "om.site / om.asset_class / om.asset",
+   "purpose": "사이트→system→asset→component 계층, 명판, peer_group, criticality",
+   "keyColumns": "asset(id, site_id, parent_id, level, class_key, code, path, nameplate jsonb, criticality, peer_group, commissioned_at)"
+  },
+  {
+   "table": "om.asset_link",
+   "purpose": "에너지·수소·열 흐름과 인과 토폴로지(feeds/cools/powers). 흐름 원장, 케이스 묶음 제안, 상류 원인 탐색에 사용",
+   "keyColumns": "PK(from_asset_id, to_asset_id, carrier), carrier CHECK('elec','h2','heat','coolant','air'), relation CHECK('feeds','cools','powers','protects')"
+  },
+  {
+   "table": "om.metric_def / om.point / om.unmapped_source",
+   "purpose": "메트릭 카탈로그(INSERT만으로 확장), 게이트웨이 태그 매핑, 미매핑 태그 수집",
+   "keyColumns": "metric_def(key, unit, value_kind, rollup, hard/expected 범위, aliases jsonb); point(id, asset_id, metric_key, qualifier, gateway_id, source_key, scale, value_offset)"
+  },
+  {
+   "table": "om.gateway / om.gateway_key / om.ingest_batch",
+   "purpose": "게이트웨이 인증(HMAC 키 2개 회전)과 bronze 원본 보존(90일, replay)",
+   "keyColumns": "ingest_batch(id, gateway_id, batch_id UNIQUE per gateway, body_sha256, body_gzip, status)"
+  },
+  {
+   "table": "om.measurement",
+   "purpose": "silver 원시 시계열(long format, 품질 비트)",
+   "keyColumns": "PK(point_id, ts), value float8, quality int2",
+   "partitioning": "UTC 월 RANGE 파티션 + DEFAULT, 파티션별 BRIN(ts minmax_multi), 6개월 보존"
+  },
+  {
+   "table": "om.event_log / om.safety_event",
+   "purpose": "알람·트립·설정변경 이벤트, 그리고 분석 경로와 분리된 안전 이벤트(억제 불가, ack 필수)",
+   "keyColumns": "safety_event(id, site_id, asset_id, source_key, code, ts, received_at, acked_by, acked_at, cleared_at)",
+   "partitioning": "event_log 월 파티션 5년, safety_event 파티션 없음 영구"
+  },
+  {
+   "table": "om.rollup_dirty / om.m_1h / om.m_1d / om.dq_interval",
+   "purpose": "dirty-bucket 증분 롤업과 사후 DQ 구간",
+   "keyColumns": "m_1h PK(point_id, bucket); dq_interval(point_id, during tstzrange, issue, detector_version)",
+   "partitioning": "m_1h 연 파티션, m_1d 없음"
+  },
+  {
+   "table": "om.context_event",
+   "purpose": "운영 컨텍스트(정비, 세척, 설정 변경, 펌웨어, 출력제어 지령, 교정). resets_baseline=true면 탐지기 기준선 분할점으로 사용",
+   "keyColumns": "id, site_id, asset_id, kind, at, until, resets_baseline bool, source CHECK('gateway','analyst','dismissal','action'), payload jsonb"
+  },
+  {
+   "table": "om.episode",
+   "purpose": "운전 단위 사건(ess.charge, el.steady_run, tank.idle_hold 등)의 특징값과 조건 bin(영구)",
+   "keyColumns": "PK(asset_id, kind, start_ts), end_ts, extractor_version, features jsonb, conditions jsonb, dq jsonb"
+  },
+  {
+   "table": "om.kpi_daily / om.flow_daily",
+   "purpose": "자산 일 KPI와 사이트 일 흐름 원장(엣지별 kWh·kg, 측정/유도/추정 방법)",
+   "keyColumns": "flow_daily PK(site_id, day, edge_key), quantity, unit, method CHECK('measured','derived','estimated'), dq"
+  },
+  {
+   "table": "om.finding / om.finding_evidence",
+   "purpose": "탐지기 신호(dedup_key로 중복 억제)와 실행별 근거 스냅샷(append-only)",
+   "keyColumns": "finding(id, dedup_key, asset_id, detector_id@version, failure_mode, category, severity, confidence, effect jsonb, triage_state, case_id, closed_at, close_reason, snoozed_until, suppressed_until, suppressed_hits); 부분 UNIQUE(dedup_key) WHERE closed_at IS NULL"
+  },
+  {
+   "table": "om.case",
+   "purpose": "분석가 업무 단위(여러 finding 묶음)",
+   "keyColumns": "id, site_id, primary_asset_id, title, status CHECK('investigating','recommended','monitoring','closed'), close_reason, severity, assignee, adopted_hypothesis_id, opened_at, closed_at"
+  },
+  {
+   "table": "om.hypothesis",
+   "purpose": "원인 후보별 판별 테스트 결과와 분석가 판단",
+   "keyColumns": "id, case_id, failure_mode, cause_key, auto_rank, discriminator_results jsonb, verdict CHECK('candidate','adopted','rejected'), analyst_confidence, note, playbook_version"
+  },
+  {
+   "table": "om.evidence_pin",
+   "purpose": "케이스에 고정한 차트·표의 동결 스냅샷(리포트 인용·재현)",
+   "keyColumns": "id, case_id, kind, spec jsonb(쿼리 파라미터), snapshot jsonb, finding_evidence_id, caption, pinned_by, cite_in_report"
+  },
+  {
+   "table": "om.recommendation",
+   "purpose": "권고 조치와 기대효과·검증 방식·회신 상태",
+   "keyColumns": "id, case_id, asset_id, action_type, priority, due_date, expected_effect jsonb(metric, direction, min_delta, verification{method, stabilization_days, after_days}), status CHECK('draft','approved','delivered','accepted','declined','done','verifying','effective','not_effective','inconclusive','cancelled')"
+  },
+  {
+   "table": "om.maintenance_action / om.action_verification",
+   "purpose": "발전소 조치 기록과 before/after 검증 결과",
+   "keyColumns": "action(id, recommendation_id, asset_id, action_type, performed_at, reported_via, notes); verification(action_id, method, before_window, after_window, before_stats, after_stats, effect, ci_low, ci_high, verdict)"
+  },
+  {
+   "table": "om.report / om.report_item / om.report_delivery / om.site_contact",
+   "purpose": "리포트 초안·승인·발행(불변 스냅샷), 항목별 블록, 전달 기록, 발전소 연락처",
+   "keyColumns": "report(id, site_id, kind CHECK('weekly','monthly','urgent'), period, status CHECK('draft','in_review','approved','published','superseded'), pack jsonb, pack_hash, composer_id, validation jsonb, rendered_html, approved_by); report_item(report_id, case_id, recommendation_id, section, ord, included, excluded_reason, blocks jsonb, analyst_comment); delivery(report_id, channel, recipient_contact_id, sent_at, sent_by)"
+  },
+  {
+   "table": "om.activity_log",
+   "purpose": "finding·case·report·recommendation 공통 활동 타임라인(감사 겸용)",
+   "keyColumns": "id, entity_type, entity_id, actor, verb, payload jsonb, at",
+   "partitioning": "없음(행 수 적음), 필요 시 연 파티션"
+  },
+  {
+   "table": "om.detector_config / om.saved_view",
+   "purpose": "탐지기 임계·가중치 버전 관리, 탐색기 저장 뷰",
+   "keyColumns": "detector_config(detector_id, version, params jsonb, active_from); saved_view(id, owner, name, spec jsonb)"
+  },
+  {
+   "table": "om.job_lease / om.watermark / om.job_run",
+   "purpose": "Vercel Cron 잡 잠금, 증분 워터마크, 실행 이력",
+   "keyColumns": "job_lease PK(job), expires_at; watermark PK(stage, scope)"
+  },
+  {
+   "table": "auth_user / auth_session / auth_account / auth_verification",
+   "purpose": "Better Auth 관리자 로그인(DB 세션, role: analyst | lead)",
+   "keyColumns": "auth_user(id, email, role, banned); auth_session(id, userId, expiresAt)"
+  },
+  {
+   "table": "sim.run / sim.injection / sim.storyline_step / sim.eval_result",
+   "purpose": "시뮬레이터 ground truth, 폐루프 스토리라인(가상 회신·조치), 탐지·워크플로 평가",
+   "keyColumns": "injection(run_id, asset_code, kind, start_ts, params, expected_failure_modes[]); storyline_step(run_id, at, kind CHECK('site_reply','action','context_change'), payload)"
+  }
+ ],
+ "ingestContract": "POST /api/ingest/v1 (gzip, HMAC-SHA256 헤더 X-OM-Key-Id / X-OM-Timestamp / X-OM-Signature=v1=hex(HMAC(secret, keyId.ts.sha256(rawBody))))\n\n{\n  \"schema\": \"om.ingest.v1\",\n  \"gateway\": \"GW-JEJU01-A\",\n  \"batch_id\": \"01923f6e-7c1a-7b1e-9a4e-2f1c3d5e7a90\",\n  \"seq\": 182340,\n  \"sent_at\": \"2026-09-14T03:05:00.120Z\",\n  \"clock\": { \"ntp_synced\": true, \"ntp_offset_ms\": -12 },\n  \"series\": [\n    { \"src\": \"BMS1/RACK03/I\", \"unit\": \"A\", \"t0\": 1757818800000, \"dt\": 10000, \"v\": [50.1, 50.0, null, 49.9], \"q\": [0,0,1,0] },\n    { \"src\": \"BMS1/RACK03/V_CELL_MAX\", \"unit\": \"V\", \"t0\": 1757818800000, \"dt\": 10000, \"v\": [3.412, 3.413, 3.413, 3.414] },\n    { \"src\": \"ELZ1/STACK1/V\", \"unit\": \"V\", \"ts\": [1757818805000, 1757818866000], \"v\": [412.1, 412.3] }\n  ],\n  \"events\": [\n    { \"src\": \"PCS1/FAULT\", \"class\": \"trip\", \"ts\": 1757818930000, \"code\": \"E023\", \"severity\": \"major\", \"text\": \"DC overvoltage\" },\n    { \"src\": \"EMS/SOC_UPPER_LIMIT\", \"class\": \"setpoint_change\", \"ts\": 1757819000000, \"code\": \"SOC_MAX\", \"value\": 90, \"prev\": 95 },\n    { \"src\": \"GAS/H2_DET_03\", \"class\": \"safety\", \"ts\": 1757819010000, \"code\": \"H2_ALARM_1\", \"severity\": \"critical\", \"value\": 4200, \"unit\": \"ppm\" }\n  ],\n  \"meta\": { \"fw\": \"1.4.2\", \"collector\": \"modbus-sunspec\" }\n}\n\n규칙:\n1) 인증을 먼저 하고 압축은 나중에 푼다. 서명 허용 오차는 ±300s, timingSafeEqual로 비교하고 게이트웨이당 활성 키 2개를 허용한다. 압축 해제 후 20MB를 넘으면 거부한다.\n2) 멱등성: (gateway_id, batch_id) UNIQUE. 해시가 같으면 200 duplicate, 다르면 409. 샘플은 PK(point_id, ts) ON CONFLICT DO NOTHING으로 넣고 첫 값이 이긴다. 롤업 dirty는 RETURNING으로 실제 삽입된 행에서만 만든다.\n3) src가 point.source_key에 매핑되지 않으면 unmapped_source에 집계한다. 원본은 bronze(ingest_batch)에 90일 보존하고, 매핑 후 replay로 백필한다.\n4) ts 수용 창은 [now−원시보존, received_at+5분]이다. 미래 ts는 거부하고, |skew|>120s 또는 ntp_synced=false이면 CLOCK_SUSPECT 비트를 세운다. 원시 ts는 절대 고치지 않는다.\n5) events.class 라우팅:\n   - safety: 정규화·DQ·dedup 없이 같은 요청 안에서 om.safety_event에 먼저 INSERT한 뒤 나머지를 처리한다. 콘솔은 억제하거나 자동 해제하지 않는다.\n   - setpoint_change / maintenance_mode: om.context_event 후보로 기록한다. SOC 상한·운전 설정 변경은 resets_baseline 제안 대상이다.\n   - alarm / trip: om.event_log에 기록한다.\n6) 권장 배치: 5분 flush, 압축 후 1MB 이하 또는 샘플 5,000개 이하(Vercel 본문 4.5MB 한도). 응답 코드: 200(카운트 포함) / 400(재시도 금지) / 401(X-OM-Server-Time 반환) / 409 / 413(분할 재전송) / 429·503(Retry-After + 지수 백오프). 오프라인 복구 시 오래된 배치부터 순서대로 보낸다.\n7) 셀 단위 수천 포인트는 게이트웨이에서 max/min/avg/spread와 최고·최저 셀 ID 포인트로 축약해 보낸다. 이상 구간 고해상도 전송은 추후 과제다.",
+ "analyticsPipeline": "결정적 파이프라인(LLM 없음). 집합 집계는 SQL로, 판단 로직은 now·rng를 주입받는 TS 순수 함수로 짠다. 모든 산출물에 id@version을 기록한다.\n[수집 시] 인라인 DQ(hard 범위·시계) → measurement upsert → rollup_dirty. safety 이벤트는 즉시 경로로 보낸다.\n[5분 /api/cron/rollup] 닫힌 dirty 버킷으로 m_1h를 갱신하고(gen 비교 삭제), 시간 버킷 DQ(완결성·고착·스파이크 → dq_interval)와 게이트웨이 단절을 검사한다.\n[매시 /api/cron/episodes] 자산별 워터마크(6시간 겹침 재처리)로 에피소드를 추출한다(ess.charge/discharge/rest, pv.daylight/clear_window, inv.derating, el.steady_run/startup, comp.run, tank.idle_hold/fill, fc.steady_run/startup/purge). m_1d도 여기서 만든다.\n[매일 02:17 KST /api/cron/daily]\n① 파티션 사전생성·보존\n② kpi_daily와 flow_daily(asset_link 엣지별 kWh·kg 원장, PV 미활용 원인 분해, 전력원 비율, 물질수지 잔차)\n③ 탐지기 실행: load(I/O) → detect(순수). 기준선은 context_event.resets_baseline 이후 구간만 사용하고, 조건 bin 매칭 비율 + 부트스트랩 CI, Theil–Sen/Mann–Kendall(전해조·연료전지는 x=누적 운전시간), CUSUM/EWMA, peer 수정 z-score를 적용\n④ finding upsert: 부분 유니크 dedup, 기각 억제 중이면 suppressed_hits만 증가하고 악화 시에만 새로 발행, 미트리아지·sev≤3이 3주기 연속 미탐지면 self_cleared로 닫음(safety는 제외)\n⑤ 열린 케이스의 판별 테스트 재평가(hypothesis.discriminator_results 갱신, 변화 시 활동 로그)\n⑥ 관련 케이스 묶음 제안 계산\n⑦ 조치 검증: 안정화 경과한 done 권고에 대해 level_shift / slope_change / confirmation / recurrence 방식으로 검증하고 판정에 따라 권고·케이스 상태를 전이\n⑧ 트리아지 우선순위 점수 갱신\n[주간 월 03:37 KST /api/cron/weekly-report] 사이트별 EvidencePack → ReportPlanner(결정적 항목 구성) → ReportComposer(template@1) → validateDraft → report draft 저장.\n[긴급] sev≥4 finding이 발행되면 그 케이스 하나로 urgent 리포트 초안을 즉시 만들고 오늘 화면 최상단에 올린다.\n모든 잡은 CRON_SECRET, job_lease, 시간예산 자발 중단, 워터마크 동일 트랜잭션 전진을 지킨다. 사용자 조작(판별 테스트 즉시 재실행, 증거 핀 생성)은 Server Action에서 같은 순수 함수를 호출한다.",
+ "llmSeam": "이번 단계에서 LLM은 쓰지 않는다. seam은 2단계 분리로 설계한다.\n(1) ReportPlanner(항상 결정적): EvidencePack(om.evidence-pack.v1)으로 무엇을 말할지(포함 케이스, 섹션 순서, 권고, 수치 fact, 인용 id)를 PlannedBlock[]로 만든다. sev≥4 강제 포함 규칙도 여기서 적용한다.\n(2) ReportComposer 인터페이스 compose(plan, opts) → ReportDraft{sections[].blocks[]{text, facts, citations[]}}: 어떻게 말할지만 담당한다. 이번 구현체는 template@1이다. 메시지 카탈로그 키는 failure_mode:cause_key:section이고, 조건절(CI 유무, 추세 유의성)과 KST·단위 포맷터를 쓴다.\n(3) validateDraft(plan, draft): 모든 블록이 plan의 인용을 포함하는지, 본문의 모든 숫자 토큰이 facts와 허용오차 안에서 일치하는지, plan 블록이 빠지지 않았는지, 금지 표현(단정적 안전 판정 등)이 없는지 확인한다.\n나중에 LlmComposer를 붙이면 JSON 스키마 구조화 출력으로 같은 ReportDraft를 만들고, 검증기를 통과할 때만 채택한다. 실패하면 template@1으로 폴백하고 사유를 report.validation에 기록한다. LLM은 항목 선택·수치·권고·검증 방식을 바꿀 수 없다. 원시 시계열은 전달하지 않고 계산된 fact와 핀 캡션만 넘긴다. 분석가 코멘트는 사람 작성 블록으로 표시하고, 숫자 불일치는 경고만 한다. 같은 seam 규약으로 향후 CaseSummarizer(트리아지 한 줄 요약)도 EvidencePack 입력, fact 검증 방식으로 붙일 수 있다.",
+ "simulatorPlan": "lib/sim에 시드 PRNG, 합성 기상(청천일사×운량 AR(1), 강우, 한파·폭염), 물리 근사 모델(PV/인버터/ESS CC-CV·용량·저항/전해조 분극·Faraday/압축기·탱크 Z보정 질량수지/연료전지 분극·블로워)을 둔다. 고장 8종과 DQ 6종 시나리오를 타입으로 정의하고 sim.injection에 ground truth를 기록한다.\n분석가 관점에서 추가하는 것은 '폐루프 스토리라인'이다. 주입뿐 아니라 운영 컨텍스트 변경과 가상 발전소 회신·조치를 시간표로 넣어(sim.storyline_step) 트리아지→리포트→조치→검증 전 과정을 재생한다.\n대표 스토리라인 S1(ESS): RACK03 용량 감소 0.5%/월 + 150일차 SOC 상한 95→90% 변경(context, 오탐 유발용) + 200일차 HVAC 필터 막힘(상류 원인, 일시 용량 저하) + 230일차 가상 회신 '필터 교체' → 온도 bin 회복은 level_shift로 확인되고 용량 추세는 유지되는지 검증.\nS2(PV): 황사 오염 0.15%/일 + 세척 조치 → 회복 검증.\nS3(수소 체인): 저장뱅크 미세누설 0.05%/일 + 전해조 최소부하 미달 잦은 정지 → 물질수지 잔차·흐름 원장.\n음성 대조군: 출력제어, 흐린 주, 한파, 전해조 부분부하, 연료전지 잦은 기동.\n평가:\n(a) 탐지 지표: 재현율·정밀도·자산월당 오탐·탐지지연·크기 MAE·신뢰도 보정·최소 탐지 크기 곡선\n(b) 워크플로 지표: 일평균 트리아지 부하(목표 사이트 30개 기준 분석가 1인당 ≤20건/일), 판별 테스트가 참 원인을 1순위로 올린 비율, context_event 반영 후 오탐 감소율, 검증 판정 정확도(주입된 회복 크기 대비)\nPlaywright E2E는 S1을 시뮬레이션 시간으로 재생한 DB에서 로그인 → 트리아지 수락 → 가설 채택 → 리포트 승인 → 회신 입력 → 검증 결과 표시까지 수행한다. 같은 봉투를 실제 /api/ingest/v1로 POST하는 E2E 모드로 멱등·지연·시계 처리도 검증한다.",
+ "phasing": [
+  {
+   "phase": "P0 기반 정리",
+   "goal": "보안 취약 버전과 가짜 데이터 경로를 제거하고 로컬 DB·인증·콘솔 셸을 세움",
+   "deliverables": [
+    "next 16.3.5 / react 19.3 업그레이드(별도 커밋), leaflet·자기참조 의존성 제거",
+    "브라우저 시뮬레이터·인증 없는 POST·24h 삭제 크론 제거",
+    "docker compose PG(RDS와 같은 메이저) + 순수 SQL 마이그레이션 + Kysely/kysely-codegen",
+    "Better Auth(analyst/lead 역할) + proxy.ts + DAL requireAdmin",
+    "(auth)/(console) 라우트 그룹과 빈 메뉴 셸, lucide 아이콘"
+   ],
+   "exitCriteria": "npm audit에 next 항목 0건, next build 통과, 비로그인 E2E로 모든 콘솔 URL·Server Action·/api/series 차단 확인, 빈 DB에 마이그레이션 적용·재적용 성공"
+  },
+  {
+   "phase": "P1 수집·자산·원시 탐색",
+   "goal": "데이터 계약 미정 상태에서도 받고, 등록하고, 보는 기반",
+   "deliverables": [
+    "/api/ingest/v1(HMAC·멱등·bronze·unmapped·safety 즉시 경로)",
+    "자산·asset_link·metric_def·point 카탈로그 화면과 replay",
+    "월 파티션 measurement + dirty 롤업 + DQ 기본",
+    "시뮬레이터 PV·ESS emit(HTTP 모드)",
+    "/fleet, /sites/[code], /sites/[code]/timeline, /explore(ECharts 래퍼, date_bin 재조회), /safety"
+   ],
+   "exitCriteria": "시뮬레이터 30일×3사이트 데이터가 중복·지연·시계오차 시나리오에서도 원시 재집계와 롤업이 일치, 미매핑 태그를 등록 후 replay하면 차트에 과거 데이터가 나타남"
+  },
+  {
+   "phase": "P2 폐루프 MVP: ESS 용량 예시 end-to-end",
+   "goal": "배터리 충전 예시 하나로 트리아지→가설→리포트→조치→검증 루프 완성",
+   "deliverables": [
+    "ess.charge/rest 에피소드 추출, matchedRatio·Theil–Sen·CUSUM",
+    "ess.capacity_fade·ess.cell_imbalance·ess.resistance_growth 탐지기와 finding upsert",
+    "/triage(키보드, 우선순위 설명, 기각→context_event)",
+    "/cases/[id] 분석 데스크(비교표·산점도·오버레이·시계열·가설 패널·핀·권고 빌더)",
+    "capacity_fade 플레이북 판별 테스트 6종",
+    "ReportPlanner + template@1 + validateDraft + /reports 편집·승인·인쇄 HTML·전달 기록",
+    "/actions 보드와 level_shift·slope_change 검증 잡",
+    "/ 오늘 화면"
+   ],
+   "exitCriteria": "스토리라인 S1 재생 시 용량 감소를 −6.25%±1%p로 추정하고 참 원인이 1순위로 오름, SOC 상한 변경 context 반영 후 해당 오탐이 사라짐, HVAC 조치의 level_shift 검증이 effective로 판정됨, E2E 폐루프 시나리오 통과, lib/analytics 커버리지 80% 이상"
+  },
+  {
+   "phase": "P3 PV·인버터와 흐름 원장(전력)",
+   "goal": "태양광 사이트 대부분에 코칭 가치를 확대",
+   "deliverables": [
+    "pv.soiling_rate·pv.string_underperf·inv.efficiency_drop·inv.thermal_derating 탐지기와 플레이북",
+    "peer 비교 카드, 출력제어 구간 분리",
+    "flow_daily 전력 엣지와 /sites/[code]/flow(PV·ESS·계통)",
+    "리포트 '지난 코칭 효과'·'데이터 품질 요청' 섹션, 코칭 성과 지표",
+    "/catalog/detectors 품질표"
+   ],
+   "exitCriteria": "S2 세척 회복 검증 effective, 흐린 주·출력제어 음성 대조군에서 PV finding 0건, 탐지기별 기각률이 품질표에 집계됨"
+  },
+  {
+   "phase": "P4 수소 체인",
+   "goal": "전해조→저장→연료전지까지 같은 루프와 흐름 추적",
+   "deliverables": [
+    "el.stack_voltage_rise·el.specific_energy_rise·comp.specific_energy_rise·tank.microleak·fc.voltage_decay·fc.blower_wear·h2chain.mass_balance_gap 탐지기",
+    "운전시간 축 추세, Z 보정 질량",
+    "H2 흐름 Sankey·PV 미활용 원인 분해·전력원 비율(청정수소 등급 추정)",
+    "confirmation·recurrence 검증 방식"
+   ],
+   "exitCriteria": "S3에서 누설 최소 탐지 크기 곡선 산출, 물질수지 잔차 케이스가 흐름 화면에서 생성·추적됨, 안전 카테고리 탐지 지연 3일 이하"
+  },
+  {
+   "phase": "P5 전달 고도화와 LLM seam 실험",
+   "goal": "전달 마찰을 줄이고 LLM 교체 가능성을 검증",
+   "deliverables": [
+    "만료 서명 토큰 읽기 전용 공유 링크 + 권고별 회신 폼(속도 제한·폐기 가능)",
+    "서버 PDF 또는 이메일 발송 연동",
+    "LlmComposer(기능 플래그 off 기본) + 동일 팩 A/B 평가 화면"
+   ],
+   "exitCriteria": "공유 링크 보안 리뷰 통과, LlmComposer 초안이 validateDraft 100% 통과 또는 폴백 기록, 템플릿 대비 분석가 수정량 비교 지표 확보"
+  }
+ ],
+ "signatureIdeas": [
+  "판별 테스트 기반 가설 패널: 플레이북의 원인 후보마다 '정전압 구간 시간이 늘었나', '충전 종료 셀 ΔV가 커졌나', 'SOC 상한 설정이 바뀌었나' 같은 질문을 데이터로 자동 판정(지지/반박/불명/데이터없음)하고 측정값을 함께 보여 줌",
+  "에피소드 오버레이 차트: 기준기간 대표 충전과 최근 충전의 원시 곡선을 t=0 정렬로 겹치고 x축을 경과시간/누적Ah/SOC로 전환. '8시간→7시간 30분'을 원시 데이터 그대로 보여 줌",
+  "기각이 곧 학습: 기각 사유 '운영 조건 변경'을 입력하면 context_event(resets_baseline)가 생기고 이후 기준선이 그 시점에서 분할되어 같은 오탐이 사라짐",
+  "Planner/Composer 분리: 무엇을 말할지(항목·수치·권고)는 결정적 엔진이, 어떻게 말할지만 교체 가능. LLM이 들어와도 수치와 판단은 못 바꿈",
+  "가설이 검증 방식을 결정: 회복형 원인(필터 막힘, 셀 불균형)은 level_shift, 비가역 열화 완화(SOC 창 축소)는 slope_change, 확정 시험은 confirmation, 간헐 고장은 recurrence",
+  "asset_link 인과 토폴로지로 케이스 묶음 제안: HVAC→배터리랙, PV→전해조→저장→연료전지 상류에 활성 finding이 있으면 트리아지와 데스크에서 먼저 보여 줌",
+  "사이트 흐름 원장과 PV 미활용 원인 분해: 태양광 가용전력 중 전해조가 못 쓴 kWh를 최소부하 미달/트립/승온/저장 만충/출력제어로 나누고, 전력원 비율로 청정수소 등급을 추정",
+  "증거 핀 = 동결 스냅샷: 발행 리포트는 pack_hash로 재현 가능하고, 이후 재계산이 있어도 발행본 수치가 변하지 않음",
+  "조건을 사람 말로 번역하는 조건절: 모든 리포트 문장에 '충전전류 45~55A, 셀온도 20~30°C, SOC 10% 이하→완충' 같은 매칭 조건과 표본 수를 붙여 발전소가 '조건을 맞춘 비교'임을 이해하게 함",
+  "코칭 성과 원장: 권고 수용률·조치 리드타임·효과 확인률·재발률·회복 kWh×(SMP+REC)를 집계해 다음 리포트의 '지난 코칭 효과'와 수익 요약 위젯에 자동 반영",
+  "탐지기 품질표: 탐지기 버전별 수락률·사유별 기각률·효과 확인률을 시뮬레이터 재현율 옆에 두고 튜닝 우선순위를 정함",
+  "탐지기 커버리지 표시: 자산 상세에 '이 탐지기에 필요한 포인트 4/6'을 보여 줘 데이터 계약 협상 목록이 곧 개선 요청이 됨",
+  "키보드 중심 트리아지와 우선순위 설명 칩(심각도×신뢰도×자산 중요도×악화 추세×대기일)과 일일 트리아지 예산"
+ ],
+ "risks": [
+  "소규모 팀에 트리아지와 케이스 관리가 무거워질 수 있음 → 일일 트리아지 예산, sev≤2 자동 이월, self_cleared, 탐지기 기각률 관리로 부하를 목표치 이하로 유지",
+  "발전소 회신이 오지 않으면 폐루프가 끊김 → 회신 기한·기한 초과 강조, 데이터 계단형 회복 감지로 '조치 추정' 제안, P5 공유 링크 회신 폼",
+  "판별 테스트 임계값이 실데이터 없이 추정값에서 출발 → 시뮬레이터 스토리라인으로 보정, 결과 옆에 '추정 임계' 표시, detector_config로 코드 배포 없이 조정",
+  "데이터 계약 미정으로 앵커 조건(휴지 OCV, CV 종료전류, 셀 max/min)이나 유량계가 없으면 핵심 탐지 불가 → 탐지기 커버리지 화면으로 필요한 포인트를 먼저 합의",
+  "흐름 원장에서 계측되지 않은 엣지가 추정값이 되어 잔차가 과대·과소 → method 플래그와 불확도 표시, 추정 엣지만으로는 sev≥4 발행 금지",
+  "리포트 권고의 책임 소재와 표현 리스크 → lead 승인 기록, 사람 작성 블록 구분, 안전 관련 문구는 '현장 법정 안전설비 대체 아님' 고정 문구",
+  "수소·ESS 안전 알람이 콘솔 통신 경로에 의존한다는 오해 → 안전은 PLC/SIS가 실행하고 콘솔은 표시·기록만 한다는 원칙을 UI에 명시, 통신 두절은 '안전감시 공백'으로 표시",
+  "Vercel Hobby는 상업 이용 불가·크론 1회/일 → Pro 전환이 전제, 불가하면 GitHub Actions/AWS 스케줄러로 잡 진입점을 옮김",
+  "RDS 스토리지 급증(셀 단위 포인트) → 게이트웨이 축약 정책, 원시 6개월 보존, 에피소드·KPI 영구 보존으로 장기 비교",
+  "스키마 과대 설계 → 페이즈 게이트로 테이블을 필요한 시점에만 추가(case/hypothesis/recommendation은 P2, flow_daily는 P3)",
+  "Better Auth advisory 빈도 → 쓰지 않는 플러그인 미설치, 버전 고정, 보안 공지 구독"
+ ],
+ "deliberatelyOutOfScope": [
+  "LLM 기반 문장 생성·요약·원인 추론(인터페이스와 검증기만 설계)",
+  "발전소 사용자 계정·포털(서명 토큰 공유 링크는 P5 선택 과제)",
+  "현장 설비 제어·설정값 쓰기(콘솔은 읽기 전용)",
+  "안전 인터록 실행과 안전 판정 자동화(PLC/SIS 담당, 콘솔은 표시·기록)",
+  "CMMS 전체 기능(작업지시·자재·인력·일정) — 조치 기록과 재검사 캘린더 알림만",
+  "SMP/REC 정산·입찰 최적화·발전량 예측제도 대응 모델 — 수익은 요약 위젯",
+  "SSE/WebSocket 실시간 스트리밍과 초 단위 화면 갱신",
+  "서버 PDF 렌더링과 이메일 자동 발송(P5 이전에는 인쇄용 HTML과 전달 기록)",
+  "Python 분석 워커·RdTools/pvlib 직접 사용",
+  "모바일 앱·다국어",
+  "ICA/DVA, EIS 등 고해상도 진단 데이터가 필요한 기법"
+ ],
+ "detail_md": "# H2-Solar O&M 분석 데스크: 리뉴얼 설계안 초안 (관점 #1 analyst_workflow)\n\n작성 기준일은 2026-09-14이며 코드는 수정하지 않았습니다. 레포 확인 결과, 현재는 `app/page.tsx` 한 파일에 탭 4개가 있고, 쓰이지 않는 `components/layout/*`, `Maps.tsx`, `/api/solar/cleanup`(24h 삭제 크론)이 남아 있습니다.\n\n## 1. 핵심 아이디어\n- **finding은 기계 신호이고, case는 사람의 업무 단위**입니다. 탐지기가 매일 올리는 finding을 분석가가 트리아지해서 케이스로 묶습니다. 케이스는 원인 가설, 권고 조치, 리포트 발행, 조치 결과, 효과 검증을 거쳐 닫힙니다.\n- 상태 기계를 둘로 나눕니다.\n  - finding: 시스템이 관리하는 `closed_at`과 사람이 관리하는 `triage_state`.\n  - case/recommendation: 사람과 검증 잡이 함께 관리하는 업무 상태.\n- 태양광·ESS·수전해·저장·연료전지는 두 가지로 연결합니다. **asset_link**(흐름·인과 토폴로지)와 **flow_daily**(사이트 일 흐름 원장)입니다.\n- 리포트는 역할을 둘로 나눕니다. **Planner(무엇을 말할지, 결정적)**와 **Composer(어떻게 말할지, 교체 가능)**입니다.\n\n전제 스택은 앞선 리서치 권고를 따릅니다.\n- Next 16.3.5, RSC와 `lib/data` DAL, Server Action과 zod 4\n- Better Auth(DB 세션, role `analyst`/`lead`), proxy.ts와 DAL 이중 보호\n- pg, Kysely, 순수 SQL 마이그레이션(dbmate. node-pg-migrate SQL 모드로 대체 가능하며 CI 단일 잡에서만 실행)\n- ECharts 6 자체 래퍼, react-kakao-maps-sdk, Vitest/Playwright\n- Vercel Pro 크론\n\n## 2. 분석가의 하루 (페르소나: 분석가 2~3명이 사이트 30개 담당)\n| 시각 | 화면 | 하는 일 | 끝나는 조건 |\n|---|---|---|---|\n| 09:00 | `/` 오늘 | 안전 스트립 확인(ack), 밤사이 신규·악화·재발, 내 할 일 카운터 | 안전 미확인 0 |\n| 09:10 | `/triage` | 20건 안팎 분류: 수락→케이스, 병합, 기각(사유), 스누즈, 데이터문제 | 오늘 예산 소진 |\n| 10:00 | `/cases/[id]` | 근거 확인 → 판별 테스트 → 가설 채택 → 권고 작성 | 케이스 `recommended` |\n| 14:00 | `/reports/[id]` | 주간 초안 검토·편집 → lead 승인 → 인쇄 HTML 전달 → 전달 기록 | 권고 `delivered` |\n| 16:00 | `/actions` | 회신 입력, 기한 초과 독촉, 검증 결과 확인(효과없음은 재조사) | 보드에 미처리 회신 0 |\n| 주 1회 | `/sites/[code]/flow` | 연계 흐름·미활용 원인·물질수지 점검 | 잔차 이상은 케이스화 |\n\n## 3. 정보구조와 라우트\n```\napp/\n  (auth)/login\n  (console)/page.tsx                         오늘(브리핑)\n  (console)/fleet                            사이트×도메인 매트릭스 / 지도\n  (console)/triage                           트리아지 큐 (?view=untriaged|snoozed|dismissed|self_cleared)\n  (console)/cases, cases/[caseId]            분석 데스크\n  (console)/sites/[siteCode]                 사이트 개요(설비 트리, KPI, 열린 케이스)\n  (console)/sites/[siteCode]/flow            에너지·수소 흐름 원장\n  (console)/sites/[siteCode]/timeline        레인 타임라인\n  (console)/sites/[siteCode]/assets/[assetId]  부품 상세(커버리지, 기준선 구간, 관찰 지표)\n  (console)/explore                          탐색기(포인트·에피소드)\n  (console)/reports, reports/[reportId], reports/[reportId]/print\n  (console)/actions                          조치 추적 보드\n  (console)/safety                           안전 이벤트\n  (console)/catalog/{metrics,unmapped,assets,detectors}\n  (console)/settings/{admins,gateways}, ops/jobs\n  api/ingest/v1  api/cron/{rollup,episodes,daily,weekly-report}  api/auth/[...all]  api/series\n```\nMutation(트리아지, 가설 채택, 핀, 권고, 승인, 회신 입력)은 모두 Server Action으로 처리합니다. 순서는 `requireAdmin()`, zod 검증, DAL, `activity_log` 기록, `refresh()`입니다.\n\n### 3.1 오늘 `/`\n1. **안전 스트립**: `om.safety_event`에서 `acked_at IS NULL`인 행과 '안전감시 공백'(검지기·게이트웨이 두절). 분석 finding과 섞지 않고, 억제하거나 자동으로 해제하지 않습니다.\n2. **내 할 일**: 트리아지 대기(예산 대비), 조사 중 케이스, 승인 대기 리포트(lead), 회신 기한 초과 권고, 검증 결과 도착.\n3. **밤사이 변화**: 신규/악화(severity 상승 또는 효과 +20%)/재발(`previous_finding_id` 있음) Top 10.\n4. **데이터 공백**: 끊긴 게이트웨이, 신규 미매핑 태그, DEFAULT 파티션 유입.\n5. **플릿 KPI와 수익 요약 위젯**: SMP/REC 월 누계, finding 효과로 추정한 손실액.\n\n### 3.2 트리아지 `/triage`\n- 좌측은 목록, 우측은 미리보기입니다. 미리보기에는 효과 크기, CI, 신뢰도 분해, 스파크라인, 조건 문장, 관련 케이스 제안이 들어갑니다.\n- 단축키: `j/k` 이동, `a` 수락(새 케이스), `m` 병합(제안 케이스 선택), `d` 기각, `s` 스누즈 7/30일, `q` 데이터품질 케이스로 재분류, `Enter` 데스크 열기.\n- 우선순위 점수는 화면에 칩으로 분해해서 보여 줍니다.\n```ts\nexport function triagePriority(f: { severity: 1|2|3|4|5; confidence: number; category: string;\n  assetCriticality: 1|2|3|4|5; worsening: boolean; daysUntriaged: number }): number {\n  if (f.category === 'safety') return 1000 + f.severity;               // 항상 최상단\n  const sev = [0, 1, 2, 4, 8, 16][f.severity];\n  return sev * (0.5 + 0.5 * f.confidence) * (0.6 + 0.1 * f.assetCriticality)\n       * (f.worsening ? 1.3 : 1) * (1 + Math.min(f.daysUntriaged, 7) / 14);\n}\n```\n- **기각 사유 enum**: `false_positive_sensor`, `known_operating_change`, `planned_maintenance`, `expected_behavior`, `duplicate`, `accepted_risk`, `insufficient_evidence`.\n  - `known_operating_change`나 `planned_maintenance`를 고르면 날짜와 종류를 입력받아 `om.context_event`를 만듭니다. `resets_baseline`은 기본 체크입니다.\n  - 기각된 finding은 `suppressed_until`(기본 30일)까지 억제됩니다. 억제 중 재탐지는 `suppressed_hits`만 늘립니다. 효과 크기가 기각 당시보다 50% 넘게 커지면 새로 발행하고 `previous_finding_id`로 연결합니다.\n- **케이스 묶음 제안 규칙**: 같은 사이트이고, 활성 구간이 72시간 안에서 겹치고, 다음 중 하나를 만족하면 제안합니다.\n  - (a) 같은 자산\n  - (b) `asset_link` 1~2홉 상류·하류\n  - (c) 같은 `peer_group`에서 3대 이상 동시 발생(공통 원인: 날씨·계통)\n\n### 3.3 분석 데스크 `/cases/[caseId]` (3단 레이아웃)\n**좌측(맥락)**\n- 케이스 헤더: 경로, 심각도, 담당자, 상태, 경과일\n- 연결 finding 목록(분리/추가)\n- 자산 명판, 운전연수, 최근 조치 이력\n- 기준선 구간(context_event 분할점)\n- 상류·하류 자산의 활성 finding\n\n**중앙(증거 캔버스)**: 카드마다 `핀 고정` 버튼이 있습니다.\n1. **조건매칭 비교표**: bin별 기준·현재 표본 수와 중앙값, 가중 비율, 부트스트랩 CI, 제외된 표본 수와 사유(DQ, 조건 불일치).\n2. **에피소드 산점도**: x는 운전일(전해조·연료전지는 누적 운전시간), y는 특징값, 색은 조건 bin입니다. 기준기간은 음영으로, Theil–Sen 선은 CI 밴드와 함께, CUSUM 변화점과 조치·context_event는 세로선으로 표시합니다.\n3. **에피소드 오버레이**: 기준기간 대표 에피소드(중앙값에 가장 가까운 3개)와 최근 3개의 원시 곡선(I, V, SOC, 셀온도, 셀 ΔV)을 t=0에 맞춰 겹칩니다. x축은 경과시간, 누적 Ah, SOC 중에서 고릅니다. `/api/series`로 원시를 재조회합니다.\n4. **원시 시계열과 이벤트 밴드**: 다중 y축과 markArea(알람·트립, 출력제어, 정비, 강우·한파, HVAC 이상), dataZoom 재조회.\n5. **동종 비교**: peer 자산 소형 다중 차트와 수정 z 막대.\n6. **흐름 컨텍스트**: 같은 기간 사이트 flow_daily 요약. 상류 공급이 줄었는지 확인합니다.\n\n**우측(가설 패널과 권고 빌더)**\n- 원인 후보별로 판별 테스트 결과(지지·반박·불명·데이터없음)와 측정값, 자동 순위를 보여 줍니다.\n- 분석가가 채택·반박하고, 확신도(낮음·중간·높음)와 메모를 남깁니다.\n- 채택한 원인의 플레이북 조치가 권고 빌더에 미리 채워집니다. 기대효과와 검증 방식은 원인에 따라 자동으로 정해지고 수정할 수 있습니다.\n\n**하단**: 활동 타임라인(탐지·트리아지·메모·가설·핀·리포트·전달·회신·검증).\n\n```ts\n// lib/playbooks/types.ts: 플레이북은 코드(버전 관리·테스트)이고, 임계값은 om.detector_config\nexport type Outcome = 'supports' | 'refutes' | 'inconclusive' | 'no_data';\nexport interface DiscriminatorResult {\n  readonly outcome: Outcome;\n  readonly observed: { metric: string; before?: number; after?: number; delta?: number; ci?: readonly [number, number]; unit: string };\n  readonly rationaleKey: string;            // 템플릿 키 (예: 'cv_time_stable')\n  readonly evidence?: EvidenceSnapshot;\n}\nexport interface Discriminator<I> {\n  readonly id: string; readonly version: string; readonly question: string;\n  load(caseCtx: CaseContext): Promise<I>;                         // I/O\n  evaluate(input: I, ctx: { now: Date; rng: () => number }): DiscriminatorResult;  // 순수\n}\nexport type VerificationMethod = 'level_shift' | 'slope_change' | 'confirmation' | 'recurrence' | 'none';\nexport interface CauseCandidate {\n  readonly key: string; readonly label: string;\n  readonly supportIf: readonly string[]; readonly refuteIf: readonly string[];   // discriminator id\n  readonly actions: readonly { type: string; label: string; defaultDueDays: number }[];\n  readonly verification: { method: VerificationMethod; metric: string; direction: 'up' | 'down' | 'flatter'; minDelta: number; stabilizationDays: number; afterDays: number };\n  readonly resetsBaseline?: boolean;       // 예: 설정 변경이 원인이면 검증 대신 기준선 분할\n}\nexport interface Playbook { readonly failureMode: string; readonly version: string; readonly causes: readonly CauseCandidate[] }\n```\n\n### 3.4 리포트 `/reports/[reportId]`\n- 종류: `weekly`(월 03:37 자동 초안), `monthly`, `urgent`(sev≥4 즉시).\n- 섹션 순서:\n  1. 요약 3줄\n  2. 안전·긴급(sev≥4 강제)\n  3. 우선 권고 조치(기한·기대효과·검증 방법)\n  4. 발견 상세(케이스별: 무엇이/얼마나/어떤 조건에서/근거 차트/판단 이유/신뢰도)\n  5. 지난 코칭 효과\n  6. 미회신·지연 조치\n  7. 에너지·수소 흐름 요약\n  8. 데이터 품질 개선 요청\n  9. 부록(방법·조건·용어)\n- 편집기 규칙: 수치는 잠긴 토큰 칩으로 표시되고 편집할 수 없습니다. 분석가는 문장 변형(간결/상세)과 코멘트만 바꿉니다. sev≥4 항목을 제외하려면 사유가 필요하고 lead만 할 수 있습니다.\n- 승인하면 `pack`, `pack_hash`, `rendered_html`(ECharts `renderToSVGString` 차트 인라인)이 동결됩니다. 이후 수정은 새 버전으로 만들고 이전 버전은 `superseded`가 됩니다.\n- 전달(P2): `/print`에서 인쇄해 PDF로 저장하고 메일로 보냅니다. `report_delivery`에 기록하면 권고가 `delivered`로 바뀌고 `due_date` 카운트가 시작됩니다.\n\n### 3.5 조치 추적 `/actions`\n- 칸반 열: 전달됨 → 수용/거부 → 조치완료 → 검증중(진행바: after 창 일수, 표본 수) → 효과확인/효과없음/판단불가.\n- 효과없음 카드에는 '케이스 재조사' 버튼이 있고, 누르면 case가 `investigating`으로 돌아가 다음 후보 가설을 제시합니다.\n- 코칭 성과 카드: 수용률, 조치 리드타임 중앙값, 효과 확인률, 90일 재발률, 회복 kWh×(SMP+REC).\n\n### 3.6 사이트 흐름 `/sites/[siteCode]/flow`\n- **Sankey 노드**: PV 발전, ESS 충전·방전, 계통 수전·송전, 전해조 입력 kWh, 전해조 손실, H₂ 생산 kg, 압축기 kWh, 저장 재고 Δkg, 연료전지 소비 kg, FC AC kWh, 회수열, 물질수지 잔차(미계측 손실).\n- **KPI**: PV→H₂ 활용률, 스택·시스템 kWh/kg, 전력원 비율(PV 직접/ESS/계통)과 추정 kgCO2e/kgH₂ 등급, P2P 효율(FC kWh / 전해조 kWh), 잔차율과 불확도.\n- **미활용 원인 분해**: 전해조 가용 PV kWh를 실제 사용, 최소부하 미달, 트립 중, 승온 중, 저장 만충 정지, 출력제어로 나눈 누적 막대(일별).\n- 노드마다 '이 구간 케이스 생성' 버튼이 있습니다(`h2chain.*` 탐지기 결과와 연결).\n\n## 4. 상태 기계 (TS 상수를 단일 소스로, DB CHECK와 병행)\n```ts\nexport const CASE_STATUS = ['investigating', 'recommended', 'monitoring', 'closed'] as const;\nexport const CASE_CLOSE_REASONS = ['resolved_verified', 'false_positive', 'accepted_risk', 'site_declined', 'merged', 'superseded'] as const;\nexport const REC_TRANSITIONS = {\n  draft: ['approved', 'cancelled'], approved: ['delivered', 'cancelled'], delivered: ['accepted', 'declined'],\n  accepted: ['done', 'cancelled'], declined: [], done: ['verifying'],\n  verifying: ['effective', 'not_effective', 'inconclusive'],   // system만 전이\n  effective: [], not_effective: [], inconclusive: ['verifying'], cancelled: [],\n} as const;\n```\n**finding 규칙**\n- 열림은 `closed_at IS NULL`이고, `UNIQUE(dedup_key) WHERE closed_at IS NULL`를 둡니다.\n- `triage_state`는 `untriaged | accepted | snoozed | dismissed`입니다.\n- 닫힘 사유는 `dismissed | case_closed | self_cleared | superseded`입니다. `self_cleared`는 미트리아지·sev≤3·안전 외인 경우에만 적용합니다.\n\n**케이스 규칙**\n- 수락하면 `investigating`이 됩니다.\n- 채택 가설과 권고가 1개 이상이면 `recommended`입니다.\n- 모든 권고가 `done/verifying/declined`이거나 '관찰만' 결정이면 `monitoring`입니다.\n- 전 권고가 종결되면 `closed`입니다.\n- `not_effective`가 하나라도 있으면 `investigating`으로 되돌립니다.\n\n## 5. 분석가 워크플로 테이블 SQL (핵심만)\n```sql\nCREATE TABLE om.asset_link (\n  from_asset_id integer NOT NULL REFERENCES om.asset(id),\n  to_asset_id   integer NOT NULL REFERENCES om.asset(id),\n  carrier  text NOT NULL CHECK (carrier IN ('elec','h2','heat','coolant','air')),\n  relation text NOT NULL CHECK (relation IN ('feeds','cools','powers','protects')),\n  meter_point_id integer REFERENCES om.point(id),          -- 엣지 계량 포인트(없으면 유도/추정)\n  PRIMARY KEY (from_asset_id, to_asset_id, carrier)\n);\n\nCREATE TABLE om.context_event (\n  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  site_id smallint NOT NULL REFERENCES om.site(id),\n  asset_id integer REFERENCES om.asset(id),\n  kind text NOT NULL,              -- 'setpoint_change','firmware_update','cleaning','component_replacement','calibration','curtailment_order'\n  at timestamptz NOT NULL, until timestamptz,\n  resets_baseline boolean NOT NULL DEFAULT false,\n  source text NOT NULL CHECK (source IN ('gateway','analyst','dismissal','action')),\n  payload jsonb NOT NULL DEFAULT '{}', created_by text\n);\n\nCREATE TABLE om.\"case\" (\n  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  code text NOT NULL UNIQUE,                                -- 'CASE-2026-0142'\n  site_id smallint NOT NULL REFERENCES om.site(id),\n  primary_asset_id integer NOT NULL REFERENCES om.asset(id),\n  title text NOT NULL,\n  status text NOT NULL DEFAULT 'investigating' CHECK (status IN ('investigating','recommended','monitoring','closed')),\n  close_reason text CHECK (close_reason IN ('resolved_verified','false_positive','accepted_risk','site_declined','merged','superseded')),\n  severity smallint NOT NULL CHECK (severity BETWEEN 1 AND 5),\n  assignee text, adopted_hypothesis_id bigint,\n  opened_at timestamptz NOT NULL DEFAULT now(), closed_at timestamptz,\n  CHECK ((status = 'closed') = (close_reason IS NOT NULL))\n);\nALTER TABLE om.finding ADD COLUMN case_id bigint REFERENCES om.\"case\"(id);\n\nCREATE TABLE om.hypothesis (\n  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  case_id bigint NOT NULL REFERENCES om.\"case\"(id),\n  failure_mode text NOT NULL, cause_key text NOT NULL, playbook_version text NOT NULL,\n  auto_rank smallint, discriminator_results jsonb NOT NULL DEFAULT '[]', evaluated_at timestamptz,\n  verdict text NOT NULL DEFAULT 'candidate' CHECK (verdict IN ('candidate','adopted','rejected')),\n  analyst_confidence text CHECK (analyst_confidence IN ('low','medium','high')), note text,\n  UNIQUE (case_id, failure_mode, cause_key)\n);\n\nCREATE TABLE om.evidence_pin (\n  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  case_id bigint NOT NULL REFERENCES om.\"case\"(id),\n  kind text NOT NULL CHECK (kind IN ('matched_table','episode_scatter','episode_overlay','timeseries','peer','flow','discriminator')),\n  spec jsonb NOT NULL, snapshot jsonb NOT NULL,             -- 다운샘플 동결 데이터(≤2,000점)\n  finding_evidence_id bigint REFERENCES om.finding_evidence(id),\n  caption text NOT NULL, cite_in_report boolean NOT NULL DEFAULT true,\n  pinned_by text NOT NULL, pinned_at timestamptz NOT NULL DEFAULT now()\n);\n\nCREATE TABLE om.recommendation (\n  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  code text NOT NULL UNIQUE,                                -- 'REC-2026-0311'\n  case_id bigint NOT NULL REFERENCES om.\"case\"(id),\n  hypothesis_id bigint REFERENCES om.hypothesis(id),\n  asset_id integer NOT NULL REFERENCES om.asset(id),\n  action_type text NOT NULL, label text NOT NULL,\n  priority smallint NOT NULL CHECK (priority BETWEEN 1 AND 3), due_date date,\n  expected_effect jsonb NOT NULL,\n  status text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','approved','delivered','accepted','declined','done','verifying','effective','not_effective','inconclusive','cancelled')),\n  site_reply jsonb, updated_at timestamptz NOT NULL DEFAULT now()\n);\nALTER TABLE om.maintenance_action ADD COLUMN recommendation_id bigint REFERENCES om.recommendation(id);\n\nCREATE TABLE om.report_item (\n  report_id bigint NOT NULL REFERENCES om.report(id),\n  ord smallint NOT NULL,\n  section text NOT NULL CHECK (section IN ('summary','safety','priority_actions','findings','past_effects','overdue','flow','data_quality','appendix')),\n  case_id bigint REFERENCES om.\"case\"(id), recommendation_id bigint REFERENCES om.recommendation(id),\n  included boolean NOT NULL DEFAULT true, excluded_reason text,\n  variant text NOT NULL DEFAULT 'concise', blocks jsonb NOT NULL, analyst_comment text,\n  PRIMARY KEY (report_id, ord),\n  CHECK (included OR excluded_reason IS NOT NULL)\n);\n\nCREATE TABLE om.report_delivery (\n  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  report_id bigint NOT NULL REFERENCES om.report(id),\n  channel text NOT NULL CHECK (channel IN ('email_manual','print_pdf','phone_briefing','share_link')),\n  recipient_contact_id bigint REFERENCES om.site_contact(id),\n  sent_at timestamptz NOT NULL, sent_by text NOT NULL, note text\n);\n\nCREATE TABLE om.activity_log (\n  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  entity_type text NOT NULL CHECK (entity_type IN ('finding','case','hypothesis','recommendation','report','action','safety_event')),\n  entity_id bigint NOT NULL, actor text NOT NULL, verb text NOT NULL,\n  payload jsonb NOT NULL DEFAULT '{}', at timestamptz NOT NULL DEFAULT now()\n);\nCREATE INDEX activity_entity ON om.activity_log (entity_type, entity_id, at);\n```\n수집·저장·롤업·finding 기본 테이블(`measurement` 월 파티션, `rollup_dirty`, `episode`, `finding_evidence`, `job_lease` 등)은 data_platform 리서치의 DDL을 따릅니다. finding의 `status` 컬럼만 위 규칙(`closed_at`과 `triage_state`)으로 바꿉니다.\n\n## 6. 사용자 예시 추적: \"같은 조건에서 충전이 8시간 → 7시간 30분\"\n대상 자산은 `KR-JEJU01/ESS1/RACK03`(명판 420Ah, LFP, 셀 240직렬)입니다. 수치는 시뮬레이터 스토리라인 S1의 예시값입니다.\n\n**① 원시(silver)**\n- 10초 주기 포인트 `batt.current`, `batt.voltage`, `batt.soc`, `temp.cell.avg`, `cell.voltage.max`, `cell.voltage.min`, `pcs.charge_limit_active`(상태).\n- `EMS/SOC_UPPER_LIMIT` 이벤트는 context_event 후보가 됩니다.\n- DQ 결과: 완결성 99.2%, 고착 없음, CLOCK_SUSPECT 0.\n\n**② 이벤트(에피소드)**\n- `ess.rest`(|I|<0.01C 60분 이상)의 종료 5분 전 전압으로 OCV를 잡고, SOC_OCV를 시작 앵커로 씁니다.\n- `ess.charge`: 시작 조건은 I>+0.02C가 2분 이상, 종료 조건은 CV 종료전류 도달입니다. 정전류 유사 구간(|I−median|≤5%)을 태깅합니다.\n- 태양광 연계라 일사 변동 세그먼트는 조건 bin에서 빠지고, PCS 충전 한계에 붙은 CC 세그먼트만 비교에 들어갑니다.\n```json\n{ \"asset_id\": 3107, \"kind\": \"ess.charge\", \"start_ts\": \"2026-09-08T00:12:00Z\", \"end_ts\": \"2026-09-08T07:42:10Z\",\n  \"extractor_version\": \"ess.charge@3\",\n  \"features\": { \"soc_ocv_start\": 6.1, \"soc_end_anchor\": \"cv_cutoff\", \"ah_seg\": 374.6, \"wh_seg\": 305100,\n                \"i_cc_median\": 49.9, \"t_seg_h\": 7.50, \"t_equiv_50a_h\": 7.49, \"cc_ah\": 349.2, \"cv_s\": 1440,\n                \"t_cell_mean\": 25.3, \"dv_cell_end_mv\": 40, \"q_full_est_ah\": 398.9 },\n  \"conditions\": { \"i_bin\": \"45-55A\", \"t_bin\": \"20-30C\", \"soc_window\": \"<=10->cv_cutoff\", \"cc_like\": true },\n  \"dq\": { \"completeness\": 0.992, \"flags\": 0 } }\n```\n\n**③ 특징과 기준선 비교**\n- 기준기간은 준공 후 30~120일(2025-11~2026-02, 18회)이고, context_event `resets_baseline`이 없어 분할되지 않았습니다.\n- 150일차 SOC 상한 변경은 `soc_end_anchor=cv_cutoff` 조건과 무관합니다. 만약 상한 종료 세션이 섞였다면 기준선 분할로 제외했을 것입니다.\n- `matchedRatio(ah_seg)` 결과: 기준 중앙값 400.2Ah, 최근 30일(9회) 중앙값 375.1Ah. 비율 0.9375, CI [0.925, 0.949].\n- Theil–Sen 기울기 −0.52%p/월(CI −0.61~−0.43). 정격 80% 도달 예상 2028-12(CI 2028-07~2029-05). 보증 곡선(10년 80%, 약 −0.17%p/월)보다 3.1배 빠릅니다.\n\n**④ finding** (`ess.capacity_fade@2`, severity 3, confidence 0.82)\n```json\n{ \"dedup_key\": \"ess.capacity_fade|3107|capacity_fade\", \"category\": \"degradation\", \"severity\": 3, \"confidence\": 0.82,\n  \"effect\": { \"metric\": \"ah_seg_ratio\", \"value\": 0.9375, \"unit\": \"ratio\", \"ci\": [0.925, 0.949], \"baseline\": 400.2 },\n  \"evidence\": { \"method\": \"matched_ratio+theil_sen@1\",\n    \"referenceWindow\": { \"start\": \"2025-11-01\", \"end\": \"2026-02-28\" }, \"currentWindow\": { \"start\": \"2026-08-15\", \"end\": \"2026-09-13\" },\n    \"stats\": { \"n\": 9, \"nReference\": 18, \"effect\": -0.0625, \"ci\": [-0.075, -0.051],\n               \"trend\": { \"slopePerMonth\": -0.52, \"ciLow\": -0.61, \"ciHigh\": -0.43 }, \"changeStart\": \"2026-04-02\" },\n    \"bins\": [ { \"bin\": \"45-55A|20-30C\", \"nRef\": 12, \"nCur\": 6, \"refMedian\": 400.5, \"curMedian\": 375.0 },\n              { \"bin\": \"45-55A|30-35C\", \"nRef\": 6, \"nCur\": 3, \"refMedian\": 399.8, \"curMedian\": 375.4 } ],\n    \"dq\": { \"completeness\": 0.99, \"excludedHours\": 3 }, \"inputHash\": \"9f2c…\" } }\n```\n\n**⑤ 트리아지와 케이스**\n- 우선순위 칩: 심각도 3, 신뢰도 0.82, 자산 중요도 4, 악화 추세.\n- 분석가가 `a`를 눌러 `CASE-2026-0142`를 만듭니다.\n- 묶음 제안으로 같은 기간 상류 `ESS1/HVAC1`의 `hvac.effectiveness_drop` finding이 뜨고, `m`으로 병합합니다.\n\n**⑥ 판별 테스트** (capacity_fade 플레이북 v1)\n| 원인 후보 | 판별 테스트 | 결과 | 측정값 |\n|---|---|---|---|\n| 셀 가용용량 감소(SOH) | `cc_ah_drop` / `cv_time_stable` | 지지 / 지지 | CC Ah 372→349(−6.2%) / CV 1,410→1,440s(CI에 0 포함) |\n| 내부저항 증가 | `cv_time_increase`, `dcir_rise` | 반박 | CV 시간 불변, R25 +4%(유의하지 않음) |\n| 셀 불균형 조기 종료 | `dv_end_increase`, `weak_cell_recurrence` | 반박 | 충전 종료 ΔV 38→40mV, 동일 셀 점유율 22% |\n| 저온 일시 저하 | `decline_in_all_temp_bins` | 반박 | 20~30°C, 30~35°C bin 모두 −6.3% |\n| 운영 SOC 상한 변경 | `upper_limit_changed_in_window` | 불명 | 150일차 변경 있음, 단 CV 종료 앵커 세션만 사용 |\n| 전류센서 오프셋 | `rest_current_offset` | 반박 | 휴지 |I| 0.1%C |\n\nHVAC 효과 저하는 30~35°C bin 표본을 줄였지만 비율에는 영향이 없습니다. 그래서 별도 권고(필터)로 둡니다. 분석가는 '셀 가용용량 감소'를 채택합니다(확신도 medium, 메모 \"용량시험으로 확정 필요\").\n\n**⑦ 권고 조치**\n```json\n[ { \"code\": \"REC-2026-0311\", \"action_type\": \"capacity_test\", \"label\": \"완충→완방 정기 용량시험으로 실제 용량 확정\", \"priority\": 1, \"due_date\": \"2026-09-30\",\n    \"expected_effect\": { \"metric\": \"q_full_est_ah\", \"direction\": \"up\", \"minDelta\": 0,\n      \"verification\": { \"method\": \"confirmation\", \"tolerancePct\": 3, \"stabilizationDays\": 0, \"afterDays\": 14 } } },\n  { \"code\": \"REC-2026-0312\", \"action_type\": \"derate_soc_window\", \"label\": \"운영 SOC 창 5~95% → 10~90% 검토\", \"priority\": 2, \"due_date\": \"2026-10-15\",\n    \"expected_effect\": { \"metric\": \"q_full_est_ah\", \"direction\": \"flatter\", \"minDelta\": 0.2,\n      \"verification\": { \"method\": \"slope_change\", \"stabilizationDays\": 7, \"afterDays\": 90 } } },\n  { \"code\": \"REC-2026-0313\", \"action_type\": \"hvac_filter_clean\", \"label\": \"배터리실 공조 필터 청소·냉매 점검\", \"priority\": 1, \"due_date\": \"2026-09-21\",\n    \"expected_effect\": { \"metric\": \"hvac_duty_ratio\", \"direction\": \"down\", \"minDelta\": 0.15,\n      \"verification\": { \"method\": \"level_shift\", \"stabilizationDays\": 2, \"afterDays\": 14 } } } ]\n```\n\n**⑧ 리포트 문장** (template@1, `ess.capacity_fade:true_capacity_loss:findings`, 간결형)\n> **[ESS1 · 랙 3] 배터리 가용 용량 감소 (심각도 3, 신뢰도 0.82)**\n> 같은 조건(충전전류 45~55A, 셀 온도 20~35°C, 시작 SOC 10% 이하 → 완충)에서 충전량이 기준기간(2025-11~2026-02, 18회) 400.2Ah에서 최근 30일(9회) 375.1Ah로 **6.3% 줄었습니다**(95% 신뢰구간 5.1~7.5%). 50A로 충전한다고 환산하면 **완충 시간이 8.0시간에서 7.5시간으로 짧아진 것**과 같습니다. 정전류 구간 충전량이 함께 줄었고 정전압 구간 시간은 변하지 않았습니다. 그래서 내부저항 증가나 셀 불균형보다는 셀 가용 용량 감소로 판단합니다. 감소는 2026-04-02 무렵 시작됐고, 현재 추세(월 −0.52%p)가 이어지면 2028년 12월경 정격의 80%에 도달합니다. 이는 보증 곡선보다 약 3배 빠른 속도입니다. [근거: FND-8812, 핀 #2 에피소드 산점도, 핀 #3 충전 곡선 겹쳐보기]\n>\n> **권고 1 (9/30까지):** 완충→완방 용량시험으로 실제 용량을 확인해 주십시오. 추정치와 3% 이내로 일치하는지 확인하겠습니다.\n> **권고 2 (10/15까지):** 운영 SOC 창을 10~90%로 좁히는 방안을 검토해 주십시오. 적용하면 90일간 감소 기울기가 20% 이상 완만해지는지 확인하겠습니다.\n\n**⑨ 조치 추적과 검증**\n- 발전소 회신: 9/19 필터 청소 완료, 9/26 용량시험 결과 396Ah.\n- REC-0313(level_shift): 전후 14일 외기 bin 매칭 결과 공조 듀티 0.78→0.55(−0.23, CI −0.28~−0.18) → `effective`.\n- REC-0311(confirmation): 시험 396Ah vs 추정 398.9Ah, 차이 0.7% → `effective`. 케이스 메모에 확정 사실로 기록합니다.\n- REC-0312(slope_change): 10/20 적용 → `verifying`(90일). 1/20 기울기 −0.52 → −0.31%p/월, 차이 CI [0.12, 0.30] → `effective`.\n- 전 권고가 종결되면 케이스는 `closed(resolved_verified)`가 됩니다. 다음 월간 리포트 '지난 코칭 효과'에 \"SOC 창 조정 후 용량 감소 속도가 월 0.52%p에서 0.31%p로 줄었습니다(차이 95% CI 0.12~0.30%p)\"가 자동으로 들어갑니다.\n\n## 7. 리포트 seam (LLM 없음, 교체 가능)\n```ts\nexport interface PlannedBlock {\n  readonly key: string;                                 // 'ess.capacity_fade:true_capacity_loss:findings'\n  readonly section: ReportSection; readonly required: boolean;   // sev≥4면 true\n  readonly facts: Readonly<Record<string, number | string>>;     // 문장에 들어갈 수 있는 유일한 수치\n  readonly citations: readonly string[];                // finding·pin·recommendation·kpi id\n}\nexport interface ReportPlan { readonly packHash: string; readonly blocks: readonly PlannedBlock[] }\nexport interface ReportPlanner { plan(pack: EvidencePack, policy: PlanPolicy): ReportPlan }          // 결정적\nexport interface ReportComposer {\n  readonly id: string;                                  // 'template@1' | 'llm:<model>@<date>'\n  compose(plan: ReportPlan, opts: { locale: 'ko-KR'; variant: 'concise' | 'detailed'; audience: 'site_manager' | 'executive' }): Promise<ReportDraft>;\n}\nexport function validateDraft(plan: ReportPlan, draft: ReportDraft): { ok: boolean; problems: readonly string[] } {\n  // 1) plan 블록 전부 존재  2) 블록별 citations ⊇ plan.citations\n  // 3) 본문 숫자 토큰(%, Ah, h, 날짜) ⊆ facts(허용오차 ±0.05 또는 반올림 규칙)  4) 금지 표현 사전\n  throw new Error('sketch');\n}\n```\n템플릿 카탈로그는 `lib/report/messages/ko/*.ts`에 두고 포맷터 `fmtPct`, `fmtAh`, `fmtKstDate`, `fmtMonth`를 씁니다. 조건절은 `ci?`, `trend.significant?`, `changeStart?`입니다. 분석가 코멘트는 `authored: 'human'` 블록으로 저장하며, 숫자 불일치는 경고만 합니다.\n\n## 8. 분석 파이프라인 요약\n수집 인라인 DQ → 5분 롤업·DQ → 매시 에피소드 → 일일(파티션·보존, kpi_daily, **flow_daily**, 탐지기, finding upsert, **열린 케이스 판별 테스트 재평가**, **묶음 제안**, **조치 검증**, 우선순위 갱신) → 주간 리포트 초안 순입니다. 기준선은 항상 최신 `context_event.resets_baseline` 이후 구간만 씁니다. 검증 잡은 권고의 `verification.method`에 따라 분기합니다.\n- `level_shift`: 조건매칭 before/after 비율과 부트스트랩 CI\n- `slope_change`: Theil–Sen 기울기 차이의 부트스트랩 CI\n- `confirmation`: 입력된 시험값과 추정치의 허용오차 비교\n- `recurrence`: after 창 동안 같은 dedup_key 재탐지 없음\n\n같은 기간에 다른 조치나 context_event가 겹치면 판정 신뢰도를 한 단계 낮추고 리포트에 표기합니다.\n\n## 9. 기존 코드 처리\n- 재사용: `next.config.ts`, `tsconfig.json`, Tailwind 설정, `layout.tsx` 골격, LATERAL 최신값 쿼리 패턴, 지도 상태 색상·날씨 매핑, 우선순위 정렬 아이디어, SMP/REC 카드(오늘 화면 수익 위젯).\n- 폐기: `app/page.tsx`, 미사용 `Header`/`Sidebar`/`Maps.tsx`, `/api/solar/cleanup`(24h 삭제는 과거 대비 비교와 충돌하고 인증도 없음), 인증 없는 POST `/api/solar`, `weather-history`(커넥션 누수), leaflet 계열, `\"solar-dashboard\": \"file:\"`, 가짜 통계 테이블.\n- `solar_sites`와 `solar_weather_history`는 `om.site`와 기상 포인트로 1회 이관합니다.\n- vercel.json 크론은 `/api/cron/*` 4종(Pro)으로 바꾸고 regions를 RDS 리전으로 맞춥니다.\n\n## 10. 열린 질문 (결정 필요)\n1. 발전소 전달 채널: 메일에 PDF를 첨부할지, 공유 링크(P5)를 쓸지. 발전소 담당자 연락처 관리 범위.\n2. 리포트 승인 규칙: lead 1인 승인으로 충분한지, sev≥4에 2인 승인이 필요한지.\n3. 출력제어 지령·SOC 상한 설정값·펌웨어 버전을 게이트웨이가 보낼 수 있는지. 못 보내면 context_event를 분석가가 입력해야 합니다.\n4. 수소 체인 유량계 위치(전해조 출구, 압축기, 연료전지 입구). 없으면 물질수지는 '추정'으로만 가능합니다.\n5. Vercel Pro 전환 여부와 RDS 메이저 버전.\n"
+}

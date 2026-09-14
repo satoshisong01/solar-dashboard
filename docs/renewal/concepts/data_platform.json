@@ -1,0 +1,624 @@
+{
+ "lens": "data_platform — 데이터 계약이 미정인 상태에서 스키마 변경 없이 설비·메트릭을 받아들이는 구조, 원본 보존과 재처리, 데이터 품질, 이벤트·조건 매칭 기준선, finding의 재현성·추적성을 최우선으로 둔다",
+ "productName": "Energy Chain Ledger (ECL) O&M 콘솔",
+ "thesis": "모든 데이터(게이트웨이 계측값, 날씨 API, 시장가격, 현장 수기 측정, 용량시험 결과)는 하나의 서명된 봉투(om.ingest.v1)로 들어오고, 원본은 bronze에 그대로 남는다. 서버는 이 원본을 시간 이력이 있는 바인딩(point_binding)으로 표준 메트릭에 매핑하므로, 계약이 바뀌거나 매핑 오류가 발견되면 DDL 없이 재처리로 과거까지 고칠 수 있다. 분석은 원시 → 에피소드 → 특징 → 봉인된 조건 매칭 기준선 → finding 순서로 흐른다. 각 finding에는 입력 manifest(포인트·바인딩·에피소드·기준선·알고리즘 릴리스·코드 SHA·데이터 컷오프)와 입력 해시가 붙어서 '어떤 데이터와 어떤 규칙 버전으로 이 결론이 나왔나'를 언제든 재현할 수 있다. 사이트는 노드·엣지 에너지/수소 흐름 그래프로도 모델링해 PV → 전해조 → 저장 → 연료전지 연계를 일 단위 수지와 시간 단위 전력원 귀속으로 추적한다. LLM 없이 템플릿 리포트를 만들고, 나중에 교체할 수 있는 ReportComposer 인터페이스를 둔다.",
+ "informationArchitecture": [
+  {
+   "menu": "플릿 개요",
+   "route": "/",
+   "purpose": "전 사이트 안전·데이터 신뢰도·미해결 finding·연계 흐름을 한 화면에 요약",
+   "keyWidgets": [
+    "안전 이벤트/안전 데이터 불확실 배너(분석으로 해제 불가)",
+    "Kakao 지도 사이트 마커(상태=최고 severity, 데이터 신뢰도 링)",
+    "사이트별 데이터 완결성 점수 표",
+    "severity×상태 finding 카운터",
+    "플릿 수소 생산/소비·P2P 효율 요약",
+    "수익 요약 위젯(SMP/REC)"
+   ]
+  },
+  {
+   "menu": "사이트",
+   "route": "/sites/[siteCode]",
+   "purpose": "사이트 자산 트리, KPI, 최근 finding, 게이트웨이 상태",
+   "keyWidgets": [
+    "자산 트리(site→system→asset→component) 건강도",
+    "일 KPI 카드(PR_corr, RTE, SEC, 연료전지 효율)",
+    "최근 finding 리스트",
+    "게이트웨이 lag/시계오차"
+   ]
+  },
+  {
+   "menu": "사이트 › 에너지 체인",
+   "route": "/sites/[siteCode]/chain",
+   "purpose": "PV→ESS/전해조→압축·저장→연료전지 흐름과 에너지·질량 수지 추적",
+   "keyWidgets": [
+    "일/월 Sankey(flow_daily)",
+    "노드별 수지 잔차 vs 합성불확도(balance_daily)",
+    "시간별 전력원 귀속 스택차트(PV/ESS/계통→전해조 kWh, kWh/kg)",
+    "참고용 탄소집약도(kgCO2e/kgH2)"
+   ]
+  },
+  {
+   "menu": "자산 상세",
+   "route": "/assets/[assetId]",
+   "purpose": "부품 단위 시계열·에피소드·기준선·finding·수명주기 이벤트",
+   "keyWidgets": [
+    "ECharts 다중축 시계열 + 이벤트 밴드(markArea: 에피소드, dq_interval, 출력제어)",
+    "포인트·바인딩 이력 표",
+    "기준선 epoch 타임라인(교체·펌웨어·SOC 상한 변경)",
+    "자산 finding·조치 이력"
+   ]
+  },
+  {
+   "menu": "자산 › 조건 매칭 비교",
+   "route": "/assets/[assetId]/compare/[subject]",
+   "purpose": "예: ess.charge.capacity_ah — 봉인 기준선 대비 현재 에피소드를 bin 단위로 비교",
+   "keyWidgets": [
+    "bin 매트릭스(nRef/nCur/중앙값 비율)",
+    "에피소드 산점도(운전일수 축, Theil–Sen 추세+CI)",
+    "CUSUM 변화 시작일 마커",
+    "교란요인 체크리스트(epoch·온도·센서 오프셋)"
+   ]
+  },
+  {
+   "menu": "Findings",
+   "route": "/findings",
+   "purpose": "탐지 결과 분류·상태 전이",
+   "keyWidgets": [
+    "필터(사이트/도메인/severity/상태/confidence)",
+    "dedup 병합 카운트·재발 링크",
+    "일괄 triage Server Action"
+   ]
+  },
+  {
+   "menu": "Finding 상세",
+   "route": "/findings/[id]",
+   "purpose": "근거와 계보(lineage)를 보여 주고 재현",
+   "keyWidgets": [
+    "효과 크기+CI, 근거 차트(evidence series)",
+    "계보 패널: 릴리스·코드 SHA·데이터 컷오프·입력 해시·입력 에피소드",
+    "'재현 실행' 버튼(해시 일치 여부 표시)",
+    "플레이북(원인·점검·조치), 조치 등록"
+   ]
+  },
+  {
+   "menu": "조치·검증",
+   "route": "/actions",
+   "purpose": "정비 조치 기록과 효과/확정 검증",
+   "keyWidgets": [
+    "조치 목록(연결 finding)",
+    "검증 결과(improved/no_change/worse/confirmed/refuted/insufficient)",
+    "현장 측정값 입력 폼(용량시험 등, 단일 입구로 수집)"
+   ]
+  },
+  {
+   "menu": "리포트",
+   "route": "/reports, /reports/[id]",
+   "purpose": "사이트별 주간/월간 코칭 리포트 초안 검토·발행",
+   "keyWidgets": [
+    "EvidencePack 해시·composer id",
+    "섹션별 문장+인용 칩(finding/evidence/kpi)",
+    "검증기 결과(validateDraft)",
+    "검토→발행 상태 전이"
+   ]
+  },
+  {
+   "menu": "데이터 › 수집 모니터",
+   "route": "/data/ingest",
+   "purpose": "게이트웨이·배치·거부·지연 모니터링",
+   "keyWidgets": [
+    "게이트웨이별 last_seen, seq 공백, skew 분포",
+    "배치 상태(normalized/partial/failed)",
+    "거부 사유 top N",
+    "dirty 큐 대기시간 p95"
+   ]
+  },
+  {
+   "menu": "데이터 › 매핑 워크벤치",
+   "route": "/data/mapping",
+   "purpose": "미매핑 태그를 포인트에 바인딩하고 재처리를 미리보기",
+   "keyWidgets": [
+    "unmapped_source 목록+규칙기반 제안(MappingSuggester)",
+    "샘플값 미리보기·단위 추정",
+    "바인딩 유효구간 편집(tstzrange)",
+    "재처리 dry-run 영향도(행 수·롤업·에피소드·finding diff)"
+   ]
+  },
+  {
+   "menu": "데이터 › 품질",
+   "route": "/data/quality",
+   "purpose": "센서·통신 품질 코칭",
+   "keyWidgets": [
+    "포인트×시간 완결성 히트맵",
+    "dq_interval 목록(고착·스파이크·단위변경·시계)",
+    "센서 교정 권고 리스트"
+   ]
+  },
+  {
+   "menu": "데이터 › 카탈로그",
+   "route": "/data/catalog",
+   "purpose": "asset_class·metric_def·event_code_def·flow graph 관리",
+   "keyWidgets": [
+    "메트릭 정의 편집(단위·rollup·hard/expected 범위·별칭)",
+    "벤더 이벤트코드→정규 이벤트·safety_class",
+    "사이트 flow_node/flow_edge 편집기"
+   ]
+  },
+  {
+   "menu": "데이터 › 탐지 준비도",
+   "route": "/data/readiness",
+   "purpose": "자산×고장모드별 필요한 데이터 충족 여부로 데이터 계약 협상 지원",
+   "keyWidgets": [
+    "준비도 매트릭스(ready/partial/missing)",
+    "'이 메트릭을 확보하면 풀리는 고장모드 수' 순위",
+    "벤더 요청서용 CSV 내보내기(서버 생성)"
+   ]
+  },
+  {
+   "menu": "데이터 › 재처리",
+   "route": "/data/reprocess",
+   "purpose": "범위 지정 재처리 요청·진행·diff",
+   "keyWidgets": [
+    "요청 폼(scope, from_stage, dry_run/apply, 사유)",
+    "진행률·청크 로그",
+    "적용 전후 finding diff"
+   ]
+  },
+  {
+   "menu": "분석 › 릴리스",
+   "route": "/analytics/releases",
+   "purpose": "추출기·KPI·탐지기 버전과 파라미터, 섀도 비교, 시뮬레이터 게이트",
+   "keyWidgets": [
+    "algo_release 목록(shadow/active/retired)",
+    "섀도 vs 활성 finding diff",
+    "sim.eval_result(재현율·오탐·지연·크기 MAE)",
+    "활성화 버튼(게이트 통과 시)"
+   ]
+  },
+  {
+   "menu": "분석 › 기준선",
+   "route": "/analytics/baselines",
+   "purpose": "기준선 봉인·epoch 관리",
+   "keyWidgets": [
+    "기준선 카드(bin 통계, 입력 에피소드 수, 봉인일)",
+    "epoch 경계 이벤트",
+    "재봉인 요청"
+   ]
+  },
+  {
+   "menu": "안전",
+   "route": "/safety",
+   "purpose": "안전 이벤트 빠른 경로 로그와 확인",
+   "keyWidgets": [
+    "미확인 안전 알림(수동 ack+메모만 가능)",
+    "안전감시 공백(통신두절) 타임라인",
+    "이벤트 원본 코드·수신 지연"
+   ]
+  },
+  {
+   "menu": "설정",
+   "route": "/settings/{admins,gateways,sites}",
+   "purpose": "관리자, 게이트웨이 키 회전, 사이트 메타",
+   "keyWidgets": [
+    "관리자 목록(Better Auth admin)",
+    "게이트웨이 키 2개 활성 회전",
+    "감사 로그(audit_log)"
+   ]
+  }
+ ],
+ "keyWorkflows": [
+  {
+   "name": "새 설비·메트릭 온보딩(DDL 없음)",
+   "steps": [
+    "게이트웨이가 새 태그를 봉투로 전송 → bronze 저장, om.unmapped_source에 자동 등록",
+    "/data/mapping에서 MappingSuggester(별칭 사전·정규식·단위 휴리스틱) 제안 확인",
+    "metric_def가 없으면 1행 INSERT, asset/point 생성",
+    "point_binding 생성(valid=[first_seen_at, ∞), scale/offset)",
+    "재처리 dry-run → 영향 행 수 확인 → apply로 bronze replay",
+    "탐지 준비도 매트릭스가 갱신되며 요건을 채운 탐지기가 자동 활성"
+   ]
+  },
+  {
+   "name": "배터리 용량 감소 탐지(사용자 예시)",
+   "steps": [
+    "원시: BMS 랙 전류·전압·셀 최고/최저전압·셀온도·SOC, PCS 상태, SOC 상한 설정값 수집",
+    "DQ: 전류센서 영점(휴지 중 |I|), 고착, 시계 비트 확인",
+    "에피소드: ess.rest(OCV 앵커)와 ess.charge 세션 추출, full/top/partial 분류",
+    "특징: 앵커 구간 Ah, 50A 환산 시간, C-rate, 셀 평균온도, CC Ah, CV 시간, 종료 셀 ΔV",
+    "기준선: 현재 epoch에서 준공+30일 이후 유효 세션 20개로 bin별 통계를 봉인",
+    "비교: 최근 30일 bin별 중앙값 비율 풀링+부트스트랩 CI, Theil–Sen·CUSUM, 교란요인 점검",
+    "finding ess.capacity_fade 생성(효과 −6.3%, CI, confidence, 입력 manifest)",
+    "리포트 템플릿 문장 생성(8h0m→7h30m 환산 포함, 인용)",
+    "조치(용량시험) 등록 → 측정값 입력 → confirmed/refuted 검증 → 모듈 교체 시 새 epoch·기준선 재봉인"
+   ]
+  },
+  {
+   "name": "매핑 오류 정정 재처리",
+   "steps": [
+    "DQ가 unit_change 또는 물리 불일치(Σ셀전압≠스택전압)를 탐지",
+    "관리자가 잘못된 바인딩의 valid 구간을 닫고 새 바인딩 생성(scale 수정)",
+    "reprocess_request(from_stage=normalize, dry_run) → 영향 분석",
+    "apply: 청크마다 해당 point·구간 measurement DELETE 후 bronze에서 재삽입(REPROCESSED 비트), rollup_dirty 표시",
+    "episode/kpi 워터마크를 LEAST로 되감고 탐지기 재실행",
+    "finding diff를 재처리 요청에 기록하고 영향 finding에 transition note 추가"
+   ]
+  },
+  {
+   "name": "탐지기 버전업(섀도 → 활성)",
+   "steps": [
+    "코드 변경 시 CI가 탐지기 소스 해시와 등록 버전을 대조해 버전 미상승이면 실패",
+    "algo_release에 새 버전을 shadow로 등록(params, params_hash, code_sha)",
+    "시뮬레이터 평가 실행 → sim.eval_result 게이트(재현율·오탐·지연)",
+    "일일 잡이 활성·섀도를 병행 실행, shadow_finding에 기록",
+    "/analytics/releases에서 diff 검토 후 활성화(이전 버전 retired, finding은 detector_version 갱신)"
+   ]
+  },
+  {
+   "name": "주간 코칭 리포트 발행",
+   "steps": [
+    "weekly 잡이 사이트별 EvidencePack 생성(pack_hash)",
+    "templateComposer가 ReportDraft 작성, validateDraft 실행",
+    "관리자가 /reports/[id]에서 검토하고 문장별 인용 확인",
+    "발행 시 포함 finding 상태를 in_report로 전이, report.status=published",
+    "발행본은 불변. 재생성 시 superseded로 연결"
+   ]
+  },
+  {
+   "name": "안전 이벤트 처리",
+   "steps": [
+    "게이트웨이가 안전 이벤트 발생 즉시 events만 담은 봉투를 전송(5분 flush를 기다리지 않음)",
+    "수집 핸들러가 HMAC 검증 직후 event_code_def.safety_class로 판정(미등록 critical은 안전으로 간주)하고 safety_alert를 INSERT",
+    "after()에서 Notifier(웹훅)로 푸시",
+    "안전 워치독 크론이 H2/ESS 사이트 게이트웨이 무수신 N분 시 '안전 데이터 불확실' 알림",
+    "알림은 분석 결과로 억제·해제되지 않고 관리자 ack+메모로만 확인 처리"
+   ]
+  },
+  {
+   "name": "사이트 수소 체인 수지 점검",
+   "steps": [
+    "일일 잡이 flow_edge별 m_1h 적분으로 flow_daily 계산",
+    "노드별 in−out−Δinventory(Z 보정 질량) = residual, 합성불확도 대비 유의성 판정",
+    "h2chain.mass_balance_gap 탐지기가 3주 연속 유의 잔차를 finding으로 발행",
+    "원인 구간(유량계/탱크 누설/연료전지 이용률)을 잔차 위치로 제시"
+   ]
+  }
+ ],
+ "dataModel": [
+  {
+   "table": "om.site",
+   "purpose": "사이트 마스터(좌표, 타임존, 계통용량, 출력제어 대상 여부)",
+   "keyColumns": "id, code UNIQUE, timezone, lat, lon, attributes jsonb",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.asset_class",
+   "purpose": "설비 클래스 카탈로그(pv.inverter, ess.battery.rack, h2.electrolyzer.stack...)와 명판 스키마, IEC 61850 LN 참조",
+   "keyColumns": "key PK, level, parent_key, iec61850_ln, nameplate_schema jsonb",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.asset",
+   "purpose": "site→system→asset→component 계층(ISO 14224 L6~L8)",
+   "keyColumns": "id, site_id, parent_id, level, class_key, code, path, tags text[], nameplate jsonb, peer_group, criticality, commissioned_at; UNIQUE(site_id, code)",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.asset_event",
+   "purpose": "수명주기 이벤트(교체·펌웨어·교정·설정값 변경·세척). 기준선 epoch 경계를 만든다",
+   "keyColumns": "id, asset_id, kind, at, source(auto|manual), affects_subjects text[], details jsonb",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.asset_epoch",
+   "purpose": "subject별 비교 가능 구간. asset_event로 자동 분할",
+   "keyColumns": "id, asset_id, subject_pattern, during tstzrange, opened_by_event_id; EXCLUDE(asset_id, subject_pattern, during &&)",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.metric_def",
+   "purpose": "메트릭 카탈로그(정규 단위, value_kind, rollup 의미론, hard/expected 범위, 고착·변화율 파라미터, 표준 별칭)",
+   "keyColumns": "key PK, unit, value_kind, rollup, hard_min/max, expected_min/max, max_rate_per_s, flatline_tol, flatline_max_s, nominal_period_s, aliases jsonb",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.event_code_def",
+   "purpose": "벤더 알람/고장코드를 정규 이벤트 타입·안전 등급으로 매핑",
+   "keyColumns": "(vendor, model_pattern, code) PK, event_type, severity, safety_class(none|watch|safety), playbook_key",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.gateway / om.gateway_key",
+   "purpose": "게이트웨이 등록(내부 게이트웨이: OpenWeather, KPX, 수기입력 포함)과 HMAC 키(AES-GCM 암호화, 활성 2개 회전)",
+   "keyColumns": "gateway: id, site_id, code, kind(field|internal), last_seen_at, last_seq, clock_offset_ms / key: key_id PK, gateway_id, secret_enc, expires_at, revoked_at",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.point",
+   "purpose": "논리 계측점 (asset, metric, qualifier). 센서가 바뀌어도 유지된다",
+   "keyColumns": "id, asset_id, metric_key, qualifier, period_s, accuracy_pct, expected_min/max; UNIQUE(asset_id, metric_key, qualifier)",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.point_binding",
+   "purpose": "게이트웨이 원본 태그 → point 매핑의 시간 이력. 재처리와 계보의 핵심",
+   "keyColumns": "id, gateway_id, source_key, point_id, source_unit, scale, value_offset, valid tstzrange, created_by, note; EXCLUDE(gateway_id, source_key, valid &&), EXCLUDE(point_id, valid &&) [btree_gist]",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.unmapped_source / om.device_inventory",
+   "purpose": "미매핑 태그 자동 등록, 게이트웨이가 보고한 장치 목록(벤더·모델·시리얼·펌웨어). 펌웨어 변경 시 asset_event 자동 생성",
+   "keyColumns": "unmapped: (gateway_id, source_key) PK, unit, first/last_seen_at, sample_count, suggestion jsonb / device: (gateway_id, device_ref) PK, vendor, model, serial, fw, asset_id, fw_changed_at",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.ingest_batch (bronze)",
+   "purpose": "요청 원본 gzip, 헤더 요약, 본문 해시, 처리 통계·상태. replay 원천",
+   "keyColumns": "id, gateway_id, batch_id, gw_seq, sent_at, received_at, skew_ms, key_id, body_sha256, body_gzip, schema_version, n_accepted/duplicate/rejected/unmapped, status; UNIQUE(gateway_id, batch_id)",
+   "partitioning": "received_at 월 파티션, 13개월 보존(이후 S3 아카이브는 P5)"
+  },
+  {
+   "table": "om.manual_entry",
+   "purpose": "현장 수기 측정(용량시험, 메거, DGA, KOH 농도, 세척 기록)을 작성자와 함께 보존. 내부 게이트웨이 봉투로도 기록",
+   "keyColumns": "id, asset_id, entry_type, measured_at, values jsonb, attachments, entered_by, ingest_batch_id",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.measurement (silver)",
+   "purpose": "정규화된 long-format 계측값 + 인라인 품질 비트",
+   "keyColumns": "PK(point_id, ts), value float8, quality int2(1 DEVICE_BAD, 2 DEVICE_UNCERTAIN, 4 HARD_RANGE, 8 CLOCK_SUSPECT, 16 LATE, 32 REPROCESSED)",
+   "partitioning": "ts UTC 월 파티션 + DEFAULT 안전망, 파티션별 BRIN(minmax_multi), 원시 13개월 보존"
+  },
+  {
+   "table": "om.measurement_hf",
+   "purpose": "10초 미만 고주기/이벤트 버스트(DCIR 스텝, 트립 전후 1Hz 스냅샷)",
+   "keyColumns": "PK(point_id, ts), value, quality",
+   "partitioning": "월 파티션, 3개월 보존(특징은 episode에 영구 저장)"
+  },
+  {
+   "table": "om.event_log",
+   "purpose": "정규화된 알람·상태 이벤트",
+   "keyColumns": "(asset_id, ts, code, seq) PK, event_type, severity, safety_class, raw jsonb, ingest_batch_id",
+   "partitioning": "월 파티션, 5년 보존"
+  },
+  {
+   "table": "om.safety_alert",
+   "purpose": "안전 빠른 경로. 분석 파이프라인과 분리하고 수동 ack 전까지 유지",
+   "keyColumns": "id, site_id, asset_id, kind(event|watchdog_gap), event_ref, raised_at, notified_at, acked_at, acked_by, ack_note",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.dq_interval",
+   "purpose": "사후 탐지된 품질 구간(고착·스파이크·단위변경·시계). 원시 UPDATE 대신 사용",
+   "keyColumns": "id, point_id, during tstzrange, issue, release_id, details jsonb; GiST(point_id, during)",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.rollup_dirty / om.rollup_dirty_day",
+   "purpose": "지연 도착을 반영하는 증분 롤업 큐(gen 카운터)",
+   "keyColumns": "(point_id, bucket) PK, gen, touched_at",
+   "partitioning": "없음, 30일 초과 정리"
+  },
+  {
+   "table": "om.m_1m / om.m_1h / om.m_1d",
+   "purpose": "롤업(n, n_good, n_dq_excluded, min/max/avg/first/last/sum/std, twa/delta/integral)",
+   "keyColumns": "(point_id, bucket) PK",
+   "partitioning": "m_1m 월(13개월, 60초 미만 포인트만) / m_1h 연 파티션 영구 / m_1d 없음 영구"
+  },
+  {
+   "table": "om.episode",
+   "purpose": "운전 단위 사건과 특징값(ess.charge, ess.rest, el.steady_run, tank.idle_hold...)",
+   "keyColumns": "id, asset_id, kind, start_ts, end_ts, release_id, epoch_id, features jsonb, conditions jsonb(bin 키), dq jsonb; UNIQUE(asset_id, kind, start_ts, release_id)",
+   "partitioning": "start_ts 연 파티션, 영구"
+  },
+  {
+   "table": "om.kpi_daily",
+   "purpose": "자산·사이트 일 KPI(KST 일자)",
+   "keyColumns": "(asset_id, kpi_key, day, release_id) PK, value, n, dq_completeness, conditions jsonb",
+   "partitioning": "연 파티션, 영구"
+  },
+  {
+   "table": "om.flow_node / om.flow_edge",
+   "purpose": "사이트 에너지·수소 흐름 그래프(자산 노드 + grid/atmosphere/unmetered 가상 노드)",
+   "keyColumns": "node: id, site_id, asset_id NULL, kind, inventory_kpi_key / edge: id, site_id, from_node, to_node, carrier(elec_ac|elec_dc|h2_kg|heat), meter_point_id, method(metered|derived|estimated), valid tstzrange",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.flow_daily / om.balance_daily / om.chain_hourly",
+   "purpose": "엣지별 일 흐름량, 노드별 수지 잔차·유의성, 시간별 전력원 귀속(PV/ESS/계통→전해조, kg H2, 연료전지 kWh)",
+   "keyColumns": "flow: (edge_id, day, release_id) PK, quantity, uncertainty / balance: (node_id, day, release_id) PK, sum_in, sum_out, delta_inventory, residual, residual_u, significant / chain: (site_id, hour, release_id) PK, elz_kwh_from_pv/ess/grid, h2_produced_kg, fc_kwh, dq",
+   "partitioning": "chain_hourly 연 파티션, 나머지 없음, 영구"
+  },
+  {
+   "table": "om.baseline",
+   "purpose": "봉인된 조건 매칭 기준선(불변). finding 비교 기준",
+   "keyColumns": "id, asset_id, subject, epoch_id, method, bin_spec jsonb, selection jsonb, reference_window tstzrange, stats jsonb(bin별 n/median/MAD/p10/p90), input_episode_ids bigint[], input_hash, release_id, status(draft|sealed|superseded), sealed_at, sealed_by",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.algo_release",
+   "purpose": "추출기·KPI·DQ·탐지기·composer 버전 레지스트리(파라미터·코드 SHA)",
+   "keyColumns": "id, kind, key, version, code_sha, params jsonb, params_hash, status(shadow|active|retired), sim_run_id, activated_at; UNIQUE(kind, key, version), 부분 UNIQUE(kind, key) WHERE active",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.finding",
+   "purpose": "발견사항(dedup_key 기반 열린 1건, 재발 연결, 억제)",
+   "keyColumns": "id, site_id, asset_id, detector_release_id, failure_mode, category, dedup_key, severity, confidence, status, title_key, effect jsonb, first/last_detected_at, detection_count, latest_evidence_id, previous_finding_id, suppressed_until; 부분 UNIQUE(dedup_key) WHERE status NOT IN(verified, dismissed)",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.finding_evidence",
+   "purpose": "append-only 근거 스냅샷 + 입력 manifest(재현성)",
+   "keyColumns": "id, finding_id, job_run_id, computed_at, data_cutoff timestamptz, input_hash bytea, manifest jsonb, snapshot jsonb",
+   "partitioning": "없음(연 파티션은 필요할 때)"
+  },
+  {
+   "table": "om.shadow_finding",
+   "purpose": "섀도 릴리스 결과. 활성 finding과 diff",
+   "keyColumns": "(release_id, dedup_key, run_day) PK, candidate jsonb",
+   "partitioning": "없음, 90일 정리"
+  },
+  {
+   "table": "om.finding_transition / om.audit_log",
+   "purpose": "상태 전이 이력, 관리자 행위 감사(매핑·기각·발행·재처리)",
+   "keyColumns": "transition: id, finding_id, from, to, actor, note, at / audit: id, actor, action, target, before jsonb, after jsonb, at",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.maintenance_action / om.action_verification",
+   "purpose": "조치 기록과 검증(before/after 조건 매칭 또는 측정 확정)",
+   "keyColumns": "action: id, asset_id, finding_id, action_type, performed_at, expected_effect jsonb, manual_entry_id / verification: id, action_id, method, before_window, after_window, stats jsonb, effect, ci_low, ci_high, verdict(improved|no_change|worse|confirmed|refuted|insufficient_data); UNIQUE(action_id, method)",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.report",
+   "purpose": "리포트 초안·발행본(원본 pack 포함, 불변 발행)",
+   "keyColumns": "id, site_id, period tstzrange, composer_id, pack_hash, pack jsonb, draft jsonb, validation jsonb, status, reviewed_by, published_at, superseded_by; UNIQUE(site_id, period, composer_id, pack_hash)",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.reprocess_request",
+   "purpose": "범위 지정 재처리 큐(dry_run/apply, diff 결과)",
+   "keyColumns": "id, requested_by, reason, scope jsonb, from_stage(normalize|rollup|episodes|kpi|detect), mode, status, progress jsonb, diff_summary jsonb",
+   "partitioning": "없음"
+  },
+  {
+   "table": "om.job_run / om.job_lease / om.watermark",
+   "purpose": "잡 실행 기록(code_sha, 사용 릴리스, data_cutoff), 만료형 lease, 단계별 워터마크",
+   "keyColumns": "job_run: id, job, status, code_sha, releases jsonb, data_cutoff, stats / lease: job PK, holder, expires_at / watermark: (stage, scope) PK, value",
+   "partitioning": "없음"
+  },
+  {
+   "table": "sim.run / sim.injection / sim.eval_result",
+   "purpose": "시뮬레이터 실행, 고장 주입 ground truth, 탐지기 평가",
+   "keyColumns": "run: id, seed, config, code_sha / injection: run_id, asset_code, kind, start_ts, end_ts, params, expected_failure_modes[] / eval: (run_id, release_id) PK, tp, fp, fn, recall, precision, median_delay_days, magnitude_mae, fp_per_asset_month",
+   "partitioning": "없음"
+  },
+  {
+   "table": "auth_user / auth_session / auth_account / auth_verification / auth_rate_limit",
+   "purpose": "Better Auth 관리자 로그인(가입 비활성, admin 역할, DB 세션, DB rate limit)",
+   "keyColumns": "Better Auth CLI generate SQL을 마이그레이션에 복사",
+   "partitioning": "없음"
+  }
+ ],
+ "ingestContract": "POST /api/ingest/v1  (Content-Encoding: gzip, Content-Type: application/json)\n헤더: X-OM-Key-Id, X-OM-Timestamp(unix s), X-OM-Signature: v1=hex(HMAC_SHA256(secret, keyId + \".\" + ts + \".\" + sha256hex(gzip 원본 바이트)))\n\n{\n  \"schema\": \"om.ingest.v1\",\n  \"gateway\": \"GW-JEJU01-A\",\n  \"batch_id\": \"01923f6e-7c1a-7b1e-9a4e-2f1c3d5e7a90\",\n  \"seq\": 182340,\n  \"sent_at\": \"2026-09-14T03:05:00.120Z\",\n  \"clock\": { \"ntp_synced\": true, \"ntp_offset_ms\": -12 },\n  \"devices\": [\n    { \"ref\": \"BMS1\", \"vendor\": \"LGES\", \"model\": \"R800\", \"serial\": \"R8-22-0331\", \"fw\": \"2.3.1\" },\n    { \"ref\": \"ELZ1\", \"vendor\": \"EXAMPLE\", \"model\": \"PEM-1MW\", \"serial\": \"E-0007\", \"fw\": \"5.0.4\" }\n  ],\n  \"series\": [\n    { \"src\": \"BMS1/RACK03/I_DC\", \"unit\": \"A\", \"t0\": 1757818800000, \"dt\": 1000, \"v\": [50.1, 50.0, null, 49.9], \"q\": [0, 0, 1, 0] },\n    { \"src\": \"BMS1/RACK03/V_CELL_MAX\", \"unit\": \"mV\", \"t0\": 1757818800000, \"dt\": 10000, \"v\": [4012, 4013, 4013] },\n    { \"src\": \"EMS/SOC_MAX_SETPOINT\", \"unit\": \"%\", \"ts\": [1757818805000], \"v\": [90] },\n    { \"src\": \"BMS1/RACK03/I_DC\", \"unit\": \"A\", \"mode\": \"burst\", \"t0\": 1757819001000, \"dt\": 100, \"v\": [50.0, 12.1, 12.0, 12.0] }\n  ],\n  \"events\": [\n    { \"src\": \"ELZ1/ALARM\", \"device\": \"ELZ1\", \"ts\": 1757818930000, \"code\": \"HTO_HIGH_1\", \"severity\": \"major\", \"text\": \"H2 in O2 1.2%\" }\n  ],\n  \"meta\": { \"collector\": \"modbus-sunspec\", \"collector_version\": \"0.9.2\" }\n}\n\n규칙\n1) 인증: 게이트웨이별 키, 허용 시계오차 ±300s(초과 시 401 + X-OM-Server-Time), timingSafeEqual 비교, 활성 키 2개로 회전. 서명 검증을 먼저 하고 gunzip은 그다음(maxOutputLength 20MB).\n2) 멱등성: (gateway, batch_id) 같고 본문 해시도 같으면 200 duplicate, 해시가 다르면 409. 샘플은 (point_id, ts) ON CONFLICT DO NOTHING(첫 값 우선). 값 정정은 봉투로 받지 않고 콘솔의 재처리 요청으로만 처리.\n3) 시간: epoch ms UTC. t0+dt(정주기) 또는 ts[](비정주기) 중 하나이며 v와 길이가 같아야 함. ts > received_at+5분이면 샘플 거부(future_ts). 원시 보존기간 밖이면 bronze에만 남기고 partial. |skew|>120s 또는 ntp_synced=false면 CLOCK_SUSPECT 비트. 서버는 ts를 절대 보정하지 않음.\n4) 값: null=결측, 0=실측 0(구분 필수). 누적 카운터는 원본 그대로 보내고 서버가 delta 계산(역행은 리셋 처리). 단위는 원본 unit 문자열로 보내고 point_binding의 scale/offset으로 정규화. q는 장비 품질(0 정상, 1 불량, 2 불확실).\n5) 매핑: src는 게이트웨이 내 고유하고 안정적인 태그명. 미매핑 src는 거부하지 않고 unmapped_source에 등록하며 원본은 bronze에 보존. 매핑은 ts 시점에 유효한 point_binding으로 결정.\n6) 모드: mode=\"burst\"거나 바인딩된 포인트 period_s < 10이면 measurement_hf로 라우팅. 게이트웨이는 이벤트(트립·전류 스텝) 전후 구간만 버스트로 보냄. 셀 단위 수백 채널은 원시가 아닌 max/min/avg/argmax id 통계 포인트로 축약하는 것이 기본.\n7) devices: 매 배치 또는 변경 시 포함. fw/serial이 바뀌면 asset_event(firmware_update/replacement)를 자동 생성해 기준선 epoch 경계로 씀.\n8) 안전 이벤트: 게이트웨이는 안전 관련 이벤트를 5분 flush를 기다리지 않고 events만 담은 봉투로 즉시 전송. 서버는 event_code_def.safety_class로 판정하고, 미등록 코드라도 severity=critical이면 안전으로 간주해 safety_alert와 알림을 발생. 콘솔은 안전설비가 아니며 인터록은 현장 PLC/SIS가 수행.\n9) 크기·빈도: 기본 5분 flush, 압축 후 1MB 이하·샘플 5,000 이하 권장(Vercel 본문 4.5MB 한도, 초과 시 413으로 분할 재전송). 오프라인 복구 시 오래된 배치부터 전송하고 batch_id는 재사용.\n10) 응답: 200 {status: accepted|duplicate, accepted, duplicate, rejected, unmapped}, 400 스키마 오류(재시도 금지), 401 인증/시계, 409 batch_id 충돌, 413 분할, 429/503은 Retry-After + 지수 백오프.\n11) 버전: schema 필드로 v1/v2 병행 수신. 모르는 필드는 무시하되 bronze에 원본이 남음.\n12) 단일 입구: OpenWeather·KPX 시장가격·수기 측정·용량시험도 내부 게이트웨이(kind=internal)로 같은 봉투·같은 정규화 함수를 거침(서버 내부 호출은 HTTP 없이 lib/ingest 직접 호출, bronze 기록은 동일).",
+ "analyticsPipeline": "단계(모든 단계는 멱등 upsert, algo_release 기록, 워터마크·lease 사용):\n0) 수집(요청마다): HMAC → 안전 이벤트 빠른 경로 → bronze INSERT → binding 해석·정규화(순수 함수) → measurement/measurement_hf/event_log INSERT ... RETURNING → rollup_dirty(gen+1). 인라인 DQ: hard 범위, 시계, 미래 ts.\n1) 5분(/api/cron/rollup): 닫힌 시간 버킷 dirty 소진 → m_1m/m_1h(metric_def.rollup: twa/delta/integral/state_duration, dq_interval 제외) → rollup_dirty_day. DQ 버킷 검사(완결성, seq 공백, Hampel 스파이크, 맥락 인지 고착, 단위 변경) → dq_interval. 안전 워치독(게이트웨이 무수신).\n2) 매시(/api/cron/episodes): 자산별 워터마크 − 6h 겹침으로 원시 재조회 → 에피소드 추출기(순수 TS, 히스테리시스 상태기계: ess.charge/discharge/rest/current_step, pv.clear_window/curtailment/clipping, inv.trip/derating, el.steady_run/cold_start/ramp/idle_ocv, comp.run, tank.static_hold/fill, fc.steady_run/startup/purge/load_step) → episode(features, conditions bin 키, dq, epoch_id). 수명주기 이벤트 자동 감지(devices 펌웨어, SOC 상한 등 설정값 state 변화, 바인딩 교체) → asset_event → asset_epoch 분할. 지연 데이터는 워터마크를 LEAST로 되감음.\n3) 매일 02:17 KST(/api/cron/daily, 예산 700s, 자산 청크 재개): 파티션 사전생성·보존 → m_1d → kpi_daily(PR_corr, 인버터 bin 효율, RTE, SEC, 셀전압@j_ref, 압축기 kWh/kg, Z 보정 탱크 질량) → flow_daily/balance_daily/chain_hourly → 기준선 후보 갱신(표본 충족 시 draft, 자동 봉인 규칙 또는 관리자 봉인) → 탐지기(load=I/O, detect=순수): 조건 매칭 비율(bin 중앙값 비율 표본가중 + 부트스트랩 CI, bin≥5·전체≥15 미만이면 insufficient), 추세(Theil–Sen+Mann–Kendall, 전해조·연료전지는 운전시간 축, 1년 이상은 YoY), 변화점(표 CUSUM k=0.5 h=4~5, EWMA λ=0.2), 동종 비교(수정 z, MAD 하한, 동종 3대 이상), 교란요인 검사(epoch, 온도 bin, 출력제어, 센서 건전성 게이트) → confidence·severity 산정 → finding upsert(dedup_key) + finding_evidence(manifest, input_hash, data_cutoff=잡 시작 시각−settle 30분) → 섀도 릴리스 병행 실행(shadow_finding) → 조치 검증(matched_before_after@1, confirm_by_measurement@1).\n4) 10분(/api/cron/reprocess): reprocess_request 청크 처리(normalize: 해당 point·구간 DELETE → bronze 재정규화 INSERT(REPROCESSED) → dirty / episodes·kpi·detect: 워터마크 되감기 후 재실행, dry_run은 쓰기 없이 diff만).\n5) 주간 월 03:37 KST(/api/cron/weekly-report): 사이트별 EvidencePack → templateComposer → validateDraft → report(draft).\n재현성 3단계: L1 통계 재현(evidence에 입력 특징 벡터·기준선 id를 저장해 항상 동일 해시 재계산 가능), L2 에피소드 재추출(원시 13개월 보존기간 내, 추출기 릴리스 지정), L3 원본 재정규화(bronze 13개월 내, 바인딩 이력 사용). 로컬·시뮬레이터는 같은 잡 함수를 scripts/pipeline.ts(tsx)로 now 주입 실행.",
+ "llmSeam": "이번 단계는 결정적 구현만 둔다. 교체 지점은 두 개다.\n(1) ReportComposer: compose(pack: EvidencePack(om.evidence-pack.v1), opts{locale:'ko-KR', audience:'site_manager'|'executive', maxFindings}) → ReportDraft{composerId, packHash, title, sections[kind: summary|safety|priority_actions|findings|chain|data_quality|verified_actions|revenue].blocks[]{text, citations[finding:id|evidence:id|kpi:key|flow:edge/day]}}. 구현체 templateComposer@1은 failure_mode별 한국어 메시지 함수와 버전 관리되는 플레이북(lib/report/playbooks, 원인·점검·조치·오탐주의)으로 만든다. 문장 어조는 confidence·DQ 등급으로 결정한다(≥0.8 단정형, 0.5~0.8 '가능성이 높습니다', <0.5는 '관찰 중' 섹션으로만). validateDraft(pack, draft)는 인용 id 존재, 본문 숫자와 인용 근거 값의 허용오차 일치, severity≥4 및 미확인 safety_alert 전부 언급, 팩에 없는 자산·수치 금지를 검사한다. 템플릿 결과에도 골든 테스트로 항상 실행한다. report 테이블에 pack, pack_hash, composer_id, validation을 저장하고 사람 검토 후 발행한다. 나중에 LlmComposer는 구조화 출력(JSON 스키마=ReportDraft)으로 만들고 validateDraft를 통과할 때만 채택, 실패하면 템플릿으로 폴백하고 사유를 기록한다. LLM에는 원시 시계열 없이 계산된 근거(다운샘플 ≤120점)만 넘긴다. 외부 전송 가능 여부는 정책 결정 사항이다.\n(2) MappingSuggester: suggest(unmappedSource, sampleStats, deviceInventory, catalog) → Suggestion[]{metricKey, assetCandidate, scale, offset, score, reasons[]}. 현재 구현은 규칙 기반(SunSpec/IEC 61850/Haystack 별칭 사전, 태그명 정규식, 단위·값 분포 휴리스틱)이다. 제안은 항상 사람이 승인해야 바인딩된다.\n두 인터페이스 모두 composer/suggester id를 algo_release(kind=composer|suggester)에 등록해 결과의 출처를 추적한다.",
+ "simulatorPlan": "lib/sim에 시드 PRNG(mulberry32)와 now 주입을 둔다. 합성 기상은 Haurwitz 청천일사×운량 AR(1), 기온 계절·일변화, 강우 이벤트. 물리 근사 모델: PV(온도계수·오염비·열화), 인버터(부하 효율곡선·클리핑·열 디레이팅), ESS(용량 Q(t), OCV(SOC)+I·R(t), CC-CV, PV 연계 충전전류, 온도 가용용량), 전해조(V=E_rev+b·ln j+R·j+δ·운전시간, Faraday 수율, HTO), 압축기(kWh/kg, 단별 토출온도), 탱크(질량수지+Z 계수, 야간 냉각), 연료전지(분극곡선·전압감쇠·블로워 친화법칙). 출력은 두 가지다: (a) 메모리 배열(단위 테스트), (b) om.ingest.v1 봉투를 실제 /api/ingest/v1로 HMAC 서명해 POST(E2E, 수집 경로 검증). 고장 시나리오: battery_capacity_fade, battery_resistance_growth, cell_self_discharge, pv_soiling, string_open, inverter_fan_degradation, electrolyzer_stack_degradation, pem_crossover_rise, compressor_valve_leak, tank_microleak, fc_voltage_decay, fc_blower_wear, h2_meter_drift. DQ 시나리오: gateway_outage_then_backfill(역순), sensor_flatline, spikes, clock_skew, duplicate_batches, unit_change, binding_miswire(재처리 검증용). 음성 대조군(필수): cold_snap, cloudy_week, curtailment, soc_limit_change, bms_firmware_update, electrolyzer_part_load, fc_start_stop_cycles, tank_fill_cooldown. ground truth는 sim.injection(expected_failure_modes, 시작·크기)에 기록한다. 평가는 scripts/pipeline.ts로 시뮬레이션 시간을 하루씩 전진시키며 TP/FP/FN, 자산월당 오탐, 탐지지연(주입 시작 기준, 최소 탐지 크기 도달 기준), 크기 MAE, confidence 보정을 sim.eval_result에 저장한다. 크기 스윕×다중 시드로 최소 탐지 가능 크기 곡선을 만든다. 재현성 테스트: 같은 시드 두 번 실행 시 finding_evidence.input_hash 동일, bronze replay 후 silver 행 해시 동일, 롤업 = 원시 재집계. CI 게이트(초기 목표, 첫 보정 후 확정): 명세 크기 이상 재현율 ≥0.9, 오탐 ≤0.1/자산·월, 용량감소 MAE ≤1%p, 음성 대조군 finding 0건, 안전 카테고리 지연 ≤3일. 탐지기 릴리스 활성화는 이 게이트 통과를 요구한다. 파라미터 기본값은 모두 가정값이며 실제 설비 사양을 받으면 교체한다.",
+ "phasing": [
+  {
+   "phase": "P0 기반 정리",
+   "goal": "보안 취약 버전과 가짜 데이터 경로를 제거하고 DB·인증 골격을 세운다",
+   "deliverables": [
+    "next 16.3.5 / react 19.3 / eslint-config-next 16.3.5 업그레이드(별도 커밋)",
+    "브라우저 IoT 시뮬레이터·인증 없는 POST /api/solar·24h cleanup 크론·weather-history 제거, leaflet 계열·자기참조 의존성 삭제",
+    "docker compose PostgreSQL(RDS와 같은 메이저, debian, 54320), node-pg-migrate SQL 마이그레이션, Kysely+kysely-codegen, btree_gist 확장",
+    "om 스키마 레지스트리 테이블(site, asset_class, asset, metric_def, point, point_binding, gateway, algo_release, job_*), 기존 solar_sites 1회 이관",
+    "Better Auth(가입 비활성, admin, DB 세션·rate limit) + proxy.ts 낙관 검사 + DAL requireAdmin",
+    "Vitest(unit/integration)·Playwright 골격, .gitattributes eol=lf, Vercel Pro·icn1 region 결정"
+   ],
+   "exitCriteria": "npm audit에서 next 항목 0건, 빈 DB와 RDS 스테이징 복제본에 마이그레이션이 동일하게 적용되고 down/up 반복 통과, 비로그인 E2E에서 모든 콘솔 URL·Server Action·/api/series 차단"
+  },
+  {
+   "phase": "P1 수집 원장",
+   "goal": "계약이 없어도 받고, 원본을 보존하고, 재처리할 수 있는 수집 경로",
+   "deliverables": [
+    "/api/ingest/v1(HMAC, 3중 멱등, bronze 월 파티션, 바인딩 해석, measurement/_hf/event_log 파티션+BRIN)",
+    "rollup_dirty 큐와 m_1m/m_1h/m_1d, dq_interval DQ 검사, 안전 빠른 경로+워치독+Notifier(웹훅)",
+    "devices 인벤토리 → asset_event 자동 생성",
+    "/data/ingest, /data/mapping(MappingSuggester 규칙 구현), /data/quality, /data/catalog, /safety 화면",
+    "reprocess_request(normalize/rollup 단계) + dry-run",
+    "시뮬레이터 PV+ESS emit(HTTP), 내부 게이트웨이(OpenWeather)"
+   ],
+   "exitCriteria": "시뮬레이터 3사이트×30일 E2E에서 중복·역순 백필·시계오차·단위변경 시나리오 모두 기대 품질 비트/dq_interval 생성, 롤업이 원시 재집계와 일치(property test), 바인딩 수정 후 replay 결과 silver 해시가 정답 데이터와 동일, 안전 이벤트 수신→알림 p95 < 10초"
+  },
+  {
+   "phase": "P2 분석 코어(ESS 우선)",
+   "goal": "사용자 예시를 원시에서 조치 검증까지 닫는다",
+   "deliverables": [
+    "에피소드 추출기 ess.charge/discharge/rest/current_step, kpi_daily, asset_epoch",
+    "baseline 봉인 워크플로와 /analytics/baselines",
+    "통계 라이브러리(matchedRatio, bootstrap, Theil–Sen, CUSUM, EWMA, modifiedZ)",
+    "탐지기 ess.capacity_fade, ess.resistance_growth, ess.cell_imbalance, ess.cell_self_discharge(critical), dq.*",
+    "finding/evidence manifest/transition, /findings/[id] 계보 패널+재현 실행",
+    "maintenance_action, manual_entry(용량시험), action_verification",
+    "EvidencePack, templateComposer, validateDraft, /reports",
+    "sim 평가 CI 게이트, 섀도 릴리스"
+   ],
+   "exitCriteria": "용량 −6.25% 주입이 30일 이내 탐지되고 크기 MAE ≤1%p, 음성 대조군(한파·SOC 상한 변경·BMS 펌웨어 업데이트) finding 0건, 재현 실행 input_hash 일치, 리포트 문장 수치가 evidence와 전부 일치(validateDraft 통과)"
+  },
+  {
+   "phase": "P3 태양광·인버터 + 에너지 체인",
+   "goal": "PV 계열 탐지와 사이트 연계 흐름 추적",
+   "deliverables": [
+    "pv.clear_window/curtailment/clipping 에피소드, PR_corr·오염비·스트링 피어비·인버터 bin 효율·열상승",
+    "탐지기 pv.soiling_rate, pv.string_underperf, inv.efficiency_drop, inv.cooling_degradation, inv.repeated_trip",
+    "flow_node/flow_edge 편집기, flow_daily, balance_daily, chain_hourly, /sites/[siteCode]/chain Sankey",
+    "/data/readiness 탐지 준비도 매트릭스"
+   ],
+   "exitCriteria": "출력제어·흐린 주 음성 대조군에서 PV finding 0건, 오염 시나리오 세척 후 improved 검증, 시뮬레이터 체인 수지 잔차가 주입 누설량과 불확도 내 일치"
+  },
+  {
+   "phase": "P4 수소 설비",
+   "goal": "전해조·압축기·저장·연료전지 탐지와 수소 질량수지",
+   "deliverables": [
+    "el.steady_run/cold_start/idle_ocv, comp.run, tank.static_hold/fill, fc.steady_run/startup/purge 추출기",
+    "탐지기 el.stack_voltage_rise, el.hto_rise, comp.specific_energy_rise, comp.valve_leak, tank.microleak(safety), fc.voltage_decay, fc.blower_wear, h2chain.mass_balance_gap",
+    "KGS AH271/가스검지 이벤트 코드 safety_class 등록",
+    "H2 전력원 귀속과 참고용 탄소집약도(emission_factor 설정)"
+   ],
+   "exitCriteria": "탱크 미세누설 최소 탐지 크기 곡선을 운영 측과 합의·문서화, 스택 열화 µV/h 추정 오차 ≤20%, 안전 카테고리 탐지지연 ≤3일"
+  },
+  {
+   "phase": "P5 운영 확장(다음 단계)",
+   "goal": "규모·수명 대응",
+   "deliverables": [
+    "bronze/원시 파티션 S3 아카이브 후 DROP",
+    "재처리 전 단계 UI 고도화",
+    "외부 워커 전환 기준 모니터링(dirty 대기 p95, 잡 partial)",
+    "LlmComposer(검증기 뒤, 기본 off) — 별도 승인 후"
+   ],
+   "exitCriteria": "아카이브 파티션에서 L3 재처리 복원 리허설 성공, 전환 기준 대시보드 운영"
+  }
+ ],
+ "signatureIdeas": [
+  "탐지 준비도 매트릭스: 자산×고장모드마다 필요한 메트릭 충족 여부(ready/partial/missing)를 보여 주고, '이 메트릭을 확보하면 풀리는 고장모드 수'로 순위를 매겨 벤더·게이트웨이 데이터 계약 협상 자료로 쓴다",
+  "시간 이력 바인딩 + 재처리 dry-run diff: 매핑·scale 오류를 고치면 영향 원시 행 수·롤업·에피소드·finding 변화를 미리 보고 적용한다. 원본은 bronze에 있어서 과거까지 정정된다",
+  "finding 계보 패널과 재현 버튼: 입력 포인트·바인딩·에피소드·봉인 기준선·알고리즘 릴리스·코드 SHA·데이터 컷오프·입력 해시를 보여 주고, 다시 계산해 해시 일치를 확인한다",
+  "기준선 봉인과 epoch 자동 경계: 펌웨어 변경(devices 블록), SOC 상한 등 설정값 변화, 부품·센서 교체를 자동 감지해 비교 구간을 끊는다. subject별로 영향 범위를 달리해서(예: BMS 펌웨어는 BMS SOC 의존 지표만 끊고 OCV 앵커 용량 지표는 유지) 오탐과 잘못된 기준선을 막는다",
+  "섀도 릴리스 + 시뮬레이터 게이트: 새 탐지기 버전은 병행 실행 finding diff와 ground truth 평가를 통과해야 활성화된다",
+  "사이트 에너지·수소 원장(Chain Ledger): 노드·엣지 그래프로 일 에너지·질량 수지를 계산하고, 잔차를 합성불확도 대비로 판정하며, 시간별 PV/ESS/계통 귀속으로 kWh/kgH2와 참고용 탄소집약도를 낸다",
+  "단일 입구: 날씨 API·시장가격·현장 수기 측정·용량시험 결과도 게이트웨이 계측과 같은 봉투·bronze·멱등·계보 경로를 거친다",
+  "진단 확정/반박 검증: 진단형 finding은 현장 측정으로 confirmed/refuted, 교정형 조치는 조건 매칭 before/after로 improved를 판정한다. refuted 비율을 탐지기 릴리스의 실측 정밀도로 되먹인다",
+  "신뢰도 등급 문장: confidence와 데이터 품질로 리포트 어조를 정하고, 낮은 신뢰도는 '관찰 중'으로만 보고해 과잉 확신을 막는다",
+  "안전 공백 표시: 안전 이벤트 빠른 경로와 통신두절 워치독으로 '안전 데이터 불확실'을 표시한다. 분석 결과로 억제·해제할 수 없고 수동 ack만 가능하다",
+  "환산 시간 표현: 내부 판정은 Ah(앵커 구간)로 하되 현장 언어에 맞춰 '50 A 기준 8시간 0분 → 7시간 30분'처럼 기준 전류 환산 시간을 함께 제시한다"
+ ],
+ "risks": [
+  "Vercel Hobby는 상업 이용 불가 + 크론 1일 1회라서 Pro 전환이 필요하다. 미전환 시 5분 롤업·안전 워치독을 운영할 수 없다",
+  "원시 규모 불확실: 셀 단위 채널을 원시로 받으면 월 200GB급으로 커져 RDS 비용·vacuum·백업 시간이 급증한다. 게이트웨이 축약 정책을 P1 전에 합의해야 한다. 용량 추정은 가정이라 P1에서 실측 보정이 필요하다",
+  "계보·버전 테이블이 소규모 팀에 과한 복잡도가 될 수 있다. 완화: P0~P2는 algo_release 행과 evidence manifest jsonb만으로 시작하고, 섀도·재처리 UI 고도화는 뒤로 미룬다",
+  "태양광 연계 ESS는 조건을 만족하는 full 앵커 충전 세션이 드물어 insufficient_data가 길어질 수 있다. 완화: top 앵커(CV 종료) 부분 세그먼트와 정기 용량시험 일정을 보조로 쓴다",
+  "실데이터가 없어서 탐지 임계값이 시뮬레이터에 과적합될 수 있다. 실데이터 유입 후 섀도 기간과 refuted 피드백으로 재보정해야 한다",
+  "재처리의 대량 DELETE/INSERT가 락·bloat·WAL 급증을 부를 수 있다. 완화: 청크 크기 제한, lock_timeout, 새벽 실행, 범위 상한",
+  "지연 도착으로 finding이 흔들릴 수 있다. 완화: settle 30분 컷오프, dedup_key 유지, 자동 종료 금지",
+  "btree_gist EXCLUDE 제약·파티션 함수는 RDS 파라미터·확장 허용을 사전 검증해야 한다(RDS 지원 확장이지만 권한 확인 필요)",
+  "콘솔을 안전설비로 오인할 위험: 수집 지연(최대 수 분)과 비안전 등급을 UI·리포트에 명시하고, 인터록은 현장 PLC/SIS가 수행한다",
+  "HMAC 비밀 암호화 키(INGEST_KEY_ENC_KEY) 관리, RDS 퍼블릭 엔드포인트와 기존 TLS 검증 비활성 문제는 CA 검증과 보안그룹 최소화로 대응해야 한다",
+  "수소 설비 벤더 태그 이질성과 표준 부재(OPC UA 전해조 companion spec 개발 중)로 매핑 작업량이 커질 수 있다",
+  "청정수소 전력원 귀속·탄소집약도는 공식 인증 산식이 아니므로 참고용으로만 표기해야 한다"
+ ],
+ "deliberatelyOutOfScope": [
+  "LLM 리포트 작성·매핑 제안 구현(인터페이스와 검증기만 설계)",
+  "현장 게이트웨이 소프트웨어 개발(봉투 계약·시뮬레이터 emitter를 레퍼런스로만 제공)",
+  "발전소 제어·설정값 쓰기(write-back)와 안전 인터록 실행 — 콘솔은 읽기 전용",
+  "SMP/REC 정밀 정산과 수익 분석(요약 위젯만)",
+  "청정수소 인증·입찰 정산용 공식 산정",
+  "MQTT/상시 연결 수집과 외부 워커(전환 기준만 정의)",
+  "CMMS 전면 기능(작업지시 배정·재고·예비품)",
+  "EIS·ICA/DVA 등 고해상도 실험실급 분석과 Python 분석 런타임",
+  "고장모드 전체 구현(1차는 단계별 선택 탐지기)",
+  "원시 S3 아카이브(P5), 멀티테넌트·모바일 앱·다국어"
+ ],
+ "detail_md": "# Energy Chain Ledger (ECL) O&M 콘솔: 리뉴얼 설계안 초안 (관점: data_platform)\n\n기준일 2026-09-14. 레포(`app/page.tsx`, `app/api/solar/*`, `lib/db.ts`, `components/tabs/*`)는 현황 파악용으로만 봤고 코드는 고치지 않았습니다.\n\n## 1. 불변 원칙 7가지\n1. **원본은 버리지 않는다.** 요청 바이트(gzip)는 bronze에 그대로 13개월 보존합니다. 정규화·매핑·로직이 바뀌면 여기서 다시 계산합니다.\n2. **논리 포인트와 물리 소스를 분리한다.** `point`(자산·메트릭·qualifier)는 영구 식별자입니다. `point_binding`(게이트웨이 태그→포인트, scale, **유효 시간구간**)은 이력으로 남깁니다. 센서 교체·오배선 정정은 바인딩 이력으로 표현합니다.\n3. **스키마 변경 없이 확장한다.** 메트릭·설비·이벤트코드·흐름 엣지를 추가할 때는 INSERT만 합니다. DDL은 파티션 관리 함수만 씁니다.\n4. **원시 행은 수정하지 않는다.** 사후 품질 판정은 `dq_interval`로 기록합니다. 값 정정은 명시적 재처리 요청으로만 하고, 이때 `REPROCESSED` 비트를 붙입니다.\n5. **판단은 비교 가능한 조건끼리만 한다.** 에피소드 → 특징 → bin → 봉인 기준선 → epoch(교체·펌웨어·설정 변경으로 끊김) 순서를 지킵니다.\n6. **모든 결론에 계보를 붙인다.** 알고리즘 릴리스, 코드 SHA, 데이터 컷오프, 입력 manifest, 입력 해시를 함께 저장합니다.\n7. **안전은 분석과 분리한다.** 안전 이벤트는 빠른 경로로 즉시 기록하고 알립니다. 분석 결과로 억제할 수 없습니다. 인터록은 현장 PLC/SIS가 수행합니다.\n\n## 2. 전체 흐름\n```mermaid\nflowchart LR\n  GW[현장 게이트웨이] -->|om.ingest.v1 gzip+HMAC| ING[/api/ingest/v1/]\n  INT[내부 게이트웨이\\nOpenWeather·KPX·수기측정] -->|같은 정규화 함수| ING\n  ING -->|안전 이벤트| SAFE[(safety_alert)] --> NOTI[Notifier 웹훅]\n  ING --> BR[(bronze ingest_batch)]\n  ING -->|point_binding@ts| SV[(measurement / _hf / event_log)]\n  SV --> DIRTY[rollup_dirty] --> RU[5분 롤업·DQ] --> G1[(m_1m/m_1h/m_1d, dq_interval)]\n  SV --> EP[매시 에피소드] --> G2[(episode, asset_event/epoch)]\n  G1 & G2 --> D[일일: kpi_daily, chain ledger, baseline, detectors]\n  D --> F[(finding + evidence manifest)]\n  F --> PACK[EvidencePack] --> COMP{ReportComposer\\ntemplate@1}\n  COMP --> R[(report)]\n  BR -. reprocess_request .-> SV\n  SIM[시뮬레이터+ground truth] -->|같은 봉투| ING\n```\n\n## 3. 레지스트리: 설비·메트릭·바인딩\n```sql\nCREATE EXTENSION IF NOT EXISTS btree_gist;\n\nCREATE TABLE om.point_binding (\n  id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,\n  gateway_id   smallint NOT NULL REFERENCES om.gateway(id),\n  source_key   text     NOT NULL,              -- 'BMS1/RACK03/I_DC'\n  point_id     integer  NOT NULL REFERENCES om.point(id),\n  source_unit  text,\n  scale        double precision NOT NULL DEFAULT 1,\n  value_offset double precision NOT NULL DEFAULT 0,\n  valid        tstzrange NOT NULL,             -- [from, to) : '샘플 ts' 기준\n  created_by   text NOT NULL,\n  note         text,\n  created_at   timestamptz NOT NULL DEFAULT now(),\n  EXCLUDE USING gist (gateway_id WITH =, source_key WITH =, valid WITH &&),\n  EXCLUDE USING gist (point_id WITH =, valid WITH &&)   -- 한 시점에 한 포인트는 한 소스\n);\n```\n- 두 번째 EXCLUDE 제약 덕분에 \"이 포인트의 이 구간 행은 어느 소스에서 왔나\"가 하나로 정해집니다. 그래서 오배선을 정정할 때 해당 구간 행을 안전하게 지우고 bronze에서 다시 넣을 수 있습니다.\n- `asset_event.kind` 목록: `commissioning | component_replacement | sensor_replacement | calibration | firmware_update | setpoint_change | cleaning | capacity_test | stack_replacement`\n- `affects_subjects` 예시: `['ess.charge.soc_bms_*']`. BMS 펌웨어 업데이트는 BMS SOC에 의존하는 지표만 끊고, OCV 앵커 기반 용량 지표는 유지합니다.\n- 자동 생성 경로는 세 가지입니다.\n  - 봉투 `devices[].fw` 변경\n  - 설정값 state 포인트 변화(`ess.setpoint.soc_max`, `inv.setpoint.p_limit`)\n  - 바인딩 교체\n\n## 4. 저장·보존\n| 층 | 테이블 | 파티션 | 보존 |\n|---|---|---|---|\n| Bronze | ingest_batch | received_at 월 | 13개월(P5에서 S3 아카이브) |\n| Silver | measurement | ts 월 + DEFAULT, 파티션별 BRIN(minmax_multi) | 13개월 |\n| Silver | measurement_hf(버스트·10초 미만) | 월 | 3개월 |\n| Silver | event_log | 월 | 5년 |\n| Gold | m_1m(60초 미만 포인트) / m_1h / m_1d | 월 / 연 / 없음 | 13개월 / 영구 / 영구 |\n| Gold | episode, kpi_daily, chain_hourly | 연 | 영구 |\n\n- data_platform 관점에서 원시를 6개월이 아닌 **13개월**로 권고합니다. 이유는 1년 전 동월 원시를 새 추출기로 다시 뽑는 L2 재현이 가능해지기 때문입니다.\n- 비용: 시나리오 B(월 약 26GB) 기준 약 340GB라 gp3 스토리지 비용은 관리 가능한 수준으로 추정합니다. 요금은 확인이 필요합니다.\n- 셀 단위 수백 채널은 게이트웨이에서 max/min/avg/argmax-id로 축약하는 것이 전제입니다.\n- 파티션 사전생성과 보존은 자체 plpgsql 함수를 일일 잡이 호출합니다. pg_partman/pg_cron은 쓰지 않아 로컬↔RDS 동일성을 지킵니다.\n- 롤업은 `INSERT ... RETURNING` → `rollup_dirty(gen+1)` → 닫힌 버킷만 계산 → `DELETE WHERE gen = 읽은 gen` 방식입니다. 중복 재전송은 dirty를 만들지 않고, 동시에 실행돼도 유실이 없습니다.\n\n## 5. 데이터 품질\n| 검사 | 시점 | 기록 |\n|---|---|---|\n| hard 범위, 미래 ts, 시계 의심 | 수집 인라인 | quality 비트(4, 8) |\n| 완결성(기대 샘플 대비), gw seq 공백 | 5분 | m_1h.n / 게이트웨이 DQ finding |\n| Hampel 스파이크, 변화율 | 5분 | dq_interval(spike) |\n| 고착: 맥락 제외(야간 PV, 만충 SOC, 휴지 탱크) + 연동 신호 교차(POA가 변하는데 P_AC 고정) | 5분 | dq_interval(flatline) |\n| 단위 변경(일 중앙값 ×1000/×100 점프) | 일 | dq_interval + 매핑 워크벤치 경고 |\n| 물리 교차: Σ셀전압 vs 스택전압, 누적kWh 증분 vs 전력 적분(>5%), 동일 구역 검지기 배경 차 | 일 | dq finding(`dq.*`) |\n| 센서 건전성 게이트 | 탐지기 load | 일사계 비율 드리프트 등이 실패하면 PR 기반 탐지기 미발행 |\n\nDQ 결과도 코칭 대상입니다. 리포트의 `data_quality` 섹션에 \"센서 교정·통신 개선 권고\"로 들어갑니다.\n\n## 6. 재처리와 계보\n### 6.1 알고리즘 릴리스\n- `om.algo_release(kind ∈ normalizer|dq|extractor|kpi|baseline_method|detector|composer|suggester, key, version, code_sha, params, params_hash, status)`\n- 파라미터가 바뀌면 새 버전을 만듭니다.\n- CI 스크립트 `releases:check`가 `lib/analytics/**` 소스 해시 manifest와 등록 버전을 대조합니다. 코드는 바뀌었는데 버전이 그대로면 실패합니다.\n\n### 6.2 재처리 요청\n```json\n{\n  \"reason\": \"RACK03 전류 CT 배율 오류(1:2000을 1:1000으로 설정)\",\n  \"scope\": { \"gateway\": \"GW-JEJU01-A\", \"source_keys\": [\"BMS1/RACK03/I_DC\"], \"time_range\": [\"2026-07-01T00:00:00Z\", \"2026-09-10T00:00:00Z\"] },\n  \"from_stage\": \"normalize\",\n  \"mode\": \"dry_run\"\n}\n```\n- **normalize 단계**: 청크(1일 단위)마다 한 트랜잭션으로 처리합니다. `SET lock_timeout='5s'` → 해당 point·구간 DELETE → bronze 배치를 새 바인딩으로 재정규화해 INSERT(`quality |= 32`) → rollup_dirty 표시.\n- 이어서 에피소드·KPI 워터마크를 `LEAST`로 되감고, 탐지기를 재실행합니다.\n- **dry_run**은 쓰지 않습니다. 영향 행 수, 롤업 변화 요약, 탐지기 순수 함수 재실행으로 얻은 finding diff를 `diff_summary`에 넣습니다.\n\n### 6.3 Evidence manifest (finding마다 append-only)\n```json\n{\n  \"schema\": \"om.evidence.v1\",\n  \"computed_at\": \"2026-09-13T17:24:08Z\",\n  \"job_run_id\": 88123,\n  \"code_sha\": \"3f9c2e1\",\n  \"data_cutoff\": \"2026-09-13T16:47:00Z\",\n  \"releases\": { \"detector\": \"ess.capacity_fade@2#31\", \"extractor\": \"ess.charge@3#27\", \"kpi\": null, \"baseline_method\": \"matched_bins@1#12\" },\n  \"baseline_id\": 905,\n  \"inputs\": {\n    \"points\": [ { \"point_id\": 88301, \"metric\": \"elec.dc.current\", \"binding_ids\": [5521] },\n                { \"point_id\": 88307, \"metric\": \"temp.cell.avg\", \"binding_ids\": [5530] } ],\n    \"episode_ids\": [771201, 771388, 772010],\n    \"feature_vectors\": { \"columns\": [\"ah_anchor\",\"c_rate\",\"t_cell_mean\",\"cc_ah\",\"cv_s\"], \"rows\": [[376.2,0.125,22.4,352.0,3480]] },\n    \"dq_intervals_excluded\": [ 40211 ]\n  },\n  \"input_hash\": \"sha256:9b1e…\"\n}\n```\n재현성은 세 단계로 나눕니다.\n- **L1(항상 가능)**: evidence의 feature_vectors와 baseline 통계로 통계를 다시 계산해 동일 해시를 얻습니다.\n- **L2(원시 보존기간 내)**: 지정 추출기 릴리스로 에피소드를 다시 뽑습니다.\n- **L3(bronze 보존기간 내)**: 바인딩 이력으로 원본을 다시 정규화합니다.\n\n`/findings/[id]`의 \"재현 실행\"은 L1을 즉시 수행하고, L2는 재처리 dry-run으로 수행합니다.\n\n## 7. 사용자 예시: 배터리 충전시간 8h → 7h30m을 파이프라인이 잡는 과정\n설정: 제주1 사이트 ESS1/RACK03(NMC, 명판 420 Ah). 준공 후 초기 실측 앵커 용량은 약 400 Ah.\n\n**① 원시(silver)**\n수집 포인트는 다음과 같습니다.\n- 랙 전류·전압: 1초 버스트, 평상시 10초\n- `batt.cell.v_max/v_min/v_max_id`, `temp.cell.avg/max`, `batt.soc.bms`\n- PCS 충전 한계 전류, `ess.setpoint.soc_max`\n- 휴지 판정용 PCS 상태\n\nDQ에서 확인하는 것은 세 가지입니다. 휴지 중 전류 영점(|I| < 0.2 A), 고착 없음, CLOCK_SUSPECT 없음.\n\n**② 이벤트(에피소드)**\n- `ess.rest`: |I| < 0.01C가 60분 이상 → OCV 앵커 SOC_OCV 산출(OCV 테이블, BMS SOC 미사용)\n- `ess.charge`: I > +0.02C가 2분 이상 시작, 2분 이하 중단은 병합, CV 종료전류 도달 시 종료\n- 분류:\n  - `full`: 직전 휴지 SOC_OCV ≤ 20±3%이고 상한 도달\n  - `top`\n  - `partial`\n- PV 연계라 전류가 흔들리므로 `pcs_limited_ratio`(|I − I_limit| ≤ 3% 비율)를 함께 태깅합니다.\n\n**③ 특징**\n```json\n{ \"asset\": \"KR-JEJU01/ESS1/RACK03\", \"kind\": \"ess.charge\", \"start_ts\": \"2026-09-02T01:12:00Z\", \"release\": \"ess.charge@3\",\n  \"features\": { \"class\": \"full\", \"soc_ocv_start\": 6.1, \"end_reason\": \"cv_cutoff\", \"ah_anchor\": 375.4, \"wh_anchor\": 1402100,\n                \"duration_s\": 27010, \"i_mean\": 50.0, \"c_rate\": 0.125, \"t_cell_mean\": 22.4, \"t_cell_max\": 27.9,\n                \"cc_ah\": 351.8, \"cv_s\": 3460, \"cell_dv_end_mv\": 38, \"vmax_cell_id\": 117, \"pcs_limited_ratio\": 0.93,\n                \"t_equiv_at_50A_s\": 27029 },\n  \"conditions\": { \"anchor\": \"ocv_le20_to_cv\", \"c_rate_bin\": \"0.10-0.15\", \"t_bin\": \"20-26\", \"soc_max_epoch\": 3 },\n  \"dq\": { \"completeness\": 0.995, \"excluded_s\": 0 } }\n```\n`t_equiv_at_50A_s = ah_anchor / 50 × 3600`입니다. 현장 언어(시간)로 보여 주기 위한 값이고, 판정 자체는 Ah로 합니다.\n\n**④ 기준선(봉인)**\n- epoch: 준공~현재. SOC 상한 변경과 모듈 교체가 없어 끊기지 않았고, BMS 펌웨어 변경은 OCV 앵커 subject에 영향이 없습니다.\n- 선택 규칙: 준공 +30일 이후 `full`이면서 `pcs_limited_ratio ≥ 0.8`, DQ ≥ 0.95인 세션 중 bin별 최초 20개.\n- bin `0.10-0.15C × 20-26°C`의 봉인 통계: n=20, median ah_anchor=400.3, MAD=2.1, cc_ah median=378.0, cv_s median=3390.\n\n**⑤ 비교**\n- 대상: 최근 30일 해당 bin 세션 n=11(다른 온도 bin n=6).\n- bin 비율 풀링 결과 **0.937**, 부트스트랩 95% CI **[0.928, 0.946]**. 곧 유효용량 **−6.3%**.\n  - 50 A 환산: 400 Ah → 8시간 0분, 375 Ah → 7시간 30분.\n- 추세: 세션 계열 Theil–Sen −0.78 %/월 [−0.95, −0.61]. CUSUM 하향 변화 시작일 2026-06-02.\n- 원인 구분: cc_ah 비율 0.931이고 cv_s 비율 1.02(거의 불변) → 내부저항 증가가 아니라 **용량 감소 우세**.\n- 교란요인 점검: soc_max epoch 동일, 온도 bin 매칭, 전류 영점 OK, 최초 상한 도달 셀 반복도 34%(< 60%이므로 불균형 아님).\n\n**⑥ Finding**\n```json\n{ \"dedup_key\": \"ess.capacity_fade|412|capacity_fade\", \"category\": \"degradation\", \"severity\": 3, \"confidence\": 0.86,\n  \"effect\": { \"metric\": \"capacity_ah_anchored_ratio\", \"value\": 0.937, \"ci\": [0.928, 0.946], \"baseline\": 400.3, \"unit\": \"ratio\",\n              \"trend_pct_per_month\": -0.78, \"change_start\": \"2026-06-02\", \"t_equiv_h\": { \"baseline\": 8.0, \"current\": 7.5, \"i_ref_a\": 50 } },\n  \"status\": \"new\", \"latest_evidence_id\": 330871 }\n```\n- severity 산정: 5% 이상 → 3, 10% 이상 → 4, 20% 이상 또는 가속 → 5. 자산 criticality로 보정합니다.\n- confidence 산정: 표본충족 0.35, CI 정밀도 0.35, DQ 0.2, 방법 일치(기준선·추세·CUSUM) 0.1의 가중합입니다.\n\n**⑦ 리포트 문장 (templateComposer@1)**\n> [ESS1 · 배터리 랙 03] 같은 조건(충전전류 0.10–0.15C, 셀 평균온도 20–26°C, 휴지 전압 기준 시작점부터 정전압 종료까지)에서 충전량이 기준 400 Ah에서 최근 30일 중앙값 375 Ah로 **6.3% 줄었습니다**(95% 신뢰구간 5.4~7.2%). 50 A로 환산하면 충전시간이 8시간 0분에서 7시간 30분으로 짧아진 것과 같습니다. 정전류 구간 충전량이 함께 줄었고 정전압 구간 시간은 거의 그대로여서, 내부저항 증가보다 **가용 용량 감소(SOH 저하) 가능성이 높습니다**. 감소는 6월 초부터 월 약 0.8%씩 진행 중입니다. 권장 조치: ① 완충→완방 용량시험으로 확정 ② 보증 조건(등가사이클·고온 체류) 대비 점검 ③ 운영 SOC 상한 검토. `[finding:9912] [evidence:330871]`\n\n**⑧ 조치 추적**\n1. 관리자가 `maintenance_action(capacity_test)`를 등록하고, 결과를 `manual_entry`로 입력합니다(측정 372 Ah, 25°C). 입력은 내부 게이트웨이 봉투로 bronze에 남습니다.\n2. `confirm_by_measurement@1`: 추정 375±4 Ah와 측정 372 Ah가 허용오차 안이면 **confirmed**입니다. finding은 `verified`(진단 확정)로 전이됩니다.\n3. 이후 모듈 교체 → `asset_event(component_replacement)` → 새 epoch → 기준선 draft 누적 → 봉인.\n4. 교체 전후는 `matched_before_after@1`로 improved를 판정합니다.\n5. refuted 비율은 `ess.capacity_fade` 릴리스의 실측 정밀도로 집계합니다.\n\n## 8. 연계형 에너지 흐름(Chain Ledger)\n```text\nflow_node: grid | pv_total(asset) | ess(asset, inventory=kpi soc_energy) | elz(asset) | comp(asset) | tank_bank(asset, inventory=kpi h2_mass_z) | fc(asset) | atmosphere(vent/leak) | unmetered\nflow_edge 예:\n  pv_total → elz        carrier=elec_ac  method=derived  (PV 출력 − 계통수출 − ESS충전 시간 배분)\n  grid     → elz        carrier=elec_ac  meter_point=elz 수전 AMI\n  elz      → comp       carrier=h2_kg    meter_point=elz h2.flow.mass(건조기 후)\n  comp     → tank_bank  carrier=h2_kg    method=derived(재고 증가+동시 소비)\n  tank_bank→ fc         carrier=h2_kg    meter_point=fc 공급 유량계\n  fc       → grid       carrier=elec_ac  meter_point=fc 순AC\n```\n- **balance_daily**: `residual = Σin − Σout − Δinventory`. 합성불확도 `u = sqrt(Σ(accuracy_pct·q)²)`를 구하고 `|residual| > 2u`면 significant입니다.\n  - 기간 경계는 탱크 온도 안정 시점으로 정렬합니다.\n- **chain_hourly 전력원 귀속** (`alloc_pool@1`, 추정):\n  1. 매 시간 전해조 소비를 PV 잉여에 먼저 배정합니다.\n  2. 그다음 ESS 방전에 배정합니다. ESS 저장 에너지는 PV/계통 비율 풀로 추적합니다.\n  3. 나머지는 계통입니다.\n  - 산출: `kWh/kg`, `pv_share`, 참고용 `kgCO2e/kgH2`(emission_factor 설정값)\n- **P2P 효율** = Σfc_kWh / Σelz_kWh (재고 변화 보정)\n- 이 수치들은 `/sites/[siteCode]/chain` Sankey와 리포트 `chain` 섹션에 씁니다.\n\n## 9. Finding·상태·검증\n- 상태: `new → triaged → in_report → action_taken → verified | reopened`, 그리고 `dismissed(suppressed_until)`.\n  - `verified`로의 전이는 system(검증 잡)만 할 수 있습니다.\n  - 자동 종료는 없습니다.\n- 기각 중인 dedup_key는 효과 크기가 기각 당시보다 50% 이상 악화될 때만 새 finding을 만들고 `previous_finding_id`로 연결합니다.\n- 검증 방법 두 가지:\n  - `matched_before_after@1`: 교정형 조치. before [−30d, −1d], after [+안정화, +30d], 같은 bin, 부트스트랩 CI.\n  - `confirm_by_measurement@1`: 진단형.\n- 같은 창에 조치가 겹치면 교란으로 보고 confidence를 낮춥니다.\n\n## 10. 리포트 템플릿과 LLM seam\n- EvidencePack(`om.evidence-pack.v1`) 구성: site, period(KST), kpis, findings[effect, evidence, playbook, history], chain, dataQuality, openSafetyAlerts, verifiedActions, revenueSummary, provenance{engine code_sha, releases, packHash}.\n- 섹션 순서: 안전 → 요약 → 우선 조치 Top N(severity×confidence) → 설비별 발견사항 → 에너지 체인 → 데이터 품질 코칭 → 조치 효과 → 수익 요약.\n- 어조 규칙: confidence 0.8 이상은 단정형, 0.5~0.8은 '가능성이 높습니다', 0.5 미만은 '관찰 중' 목록.\n- `validateDraft` 검사 항목:\n  - 인용이 존재하는가\n  - 숫자가 근거 값과 일치하는가(표시 반올림 허용)\n  - severity≥4와 미확인 안전 알림이 빠지지 않았는가\n  - 팩 밖의 자산이 등장하지 않는가\n- LLM 구현체는 나중에 같은 인터페이스로 꽂고, 검증에 실패하면 템플릿으로 폴백합니다.\n\n```ts\nexport interface ReportComposer {\n  readonly id: string; // 'template@1'\n  compose(pack: EvidencePack, opts: { locale: 'ko-KR'; audience: 'site_manager' | 'executive'; maxFindings: number }): Promise<ReportDraft>;\n}\nexport interface MappingSuggester {\n  readonly id: string; // 'rules@1'\n  suggest(src: UnmappedSource, stats: SampleStats, devices: readonly DeviceInfo[]): Promise<readonly MappingSuggestion[]>;\n}\n```\n\n## 11. 라우트\n- **페이지 (RSC → server-only DAL)**:\n  - `/`\n  - `/sites/[siteCode]`, `/sites/[siteCode]/chain`\n  - `/assets/[assetId]`, `/assets/[assetId]/compare/[subject]`\n  - `/findings`, `/findings/[id]`\n  - `/actions`\n  - `/reports`, `/reports/[id]`\n  - `/data/{ingest,mapping,quality,catalog,readiness,reprocess}`\n  - `/analytics/{releases,baselines}`\n  - `/safety`\n  - `/settings/{admins,gateways,sites}`\n  - `/login`\n- **Route Handler**:\n  - `POST /api/ingest/v1`: HMAC 인증, Proxy matcher 제외\n  - `GET /api/series`: 줌 재조회, date_bin min/avg/max, 세션 검사\n  - `/api/auth/[...all]`\n  - `/api/cron/{rollup,episodes,daily,reprocess,weekly-report}`: CRON_SECRET 검사, job_lease 사용\n- **Server Action (requireAdmin + zod)**:\n  - 바인딩 생성·종료, 재처리 요청, 기준선 봉인, finding 전이, 조치·수기측정 입력, 릴리스 활성화, 리포트 발행, 안전 알림 ack\n  - 모든 액션은 `audit_log`를 남깁니다.\n\n크론 스케줄(UTC, Vercel Pro 전제):\n\n| 경로 | 스케줄 |\n|---|---|\n| rollup | `*/5 * * * *` |\n| episodes | `7 * * * *` |\n| reprocess | `*/10 * * * *` |\n| daily | `17 17 * * *` (KST 02:17) |\n| weekly-report | `37 18 * * 0` (KST 월 03:37) |\n\n## 12. 스택 결정 (리서치 충돌 정리)\n- **마이그레이션: node-pg-migrate 9(SQL 파일) 채택.** 이유는 세 가지입니다. Windows에서 pg_dump 의존이 없고, advisory lock이 있고, Node devDependency 하나로 끝납니다. dbmate는 대안으로 둡니다.\n- **쿼리: Kysely 0.29 + kysely-codegen.** 인증은 Better Auth 1.7(auth_* 테이블, SQL은 마이그레이션에 복사).\n- **런타임·UI**: Next 16.3.5 / React 19.3. 차트는 ECharts 6.1(얇은 래퍼 직접 작성), 지도는 react-kakao-maps-sdk, 아이콘은 lucide-react, 검증은 zod 4.6, 테스트는 Vitest 5 + Playwright.\n- **RDS**: 로컬 PG 메이저를 RDS와 일치시키고, btree_gist 허용 여부를 사전 확인합니다. TLS는 RDS CA로 검증하고, `attachDatabasePool`과 `regions: icn1`을 설정합니다.\n- **기존 코드 폐기**: `app/page.tsx`, `components/layout/*`, `components/Maps.tsx`, `/api/solar/cleanup`, `/api/solar/weather-history`, `POST /api/solar`, 가짜 통계 테이블.\n- **기존 코드 재사용·이관**:\n  - `solar_sites` → `om.site`/`om.asset`으로 이관\n  - `solar_weather_history` → 내부 게이트웨이 `GW-INTERNAL-OWM` 봉투로 bronze를 거쳐 1회 이관\n  - OpenWeather 매핑은 크론 수집기로 이동하되, 실패 시 가짜 값을 반환하는 부분은 삭제\n\n## 13. 열린 질문\n1. 운영 RDS의 PG 메이저 버전, 퍼블릭 엔드포인트 여부, 스토리지 예산(원시 13개월 가능 여부)\n2. 셀 단위 데이터를 게이트웨이에서 축약하는 수준(벤더 BMS 제공 범위)\n3. 출력제어 지령 로그 확보 가능성(없으면 동시 평탄 추정만 가능)\n4. 안전 알림 채널(웹훅 대상: 카카오워크/Slack/SMS 게이트웨이)\n5. 원시 아카이브(S3) 도입 시점과 IAM\n6. 외부 LLM으로 사이트 데이터를 전송할 수 있는지(다음 단계)\n"
+}

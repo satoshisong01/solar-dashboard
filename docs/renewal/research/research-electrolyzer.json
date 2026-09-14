@@ -1,0 +1,1631 @@
+{
+ "domain": "수전해(전해조) 수소 생산 설비 O&M — PEM/알칼라인(AWE), 태양광 연계 변동 운전",
+ "assetHierarchy": [
+  {
+   "assetType": "h2_production_plant",
+   "name_ko": "수소 생산 설비(사이트 단위)",
+   "parentType": "site",
+   "subComponents": [
+    "electrolyzer_system",
+    "water_treatment_unit",
+    "cooling_system",
+    "safety_system"
+   ],
+   "notes": "태양광 사이트 하위. 압축기/저장탱크/연료전지는 별도 도메인이며 경계는 정제기 출구 수소 유량계로 둔다."
+  },
+  {
+   "assetType": "electrolyzer_system",
+   "name_ko": "전해조 시스템(패키지/컨테이너)",
+   "parentType": "h2_production_plant",
+   "subComponents": [
+    "electrolyzer_stack",
+    "rectifier",
+    "water_loop_pem",
+    "lye_loop_awe",
+    "gas_liquid_separator",
+    "h2_purifier",
+    "gas_analyzer"
+   ],
+   "notes": "technology 속성(pem|awe|aem)을 자산 속성으로 둔다. 스키마 분기 대신 메트릭 적용 여부로 구분(PEM은 water_loop_pem, AWE는 lye_loop_awe)."
+  },
+  {
+   "assetType": "electrolyzer_stack",
+   "name_ko": "전해 스택",
+   "parentType": "electrolyzer_system",
+   "subComponents": [
+    "electrolyzer_cell",
+    "MEA/격막(diaphragm)",
+    "PTL(다공성 수송층)",
+    "분리판(bipolar plate)",
+    "엔드플레이트/체결부"
+   ],
+   "notes": "속성: 셀 수 N, 활성면적 A(cm2), 정격전류밀도, 설치일, 교체 이력. 스택 교체 시 기준선(baseline)을 리셋해야 함."
+  },
+  {
+   "assetType": "electrolyzer_cell",
+   "name_ko": "셀(또는 CVM 셀그룹)",
+   "parentType": "electrolyzer_stack",
+   "subComponents": [],
+   "notes": "CVM이 셀 단위가 아니라 2~10셀 그룹 단위인 경우가 많다. cell_index 차원을 가진 동일 메트릭으로 저장(셀마다 메트릭 등록 금지)."
+  },
+  {
+   "assetType": "rectifier",
+   "name_ko": "정류기(변압기+AC/DC 변환)",
+   "parentType": "electrolyzer_system",
+   "subComponents": [
+    "변압기",
+    "사이리스터(6/12/24펄스) 또는 IGBT/다이오드+초퍼",
+    "DC 필터",
+    "전류센서",
+    "냉각계통"
+   ],
+   "notes": "정류기 효율은 저부하에서 매우 낮고 15~20% 부하 이상에서 높게 유지(IRENA)."
+  },
+  {
+   "assetType": "water_treatment_unit",
+   "name_ko": "순수 제조기(RO/EDI/혼상 이온교환)",
+   "parentType": "h2_production_plant",
+   "subComponents": [
+    "전처리 필터/연수기",
+    "RO",
+    "EDI",
+    "혼상 폴리셔(이온교환수지)",
+    "순수 탱크",
+    "전도도/TOC 센서"
+   ],
+   "notes": "PEM은 ASTM Type II(<1 µS/cm) 최소, Type I 권장."
+  },
+  {
+   "assetType": "water_loop_pem",
+   "name_ko": "PEM 순환수(애노드) 루프",
+   "parentType": "electrolyzer_system",
+   "subComponents": [
+    "순환펌프",
+    "루프 이온교환기",
+    "필터",
+    "열교환기"
+   ],
+   "notes": "루프 내 금속 용출로 전도도가 상승하므로 루프 이온교환기 전/후 전도도를 모두 수집."
+  },
+  {
+   "assetType": "lye_loop_awe",
+   "name_ko": "AWE 전해액(KOH) 순환 루프",
+   "parentType": "electrolyzer_system",
+   "subComponents": [
+    "전해액 펌프",
+    "전해액 필터",
+    "전해액 냉각기",
+    "KOH 탱크",
+    "H2/O2측 순환(분리/혼합)"
+   ],
+   "notes": "KOH 약 25~30 wt%. 전해액 혼합(mixing)이 HTO의 주 원인."
+  },
+  {
+   "assetType": "gas_liquid_separator",
+   "name_ko": "기액분리기(수소측/산소측)",
+   "parentType": "electrolyzer_system",
+   "subComponents": [
+    "레벨계",
+    "데미스터",
+    "압력제어밸브",
+    "드레인"
+   ],
+   "notes": "AWE는 두 분리기 레벨 차가 전해액 교차 및 순도에 영향."
+  },
+  {
+   "assetType": "h2_purifier",
+   "name_ko": "수소 정제기(Deoxo+건조기)",
+   "parentType": "electrolyzer_system",
+   "subComponents": [
+    "Deoxo(Pd 촉매 탈산소 반응기)",
+    "응축기/드레인",
+    "TSA/PSA 흡착탑(2탑)",
+    "재생 히터",
+    "이슬점계"
+   ],
+   "notes": "KGS AH271: 산소제거설비·수분제거설비 설치 및 온도·압력 모니터링 의무."
+  },
+  {
+   "assetType": "cooling_system",
+   "name_ko": "냉각계통",
+   "parentType": "h2_production_plant",
+   "subComponents": [
+    "판형 열교환기",
+    "칠러/드라이쿨러",
+    "냉각수 펌프",
+    "3방향 제어밸브"
+   ],
+   "notes": "스택 온도 제어와 정류기 냉각을 공유하는 경우가 있음."
+  },
+  {
+   "assetType": "gas_analyzer",
+   "name_ko": "가스 분석기",
+   "parentType": "electrolyzer_system",
+   "subComponents": [
+    "산소 중 수소(HTO) 분석기",
+    "수소 중 산소(OTH) 분석기",
+    "정제 후 미량 O2 분석기",
+    "이슬점계",
+    "샘플라인/교정가스"
+   ],
+   "notes": "안전 인터록 입력이므로 분석기 건전성 자체를 감시 대상으로 등록."
+  },
+  {
+   "assetType": "safety_system",
+   "name_ko": "안전계통",
+   "parentType": "h2_production_plant",
+   "subComponents": [
+    "외함 수소검지기",
+    "환기팬",
+    "질소 퍼지",
+    "비상정지(E-stop)",
+    "자동차단밸브",
+    "과압안전장치"
+   ],
+   "notes": "KGS AH271 3.3.1 비상정지 조건 적용. 분석 파이프라인과 분리."
+  }
+ ],
+ "telemetry": [
+  {
+   "assetType": "electrolyzer_system",
+   "metricKey": "operating_state",
+   "name_ko": "운전 상태(정지/퍼지/냉간대기/온간대기/램프/생산/트립)",
+   "unit": "enum",
+   "priority": "must",
+   "typicalSampling": "상태변화 시 + 1 s",
+   "commonSource": "전해조 PLC(OPC UA 또는 Modbus TCP)"
+  },
+  {
+   "assetType": "electrolyzer_system",
+   "metricKey": "power_setpoint",
+   "name_ko": "전력/전류 설정값(EMS→PLC)",
+   "unit": "kW",
+   "priority": "must",
+   "typicalSampling": "1 s",
+   "commonSource": "사이트 EMS/PLC"
+  },
+  {
+   "assetType": "electrolyzer_system",
+   "metricKey": "ac_power_total",
+   "name_ko": "시스템 총 수전전력(BoP 포함)",
+   "unit": "kW",
+   "priority": "must",
+   "typicalSampling": "1 s(저장 1분 평균)",
+   "commonSource": "전력량계 Modbus"
+  },
+  {
+   "assetType": "electrolyzer_system",
+   "metricKey": "ac_energy_total",
+   "name_ko": "누적 수전전력량",
+   "unit": "kWh",
+   "priority": "must",
+   "typicalSampling": "1 min",
+   "commonSource": "전력량계 Modbus"
+  },
+  {
+   "assetType": "electrolyzer_system",
+   "metricKey": "pv_direct_power",
+   "name_ko": "태양광 직접 공급 전력",
+   "unit": "kW",
+   "priority": "should",
+   "typicalSampling": "1 min",
+   "commonSource": "EMS(청정수소 인증용 전력원 추적)"
+  },
+  {
+   "assetType": "electrolyzer_system",
+   "metricKey": "grid_import_power",
+   "name_ko": "계통 수전 전력(전해조분)",
+   "unit": "kW",
+   "priority": "should",
+   "typicalSampling": "1 min",
+   "commonSource": "EMS/계량기"
+  },
+  {
+   "assetType": "electrolyzer_system",
+   "metricKey": "h2_mass_flow",
+   "name_ko": "수소 생산 유량(정제기 후)",
+   "unit": "kg/h",
+   "typicalRange": "1 MW급 약 18~20 kg/h(≈200 Nm3/h) 정격",
+   "priority": "must",
+   "typicalSampling": "1 s",
+   "commonSource": "열식/코리올리 유량계 4-20 mA→PLC"
+  },
+  {
+   "assetType": "electrolyzer_system",
+   "metricKey": "h2_mass_flow_pre_dryer",
+   "name_ko": "수소 유량(건조기 전)",
+   "unit": "kg/h",
+   "priority": "should",
+   "typicalSampling": "1 s",
+   "commonSource": "PLC(있을 경우) — 건조기 재생 손실 분리용"
+  },
+  {
+   "assetType": "electrolyzer_system",
+   "metricKey": "h2_total_produced",
+   "name_ko": "누적 수소 생산량",
+   "unit": "kg",
+   "priority": "must",
+   "typicalSampling": "1 min",
+   "commonSource": "유량계 적산/PLC"
+  },
+  {
+   "assetType": "electrolyzer_system",
+   "metricKey": "h2_outlet_pressure",
+   "name_ko": "수소 출구 압력",
+   "unit": "bar(g)",
+   "typicalRange": "AWE 1~30, PEM 1~30(고압형 최대 ~70)",
+   "priority": "must",
+   "typicalSampling": "1 s",
+   "commonSource": "압력전송기→PLC"
+  },
+  {
+   "assetType": "electrolyzer_system",
+   "metricKey": "trip_alarm_code",
+   "name_ko": "트립/알람 코드",
+   "unit": "enum",
+   "priority": "must",
+   "typicalSampling": "이벤트",
+   "commonSource": "PLC 알람 로그"
+  },
+  {
+   "assetType": "electrolyzer_system",
+   "metricKey": "start_count",
+   "name_ko": "누적 기동 횟수",
+   "unit": "count",
+   "priority": "should",
+   "typicalSampling": "변화 시",
+   "commonSource": "PLC 카운터(없으면 이벤트에서 파생)"
+  },
+  {
+   "assetType": "electrolyzer_system",
+   "metricKey": "ambient_temperature",
+   "name_ko": "외기 온도",
+   "unit": "°C",
+   "priority": "should",
+   "typicalSampling": "1 min",
+   "commonSource": "사이트 기상센서/OpenWeather"
+  },
+  {
+   "assetType": "electrolyzer_stack",
+   "metricKey": "stack_current",
+   "name_ko": "스택 전류",
+   "unit": "A",
+   "priority": "must",
+   "typicalSampling": "1 s",
+   "commonSource": "정류기 DC 전류센서(Modbus/Profinet)→PLC"
+  },
+  {
+   "assetType": "electrolyzer_stack",
+   "metricKey": "stack_voltage",
+   "name_ko": "스택 전압",
+   "unit": "V",
+   "priority": "must",
+   "typicalSampling": "1 s",
+   "commonSource": "정류기/PLC"
+  },
+  {
+   "assetType": "electrolyzer_stack",
+   "metricKey": "stack_temp_outlet",
+   "name_ko": "스택 출구 온도(물/전해액)",
+   "unit": "°C",
+   "typicalRange": "PEM 50~80, AWE 70~90",
+   "priority": "must",
+   "typicalSampling": "1 s",
+   "commonSource": "RTD→PLC"
+  },
+  {
+   "assetType": "electrolyzer_stack",
+   "metricKey": "stack_temp_inlet",
+   "name_ko": "스택 입구 온도",
+   "unit": "°C",
+   "priority": "must",
+   "typicalSampling": "1 s",
+   "commonSource": "RTD→PLC"
+  },
+  {
+   "assetType": "electrolyzer_stack",
+   "metricKey": "cathode_pressure",
+   "name_ko": "수소측(캐소드) 압력",
+   "unit": "bar(g)",
+   "priority": "must",
+   "typicalSampling": "1 s",
+   "commonSource": "PLC"
+  },
+  {
+   "assetType": "electrolyzer_stack",
+   "metricKey": "anode_pressure",
+   "name_ko": "산소측(애노드) 압력",
+   "unit": "bar(g)",
+   "priority": "should",
+   "typicalSampling": "1 s",
+   "commonSource": "PLC"
+  },
+  {
+   "assetType": "electrolyzer_stack",
+   "metricKey": "differential_pressure",
+   "name_ko": "양극간 차압",
+   "unit": "bar",
+   "typicalRange": "균압형 ≈0, 차압형 PEM 수~30",
+   "priority": "must",
+   "typicalSampling": "1 s",
+   "commonSource": "차압전송기→PLC"
+  },
+  {
+   "assetType": "electrolyzer_stack",
+   "metricKey": "stack_run_hours",
+   "name_ko": "스택 누적 운전시간(교체 시 리셋)",
+   "unit": "h",
+   "priority": "must",
+   "typicalSampling": "1 min",
+   "commonSource": "PLC 또는 파생(전류>최소값 시간 적산)"
+  },
+  {
+   "assetType": "electrolyzer_stack",
+   "metricKey": "insulation_resistance",
+   "name_ko": "절연저항/누설전류",
+   "unit": "kΩ",
+   "priority": "nice",
+   "typicalSampling": "1 min",
+   "commonSource": "절연감시장치"
+  },
+  {
+   "assetType": "electrolyzer_cell",
+   "metricKey": "cell_voltage",
+   "name_ko": "셀(그룹) 전압",
+   "unit": "V",
+   "typicalRange": "PEM 1.4~2.5, AWE 1.4~3.0 (셀당)",
+   "priority": "must",
+   "typicalSampling": "1 s 수집, 저장은 1분 mean/min/max",
+   "commonSource": "CVM(CAN/Modbus), mV 분해능"
+  },
+  {
+   "assetType": "rectifier",
+   "metricKey": "rectifier_ac_power",
+   "name_ko": "정류기 AC 입력전력",
+   "unit": "kW",
+   "priority": "must",
+   "typicalSampling": "1 s",
+   "commonSource": "정류기 제어기 Modbus/Profinet"
+  },
+  {
+   "assetType": "rectifier",
+   "metricKey": "rectifier_dc_power",
+   "name_ko": "정류기 DC 출력전력",
+   "unit": "kW",
+   "priority": "should",
+   "typicalSampling": "1 s",
+   "commonSource": "정류기(없으면 V×I 파생)"
+  },
+  {
+   "assetType": "rectifier",
+   "metricKey": "power_factor",
+   "name_ko": "역률",
+   "unit": "ratio",
+   "typicalRange": "0.85~0.99(추정, 토폴로지·부하 의존)",
+   "priority": "should",
+   "typicalSampling": "1 min",
+   "commonSource": "전력분석기"
+  },
+  {
+   "assetType": "rectifier",
+   "metricKey": "current_thd",
+   "name_ko": "입력전류 THD",
+   "unit": "%",
+   "priority": "should",
+   "typicalSampling": "1 min",
+   "commonSource": "전력분석기"
+  },
+  {
+   "assetType": "rectifier",
+   "metricKey": "dc_ripple",
+   "name_ko": "DC 전류 리플",
+   "unit": "%",
+   "typicalRange": "제조사 사양(수 % 이하, 추정)",
+   "priority": "nice",
+   "typicalSampling": "1 min",
+   "commonSource": "정류기 진단값"
+  },
+  {
+   "assetType": "rectifier",
+   "metricKey": "rectifier_heatsink_temp",
+   "name_ko": "정류소자 방열판/냉각수 온도",
+   "unit": "°C",
+   "priority": "should",
+   "typicalSampling": "10 s",
+   "commonSource": "정류기"
+  },
+  {
+   "assetType": "rectifier",
+   "metricKey": "transformer_temp",
+   "name_ko": "변압기 권선/유온",
+   "unit": "°C",
+   "priority": "should",
+   "typicalSampling": "1 min",
+   "commonSource": "변압기 온도계"
+  },
+  {
+   "assetType": "water_treatment_unit",
+   "metricKey": "di_product_conductivity",
+   "name_ko": "순수 제조기 출구 전도도",
+   "unit": "µS/cm",
+   "typicalRange": "PEM: ≤1(ASTM Type II), 목표 <0.1(>10 MΩ·cm)",
+   "priority": "must",
+   "typicalSampling": "10 s",
+   "commonSource": "전도도계 4-20 mA(온도보상 25 °C)"
+  },
+  {
+   "assetType": "water_treatment_unit",
+   "metricKey": "ro_permeate_conductivity",
+   "name_ko": "RO 투과수 전도도",
+   "unit": "µS/cm",
+   "typicalRange": "1~20(추정)",
+   "priority": "should",
+   "typicalSampling": "1 min",
+   "commonSource": "순수기 PLC"
+  },
+  {
+   "assetType": "water_treatment_unit",
+   "metricKey": "makeup_water_volume",
+   "name_ko": "보충수 누적 유량",
+   "unit": "m3",
+   "priority": "should",
+   "typicalSampling": "1 min",
+   "commonSource": "유량계 적산"
+  },
+  {
+   "assetType": "water_treatment_unit",
+   "metricKey": "toc",
+   "name_ko": "총유기탄소(TOC)",
+   "unit": "ppb",
+   "typicalRange": "<50",
+   "priority": "nice",
+   "typicalSampling": "15 min~주간 샘플",
+   "commonSource": "온라인 TOC 분석기/실험실"
+  },
+  {
+   "assetType": "water_loop_pem",
+   "metricKey": "loop_conductivity",
+   "name_ko": "순환수 전도도(이온교환기 전)",
+   "unit": "µS/cm",
+   "typicalRange": "<0.1~1",
+   "priority": "must",
+   "typicalSampling": "10 s",
+   "commonSource": "PLC"
+  },
+  {
+   "assetType": "water_loop_pem",
+   "metricKey": "ix_outlet_conductivity",
+   "name_ko": "루프 이온교환기 출구 전도도",
+   "unit": "µS/cm",
+   "typicalRange": "<0.1",
+   "priority": "must",
+   "typicalSampling": "10 s",
+   "commonSource": "PLC"
+  },
+  {
+   "assetType": "water_loop_pem",
+   "metricKey": "anode_water_flow",
+   "name_ko": "애노드 순환수 유량",
+   "unit": "m3/h",
+   "priority": "must",
+   "typicalSampling": "1 s",
+   "commonSource": "PLC"
+  },
+  {
+   "assetType": "water_loop_pem",
+   "metricKey": "water_pump_power",
+   "name_ko": "순환펌프 전력/속도",
+   "unit": "kW",
+   "priority": "should",
+   "typicalSampling": "10 s",
+   "commonSource": "VFD Modbus"
+  },
+  {
+   "assetType": "water_loop_pem",
+   "metricKey": "fluoride_concentration",
+   "name_ko": "배출수 불소이온 농도",
+   "unit": "µg/L",
+   "priority": "nice",
+   "typicalSampling": "주 1회 샘플(또는 온라인 IC)",
+   "commonSource": "실험실 분석 수기 입력"
+  },
+  {
+   "assetType": "lye_loop_awe",
+   "metricKey": "lye_flow",
+   "name_ko": "전해액 순환 유량",
+   "unit": "m3/h",
+   "priority": "must",
+   "typicalSampling": "1 s",
+   "commonSource": "PLC"
+  },
+  {
+   "assetType": "lye_loop_awe",
+   "metricKey": "koh_concentration",
+   "name_ko": "KOH 농도",
+   "unit": "wt%",
+   "typicalRange": "25~30",
+   "priority": "should",
+   "typicalSampling": "1 min 또는 주기 샘플",
+   "commonSource": "밀도/전도도 기반 농도계, 실험실"
+  },
+  {
+   "assetType": "lye_loop_awe",
+   "metricKey": "lye_filter_dp",
+   "name_ko": "전해액 필터 차압",
+   "unit": "kPa",
+   "priority": "nice",
+   "typicalSampling": "1 min",
+   "commonSource": "PLC"
+  },
+  {
+   "assetType": "gas_liquid_separator",
+   "metricKey": "h2_separator_level",
+   "name_ko": "수소측 분리기 레벨",
+   "unit": "%",
+   "priority": "must",
+   "typicalSampling": "1 s",
+   "commonSource": "레벨전송기→PLC"
+  },
+  {
+   "assetType": "gas_liquid_separator",
+   "metricKey": "o2_separator_level",
+   "name_ko": "산소측 분리기 레벨",
+   "unit": "%",
+   "priority": "must",
+   "typicalSampling": "1 s",
+   "commonSource": "레벨전송기→PLC"
+  },
+  {
+   "assetType": "gas_analyzer",
+   "metricKey": "h2_in_o2",
+   "name_ko": "산소 중 수소 농도(HTO)",
+   "unit": "%vol",
+   "typicalRange": "정상 <1(부분부하에서 상승), 비상정지 >2",
+   "priority": "must",
+   "typicalSampling": "1~5 s",
+   "commonSource": "열전도식 분석기 4-20 mA→PLC"
+  },
+  {
+   "assetType": "gas_analyzer",
+   "metricKey": "o2_in_h2",
+   "name_ko": "수소 중 산소 농도(정제 전, OTH)",
+   "unit": "%vol",
+   "typicalRange": "정상 수백 ppm~0.5 %(추정), 비상정지 >3",
+   "priority": "must",
+   "typicalSampling": "1~5 s",
+   "commonSource": "분석기→PLC"
+  },
+  {
+   "assetType": "gas_analyzer",
+   "metricKey": "o2_in_h2_product",
+   "name_ko": "정제 후 수소 중 미량 산소",
+   "unit": "µmol/mol",
+   "typicalRange": "≤5(ISO 14687 Grade D)",
+   "priority": "should",
+   "typicalSampling": "10 s",
+   "commonSource": "전기화학/미량산소 분석기"
+  },
+  {
+   "assetType": "gas_analyzer",
+   "metricKey": "h2_dew_point",
+   "name_ko": "제품 수소 이슬점",
+   "unit": "°C",
+   "typicalRange": "≤ -65 ~ -70(H2O ≤5 µmol/mol)",
+   "priority": "should",
+   "typicalSampling": "10 s",
+   "commonSource": "세라믹 금속산화물 이슬점계"
+  },
+  {
+   "assetType": "gas_analyzer",
+   "metricKey": "analyzer_health",
+   "name_ko": "분석기 상태/최종 교정일",
+   "unit": "enum",
+   "priority": "should",
+   "typicalSampling": "변화 시",
+   "commonSource": "PLC/CMMS"
+  },
+  {
+   "assetType": "h2_purifier",
+   "metricKey": "deoxo_inlet_temp",
+   "name_ko": "Deoxo 입구 온도",
+   "unit": "°C",
+   "priority": "should",
+   "typicalSampling": "10 s",
+   "commonSource": "PLC"
+  },
+  {
+   "assetType": "h2_purifier",
+   "metricKey": "deoxo_outlet_temp",
+   "name_ko": "Deoxo 출구 온도",
+   "unit": "°C",
+   "priority": "should",
+   "typicalSampling": "10 s",
+   "commonSource": "PLC"
+  },
+  {
+   "assetType": "h2_purifier",
+   "metricKey": "dryer_active_tower",
+   "name_ko": "건조기 흡착/재생 탑 상태",
+   "unit": "enum",
+   "priority": "should",
+   "typicalSampling": "변화 시",
+   "commonSource": "정제기 PLC"
+  },
+  {
+   "assetType": "h2_purifier",
+   "metricKey": "dryer_regen_temp",
+   "name_ko": "건조기 재생 온도",
+   "unit": "°C",
+   "typicalRange": "150~250(추정, 흡착제 의존)",
+   "priority": "should",
+   "typicalSampling": "10 s",
+   "commonSource": "정제기 PLC"
+  },
+  {
+   "assetType": "h2_purifier",
+   "metricKey": "dryer_heater_power",
+   "name_ko": "재생 히터 전력",
+   "unit": "kW",
+   "priority": "nice",
+   "typicalSampling": "10 s",
+   "commonSource": "정제기 PLC"
+  },
+  {
+   "assetType": "cooling_system",
+   "metricKey": "coolant_supply_temp",
+   "name_ko": "냉각수 공급 온도",
+   "unit": "°C",
+   "priority": "must",
+   "typicalSampling": "10 s",
+   "commonSource": "PLC"
+  },
+  {
+   "assetType": "cooling_system",
+   "metricKey": "coolant_return_temp",
+   "name_ko": "냉각수 환수 온도",
+   "unit": "°C",
+   "priority": "should",
+   "typicalSampling": "10 s",
+   "commonSource": "PLC"
+  },
+  {
+   "assetType": "cooling_system",
+   "metricKey": "coolant_flow",
+   "name_ko": "냉각수 유량",
+   "unit": "m3/h",
+   "priority": "should",
+   "typicalSampling": "10 s",
+   "commonSource": "PLC"
+  },
+  {
+   "assetType": "cooling_system",
+   "metricKey": "hx_valve_position",
+   "name_ko": "냉각 제어밸브 개도",
+   "unit": "%",
+   "priority": "should",
+   "typicalSampling": "10 s",
+   "commonSource": "PLC"
+  },
+  {
+   "assetType": "safety_system",
+   "metricKey": "enclosure_h2",
+   "name_ko": "외함 내 수소 농도",
+   "unit": "%vol",
+   "typicalRange": "정상 ≈0, 비상정지 >1",
+   "priority": "must",
+   "typicalSampling": "1 s",
+   "commonSource": "방폭 수소검지기→안전PLC"
+  },
+  {
+   "assetType": "safety_system",
+   "metricKey": "estop_status",
+   "name_ko": "비상정지/로크아웃 상태",
+   "unit": "enum",
+   "priority": "must",
+   "typicalSampling": "변화 시",
+   "commonSource": "안전PLC"
+  },
+  {
+   "assetType": "safety_system",
+   "metricKey": "ventilation_status",
+   "name_ko": "환기장치 상태/풍량",
+   "unit": "enum",
+   "priority": "should",
+   "typicalSampling": "변화 시",
+   "commonSource": "PLC"
+  },
+  {
+   "assetType": "safety_system",
+   "metricKey": "n2_purge_pressure",
+   "name_ko": "질소 퍼지 공급 압력",
+   "unit": "bar(g)",
+   "priority": "should",
+   "typicalSampling": "1 min",
+   "commonSource": "PLC"
+  },
+  {
+   "assetType": "safety_system",
+   "metricKey": "shutoff_valve_cycle_count",
+   "name_ko": "자동차단밸브 개폐 횟수",
+   "unit": "count",
+   "priority": "should",
+   "typicalSampling": "변화 시",
+   "commonSource": "PLC(KGS AH271 부록 C3 기록 의무)"
+  }
+ ],
+ "derivedIndicators": [
+  {
+   "key": "sec_system",
+   "name_ko": "시스템 비에너지소비량",
+   "formula": "SEC_sys = Σ(ac_power_total·Δt) / Σ(h2_mass_flow·Δt) [kWh/kg]; KGS 표기: kWh/Nm3 = SEC_sys×0.08988; HHV효율 = 39.4/SEC_sys",
+   "inputs": [
+    "ac_power_total",
+    "h2_mass_flow"
+   ],
+   "normalization": "steady_state_window만 사용(기동 후 60분·램프 제외), 부하율 10% bin × 스택온도 ±2.5 K bin × 압력 bin별로 과거 동일 bin 중앙값과 비교. 일 단위 가중평균. 외기온도 bin 추가(BoP 냉각부하).",
+   "reveals": "시스템 전체 효율 저하. SEC_stack이 그대로인데 SEC_sys만 오르면 BoP(펌프/칠러/히터/건조기) 문제."
+  },
+  {
+   "key": "sec_stack",
+   "name_ko": "스택 비에너지소비량",
+   "formula": "SEC_stack = Σ(U_stack·I·Δt)/Σ(ṁ·Δt); 전압 기반 등가식 SEC_stack ≈ 26.59·U_cell_avg/η_F [kWh/kg, U_cell V] (1.9 V→약 50.5 kWh/kg)",
+   "inputs": [
+    "stack_voltage",
+    "stack_current",
+    "h2_mass_flow"
+   ],
+   "normalization": "sec_system과 동일 bin. 유량계 불확도(±1% 수준, 추정)를 줄이려 최소 수 시간 적산.",
+   "reveals": "스택 전압 열화와 패러데이 손실의 합산 영향."
+  },
+  {
+   "key": "faradaic_efficiency",
+   "name_ko": "패러데이 효율(수소 수율)",
+   "formula": "η_F = ṁ_meas / ṁ_theo, ṁ_theo[kg/h] = N_cell × I[A] × 3.761e-5 (= N·I·M_H2·3600/(2F)); Nm3/h = N·I·4.18e-4",
+   "inputs": [
+    "h2_mass_flow_pre_dryer",
+    "h2_mass_flow",
+    "stack_current",
+    "cathode_pressure",
+    "stack_temp_outlet"
+   ],
+   "normalization": "전류밀도 bin·수소압력 bin·온도 bin이 같은 steady_state_window끼리만 비교(저전류·고압일수록 crossover로 η_F 하락). 건조기 후 유량을 쓰면 재생 퍼지 손실이 섞이므로 건조기 전 유량 또는 재생 사이클 평균으로 보정.",
+   "reveals": "가스 crossover 증가(멤브레인 박막화/핀홀, 격막 열화), 외부 누출, 유량계 또는 전류센서 드리프트."
+  },
+  {
+   "key": "v_ref_cell",
+   "name_ko": "기준조건 셀 평균전압",
+   "formula": "V_ref = median(stack_voltage/N) over samples with |j−j_ref|≤2%·j_ref, |T−T_ref|≤2 K, |p−p_ref|≤1 bar; 온도 벗어난 샘플은 V + k_T·(T−T_ref)로 보정(k_T는 기준선 회귀로 추정, 문헌 약 -2.5 mV/K@100~120 °C, 60~80 °C 영역 -2~-4 mV/K 추정)",
+   "inputs": [
+    "stack_voltage",
+    "stack_current",
+    "stack_temp_outlet",
+    "cathode_pressure"
+   ],
+   "normalization": "JRC 기준조건 예: AWE 0.4 A/cm2·80 °C, PEM 2.0 A/cm2·80 °C, 수소 100 kPa(g). 현장에서는 운전 빈도가 높은 j_ref 2~3개(예: 정격 50%, 80%, 100%)를 스택별로 정의.",
+   "reveals": "스택 성능 열화의 기본 지표(사용자 예시의 '같은 V/I 조건 비교'에 해당)."
+  },
+  {
+   "key": "voltage_degradation_rate",
+   "name_ko": "셀전압 열화율",
+   "formula": "rate[µV/h] = Theil-Sen slope(V_ref vs stack_run_hours)×1e6; JRC 식: (U(t_k)−U(t_0))/(t_k−t_0); 상대값 %/1000h = (U_k/U_0−1)×1000/t_k×100",
+   "inputs": [
+    "v_ref_cell",
+    "stack_run_hours"
+   ],
+   "normalization": "스택 초기 1000 h(break-in) 제외, 윈도우 ≥500~1000 h. 측정분해능 1 mV에서 1 µV/h를 보려면 1000 h 필요(JRC)→단일 샘플 대신 bin 중앙값 다수 사용. 스택 교체/세정 이벤트에서 구간 분리.",
+   "reveals": "벤치마크 비교: DOE PEM 4.8(2022)→2.3 µV/h(2026 목표), AWE 3.2→2.3 µV/h; SRIA PEMEL 0.19→0.12 %/1000h, AEL 0.12→0.10 %/1000h. 목표치 2~3배 초과 시 코칭 대상."
+  },
+  {
+   "key": "polarization_fit_params",
+   "name_ko": "현장 분극곡선 파라미터(동역학/저항 분리)",
+   "formula": "U_cell = a + b·ln(j) + R·j + k_T·(T−T_ref) 최소자승(4×4 정규방정식) — 월별 재적합; ΔV_kin=Δa+Δb·ln(j), ΔV_ohm=ΔR·j",
+   "inputs": [
+    "stack_voltage",
+    "stack_current",
+    "stack_temp_outlet"
+   ],
+   "normalization": "기준선: break-in 후 첫 500 h 데이터. j 범위가 정격 20~100%를 덮는 기간만 적합(태양광 저녁 램프다운 활용). R은 mΩ·cm2로 면적 환산.",
+   "reveals": "저전류에서 전압 상승이 크면 촉매(IrOx) 활성 저하, 전류에 비례해 커지면 PTL 부동태화/접촉저항/멤브레인 오염."
+  },
+  {
+   "key": "voltage_residual_cusum",
+   "name_ko": "모델 잔차 CUSUM",
+   "formula": "r_t = U_meas − U_model(j,T); z=(r−μ_base)/σ_base; S⁺_t=max(0,S⁺_{t−1}+z−κ), κ=0.5, 알람 h=5(1분 steady 샘플 기준, 조정 필요)",
+   "inputs": [
+    "stack_voltage",
+    "polarization_fit_params"
+   ],
+   "normalization": "기준선 모델로 부하·온도 영향 제거 후 잔차만 감시. 일간 EWMA(λ=0.1)로 추세 표시.",
+   "reveals": "급성 성능 저하(오염 유입, 체결 이완)를 수일 내 감지."
+  },
+  {
+   "key": "step_resistance",
+   "name_ko": "전류 계단 응답 저항(HFR 근사)",
+   "formula": "R_step = ΔU/ΔI over 1 s 이내 급변(ΔI ≥10% 정격) 구간; 면적환산 ×A/N [mΩ·cm2]",
+   "inputs": [
+    "stack_voltage",
+    "stack_current",
+    "stack_temp_outlet"
+   ],
+   "normalization": "같은 온도 bin·같은 시작 전류 bin·같은 방향(상승/하강)만 비교. 샘플링이 1 s면 동역학 성분이 섞이므로 절대값보다 추세만 사용(추정 기법).",
+   "reveals": "옴 저항 증가(Ti PTL 부동태화, 멤브레인 양이온 오염, 접촉 불량). 리플 연구에서 10 kHz 삼각파 리플 시 HFR 증가율이 DC 대비 약 2배."
+  },
+  {
+   "key": "cell_voltage_spread",
+   "name_ko": "셀전압 편차",
+   "formula": "SD_cell, MAE_cell = mean|U_i − mean(U)|, range = max−min; 셀별 robust z_i = (U_i − median)/(1.4826·MAD); 편차 변화율(JRC): (SD(t_k)−SD(t_0))/(t_k−t_0) [µV/h]",
+   "inputs": [
+    "cell_voltage",
+    "stack_current",
+    "stack_temp_outlet"
+   ],
+   "normalization": "같은 전류밀도 bin·온도 bin의 steady_state_window에서만 산출. 셀별 V_ref 기울기를 스택 중앙 기울기와 비교.",
+   "reveals": "특정 셀 열화, 유로 막힘/핫스팟, 체결 불균일, 셀 단락(비정상 저전압)."
+  },
+  {
+   "key": "hto_at_load",
+   "name_ko": "동일 부하 산소중수소 농도",
+   "formula": "HTO_bin = median(h2_in_o2) in steady_state_window per (부하 bin, 압력 bin, 온도 bin, 전해액 순환모드)",
+   "inputs": [
+    "h2_in_o2",
+    "stack_current",
+    "anode_pressure",
+    "stack_temp_outlet",
+    "lye_flow"
+   ],
+   "normalization": "AWE는 HTO 응답 지연 약 3분·정착 수 분~수 시간→부하 변경 후 최소 60분 경과 샘플만 사용. PEM도 압력 의존 커서 압력 bin 필수.",
+   "reveals": "격막/멤브레인 열화(crossover 증가). 추세 기울기(%p/1000h) 상승은 안전 여유 감소."
+  },
+  {
+   "key": "min_safe_load",
+   "name_ko": "추정 최소 안전부하",
+   "formula": "HTO_ss(L) ≈ c0 + c1/L (L=부하율) 로버스트 적합 → L_min = c1/(HTO_alarm − c0), HTO_alarm은 운영 알람(예: 1%)",
+   "inputs": [
+    "hto_at_load"
+   ],
+   "normalization": "같은 압력·온도 운전 조건 데이터로 분기별 재적합.",
+   "reveals": "L_min 상승 = 격막 열화 신호이자 태양광 저일사 시간대 운전 가능 범위 축소(수소 생산 기회손실)."
+  },
+  {
+   "key": "oth_at_load",
+   "name_ko": "동일 부하 수소중산소 농도",
+   "formula": "OTH_bin = median(o2_in_h2) per 부하·압력·온도 bin",
+   "inputs": [
+    "o2_in_h2",
+    "stack_current",
+    "cathode_pressure"
+   ],
+   "normalization": "hto_at_load와 동일.",
+   "reveals": "산소측→수소측 crossover, 분리기 제어 이상, Deoxo 부하 증가."
+  },
+  {
+   "key": "water_consumption_ratio",
+   "name_ko": "수소 kg당 보충수 사용량",
+   "formula": "W = Δmakeup_water_volume[L] / Δh2_total_produced[kg]; 이론 화학양론 8.94 L/kg 대비 비율",
+   "inputs": [
+    "makeup_water_volume",
+    "h2_total_produced"
+   ],
+   "normalization": "주간 적산, 순수기 역세·드레인 이벤트 분리. 동일 계절(증발/냉각수 영향) 비교.",
+   "reveals": "누수, 과도한 블로다운, 분리기 드레인 밸브 이상, 유량계 오류."
+  },
+  {
+   "key": "polisher_capacity",
+   "name_ko": "이온교환수지 처리용량",
+   "formula": "Cap = 수지 교체 후 전도도가 한계(예: 0.1 µS/cm) 도달까지 누적 처리수량[m3] 또는 누적 수소[kg]; 상승속도 = slope(ix_outlet_conductivity)[µS/cm/day]",
+   "inputs": [
+    "ix_outlet_conductivity",
+    "loop_conductivity",
+    "makeup_water_volume",
+    "h2_total_produced"
+   ],
+   "normalization": "같은 유량·수온 조건, 교체 카트리지 간 비교(과거 N개 중앙값 대비).",
+   "reveals": "원수 수질 악화, RO/EDI 성능 저하, 루프 내 금속 용출(부식) 증가."
+  },
+  {
+   "key": "rectifier_efficiency",
+   "name_ko": "정류기 효율/역률",
+   "formula": "η_rect = P_dc/P_ac (P_dc=U_stack·I 가능); PF_bin = median(power_factor)",
+   "inputs": [
+    "rectifier_ac_power",
+    "stack_voltage",
+    "stack_current",
+    "power_factor"
+   ],
+   "normalization": "부하율 bin(저부하 효율 급락 구간 15~20% 이하는 별도), 방열판 온도 bin.",
+   "reveals": "정류소자/변압기 손실 증가, 냉각 불량, 필터 열화. 사이리스터 정류기 효율 98.5±0.5% 수준(문헌) 대비 하락폭."
+  },
+  {
+   "key": "stack_heat_balance_ua",
+   "name_ko": "냉각 열교환 성능(UA)",
+   "formula": "Q_gen = N·I·(U_cell − 1.48) [W]; Q_cool = ṁ_c·cp·(T_return − T_supply); UA = Q_cool/LMTD",
+   "inputs": [
+    "stack_current",
+    "stack_voltage",
+    "coolant_flow",
+    "coolant_supply_temp",
+    "coolant_return_temp",
+    "stack_temp_outlet"
+   ],
+   "normalization": "같은 부하 bin·같은 냉각수 유량 bin·외기온도 bin.",
+   "reveals": "열교환기 파울링(UA 감소), 냉각수 유량 부족, 동일 부하에서 밸브 개도 증가."
+  },
+  {
+   "key": "deoxo_dt_ratio",
+   "name_ko": "Deoxo 발열/산소농도 비",
+   "formula": "ΔT_deoxo = T_out − T_in; 이론 단열 온도상승 약 16~17 K per 1000 µmol/mol O2(추정 계산: 2H2+O2 반응열/수소 비열); ratio = ΔT_deoxo/(o2_in_h2[µmol/mol]/1000)",
+   "inputs": [
+    "deoxo_inlet_temp",
+    "deoxo_outlet_temp",
+    "o2_in_h2",
+    "h2_mass_flow"
+   ],
+   "normalization": "같은 유량 bin(열손실 비중이 유량에 반비례). 절대값 대신 과거 비율 대비 변화.",
+   "reveals": "비율 급변 시 OTH 분석기 드리프트(분석기 저지시인데 ΔT 큼) 또는 촉매 비활성화(ΔT 작고 제품 O2 증가)."
+  },
+  {
+   "key": "dryer_performance",
+   "name_ko": "건조기 성능",
+   "formula": "흡착단계 종료 시점 이슬점, 재생 1회당 히터 kWh, 재생 피크온도, 탑 전환 주기, 재생 퍼지 수소손실 = ṁ_pre − ṁ_post 적산",
+   "inputs": [
+    "h2_dew_point",
+    "dryer_active_tower",
+    "dryer_regen_temp",
+    "dryer_heater_power",
+    "h2_mass_flow_pre_dryer",
+    "h2_mass_flow"
+   ],
+   "normalization": "같은 수소 유량 bin·분리기 출구 온도(수분 부하) bin.",
+   "reveals": "흡착제 열화, 재생 히터 고장, 분리기 데미스터 불량으로 인한 수분 부하 증가."
+  },
+  {
+   "key": "warmup_time",
+   "name_ko": "기동 승온 시간",
+   "formula": "t_warm = t(T_stack ≥ T_nom−5 K) − t(첫 전류 인가); 속도 = (T_nom−T_start)/t_warm [K/min]",
+   "inputs": [
+    "stack_temp_outlet",
+    "stack_current",
+    "ambient_temperature"
+   ],
+   "normalization": "시작 온도 bin(±5 K)·외기온도 bin·기동 후 설정 부하 bin 일치 이벤트끼리 비교.",
+   "reveals": "히터/보온 불량, 냉각밸브 누설, 제어 튜닝 문제. 태양광 연계 시 아침 생산 손실 증가."
+  },
+  {
+   "key": "purity_settle_time",
+   "name_ko": "기동 후 순도 도달 시간·방출 수소량",
+   "formula": "t_purity = 첫 전류 → (o2_in_h2 < 규격 AND h2_in_o2 < 규격) 도달 시간; vented_kg = 해당 구간 ṁ_theo 적산",
+   "inputs": [
+    "o2_in_h2",
+    "h2_in_o2",
+    "stack_current",
+    "operating_state"
+   ],
+   "normalization": "냉간/온간 기동 구분, 같은 기동 부하 bin.",
+   "reveals": "분리기/격막 상태, 퍼지 절차 문제. AWE 냉간기동 kW~MW급 1~3 h 동안 저순도 수소 방출(문헌)."
+  },
+  {
+   "key": "ocv_decay_time",
+   "name_ko": "정지 후 개회로전압 감쇠 시간",
+   "formula": "t_decay = 전류 0 시점부터 셀평균전압이 1.4 V→1.0 V(임계값은 기술별 조정) 도달 시간, 또는 초기 dV/dt",
+   "inputs": [
+    "stack_voltage",
+    "stack_current",
+    "stack_temp_outlet",
+    "cathode_pressure"
+   ],
+   "normalization": "같은 정지 직전 온도·압력 bin, 보호전류 미적용 정지만.",
+   "reveals": "감쇠가 빨라지면 crossover 증가 의심(현장 진단 기법으로서는 추정)."
+  },
+  {
+   "key": "standby_pressure_decay",
+   "name_ko": "대기 중 압력 저하율",
+   "formula": "dp/dt [bar/h] = slope(cathode_pressure) during hot_standby, 이상기체 온도보정 p·(T_ref/T)",
+   "inputs": [
+    "cathode_pressure",
+    "stack_temp_outlet",
+    "operating_state"
+   ],
+   "normalization": "같은 시작 압력·온도 bin, 같은 밸브 구성.",
+   "reveals": "외부 누출, 내부 crossover, 차단밸브 누설."
+  },
+  {
+   "key": "stress_exposure",
+   "name_ko": "열화 스트레스 노출 누적",
+   "formula": "구간별 Δhours, Δstarts, ΔOCV_hours(I=0 & 온간/가압), Δ누적|dj/dt|[A/cm2], Δhours_high_j(>정격), Δhours_T_high; 열화 귀속 회귀 ΔV_ref = β1·Δhours + β2·Δstarts + β3·ΔOCV_h + β4·Σ|dj/dt| (최소자승, 월 구간)",
+   "inputs": [
+    "stack_current",
+    "operating_state",
+    "stack_temp_outlet",
+    "v_ref_cell"
+   ],
+   "normalization": "동종 스택(같은 모델) 풀링으로 계수 안정화, 동종 설비 비교에 사용.",
+   "reveals": "기동/정지·램프·OCV 대기가 열화에 기여하는 정도(µV/start 등) → 운전 패턴 코칭 근거. 문헌: OCV 주기 약 80회/1000h에서 약 16 µV/h, 약 3000회/1000h에서 약 50 µV/h(Weiß 2019 인용값); 전류밀도 변화율 0.3 A/cm2/s에서 정상운전 대비 +183%, 1 h 주기 부하변동은 8 h 주기 대비 +64%(2026 데이터기반 연구)."
+  },
+  {
+   "key": "standby_energy",
+   "name_ko": "대기 전력 소비",
+   "formula": "E_standby/h = Σ ac_power_total·Δt / 대기시간 [kWh/h], 정격 대비 %",
+   "inputs": [
+    "ac_power_total",
+    "operating_state",
+    "ambient_temperature"
+   ],
+   "normalization": "외기온도 bin별 비교(문헌상 대기 시 정격의 약 1~5%).",
+   "reveals": "보온재 손상, 히터 제어 이상, 불필요한 BoP 가동."
+  },
+  {
+   "key": "pv_h2_utilization",
+   "name_ko": "태양광→수소 활용률",
+   "formula": "U = 수소생산 사용전력 / 전해조 가용 PV전력; 최소부하 미달·트립·승온으로 인한 손실 kWh 분해",
+   "inputs": [
+    "pv_direct_power",
+    "ac_power_total",
+    "operating_state",
+    "power_setpoint"
+   ],
+   "normalization": "일사량 bin(맑음/부분흐림/흐림) 동일일 비교.",
+   "reveals": "운전 전략 문제(최소부하 너무 높음, 잦은 트립, 긴 승온) — 사이트 코칭 핵심 KPI."
+  }
+ ],
+ "events": [
+  {
+   "key": "steady_state_window",
+   "name_ko": "정상상태 기준 윈도우(조건매칭 샘플)",
+   "extractionRule": "operating_state=생산 AND 기동 후 ≥60분 AND |dI/dt| < 0.5% 정격/분이 ≥30분 지속 AND 스택온도 ±1 K AND 압력 ±0.5 bar; 30분 단위로 분할해 샘플 생성",
+   "featuresPerEvent": [
+    "j_mean",
+    "T_mean",
+    "p_h2_mean",
+    "V_cell_median",
+    "cell_SD",
+    "cell_MAE",
+    "cell_min_z",
+    "SEC_stack",
+    "SEC_sys",
+    "faradaic_efficiency",
+    "HTO_median",
+    "OTH_median",
+    "rectifier_efficiency",
+    "coolant_UA",
+    "stack_run_hours"
+   ]
+  },
+  {
+   "key": "cold_start",
+   "name_ko": "냉간 기동",
+   "extractionRule": "정지/냉간대기 → 생산 전환, 전류 인가 시점 스택온도 < T_nom−20 K; 시작=퍼지 시작, 종료=T ≥ T_nom−5 K AND 순도 규격 도달",
+   "featuresPerEvent": [
+    "T_start",
+    "ambient_temp",
+    "purge_duration",
+    "warmup_time",
+    "purity_settle_time",
+    "vented_h2_kg",
+    "energy_to_warm_kWh",
+    "first_current_cell_voltage",
+    "max_dT_dt"
+   ]
+  },
+  {
+   "key": "hot_start",
+   "name_ko": "온간 기동(대기 후 재기동)",
+   "extractionRule": "온간대기 → 생산, 전류 인가 시 T ≥ T_nom−20 K; 종료=정격 설정부하 도달 또는 30분",
+   "featuresPerEvent": [
+    "standby_duration",
+    "T_start",
+    "time_to_setpoint",
+    "purity_settle_time",
+    "HTO_peak",
+    "V_ref_delta_vs_before_stop"
+   ]
+  },
+  {
+   "key": "normal_shutdown",
+   "name_ko": "정상 정지",
+   "extractionRule": "전류가 최소부하 이상에서 0(또는 보호전류 이하)으로 하강, 트립코드 없음; 원인 태그: PV부족/계획/수소저장 만충",
+   "featuresPerEvent": [
+    "ramp_down_rate",
+    "cause_tag",
+    "protective_current_applied",
+    "ocv_decay_time",
+    "depressurized_flag",
+    "prior_run_duration"
+   ]
+  },
+  {
+   "key": "trip",
+   "name_ko": "트립/비상정지",
+   "extractionRule": "trip_alarm_code 발생 또는 estop_status 활성; 전 5분·후 30분 스냅샷 1 Hz 보관",
+   "featuresPerEvent": [
+    "trip_code",
+    "pre_trip_HTO_max",
+    "pre_trip_OTH_max",
+    "pre_trip_dp",
+    "pre_trip_level_diff",
+    "load_at_trip",
+    "time_to_lockout_release",
+    "restart_delay"
+   ]
+  },
+  {
+   "key": "ramp",
+   "name_ko": "램프(부하 상승/하강)",
+   "extractionRule": "|dI/dt| > 1% 정격/s 가 연속하고 누적 ΔI ≥10% 정격; 시작/종료는 dI/dt 임계 교차; 방향 속성 up/down",
+   "featuresPerEvent": [
+    "direction",
+    "delta_j",
+    "ramp_rate_A_cm2_s",
+    "step_resistance",
+    "setpoint_tracking_lag",
+    "T_overshoot",
+    "p_excursion",
+    "HTO_transient_peak",
+    "separator_level_excursion"
+   ]
+  },
+  {
+   "key": "hot_standby",
+   "name_ko": "온간 대기/유휴(OCV 노출)",
+   "extractionRule": "전류 < 1% 정격 AND 스택온도 유지(히터 또는 T ≥ T_nom−20 K) AND 트립 아님; I=0 구간은 OCV 노출로 별도 적산",
+   "featuresPerEvent": [
+    "duration",
+    "ocv_exposure_hours",
+    "protective_current_A",
+    "standby_energy_kWh",
+    "cooldown_rate_K_h",
+    "pressure_decay_rate",
+    "HTO_rise"
+   ]
+  },
+  {
+   "key": "low_load_dwell",
+   "name_ko": "저부하 체류",
+   "extractionRule": "부하 < 권장 최소부하(AWE 예: 40%, PEM 예: 10%, 설비별 설정) 가 ≥15분",
+   "featuresPerEvent": [
+    "duration",
+    "mean_load",
+    "HTO_max",
+    "HTO_slope",
+    "SEC_sys",
+    "faradaic_efficiency",
+    "ended_by_trip"
+   ]
+  },
+  {
+   "key": "pv_intermittency_episode",
+   "name_ko": "태양광 간헐 변동 구간",
+   "extractionRule": "1시간 창에서 power_setpoint 변동폭 >20% 정격인 ramp가 ≥3회 또는 on/off ≥2회",
+   "featuresPerEvent": [
+    "ramp_count",
+    "start_stop_count",
+    "mean_cycle_time",
+    "cumulative_abs_dj",
+    "min_load_violations",
+    "ess_support_used"
+   ]
+  },
+  {
+   "key": "natural_polarization_sweep",
+   "name_ko": "자연 분극곡선(저녁 램프다운)",
+   "extractionRule": "일몰 램프다운 등 15분 이내 전류가 정격 100%→30% 이하로 단조 감소 AND 스택온도 변화 <2 K; 샘플로 U=a+b·ln(j)+R·j 적합",
+   "featuresPerEvent": [
+    "fit_a",
+    "fit_b",
+    "fit_R",
+    "fit_r2",
+    "T_mean",
+    "j_range"
+   ]
+  },
+  {
+   "key": "purity_excursion",
+   "name_ko": "순도 이탈",
+   "extractionRule": "h2_in_o2 > 운영 알람(예: 1%) 또는 o2_in_h2 > 운영 알람 또는 o2_in_h2_product > 5 µmol/mol 이 ≥60 s",
+   "featuresPerEvent": [
+    "metric",
+    "peak",
+    "duration",
+    "load_at_start",
+    "pressure",
+    "preceding_ramp_flag",
+    "recovery_time"
+   ]
+  },
+  {
+   "key": "water_quality_excursion",
+   "name_ko": "순수 수질 이탈",
+   "extractionRule": "ix_outlet_conductivity 또는 di_product_conductivity > 한계(PEM 예: 0.1 µS/cm 경보, 1 µS/cm 위험) ≥5분",
+   "featuresPerEvent": [
+    "peak_conductivity",
+    "duration",
+    "source(feed|loop)",
+    "V_ref_delta_24h",
+    "V_ref_delta_72h",
+    "step_resistance_delta"
+   ]
+  },
+  {
+   "key": "dryer_regeneration_cycle",
+   "name_ko": "건조기 재생 사이클",
+   "extractionRule": "dryer_active_tower 전환 시점 사이 1주기",
+   "featuresPerEvent": [
+    "cycle_duration",
+    "heater_kWh",
+    "regen_peak_temp",
+    "end_of_adsorption_dew_point",
+    "purge_h2_loss_kg"
+   ]
+  },
+  {
+   "key": "maintenance_action",
+   "name_ko": "정비 이벤트(수지 교체·스택 교체·교정 등)",
+   "extractionRule": "CMMS 입력 또는 신호 단차(전도도 급락, 셀 수 변경, 분석기 교정 플래그)",
+   "featuresPerEvent": [
+    "action_type",
+    "asset_id",
+    "before_after_metric_delta",
+    "volume_treated_since_last",
+    "baseline_reset_flag"
+   ]
+  }
+ ],
+ "failureModes": [
+  {
+   "assetType": "electrolyzer_stack",
+   "mode_ko": "PEM 애노드 촉매(IrOx) 활성 저하",
+   "dataSignature": "V_ref가 저전류 bin에서 상대적으로 더 상승, fit_a/fit_b 증가, step_resistance는 거의 불변",
+   "detectionMethod": "월별 polarization_fit_params 비교: Δ(V_ref@j_low) − Δ(V_ref@j_high)·(j_low/j_high) > 0 이면 동역학 우세; V_ref Theil-Sen 기울기 > 2×목표(예: >5 µV/h) 3개월 연속",
+   "severity": "medium",
+   "recommendedAction_ko": "OCV 대기 최소화(대기 시 보호전류 적용 여부 제조사 확인), 램프율 제한, 제조사 진단(분극곡선/EIS) 요청 및 스택 교체 시점 재산정",
+   "falsePositiveTraps": "break-in 초기 1000 h의 가역적 성능 변화, 장기 정지 후 재기동 직후 일시 개선(IrOx 환원), 온도센서 위치 변경",
+   "typicalLeadTime": "수개월~수년"
+  },
+  {
+   "assetType": "electrolyzer_stack",
+   "mode_ko": "Ti PTL 부동태화·접촉저항 증가(옴 저항 상승)",
+   "dataSignature": "step_resistance와 fit_R 상승, 전압 상승폭이 전류밀도에 비례, 셀 전반에 균일",
+   "detectionMethod": "fit_R 또는 R_step 동일 온도 bin Theil-Sen 기울기 > 과거 기준선 3×MAD; 동종 스택 대비 robust z > 3",
+   "severity": "medium",
+   "recommendedAction_ko": "스택 체결 토크·전기 접속부 점검, 정류기 리플 사양 확인(고주파 삼각파 리플은 HFR 증가 가속), 제조사 EIS 진단",
+   "falsePositiveTraps": "스택 온도 저하(멤브레인 전도도↓), 1 s 샘플링의 동역학 성분 혼입, 버스바 접속부 발열(스택 외부)",
+   "typicalLeadTime": "수개월"
+  },
+  {
+   "assetType": "electrolyzer_stack",
+   "mode_ko": "PEM 멤브레인/이오노머 양이온 오염(Fe, Ca, Na, Cu)",
+   "dataSignature": "water_quality_excursion 후 24~72 h 내 다수 셀 V_ref 동시 상승·R_step 상승, 루프 전도도 상승속도 증가",
+   "detectionMethod": "이벤트 상관: excursion 전후 동일 bin V_ref 차이 > 기준 잡음 3σ; 전도도>0.1 µS/cm 누적 시간과 ΔV_ref 회귀; polisher_capacity 급감 동반 여부",
+   "severity": "high",
+   "recommendedAction_ko": "루프 이온교환수지 즉시 교체, 원수·RO·EDI 점검, 배관 부식(Fe 용출) 조사, 제조사에 전류기반 회복 운전/세정 절차 문의(Na·Ca는 회복 가능, Fe는 부분 회복 보고)",
+   "falsePositiveTraps": "전도도계 온도보상 오류·센서 오염, 수지 교체 직후 일시 전도도 스파이크, 기동 직후 정체수",
+   "typicalLeadTime": "수일~수주"
+  },
+  {
+   "assetType": "electrolyzer_stack",
+   "mode_ko": "PEM 멤브레인 박막화/핀홀(crossover 증가)",
+   "dataSignature": "동일 부하·압력에서 hto_at_load 상승, faradaic_efficiency 하락, 특정 셀 저전압, ocv_decay_time 단축, 배출수 불소 증가",
+   "detectionMethod": "HTO bin 기울기 Theil-Sen > 기준 + CUSUM(κ=0.5,h=5); 셀 z < -3 이 N개 윈도우 연속; η_F bin 중앙값 2%p 이상 하락(유량계 드리프트 교차검증 후)",
+   "severity": "critical",
+   "recommendedAction_ko": "최소부하 상향·차압 저감 운전으로 즉시 안전여유 확보, 재결합 촉매 점검, 스택 교체/보수 계획 수립, 불소 분석 주기 단축",
+   "falsePositiveTraps": "HTO 분석기 드리프트·샘플라인 응축, 압력 설정 변경, 저부하 운전 비중 증가(bin 미분리 시)",
+   "typicalLeadTime": "수주~수개월"
+  },
+  {
+   "assetType": "electrolyzer_stack",
+   "mode_ko": "AWE 격막(diaphragm) 열화/핀홀",
+   "dataSignature": "동일 부하·압력·순환모드에서 HTO 상승, min_safe_load 상승, 저부하 HTO 트립 증가",
+   "detectionMethod": "hto_at_load 분기 추세 + min_safe_load 재적합 값이 기준 대비 +10%p 이상; HTO 트립 이벤트 월간 카운트 증가(포아송 비율 검정)",
+   "severity": "critical",
+   "recommendedAction_ko": "최소부하 상향, 순환모드(혼합/분리) 조정, 스택 수리·격막 교체 계획(IRENA: 산소측 수소 2% 도달 시 수리/폐기 판단), PV 저일사 시간대 ESS로 최저부하 유지",
+   "falsePositiveTraps": "HTO 응답 지연(3분)·정착(분~시간)을 무시한 과도 샘플, 전해액 순환 유량 변경, 압력 상향 운전",
+   "typicalLeadTime": "수개월"
+  },
+  {
+   "assetType": "electrolyzer_stack",
+   "mode_ko": "AWE 역전류에 의한 Ni 전극 산화(잦은 정지)",
+   "dataSignature": "정지 이벤트 직후 재기동 시 V_ref 계단 상승, stress_exposure 회귀의 β2(µV/start) 증가, 보호전류 미적용 정지 비중 높음",
+   "detectionMethod": "재기동 후 첫 steady_state_window V_ref − 정지 전 V_ref 의 이벤트별 분포를 과거 분포와 Mann-Whitney 비교; 월간 회귀 β2 추세",
+   "severity": "high",
+   "recommendedAction_ko": "대기 시 분극 보호전류 적용(제조사 기능 확인), 짧은 PV 공백은 정지 대신 온간대기/ESS 최소부하, 최소 운전·최소 정지 시간 정책 도입(기동/정지 5000회 수명 제한 사례 존재)",
+   "falsePositiveTraps": "재기동 직후 온도 미안정 샘플 사용, 계절별 기동 횟수 차이",
+   "typicalLeadTime": "수주~수개월"
+  },
+  {
+   "assetType": "lye_loop_awe",
+   "mode_ko": "전해액 농도 이상/탄산화",
+   "dataSignature": "KOH 농도 드리프트, 동일 온도·농도에서 R_step·V_ref 균일 상승",
+   "detectionMethod": "koh_concentration 관리범위 이탈 규칙 + V_ref 잔차 CUSUM; 전해액 보충 이벤트와의 상관",
+   "severity": "medium",
+   "recommendedAction_ko": "전해액 샘플 분석(탄산염 포함), 보충/교체, 탱크 질소 블랭킷 등 CO2 유입 차단",
+   "falsePositiveTraps": "농도계 교정 불량, 보충수 투입 직후 혼합 전 측정",
+   "typicalLeadTime": "수주~수개월"
+  },
+  {
+   "assetType": "lye_loop_awe",
+   "mode_ko": "전해액/순환수 순환 불량(펌프 마모·필터 막힘)",
+   "dataSignature": "동일 펌프 속도에서 유량 감소, 필터 차압 상승, 동일 부하에서 스택 입출구 ΔT 증가, HTO 변동",
+   "detectionMethod": "유량/펌프속도 비의 EWMA가 기준선 대비 -10% 이상; 필터 dp 기울기; 셀 편차 SD 동반 상승",
+   "severity": "high",
+   "recommendedAction_ko": "필터 교체, 펌프 임펠러·베어링 점검, 배관 스케일 확인",
+   "falsePositiveTraps": "VFD 설정 변경, 저온 시 점도 증가",
+   "typicalLeadTime": "수일~수주"
+  },
+  {
+   "assetType": "electrolyzer_cell",
+   "mode_ko": "개별 셀 열화·유로 막힘·핫스팟",
+   "dataSignature": "특정 셀 robust z 상승 지속, 셀별 V_ref 기울기가 스택 중앙값의 3배 이상, cell_voltage_spread 증가",
+   "detectionMethod": "steady_state_window마다 셀 z_i 계산 → z_i > 3 이 10개 윈도우 중 8개 이상; 셀별 Theil-Sen 기울기 비교",
+   "severity": "high",
+   "recommendedAction_ko": "해당 셀 위치 기록 후 계획정비 시 셀/MEA 교체, 유량 분배 점검",
+   "falsePositiveTraps": "CVM 채널 접촉불량(값 고정·음수·급변), 스택 끝단 셀의 온도 차이에 따른 고유 편차(기준선에서 셀별 오프셋 제거)",
+   "typicalLeadTime": "수주~수개월"
+  },
+  {
+   "assetType": "electrolyzer_cell",
+   "mode_ko": "셀 내부 단락/급성 손상",
+   "dataSignature": "부하 중 특정 셀 전압 급락(수백 mV 이상) 또는 비정상 저전압, 스택 전압 계단 하락",
+   "detectionMethod": "규칙: 1 s 내 셀전압 하락 >100 mV 또는 j>0.3 A/cm2에서 셀전압 < 스택 중앙값−300 mV(임계값 추정, 제조사 값 우선) → 즉시 알람",
+   "severity": "critical",
+   "recommendedAction_ko": "즉시 정지 요청 및 제조사 통보, 재기동 전 절연·셀 점검",
+   "falsePositiveTraps": "CVM 통신 두절 시 0 V 표시, 기동/정지 과도구간",
+   "typicalLeadTime": "분~시간"
+  },
+  {
+   "assetType": "rectifier",
+   "mode_ko": "정류기 효율 저하·냉각 불량·리플 증가",
+   "dataSignature": "동일 부하 bin에서 P_dc/P_ac 하락, 방열판 온도 상승, THD·리플 증가, 역률 변화",
+   "detectionMethod": "rectifier_efficiency bin 중앙값이 기준 대비 1%p 이상 하락 2주 지속; 방열판온도−냉각수온도 차이 EWMA 상승",
+   "severity": "medium",
+   "recommendedAction_ko": "정류소자·필터 커패시터·냉각팬/냉각수 점검, 열화상 점검, 리플 측정 후 제조사 사양 비교",
+   "falsePositiveTraps": "저부하(15~20% 이하) 구간 원래 효율 낮음, 전력계 CT 교정 오차, 여름철 냉각수 온도",
+   "typicalLeadTime": "수주~수개월"
+  },
+  {
+   "assetType": "rectifier",
+   "mode_ko": "DC 전류센서/유량계 드리프트(계측 오류)",
+   "dataSignature": "HTO·셀전압 변화 없이 faradaic_efficiency만 서서히 변화, 복수 스택이 같은 유량계를 공유할 때 동시 변화",
+   "detectionMethod": "η_F 추세와 HTO 추세 상관 없음 + Σ셀전압 vs 스택전압 불일치(>0.5%) 규칙; 교정 이벤트 전후 계단 확인",
+   "severity": "medium",
+   "recommendedAction_ko": "전류센서·유량계 교정, 교정 전 데이터는 지표 신뢰도 낮음으로 표시",
+   "falsePositiveTraps": "실제 crossover 증가 초기(분석기 감도 이하)",
+   "typicalLeadTime": "수개월"
+  },
+  {
+   "assetType": "water_treatment_unit",
+   "mode_ko": "이온교환수지 소진·EDI/RO 성능 저하",
+   "dataSignature": "전도도 상승속도 증가, 교체 간 처리용량 감소, 동일 원수·수온에서 RO 투과수 전도도 상승",
+   "detectionMethod": "polisher_capacity를 과거 카트리지 N개 중앙값과 비교(-30% 이상 경보); 전도도 선형 외삽으로 한계 도달 예상일 산출",
+   "severity": "medium",
+   "recommendedAction_ko": "수지 교체 주기 조정·예비품 확보, RO 막 세정/교체, 원수 수질 분석",
+   "falsePositiveTraps": "수온 변화(보상 오류), 순수 사용량 급변, 센서 오염",
+   "typicalLeadTime": "수일~수주"
+  },
+  {
+   "assetType": "cooling_system",
+   "mode_ko": "열교환기 파울링·냉각 용량 부족",
+   "dataSignature": "UA 감소, 동일 부하·외기에서 스택 온도 상승 또는 밸브 개도 증가, 여름 오후 출력제한 발생",
+   "detectionMethod": "stack_heat_balance_ua 외기온도 bin별 Theil-Sen 기울기; 밸브 개도 100% 포화 시간 비율 증가",
+   "severity": "medium",
+   "recommendedAction_ko": "열교환기 세정, 스트레이너 청소, 냉각수 수질(스케일/미생물) 관리, 드라이쿨러 핀 청소",
+   "falsePositiveTraps": "계절 외기온도, 부하 증가, 냉각수 유량계 오차",
+   "typicalLeadTime": "수주~수개월"
+  },
+  {
+   "assetType": "gas_liquid_separator",
+   "mode_ko": "레벨 제어 이상·데미스터 불량(액적 비말동반)",
+   "dataSignature": "레벨 진동 진폭 증가, AWE 양측 레벨차 드리프트, 건조기 수분 부하 증가(이슬점 상승·재생 빈도 증가)",
+   "detectionMethod": "레벨 신호 롤링 표준편차 EWMA 상승; 레벨차 CUSUM; dryer_performance 악화와 동시 발생 규칙",
+   "severity": "medium",
+   "recommendedAction_ko": "레벨계 교정, 드레인/제어밸브 점검, 데미스터 교체",
+   "falsePositiveTraps": "램프 중 정상 레벨 변동, 압력 설정 변경",
+   "typicalLeadTime": "수일~수주"
+  },
+  {
+   "assetType": "h2_purifier",
+   "mode_ko": "Deoxo 촉매 비활성화",
+   "dataSignature": "같은 입구 O2·유량에서 제품 O2 ppm 상승, deoxo_dt_ratio 감소",
+   "detectionMethod": "o2_in_h2_product 규칙(>5 µmol/mol) + 비율 추세; 입구 O2 bin별 제품 O2 중앙값 비교",
+   "severity": "high",
+   "recommendedAction_ko": "촉매 교체/재생, 하류(저장·연료전지) 공급 품질 확인, 품질 이탈 수소 격리",
+   "falsePositiveTraps": "미량산소 분석기 교정 불량, 저유량 시 열손실로 ΔT 과소",
+   "typicalLeadTime": "수주"
+  },
+  {
+   "assetType": "h2_purifier",
+   "mode_ko": "건조기 흡착제 열화·재생 히터 고장",
+   "dataSignature": "흡착 종료 시 이슬점 상승(동일 유량), 파과 시간 단축, 재생 피크온도 저하 또는 히터 전력 이상",
+   "detectionMethod": "사이클별 end_of_adsorption_dew_point 기준 대비 +5 K 이상 3사이클 연속; 재생온도·히터 kWh 규칙",
+   "severity": "high",
+   "recommendedAction_ko": "히터·밸브 점검, 흡착제 교체, 압축기·저장탱크 수분 유입 여부 확인",
+   "falsePositiveTraps": "분리기 온도 상승(수분 부하 증가)으로 인한 이슬점 상승, 이슬점계 드리프트",
+   "typicalLeadTime": "수주~수개월"
+  },
+  {
+   "assetType": "gas_analyzer",
+   "mode_ko": "가스 분석기 드리프트·고착·샘플라인 문제",
+   "dataSignature": "부하 변화에도 값이 평탄(분산≈0), 교정 후 계단 변화, deoxo ΔT와 불일치, 이중화 분석기 편차",
+   "detectionMethod": "부하 변동 >20% 구간에서 롤링 분산 < ε 이면 고착 경보; 교정 경과일 규칙; deoxo_dt_ratio 급변 교차검증",
+   "severity": "high",
+   "recommendedAction_ko": "영점/스팬 교정, 샘플라인 응축·필터 점검, 교정 기록 CMMS 연동(안전 인터록 신뢰성 확보)",
+   "falsePositiveTraps": "정상적으로 매우 안정된 정격운전, 분석기 응답 지연",
+   "typicalLeadTime": "수일~수주"
+  },
+  {
+   "assetType": "safety_system",
+   "mode_ko": "수소 미세 누출(외함/배관/밸브)",
+   "dataSignature": "외함 수소 ppm 기저값 상승, 대기 중 압력 저하율 증가, HTO 변화 없이 수율 저하",
+   "detectionMethod": "enclosure_h2 일간 최소값 추세(기저값) + standby_pressure_decay 기준 대비 2배; 1% 초과는 PLC 인터록이 처리(분석 우회)",
+   "severity": "critical",
+   "recommendedAction_ko": "누설 점검(비눗물/검지기), 체결부·밸브 씰 교체, 환기 확인. 안전 알람은 분석 결과와 무관하게 즉시 통보",
+   "falsePositiveTraps": "검지기 교차감도·드리프트, 온도 변화에 따른 압력 변화(온도보정 필요)",
+   "typicalLeadTime": "수일~수주"
+  },
+  {
+   "assetType": "electrolyzer_system",
+   "mode_ko": "운전 패턴에 의한 가속 열화(잦은 기동/정지·급램프·OCV 대기)",
+   "dataSignature": "starts/day, OCV 시간, 누적 |dj/dt| 가 동종 사이트 대비 높고 voltage_degradation_rate도 높음",
+   "detectionMethod": "동종 설비 비교: 사이트별 stress_exposure 지표 robust z; 회귀 β로 정지 1회당 µV 추정; pv_intermittency_episode 빈도",
+   "severity": "medium",
+   "recommendedAction_ko": "ESS/계통으로 최소부하 유지, 짧은 공백은 온간대기+보호전류, 최소 운전·정지 시간(예: 30분, 추정) 설정, 램프율 제한, 다스택 사이트는 모듈 로테이션으로 저부하 분산",
+   "falsePositiveTraps": "스택 연식 차이(동종 비교 시 운전시간 정규화 필요), 계절 일사 패턴",
+   "typicalLeadTime": "수개월~수년"
+  },
+  {
+   "assetType": "electrolyzer_system",
+   "mode_ko": "BoP 이상으로 인한 시스템 효율 저하",
+   "dataSignature": "sec_stack 정상인데 sec_system 상승, standby_energy 증가",
+   "detectionMethod": "(SEC_sys − SEC_stack) bin 중앙값 추세 > 기준 +5%; BoP 전력 분해(펌프·칠러·히터) 가능 시 하위 원인 표시",
+   "severity": "low",
+   "recommendedAction_ko": "펌프·칠러·히터 제어 로직과 설정값 점검, 불필요한 대기 운전 축소",
+   "falsePositiveTraps": "외기온도에 따른 냉각부하, 건조기 재생 주기 겹침",
+   "typicalLeadTime": "수주"
+  }
+ ],
+ "safetyInterlocks": [
+  "KGS AH271 3.3.1.2 비상정지: 발생 산소 중 수소 농도 > 2 %vol",
+  "KGS AH271 3.3.1.2 비상정지: 발생 수소 중 산소 농도 > 3 %vol",
+  "KGS AH271 3.3.1.2 비상정지: 압축기로 공급되는 수소 중 산소 농도 > 2 %vol",
+  "KGS AH271 3.3.1.2 비상정지: 외함 내 수소 농도 > 1 %vol",
+  "KGS AH271 3.3.1.2 비상정지: 셀/스택 공급전압 이상, 온도 현저한 상승, 과전류, 안전성능 변화를 유발하는 차압",
+  "KGS AH271 3.3.1.2 비상정지: 수용액 수위 과고/과저, 물·수용액 유량 현저한 저하, 수용액·산소·수소 계통 압력 현저한 상승, 환기장치 이상, 설비 내 온도 이상, 수소정제장치 이상(공급가스 압력·온도·조성·유량 경보치 초과, 제어밸브 장애, 전원 차단, 압력용기 허용치 초과)",
+  "비상정지 후 로크아웃 — 수동 해제 시에만 정상운전 복귀, 수전 회로 복전 후에도 자동 재가동 금지(KGS AH271)",
+  "기동 전 외함 공기/질소 퍼지 완료 및 모든 안전장치 정상일 때만 기동 허용(KGS AH271 3.3.1.1)",
+  "자동차단밸브 개폐 횟수가 제조사 제시값의 85% 초과 시 경보, 90% 초과 시 기동 금지(KGS AH271 부록 C3)",
+  "압축기 흡입압력 저하/토출 압력·온도 초과/윤활유 부족 시 압축기 정지·공급 차단(KGS AH271 3.3.2.5.4)",
+  "CVM 셀전압 상·하한 이탈 시 정지(설정값은 제조사 사양)",
+  "제품 수소 품질(ISO 14687 Grade D: O2 ≤5 µmol/mol, H2O ≤5 µmol/mol, 순도 ≥99.97%) 이탈 시 저장·연료전지 공급 차단/격리(운영 설정, 법정 인터록 아님)",
+  "설계 원칙: 위 인터록은 현장 PLC/안전PLC가 실행하며 콘솔 분석 파이프라인(집계·추세·배치)을 절대 거치지 않는다. 콘솔은 원시 알람을 수신 즉시 푸시·기록만 하고, 통신 두절 또는 분석기 고장 시 해당 설비를 '안전 데이터 불확실' 상태로 표시한다."
+ ],
+ "koreanContext": "[법규·검사] 수전해설비는 「수소경제 육성 및 수소 안전관리에 관한 법률(수소법)」상 '수소용품'이자 수소제조설비. 제조허가(법 제36조), 수소용품 검사(제44조), 시설·기술·검사 기준은 KGS AH271(수전해설비 제조의 시설·기술·검사 기준, 2025판: 2025-05-16 의결, 2025-06-16 산업부 승인). AH271은 비상정지 조건(산소 중 수소 >2%, 수소 중 산소 >3%, 외함 수소 >1%, 압축기 공급 수소 중 산소 >2%), 로크아웃, 산소·수분 제거설비 모니터링, 자동차단밸브 개폐횟수 관리(85% 경보/90% 기동금지), 정격 수소생산효율·비소비전력량(kWh/Nm3) 표시와 측정법(정격 30분 후 1시간 측정, HHV 39.4 kWh/kg, 0.08988 kg/Nm3)을 규정. 생산 수소를 압축·저장하면 고압가스 안전관리법(고압가스 제조, KGS FP112)과 저장탱크/압력용기 재검사(KGS AC116)가, 연료전지 측은 KGS AH371(고정형 연료전지 제조), 사용시설은 KGS FU671이 관련. 사용 단계의 정기검사·안전관리자 선임 범위는 설비 용량·구성에 따라 달라 한국가스안전공사 확인 필요. [시장·인증] 청정수소 인증제 등급: 1등급 ≤0.1, 2등급 ≤1, 3등급 ≤2, 4등급 ≤4 kgCO2e/kgH2 — 재생에너지 연계 수전해가 인증 대상이나 계통전력 사용분이 배출량을 키우므로 콘솔에서 전력원별(PV 직접/ESS/계통) kWh를 kg 단위로 추적해야 함. CHPS: 2024년 청정수소발전 입찰은 공고 6,500 GWh 중 750 GWh만 낙찰(암모니아 혼소 1건). 2025년 청정수소발전 입찰은 2025-10-17 취소(석탄 혼소 논란, 뉴스타파 보도) — 청정수소 발전 수익 모델은 불확실. 일반수소발전 입찰시장(2025년 1,300 GWh, 20년 계약)은 연료전지 대상으로 존속. 기존 태양광은 SMP+REC 구조 유지이며 연료전지 REC 가중치 등 세부는 별도 확인 필요. [국내 공급사] AWE: 수소에너젠(1 MW급, 4.8 kWh/Nm3), 이엠솔루션, 테크윈, 테크로스; PEM: 엘켐텍(1 MW급, 5.0 kWh/Nm3); AEM: 한화솔루션, 아크로랩스; SOEC: 케이세라셀. 해외: Nel, Siemens Energy(Silyzer), ITM Power, Cummins(Accelera), thyssenkrupp nucera, John Cockerill, Sunfire, Asahi Kasei, 중국계 AWE. [국내 실증] 제주 행원 3.3 MW(재생연계 수소 600 kg+배터리 2 MWh, 2020~2023), 영광 2.2 MW(AWE+PEM, 수전해 인증센터), 제주 동복 12.5 MW(AWE·PEM·SOEC·AEM, 2022~2026), 부안·평창·동해·보령 각 2.5 MW(PEM 중심). [데이터 인터페이스] 전해조 표준 데이터모델(SunSpec 같은 것)은 아직 없음. OPC Foundation·VDMA Power-to-X가 'OPC UA Companion Specification Hydrogen Electrolyzer'(MTP VDI/VDE/NAMUR 2658 호환)를 개발 중 → 당분간 벤더 PLC의 OPC UA/Modbus TCP 태그를 사이트별 매핑 테이블로 메트릭 레지스트리에 연결하는 방식이 현실적.",
+ "notes_md": "## 1. PEM vs AWE — O&M 관점 핵심 차이\n\n| 항목 | PEM | AWE(알칼라인) |\n|---|---|---|\n| 전류밀도 | 1~2 A/cm2(2026 목표 3) | 0.2~0.8 A/cm2 |\n| 온도/압력 | 50~80 °C / ~30 bar(고압형 더 높음) | 70~90 °C / <30 bar |\n| 부하범위(IRENA 2020) | 5~120% | 15~100%(문헌 10~40% 최소부하, 50 Nm3/h 실험은 최대압력에서 40%) |\n| 냉간기동(IRENA 2020) | <20분 | <50분(kW~MW급 실측 1~3시간 보고) |\n| 물/전해질 | 초순수(ASTM Type II 최소, Type I 권장, 목표 <0.1 µS/cm) | KOH 25~30 wt% 순환, 보충수 약 1 µS/cm 수준(추정, 벤더 확인) |\n| 주요 열화 | IrOx 활성저하·용해, Ti PTL 부동태화(HFR↑), 양이온 오염, 멤브레인 박막화(불소 방출) | 역전류로 Ni 전극 산화(정지 시), 격막 핀홀→HTO↑, 전해액 탄산화 |\n| 순도 위험 | 차압·저전류에서 수소 crossover↑(주로 확산) | crossover는 PEM보다 한 자릿수 작지만 전해액 혼합 영향 크고 저부하 HTO 급증 |\n| 정지 시 권장 | OCV 구간 회피, 소량 보호전류+재결합촉매(Weiß 2019) | 분극 보호전류로 음극 전위 유지(0.6 V_RHE 이하) |\n| 열화 벤치마크 | DOE 2022 4.8 µV/h(0.25%/1000h)→2026 2.3 µV/h; SRIA 0.19→0.12 %/1000h | DOE 2022 3.2 µV/h→2026 2.3 µV/h; SRIA 0.12→0.10 %/1000h |\n| 연간 성능저하(EPRI, 기저부하) | 1~1.5 %/년 | 약 1 %/년 |\n\n주의: 위 벤치마크는 셀당, 연속운전 기준. 태양광 연계 변동운전은 더 높을 수 있음(연계 사이트 3~5 µV/h 가정 사례는 업계 블로그 수준, 추정).\n\n## 2. 계산 상수(파이프라인 코드에 상수로)\n- 전압→에너지: SEC_stack[kWh/kg] = 26.59 × U_cell[V] / η_F (2F/M_H2/3.6e6). 열중립전압 ≈ 1.48 V.\n- 이론 생산량: kg/h = N_cell × I[A] × 3.761e-5, Nm3/h = N_cell × I × 4.18e-4.\n- HHV 39.4 kWh/kg(KGS), LHV 약 33.3 kWh/kg, 0.08988 kg/Nm3.\n- 물 화학양론 8.94 kg H2O/kg H2(실제 보충수·원수는 더 큼).\n- Deoxo 단열 온도상승 약 16~17 K / 1000 µmol/mol O2, 재결합기 약 80 K / 1 %vol H2 in O2 — 반응열·비열로 계산한 **추정** 값(열손실 무시).\n- JRC: 1 mV 계측정밀도에서 1 µV/h 열화 검출에 1000 h 필요 → 반드시 조건 bin 중앙값의 장기 기울기로 판단.\n\n## 3. '조건 맞춰 과거와 비교' 패턴 목록(사용자 배터리 예시의 전해조 버전)\n1. 같은 전류밀도·온도·압력에서 셀 평균전압(V_ref) — 스택 열화.\n2. 같은 부하·온도에서 kWh/kg(스택/시스템 분리) — 효율 저하 원인 분리.\n3. 같은 전류·압력에서 실측 수소량/이론량(η_F) — crossover·누출·계측 드리프트.\n4. 같은 부하·압력에서 HTO/OTH — 격막/멤브레인 열화, 최소 안전부하 상승.\n5. 같은 조건에서 셀별 z-score·셀별 기울기 — 약한 셀 조기 발견.\n6. 같은 온도·방향의 전류 계단에서 ΔV/ΔI — 옴 저항(PTL·오염) 추세.\n7. 저녁 램프다운의 '자연 분극곡선' 월별 비교 — 동역학 vs 저항 열화 분리.\n8. 같은 시작온도·외기에서 승온시간 — 히터/보온/냉각밸브.\n9. 같은 기동 유형에서 순도 도달 시간·방출 수소량.\n10. 같은 온도·압력에서 정지 후 OCV 감쇠시간 — crossover(추정 기법).\n11. 같은 시작압력·온도에서 대기 중 압력저하율 — 누출.\n12. 같은 부하·외기에서 냉각 UA·밸브개도 — 열교환기 파울링.\n13. 같은 부하에서 정류기 P_dc/P_ac·방열판 온도 — 정류기 노후.\n14. 수지 교체 간 처리량(m3 또는 kg H2) — 수질/부식 변화.\n15. 같은 유량에서 흡착 종료 이슬점·재생 kWh — 건조기.\n16. 같은 입구 O2·유량에서 제품 O2와 Deoxo ΔT 비 — 촉매 vs 분석기 드리프트 판별.\n17. 수소 kg당 보충수 L — 누수/드레인 이상.\n18. 같은 외기에서 대기 kWh/h — 보온·히터.\n19. 동종 설비 비교: 운전시간 정규화한 열화율과 스트레스 노출(기동수·OCV시간·|dj/dt|).\n\n## 4. 구현 가이드(TypeScript, ML 인프라 없음)\n- **샘플링**: 현장 게이트웨이에서 1 Hz 버퍼, 저장은 1분 mean/min/max/last + 이벤트(기동·램프·트립) 전후 1 Hz 스냅샷. 현재 앱의 30분 주기로는 램프/계단응답/순도 과도현상 분석 불가.\n- **상태머신 먼저**: operating_state가 없으면 전류·온도·압력 규칙으로 파생(정지/냉간대기/온간대기/램프/생산/트립). 모든 지표는 상태로 필터링.\n- **bin 키**: (asset_id, j_bin, T_bin, p_bin[, 방향, 순환모드]) → 일별 중앙값·IQR·표본수 테이블(Postgres 일반 테이블, Timescale 불필요). 표본수 < 최소치 bin은 비교 제외.\n- **추세**: Theil-Sen(중앙값 기울기, O(n²)이므로 일별 집계값에 적용), EWMA(λ 0.1~0.2), CUSUM(κ=0.5σ, h=4~5σ), robust z(MAD×1.4826). 동종 설비 비교는 같은 모델·같은 운전시간 구간 풀링.\n- **회귀**: 4~5 변수 최소자승(정규방정식)으로 분극곡선 적합과 스트레스 귀속(ΔV ~ hours+starts+OCV_h+Σ|dj/dt|). 조건수 확인 후 불안정하면 계수 미표시.\n- **기준선 관리**: 스택 교체·세정·수지 교체·분석기 교정은 maintenance_action 이벤트로 기록하고 해당 지표 기준선을 리셋/구간 분리. break-in 1000 h 제외.\n- **스키마 영향**: 셀전압은 셀 수백 개 → 메트릭 1개 + cell_index 차원(또는 1분 배열 컬럼). 기술별(PEM/AWE) 메트릭은 자산 technology 속성으로 적용 여부만 달리해 레지스트리 하나로 운영.\n- **리포트 문장 템플릿 예**: \"{stack} 기준조건({j} A/cm2, {T} °C) 셀전압이 최근 {n}일 {rate} µV/h로 상승 — DOE 2026 목표(2.3 µV/h)의 {x}배. 같은 기간 정지 {starts}회, OCV 대기 {h} h. 권고: …\" (나중에 LLM seam은 이 구조화 결과를 입력으로 사용).\n\n## 5. 오탐 방지 공통 규칙\n- HTO는 부하 변경 후 약 3분 지연·수분~수시간 정착(50 Nm3/h AWE) → 정착 전 샘플 금지.\n- 전도도는 온도보상 확인, 수지 교체 직후 스파이크 제외.\n- 저부하(<15~20%)에서 정류기 효율·SEC는 원래 나쁨 → bin 분리 필수. 시스템 효율은 약 30% 부하 부근에서 최고(IRENA).\n- 여름 외기온도는 냉각·BoP 지표를 왜곡 → 외기 bin.\n- CVM 채널 고착/0 V/음수는 센서 결함으로 분류 후 분석 제외.\n- 가역 손실: 리플 연구에서 8시간 정지 후 열화의 약 61% 회복(기포 등) → 장기 정지 직후 값으로 개선 판정 금지.\n\n## 6. 추정·불확실 표시 항목\n- 셀전압 온도계수 60~80 °C에서 -2~-4 mV/K(문헌은 100~120 °C에서 -2.5 mV/K) → 사이트 데이터로 재추정.\n- 셀 단락 임계(중앙값-300 mV 등), 최소 운전·정지 시간 30분, 정류기 역률 범위, 건조기 재생온도, OTH 정상범위, AWE 보충수 전도도 기준은 **추정**이므로 제조사 매뉴얼로 확정.\n- OCV 감쇠시간을 crossover 지표로 쓰는 것은 연료전지 진단의 유추(추정).\n- 계단응답 저항은 1 s 샘플링에서 HFR과 동일하지 않음(추세 전용).\n- 연계형 현장 열화율 3~5 µV/h는 업계 블로그 수치로 신뢰도 낮음.",
+ "sources": [
+  {
+   "title": "JRC — Accelerated stress testing protocols for water electrolyser stacks (JRC133726, 2024)",
+   "url": "https://publications.jrc.ec.europa.eu/repository/handle/JRC133726"
+  },
+  {
+   "title": "Clean Hydrogen Partnership — AST protocols PDF (열화율·셀전압 편차 KPI 식, 기준조건 Table 6.1)",
+   "url": "https://www.clean-hydrogen.europa.eu/system/files/2024-02/ast.pdf"
+  },
+  {
+   "title": "US DOE — Technical Targets for PEM Electrolysis",
+   "url": "https://www.energy.gov/cmei/fuels/technical-targets-proton-exchange-membrane-electrolysis"
+  },
+  {
+   "title": "US DOE — Technical Targets for Liquid Alkaline Electrolysis",
+   "url": "https://www.energy.gov/cmei/fuels/technical-targets-liquid-alkaline-electrolysis"
+  },
+  {
+   "title": "Clean Hydrogen JU — SRIA Key Performance Indicators",
+   "url": "https://www.clean-hydrogen.europa.eu/knowledge-management/strategy-map-and-key-performance-indicators/clean-hydrogen-ju-sria-key-performance-indicators-kpis_en"
+  },
+  {
+   "title": "EPRI — Technology Brief: Water Electrolyzer Stack Degradation (2022)",
+   "url": "https://restservice.epri.com/publicdownload/000000003002025148/0/Product"
+  },
+  {
+   "title": "IRENA — Green Hydrogen Cost Reduction (2020)",
+   "url": "https://www.irena.org/-/media/Files/IRENA/Agency/Publication/2020/Dec/IRENA_Green_hydrogen_cost_2020.pdf"
+  },
+  {
+   "title": "KGS AH271 2025 수전해설비 제조의 시설·기술·검사 기준 (h2hub 배포본)",
+   "url": "https://h2hub.or.kr/main/info/regulation_info.do?mode=download&articleNo=2572&attachNo=4930"
+  },
+  {
+   "title": "연구개발특구진흥재단 — 수소 및 수소용품 관련 규제사항 체크리스트(2025.8)",
+   "url": "https://www.innopolis.or.kr/fileDownload?titleId=182136&fileId=1&fileDownType=C&paramMenuId=MENU00318"
+  },
+  {
+   "title": "Weiß et al. 2019 — Impact of Intermittent Operation on Lifetime and Performance of a PEM Water Electrolyzer (J. Electrochem. Soc.)",
+   "url": "https://iopscience.iop.org/article/10.1149/2.0421908jes"
+  },
+  {
+   "title": "Impact of Power Converter Current Ripple on the Degradation of PEM Electrolyzer Performances (PMC)",
+   "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8877858/"
+  },
+  {
+   "title": "Data-driven degradation analysis of PEM electrolyzer stacks under dynamic load operation (Energy and AI, 2026)",
+   "url": "https://www.sciencedirect.com/science/article/pii/S2666546826001163"
+  },
+  {
+   "title": "Cathodic Protection System against a Reverse-Current after Shut-Down in Zero-Gap AWE (JACS Au, PMC)",
+   "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC9709953/"
+  },
+  {
+   "title": "Research on oxygen purity based on industrial scale AWE system with 50 Nm3 H2/h (Applied Energy 2024)",
+   "url": "https://www.sciencedirect.com/science/article/pii/S0306261924002356"
+  },
+  {
+   "title": "Trinke et al. 2018 — Hydrogen Crossover in PEM and Alkaline Water Electrolysis",
+   "url": "https://iopscience.iop.org/article/10.1149/2.0541807jes"
+  },
+  {
+   "title": "NREL/OSTI — Performance Losses and Current-Driven Recovery from Cation Contaminants in PEM Water Electrolysis",
+   "url": "https://www.osti.gov/biblio/2377777"
+  },
+  {
+   "title": "Shimadzu/LabRulez — Process Monitoring of PEM H2 Electrolysis Feed Water (TOC, ASTM Type I/II)",
+   "url": "https://labrulez.com/en-us/all/paper/28688"
+  },
+  {
+   "title": "Frontiers — Fluoride emission rate analysis in PEM water electrolyzer cells",
+   "url": "https://www.frontiersin.org/journals/energy-research/articles/10.3389/fenrg.2024.1457310/full"
+  },
+  {
+   "title": "Dynamic fault detection and diagnosis for alkaline water electrolyzer (arXiv 2404.15609, 산업용 AWE 센서 목록·고장 유형)",
+   "url": "https://arxiv.org/pdf/2404.15609"
+  },
+  {
+   "title": "Extended Load Flexibility of Utility-Scale P2H Plants: HTO Impurity Effects (arXiv 2301.12242)",
+   "url": "https://arxiv.org/pdf/2301.12242"
+  },
+  {
+   "title": "Endrődi et al. 2025 — Challenges and Opportunities of the Dynamic Operation of PEM Water Electrolyzers (Energies)",
+   "url": "https://www.mdpi.com/1996-1073/18/9/2154"
+  },
+  {
+   "title": "Thermodynamical and electrochemical model of a MW-range PEM electrolyzer plant (IJHE)",
+   "url": "https://www.sciencedirect.com/science/article/pii/S0360319924016471"
+  },
+  {
+   "title": "Advanced Rectifier Technologies for Electrolysis-Based Hydrogen Production (Energies 2025)",
+   "url": "https://www.mdpi.com/1996-1073/18/1/48"
+  },
+  {
+   "title": "Optimal cold startup for alkaline water electrolysis (냉간기동 1~3 h)",
+   "url": "https://www.sciencedirect.com/science/article/abs/pii/S0196890426004255"
+  },
+  {
+   "title": "smart testsolutions — Cell voltage monitoring reduces electrolyzer downtime",
+   "url": "https://www.smart-testsolutions.de/en/magazine/read-article/cell-voltage-monitoring-reduces-electrolyzer-downtime.html"
+  },
+  {
+   "title": "Process Sensing — Monitoring oxygen and dew point for hydrogen electrolyzers",
+   "url": "https://www.processsensing.com/en-us/blog/monitoring-oxygen-dew-point-hydrogen-electrolyzers.htm"
+  },
+  {
+   "title": "H2tools — ISO 14687 Hydrogen Fuel Product Specification",
+   "url": "https://h2tools.org/fuel-cell-codes-and-standards/iso-14687-hydrogen-fuel-product-specification"
+  },
+  {
+   "title": "백종민·김수현 2024 — 국내외 수전해 기술 및 대규모 실증 프로젝트 진행 현황(한국수소및신에너지학회지)",
+   "url": "https://journal.hydrogen.or.kr/xml/39686/39686.pdf"
+  },
+  {
+   "title": "월간수소경제 — 청정수소 인증제, 어떻게 운영되나",
+   "url": "https://www.h2news.kr/news/articleView.html?idxno=12249"
+  },
+  {
+   "title": "뉴스타파 — 청정수소발전 입찰(CHPS) 2025 취소",
+   "url": "https://newstapa.org/article/sZbYU"
+  },
+  {
+   "title": "전력거래소 — 2025년 청정수소발전시장 경쟁입찰 공고",
+   "url": "https://www.kpx.or.kr/board.es?mid=a11201000000&bid=0042&act=view&list_no=75084"
+  },
+  {
+   "title": "VDMA P2X4A — OPC UA in hydrogen production (Hydrogen Electrolyzer Companion Specification)",
+   "url": "https://en.industryarena.com/vdma-p2x4a/blog/opc-ua-in-hydrogen-production--21737.html"
+  }
+ ]
+}
