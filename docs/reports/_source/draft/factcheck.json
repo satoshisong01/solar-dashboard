@@ -1,0 +1,212 @@
+{
+ "issues": [
+  {
+   "file": "report-a",
+   "location": "1장 callout '이 문서의 성격: 예상안' (동봉 엑셀 안내), 연계: 엑셀 여러 시트",
+   "quote": "전체 목록은 동봉 엑셀('태양광·수소 데이터수집·AI분석 예상안.xlsx')에 있습니다.",
+   "problem": "inconsistent_across_files",
+   "detail": "본문 네 파일은 반박·미확인·조건 누락 수치를 뺐거나 고쳤는데, 본문이 '전체 목록'이라고 안내하는 엑셀(out/book.json)에는 아직 그 수치가 남아 있습니다. (1) '수집데이터_전력' 14행 'RCMU 30mA 급변·300mA 연속'. 300mA는 verify-solar에서 매뉴얼에 없는 값으로 판정됐습니다. (2) '설계수명·교체주기' 7행과 '개선항목·기대효과' 8행 '89%가 제어·주변설비, 86%는 셀 결함 아님'. verify에서는 '셀 직접 원인 11%'만 확인됐습니다. (3) '설계수명·교체주기' 21행과 '개선항목·기대효과' 13행 '버스 실운전 부하변동 56.5%·기동정지 33%'. correctedClaim은 '자동차용, 2차 인용, 약 57%·약 33%'입니다. (4) '개선항목·기대효과' 1행 '애리조나 1.91%→1.52/1.32/1.20%'. 작성자 b도 출처를 특정하지 못해 뺀 값입니다. (5) 'AI 분석 방법' 3행 'Micheli 연 오염손실 2.8%'. 부분 확인 판정이며 correctedClaim은 '3% 이내'입니다. (6) 'AI 분석 방법' 25·38행 'Qiu 22대 +7.74%·+8.72%'에 풍력 직결·완벽 예측 가정 조건이 빠졌고, 'MILP 89.7%·93.7%·764회'는 correctedClaim에서 '출처 미확인'입니다. 독자가 본문 안내를 따라 엑셀을 열면 검증에서 걸러낸 수치를 그대로 보게 됩니다.",
+   "fix": "엑셀 원본(book.json)을 고칩니다. RCMU 행은 '30mA 급변 트립 전 누설 증가 추세(SMA 매뉴얼 기준, 300mA 연속 기준은 미확인)'로 바꿉니다. 89%·86%는 '셀 직접 원인은 원인 분류 26건 중 3건(11%)(EPRI 2024)'로 바꿉니다. 56.5%·33%는 '차량용 연구 기준 부하변동 약 57%·기동정지 약 33%(Pei 2008, 2차 인용, 정치형은 재산정)'로 바꿉니다. 애리조나 1.91% 사례는 'Micheli 2021: 스페인 남부 1 MW(연 오염손실 3% 이내 지역), 여름 ±31일 창 안 연 1회 최적 세척 시 이익 최대 3.6%'로 바꿉니다. 'AI 분석 방법'의 Micheli 2.8%는 '연 오염손실 3% 이내 지역'으로 고칩니다. 7.74%·8.72%에는 '(풍력 직결·완벽 예측 가정 단일 시뮬레이션, PV 연계 평균은 수소 +0.807%)'를 붙이고, MILP 89.7%·93.7%·764회는 삭제합니다.",
+   "severity": "high"
+  },
+  {
+   "file": "report-c",
+   "location": "6장 '리포트 문장 예시 4' callout, [교체 적립금, A·B] 문장",
+   "quote": "전해조 스택은 시스템 비용의 40~50%입니다(IRENA 2020).",
+   "problem": "inconsistent_across_files",
+   "detail": "report-a 3장, report-b 4장(본문과 설계수명 표), deck 07은 모두 '스택 교체비는 전해조 시스템 투자비(CAPEX)의 35~45%(EPRI 2022)'로 씁니다. report-c만 다른 지표와 범위(시스템 비용의 40~50%, IRENA)를 써서 같은 문서 안에 스택 비용 수치가 두 가지로 나옵니다. 주기·수명 수치의 1차 근거인 research-periodic-analysis-lifespan.md는 EPRI 35~45%를 씁니다. IRENA 40~50%는 gaps-fill에만 있고 verify 대조 대상도 아닙니다. 작성자 c는 '검증된 IRENA'라고 했지만 verify 파일에는 이 주장이 없습니다.",
+   "fix": "전해조 스택 교체비는 시스템 투자비(CAPEX)의 35~45%입니다(EPRI 2022).",
+   "severity": "medium"
+  },
+  {
+   "file": "deck",
+   "location": "슬라이드 13 표 1행(태양광·인버터 트립 원인 제거) '출처·조건' 셀",
+   "quote": "NREL 2024, 하위 10%→중앙값",
+   "problem": "overclaim",
+   "detail": "verify-solar의 correctedClaim과 systemicIssues는 NREL 가용률 중앙값 0.99·P90 0.95가 '초기 6개월을 제외한' 값이라는 조건을 반드시 붙이라고 합니다. report-b 표에는 이 조건이 있지만, 덱은 글자 수 때문에 조건을 빼고 하위 10%→중앙값만 남겼습니다.",
+   "fix": "기대효과 셀: '하위10%→중앙값, +4%p(계산)'. 출처·조건 셀: 'NREL 2024, 초기 6개월 제외'(20자, 26자 제한 이내)",
+   "severity": "medium"
+  },
+  {
+   "file": "deck",
+   "location": "슬라이드 09 제목과 side.items[0]",
+   "quote": "사례: 충전 8h → 7.5h는 용량 감소 신호",
+   "problem": "example_not_labeled",
+   "detail": "8h→7.5h는 실제 사례가 아니라 검토 중에 나온 가정 질문입니다. 그런데 '사례'로 적혀 실측처럼 읽힙니다. 또 report-b 원문은 '신호일 수 있습니다'라고 쓰고 저온·SOC 재보정·상한 변경·셀 불균형 같은 오탐 원인을 먼저 확인하라고 하는데, 덱 제목은 용량 감소로 단정합니다. side 1번 항목도 CC-CV 충전에서는 시간 비율과 Ah 비율이 같지 않다는 전제(같은 시작 SOC, 전 구간 같은 전류)가 빠져 있습니다.",
+   "fix": "제목: '예시: 충전 8h→7.5h는 용량 감소 의심 신호'(27자). side.items[0]: '같은 전류·시작점이면 Ah 약 6.25% 감소 의심(계산)'(32자).",
+   "severity": "medium"
+  },
+  {
+   "file": "report-c",
+   "location": "6장 '월간 AI 분석 리포트 예시' 첫 p와 numbers 11번 항목",
+   "quote": "기본 구성은 아래 13개 섹션입니다.",
+   "problem": "inconsistent_across_files",
+   "detail": "본문은 '전체 구성은 동봉 엑셀 정기 리포트 구성 시트'라고 안내합니다. 그런데 엑셀(book.json)과 md C-1의 월간 섹션은 14개입니다(11. 정비 이력, 12. 예비품·보증·안전·보안이 따로 있음). 원고는 둘을 '정비·보증'으로 합쳐 13개로 만들면서 안전·보안 사건 항목을 빠뜨렸습니다. 이 때문에 '사이트 A는 8~10번을 뺀 10개'라는 번호도 엑셀과 맞지 않습니다.",
+   "fix": "'기본 구성은 아래 13개 섹션입니다(동봉 엑셀 '정기 리포트 구성' 시트의 14개 중 '정비 이력'과 '예비품·보증·안전·보안'을 한 섹션으로 묶었습니다).' 11번 항목은 '**정비·보증·안전**: 예방정비 실적, 예방:사후 정비 비율(모범 80:20, SolarPower Europe), 예비품·보증 청구, 안전·보안 사건'으로 바꿉니다.",
+   "severity": "medium"
+  },
+  {
+   "file": "report-c",
+   "location": "7장 한계 bullets 마지막 항목",
+   "quote": "반박 5건과 미확인 7건은 쓰지 않았고, 부분 확인 주장은 원문 조건을 붙여 썼습니다.",
+   "problem": "inconsistent_across_files",
+   "detail": "report-a 1장은 '반박은 원문 기준 문장으로 바꾸거나 뺐고'라고 쓰고, 반박된 API 618 항목을 정정값 120 °C로 실제 사용했습니다. deck 02도 '원문 기준으로 고치거나 뺌'이라고 씁니다. 'report-c의 반박 5건은 쓰지 않았다'는 서술은 다른 파일과 어긋나고 사실과도 다릅니다.",
+   "fix": "반박 5건은 원문 기준 문장으로 고치거나 뺐고(예: 수소 압축기 토출온도 한계는 원문 기준 120 °C), 미확인 7건은 쓰지 않았으며, 부분 확인 주장은 원문 조건을 붙여 썼습니다.",
+   "severity": "medium"
+  },
+  {
+   "file": "report-c",
+   "location": "부록 '주요 출처' note와 sources 목록",
+   "quote": "※ 본문 괄호 안의 짧은 출처 표기에 해당하는 원문입니다.",
+   "problem": "missing_source",
+   "detail": "부록 42개에는 본문 괄호 출처 상당수가 빠져 있습니다. report-a: 한전 배전계통 연계 기술기준, 한전 AMI, 한국전기안전공사 국감자료 2024, IEA AFC TCP 2021, ACCURE 2025, API 618 6판(EFRC 검토), NIST SP 800-82r3, IEC 62443, ISO 14224, SunSpec, REMS RTU 요건. report-b: Jordan·Kurtz 2013, Naumann 2018, Sandia Preger 2020, PDC Machines, IJHE 다이어프램 연구, Micheli 2021, 오원욱·천성일 2015, NREL Smith 2017, Chandran 2022, 2022년 ESS 안전강화 대책, Audibert 2022, Hundman 2018, Tan(NeurIPS 2024), Gao 2023(PAL), IEA PVPS T13 IR·EL 리뷰, ISO 13374. 그런데도 note는 본문 표기 전체에 해당하는 것처럼 적혀 있습니다.",
+   "fix": "위 출처를 부록 sources에 추가합니다. URL은 md F절, gaps-fill.json sources, research-*.json에 있습니다. 예: Jordan & Kurtz https://www.osti.gov/biblio/1073525, Naumann 2018(md [28]), Preger(md [29]), PDC(md [47]), IJHE(md [48]), Micheli는 verify-solar evidenceUrl, 오원욱·천성일 https://koreascience.kr/article/JAKO201514751644626.pdf, Smith 2017 https://docs.nlr.gov/docs/fy17osti/67102.pdf, Chandran 2022 https://pmc.ncbi.nlm.nih.gov/articles/PMC9763490/, Hundman https://arxiv.org/abs/1802.04431, IEA AFC https://ieafuelcell.com/wp-content/uploads/2024/11/2021-stationary-application-performance.pdf, NIST https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-82r3.pdf. 추가하지 않는다면 note를 '※ 본문 괄호 안 짧은 출처 표기 중 주요 원문만 실었습니다. 나머지를 포함한 전체 출처 485행은 동봉 엑셀 '출처' 시트에 있습니다.'로 바꿉니다.",
+   "severity": "medium"
+  },
+  {
+   "file": "report-a",
+   "location": "3장 '보통 받는 데이터' 두 번째 p(연료전지 40개 설명)",
+   "quote": "유럽 가정용 연료전지 실증에서 PEM 연료전지 고장의 64%가 주변설비, 1%가 스택 원인이었습니다(IEA AFC TCP 2021).",
+   "problem": "overclaim",
+   "detail": "verify-hydrogen correctedClaim의 대상은 'ene.field 등 micro-CHP 67기 분석'이고, 1%는 '스택 원인 정지' 비율입니다. research-fuelcell은 이 분석에서 '개질 계통이 주요 고장원'이었다고 적습니다. 즉 개질기를 포함한 가정용 열병합 설비의 통계입니다. 대상 조건을 빼고 순수소 정치형 PEM 연료전지의 데이터 항목 수(40개)를 설명하는 근거로 쓰면 적용 범위가 넓어집니다. 규칙상 사례 수치에는 대상 조건을 붙여야 합니다.",
+   "fix": "유럽 가정용 연료전지 열병합(micro-CHP) 67기 분석에서 PEM 연료전지 고장의 64%가 주변설비에서 났고 스택 원인 정지는 1%였습니다(IEA AFC TCP 2021, 개질 계통을 포함한 설비 기준).",
+   "severity": "medium"
+  },
+  {
+   "file": "report-b",
+   "location": "4장 '개선 여지와 기대효과' 표 note(엑셀 안내), deck 슬라이드 13 callout",
+   "quote": "※ 기대효과는 출처의 대상·조건에서 나온 값이며 우리 설비의 약속값이 아닙니다. 18개 항목 전체는 동봉 엑셀 '개선항목·기대효과' 시트에 있습니다.",
+   "problem": "inconsistent_across_files",
+   "detail": "본문 표와 엑셀 같은 시트의 내용이 어긋납니다. ESS 셀 온도 관리: 본문은 'NREL Smith 2017 4.9년→7.0년'이지만 엑셀은 '정량 효과는 셀 데이터로 재산정 필요(추정)'입니다. PV 세척: 본문은 Micheli 2021, 엑셀은 애리조나 1.91%입니다. 연료전지: 본문은 약 57%·약 33%(차량), 엑셀은 '버스 실운전 56.5%·33%'입니다. ESS 초기 감시: 엑셀에만 '89%가 제어·주변설비'가 있습니다. '18개 전체는 엑셀'이라는 안내를 따라가면 같은 항목의 수치가 다르게 보입니다.",
+   "fix": "엑셀 '개선항목·기대효과' 해당 행을 본문 문구로 맞춥니다. ESS 온도 관리 행은 '셀 온도를 연중 20~30°C로 유지하면 수명 4.9년→7.0년(NREL Smith 2017 수명모델, 용량 70% 기준·DOD 74%, 시뮬레이션)'로 바꿉니다. 나머지 세 행은 report-a 1번 이슈의 fix와 같이 고칩니다.",
+   "severity": "medium"
+  },
+  {
+   "file": "deck",
+   "location": "슬라이드 13 표 3행(ESS 고SOC 완충 후 대기 축소) '기대효과·근거' 셀",
+   "quote": "화재 25건 중 23건이 완충 후 대기 중",
+   "problem": "overclaim",
+   "detail": "verify-solar 원문은 '제한 충전율 이상으로 완충한 뒤 운영하지 않는 상태'입니다. 덱은 '제한 충전율 이상' 조건과 '국내'를 빼서, 완충 대기 일반이 화재 원인인 것처럼 읽힙니다. report-b는 조건을 넣었습니다.",
+   "fix": "기대효과 셀: '제한 충전율 이상 완충 후 대기 23/25건'(24자). 출처 셀: '국내 2021~2024.6(한국전기안전공사)'.",
+   "severity": "low"
+  },
+  {
+   "file": "deck",
+   "location": "슬라이드 13 표 2행(ESS 셀 온도 20~30°C 유지) '출처·조건' 셀",
+   "quote": "NREL Smith 2017 모델, 70% 기준",
+   "problem": "overclaim",
+   "detail": "verify-solar correctedClaim은 '셀 20~30°C 열관리 추가 시 4.9년→7.0년(DOD 74%)'과 '시뮬레이션'을 조건으로 붙입니다. 덱은 DOD 74%를 뺐습니다. 이 수명(4.9년)은 앞 슬라이드의 LFP 캘린더 16년과 전제가 달라 조건 없이 보면 혼동됩니다.",
+   "fix": "출처·조건 셀: 'Smith 2017 모델·DOD 74%·70%'(25자)",
+   "severity": "low"
+  },
+  {
+   "file": "deck",
+   "location": "슬라이드 04 callout 텍스트",
+   "quote": "필수 항목 중심 요약이며 주기는 권장 간격입니다(NREL 2019, IEC 61724-1).",
+   "problem": "missing_source",
+   "detail": "IEC 61724-1의 기상 1분 기록 간격은 원문 Table 1을 확인하지 못하고 2차 요약에서만 확인한 값입니다(md 한계 절, report-a 표 note '2차 요약'). 덱에는 이 조건이 빠졌습니다.",
+   "fix": "필수 항목 중심 요약이며 주기는 권장 간격입니다(NREL 2019, IEC 61724-1 2차 요약). 전체 103개는 동봉 엑셀 '수집데이터_전력' 시트에 있습니다.(93자, 110자 제한 이내)",
+   "severity": "low"
+  },
+  {
+   "file": "report-c",
+   "location": "6장 '리포트 문장 예시 3' [ESS 용량 추세, A]",
+   "quote": "이 추세가 이어지면 80% 검토선 도달은 운전 8년차 전후입니다(추정).",
+   "problem": "example_not_labeled",
+   "detail": "이 값은 예시 값(95.2%, 연 −3.0%p)을 산술로 이어 계산한 결과입니다. '추정'(원문 미확인 값 표기)이 아니라 '계산, 예시'로 적어야 합니다. deck 12의 같은 문장도 '(추정)'으로 되어 있습니다.",
+   "fix": "이 추세가 이어지면 80% 검토선 도달은 운전 8년차 전후입니다(계산, 예시). deck 슬라이드 12 카드 '분기 · A' 3번째 줄: '80% 검토선 도달은 8년차 전후(계산, 예시)'.",
+   "severity": "low"
+  },
+  {
+   "file": "report-c",
+   "location": "6장 '리포트 문장 예시 3' [개선 전후 비교, B]",
+   "quote": "셀 전압 상승률은 4.4에서 3.6 µV/h로 낮아졌습니다(잠정, 예시). 확정 비교는 도입 뒤 1,000 h가 지나면 합니다.",
+   "problem": "other",
+   "detail": "같은 callout의 [스택 전압 열화, B]는 2,100 h 평균을 3.9 µV/h로 제시합니다. 전 4.4, 후 3.6으로 평균 3.9가 되려면 도입 후 구간이 약 1,310 h(62.5%)여야 합니다(계산). 이는 '도입 뒤 1,000 h가 아직 안 됨'과 모순입니다. 5월 월간 예시에 OCV 118 h가 있었으므로 도입은 6월 이후이고, 3분기 말까지 도입 후 운전은 약 680 h(월 170 h × 4)입니다. 이 경우 도입 전 값은 약 4.0이어야 맞습니다.",
+   "fix": "셀 전압 상승률은 4.0에서 3.6 µV/h로 낮아졌습니다(잠정, 예시). 확정 비교는 도입 뒤 1,000 h가 지나면 합니다.",
+   "severity": "low"
+  },
+  {
+   "file": "report-a",
+   "location": "2장 '운전 모드' bullets 두 번째 항목(대기)",
+   "quote": "사이클 718회 뒤 스택 저항(고주파저항)이 약 1.6배가 됐습니다(Weiß 2019, 실험실).",
+   "problem": "technical_error",
+   "detail": "verify-hydrogen correctedClaim은 'PEM 셀의 고주파저항(HFR)이 약 1.6배(약 56→88 mΩ·cm²)'입니다. 실험실 단일 셀 결과이지 스택 저항이 아닙니다. report-c 예시 2도 '실험실 셀에서'로 씁니다.",
+   "fix": "대기: 개방회로전압(OCV) 대기를 포함한 부하 사이클 718회 뒤 셀 고주파저항(HFR)이 약 1.6배가 됐습니다(Weiß 2019, 실험실 셀). 대기시간을 따로 셉니다.",
+   "severity": "low"
+  },
+  {
+   "file": "report-a",
+   "location": "1장 '작성 방법' 두 번째 p 마지막 문장",
+   "quote": "주기·수명·보강 조사는 원문을 직접 확인했으나 315건 대조 대상은 아닙니다.",
+   "problem": "overclaim",
+   "detail": "research-periodic-analysis-lifespan.md 한계 절에 따르면 IEC 61724-1 기록 간격은 2차 요약만, Pei 연구는 리뷰 논문만 확인했습니다. 주기·수명 조사 전체를 '원문 직접 확인'이라고 쓰면 과장입니다.",
+   "fix": "주기·수명·보강 조사는 조사 단계에서 출처 문서를 확인했으나(IEC 61724-1·Pei 2008 등 일부는 2차 자료) 315건 대조 대상은 아닙니다.",
+   "severity": "low"
+  },
+  {
+   "file": "report-b",
+   "location": "5장 'AI 분석 방법 유형별 역할' 표 note",
+   "quote": "드론 열화상은 4 MWp 발전소 점검 시간을 휴대형 카메라 15~20시간에서 5~10시간으로 줄입니다(IEA PVPS T13 IR·EL 영상 리뷰).",
+   "problem": "overclaim",
+   "detail": "verify-ai는 이 수치를 '모든 조건이 이상적일 때 기준'이라는 조건을 붙여 유지했습니다. 조건 없이 쓰면 일반 효과처럼 읽힙니다.",
+   "fix": "드론 열화상은 4 MWp 발전소 점검 시간이 휴대형 카메라 15~20시간, 드론 5~10시간입니다(모든 조건이 이상적일 때 기준, IEA PVPS T13 IR·EL 영상 리뷰).",
+   "severity": "low"
+  },
+  {
+   "file": "report-b",
+   "location": "5장 'AI 분석 방법 유형별 역할' 표 note",
+   "quote": "NASA 위성 원격측정 사례에서 경보 가지치기를 더하자 정밀도가 48.9%에서 87.5%로 올랐습니다",
+   "problem": "technical_error",
+   "detail": "Hundman 외 2018의 데이터는 SMAP(위성)과 MSL(화성 탐사선 큐리오시티) 원격측정입니다. '위성'만으로는 대상이 부정확합니다(research-ai_methods: 'NASA JPL SMAP·MSL 텔레메트리').",
+   "fix": "NASA JPL 우주선(SMAP 위성·MSL 화성 탐사선) 원격측정 사례에서 경보 가지치기를 더하자 정밀도가 48.9%에서 87.5%로 올랐습니다",
+   "severity": "low"
+  },
+  {
+   "file": "report-b",
+   "location": "4장 h2 '사례: 같은 전압·전류에서 충전시간 8시간 → 7시간 30분'과 다음 두 번째 p",
+   "quote": "전류가 같다면 충전시간이 줄어든 비율만큼 담을 수 있는 양도 줄어듭니다.",
+   "problem": "technical_error",
+   "detail": "실제 ESS 충전은 정전류-정전압(CC-CV) 방식이라, 같은 시작 SOC에서 전 구간을 같은 전류로 충전할 때만 시간 비율과 Ah 비율이 같습니다. 이 전제가 빠진 채 6.25% 감소를 굵은 글씨로 단정합니다. 제목의 '사례'도 실측이 아니라 가정 질문이므로 '예시'로 적어야 합니다.",
+   "fix": "제목: '예시: 같은 전압·전류에서 충전시간 8시간 → 7시간 30분'. 문장: '시작 충전상태(SOC)가 같고 전 구간을 같은 전류로 충전했다면, 충전시간이 줄어든 비율만큼 담을 수 있는 양도 줄어듭니다.'",
+   "severity": "low"
+  },
+  {
+   "file": "report-b",
+   "location": "5장 '분석 주기별 대표 판정 항목' 표 '수시' 행 '결과 성격' 셀",
+   "quote": "즉시 대응",
+   "problem": "overclaim",
+   "detail": "수소 누출 경보·비상정지·BMS 보호동작에 대해 분석 콘솔이나 리포트가 '즉시 대응'하는 것처럼 읽힙니다. report-c와 deck 05는 안전 판단을 현장 인터록과 안전관리자가 맡고, 리포트는 기록과 원인 분석을 맡는다고 명시합니다.",
+   "fix": "즉시 기록·보고(대응은 현장 인터록·안전관리자)",
+   "severity": "low"
+  },
+  {
+   "file": "report-c",
+   "location": "6·7장 출처 표기 전반",
+   "quote": "(NREL O&M 3판의 예시는 초기 용량의 70%)",
+   "problem": "inconsistent_across_files",
+   "detail": "같은 출처인데 파일마다 짧은 표기가 다릅니다. 'NREL O&M 3판'(report-c)과 'NREL 2019'(report-a·b·deck), 'EU AST 프로토콜'(report-c)·'EU 전해조 AST 프로토콜'(report-b)·'Clean Hydrogen JU AST 프로토콜'(report-a), 'IEA AFC 2021'(report-b)과 'IEA AFC TCP 2021'(report-a)이 섞여 있어, 부록과 대응시키기 어렵습니다.",
+   "fix": "report-c의 'NREL O&M 3판'을 모두 'NREL 2019'로 바꿉니다(예: '(NREL 2019의 예시는 초기 용량의 70%)', '(SolarPower Europe v6.0, NREL 2019)'). 'EU AST 프로토콜'은 'Clean Hydrogen JU AST 프로토콜'로 통일하고, report-b의 'EU 전해조 AST 프로토콜'과 'IEA AFC 2021'도 각각 'Clean Hydrogen JU AST 프로토콜'과 'IEA AFC TCP 2021'로 맞춥니다.",
+   "severity": "low"
+  },
+  {
+   "file": "report-c",
+   "location": "6장 '리포트 작성 원칙' bullets 다섯 번째 항목",
+   "quote": "**숫자는 계산 엔진이 만들고, AI(대규모 언어모델, LLM)는 문장만 씁니다.**",
+   "problem": "other",
+   "detail": "프로젝트 결정사항(메모리 energy-om-renewal-decisions: 이번 단계 LLM 미사용, 통계·규칙 기반 분석과 리포트 템플릿, P5 LLM 보류)과 달리, 8장 'HySol Desk 콘솔 반영'과 함께 읽으면 LLM 문장 작성이 곧 적용되는 것처럼 보입니다. 사실 오류는 아니지만 경영진이 도입 시점을 오해할 수 있습니다.",
+   "fix": "**숫자는 계산 엔진이 만들고, AI(대규모 언어모델, LLM)는 문장만 쓰도록 설계합니다(LLM 문장 작성은 후속 단계 적용 예정이며, 첫 단계 리포트는 통계·규칙 기반 템플릿으로 발행).**",
+   "severity": "low"
+  },
+  {
+   "file": "report-a",
+   "location": "2장 운전 모드 bullets(OCV 용어), report-b·c와 용어 비교",
+   "quote": "개회로전압(OCV) 대기를 포함한 사이클 718회",
+   "problem": "inconsistent_across_files",
+   "detail": "같은 용어가 report-a에서는 '개회로전압(OCV)', report-b에서는 '개방회로전압 상태', report-c에서는 '개방회로전압(OCV)'으로 적혀 있습니다. 한 문서로 합쳐질 때 용어가 섞입니다.",
+   "fix": "report-a의 '개회로전압(OCV)'을 '개방회로전압(OCV)'으로 바꿔 세 파일을 통일합니다.",
+   "severity": "low"
+  }
+ ],
+ "summary": "I checked all four drafts (report-a, report-b, report-c, deck) against research-periodic-analysis-lifespan.md, the deep research JSONs, the three verify files, facts.json, and the companion workbook (out/book.json). I found 22 issues: 1 high, 8 medium, 13 low.\n\n**What is clean**\n- **facts.json values all match:** 189 (115/61/13), fuel cell 40, 103/86, 131 rows, 47 items (36/15/23), 129 analyses (52/39/27/11; the 40/30/21/9 percentages are correct), 315 checks (231/72/7/5), 485 source rows, 24 lifespan rows, 18 improvement rows.\n- **Contradicted and unverified claims are handled correctly in the drafts.** No contradicted original or unverified number is used as-is. API 618 is written with the corrected 120 °C, and Micheli, Pei and the 2022 SOC rule use the correctedClaim wording.\n- **The main calculations check out:** 6.25%, 25×, 0.8 mV, 0.125~0.33%, about 23,000 h and about 15 years, 47.2% efficiency ↔ 63.6 kg/MWh, 94.6% = 2.1+1.2+1.6+0.5, and 54.8/53.9 = +1.7%.\n- **Units and wording:** µV/h and mV/kh are converted correctly and kW/kWh are not mixed up. \"태양열\" (solar thermal) does not appear anywhere.\n- **Deck length:** every field passes the limits in decktest-qa/check.js.\n\n**High: the companion workbook still has values the drafts removed**\nThe documents send readers to the workbook for the full lists, but it still contains values the drafts corrected or dropped:\n- **'수집데이터_전력':** RCMU 300 mA.\n- **'설계수명·교체주기' and '개선항목·기대효과':** EPRI \"89%/86%\", and \"56.5% in bus operation\".\n- **'개선항목·기대효과':** the Arizona 1.91% example.\n- **'AI 분석 방법':** Micheli 2.8%; Qiu 7.74% without the wind-coupled condition; and MILP 89.7%/93.7%/764, which the verify file lists as unconfirmed.\n\n**Medium**\n1. **Stack cost figure differs across files.** Reports A and B and the deck use 35~45% of CAPEX (EPRI 2022), but report C uses 40~50% of system cost (IRENA 2020).\n2. **Deck slide 13 drops a condition.** NREL availability 0.99 is missing \"first 6 months excluded\".\n3. **Deck slide 09 overstates an example.** The title calls the 8h→7.5h example a real case (\"사례\") and asserts capacity loss.\n4. **Monthly report section count is wrong.** Report C says 13 sections, but the workbook sheet it points to has 14, and safety and security items got lost in the merge.\n5. **Report C misstates how contradicted claims were handled.** It says the 5 contradicted claims were not used, which clashes with report A's statement that one was used in corrected form.\n6. **Report C's appendix is incomplete.** About 27 short citations from the body are missing, yet the note implies full coverage.\n7. **Report A leaves out the conditions behind the IEA AFC 64%/1% figure.** It was a study of 67 European home heat-and-power fuel cells, and those units included gas-reforming equipment.\n8. **Report B and deck slide 13 point to the workbook for the full improvement list, but its rows differ.** The ESS temperature row and several other rows do not match the tables.\n\n**Low**\n- Report C's example 3 rates don't add up (3.9 µV/h vs 4.4→3.6).\n- \"Stack resistance\" should be \"cell HFR\", and \"NASA satellite\" is imprecise (the data also came from a Mars rover).\n- The drone thermal-imaging figure is missing its \"ideal conditions\" qualifier.\n- The 6.25% example needs the premise of the same starting SOC and the same current throughout.\n- The \"8년차 전후\" projections should be labelled \"(계산, 예시)\" rather than \"(추정)\".\n- \"즉시 대응\" in report B's ad-hoc report row could read as the console handling safety response.\n- Short citation labels and the OCV term are spelled differently across files.\n- The LLM wording could mislead on timing, since the project decision is no LLM in this phase.\n\nFiles reviewed:\n- C:/Users/jungm/AppData/Local/Temp/claude/c--Users-jungm-Desktop-projects-simple-solar-dashboard/d489bc63-0117-4773-8ee7-099d2a95864b/scratchpad/docbuild/first/out/draft/{report-a,report-b,report-c,deck}.json\n- C:/Users/jungm/AppData/Local/Temp/claude/c--Users-jungm-Desktop-projects-simple-solar-dashboard/d489bc63-0117-4773-8ee7-099d2a95864b/scratchpad/docbuild/first/out/book.json"
+}

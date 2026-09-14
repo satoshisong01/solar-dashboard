@@ -1,0 +1,125 @@
+{
+ "charts": [
+  {
+   "id": "lifespan-slide",
+   "type": "hbar",
+   "labels": [
+    "PV 모듈",
+    "변압기(절연)",
+    "ESS(LFP 캘린더)",
+    "인버터"
+   ],
+   "series": [
+    {
+     "name": "설계수명",
+     "values": [
+      30,
+      20.5,
+      16,
+      15
+     ]
+    }
+   ],
+   "unit": "년",
+   "yLabel": "기대 수명 (년)",
+   "width": 8.7,
+   "height": 5,
+   "xMax": 36
+  },
+  {
+   "id": "stack-hours-slide",
+   "type": "hbar",
+   "labels": [
+    "전해조 DOE 2022",
+    "전해조 DOE 2026 목표",
+    "연료전지 1~25 kW",
+    "연료전지 0.1~3 MW"
+   ],
+   "series": [
+    {
+     "name": "스택 수명",
+     "values": [
+      40,
+      80,
+      60,
+      80
+     ]
+    }
+   ],
+   "unit": "천h",
+   "yLabel": "운전시간 기준 스택 수명 (천 시간)",
+   "width": 8.7,
+   "height": 5,
+   "valueLabels": [
+    "4만 h",
+    "8만 h",
+    "6만 h",
+    "8만 h"
+   ],
+   "xMax": 100
+  },
+  {
+   "id": "ess-trend-slide",
+   "type": "line",
+   "labels": [
+    "운전 1년",
+    "2년",
+    "3년",
+    "4년",
+    "5년",
+    "6년",
+    "7년"
+   ],
+   "series": [
+    {
+     "name": "유효용량",
+     "values": [
+      100,
+      97,
+      94,
+      91,
+      88,
+      85,
+      82
+     ]
+    }
+   ],
+   "unit": "%",
+   "yMin": 75,
+   "yMax": 103,
+   "yLabel": "초기 대비 유효용량 (%, 예시)",
+   "refLines": [
+    {
+     "value": 80,
+     "label": "보강·교체 검토 80%"
+    }
+   ],
+   "width": 10.6,
+   "height": 6.6,
+   "refLabelOffset": 0.35
+  },
+  {
+   "id": "cadence-slide",
+   "type": "bar",
+   "labels": [
+    "월간",
+    "분기",
+    "연간"
+   ],
+   "series": [
+    {
+     "name": "판정 가능 항목",
+     "values": [
+      36,
+      15,
+      23
+     ]
+    }
+   ],
+   "unit": "개",
+   "yLabel": "판정 가능 항목 수 (중복 포함)",
+   "width": 10.6,
+   "height": 6.6
+  }
+ ]
+}
