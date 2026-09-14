@@ -1,6 +1,26 @@
 import { describe, expect, it } from 'vitest';
 import { createRng } from '@/lib/sim/rng';
-import { hampelFilter, mad, mean, median, modifiedZ, quantile } from './robust';
+import { hampelFilter, mad, mean, median, modifiedZ, quantile, weightedMedian } from './robust';
+
+describe('weightedMedian', () => {
+  it('가중치가 같으면 median과 같고(짝수 길이 평균 포함), 큰 가중치 쪽으로 옮겨 간다', () => {
+    const rng = createRng(9);
+    for (const n of [1, 2, 5, 8]) {
+      const values = Array.from({ length: n }, () => rng.gaussian());
+      expect(weightedMedian(values, values.map(() => 3))).toBeCloseTo(median(values), 12);
+    }
+    expect(weightedMedian([1, 2, 3], [1, 1, 5])).toBe(3);
+    expect(weightedMedian([1, 2, 3, 4], [1, 1, 1, 1])).toBe(2.5);
+    expect(weightedMedian([10, 20], [0, 1])).toBe(20);
+  });
+
+  it('길이가 다르거나 가중치가 음수·합 0이면 오류', () => {
+    expect(() => weightedMedian([1], [1, 2])).toThrow(RangeError);
+    expect(() => weightedMedian([1, 2], [-1, 2])).toThrow(RangeError);
+    expect(() => weightedMedian([1, 2], [0, 0])).toThrow(RangeError);
+    expect(() => weightedMedian([], [])).toThrow(RangeError);
+  });
+});
 
 describe('median / quantile / mean', () => {
   it('홀수·짝수 길이 중앙값과 입력 불변', () => {

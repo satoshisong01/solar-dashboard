@@ -11,24 +11,32 @@ import {
 } from './conditions';
 
 const WIDTHS = { cRate: 0.05, tempC: 5 };
-const RULES = { anchorSocMaxPct: 20, minCcSocSpanPct: 40, minSocSpanPct: 40 };
+const RULES = { anchorSocMaxPct: 20, minCcSocSpanPct: 40, minSocSpanPct: 40, restMinutes: 30, minDeltaSocRestPct: 25 };
 const bin = (key: string, nRef: number, nCur: number, used = true): CapacityBinView => ({ key, nRef, nCur, medRef: 400, medCur: 375, ratio: 0.9375, used });
 
 describe('capacity bin 키', () => {
   it('키를 C-rate·온도 하한으로 읽고, 온도 없음(na)은 null', () => {
-    expect(parseCapacityBinKey('0.15|20')).toEqual({ cRate: 0.15, tempC: 20 });
-    expect(parseCapacityBinKey('0.1|na')).toEqual({ cRate: 0.1, tempC: null });
-    expect(parseCapacityBinKey('bad')).toEqual({ cRate: null, tempC: null });
+    expect(parseCapacityBinKey('0.15|20')).toEqual({ cRate: 0.15, tempC: 20, direction: null });
+    expect(parseCapacityBinKey('0.1|na')).toEqual({ cRate: 0.1, tempC: null, direction: null });
+    expect(parseCapacityBinKey('bad')).toEqual({ cRate: null, tempC: null, direction: null });
+    expect(parseCapacityBinKey('dis|25')).toEqual({ cRate: null, tempC: 25, direction: 'discharge' });
   });
 
   it('bin 라벨은 폭을 더한 구간 (부동소수 잡음 없이)', () => {
     expect(capacityBinLabel('0.1|20', WIDTHS)).toBe('0.10~0.15C · 20~25°C');
     expect(capacityBinLabel('0.15|na', WIDTHS)).toBe('0.15~0.20C · 셀온도 없음');
     expect(capacityBinLabel('0.2|-5', { cRate: 0.1, tempC: 2.5 })).toBe('0.20~0.30C · -5.0~-2.5°C');
+    expect(capacityBinLabel('chg|20', WIDTHS)).toBe('충전 방향 · 20~25°C');
   });
 });
 
 describe('capacityConditionSentence', () => {
+  it('휴지 앵커: 방향 bin은 전류 범위 없이 온도·휴지 규칙과 쌍 수', () => {
+    expect(capacityConditionSentence({ metric: 'rest_anchored', bins: [bin('chg|20', 5, 21), bin('dis|20', 5, 20)], widths: WIDTHS, rules: RULES })).toBe(
+      '셀온도 20~25°C, 30분 이상 휴지 끝 SOC 두 점, SOC 변화 ≥ 25%, 기준 10쌍·최근 41쌍',
+    );
+  });
+
   it('설계 §3.1 예시 문장: 앵커 세션 한 bin', () => {
     expect(capacityConditionSentence({ metric: 'capacity_ah_anchored', bins: [bin('0.2|20', 18, 9)], widths: WIDTHS, rules: RULES })).toBe(
       '충전전류 0.20~0.25C, 셀온도 20~25°C, 휴지 후 SOC ≤ 20% 시작 → 완충, 기준 18회·최근 9회',

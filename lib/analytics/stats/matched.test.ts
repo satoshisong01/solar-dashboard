@@ -22,8 +22,8 @@ describe('matchedRatio', () => {
     expect(result.ratio).toBeCloseTo(0.9 * (10 / 15) + 0.95 * (5 / 15), 12);
     expect(result.ciLow).toBeCloseTo(result.ratio ?? 0, 12); // 상수 표본 → CI 폭 0
     expect(result.bins).toEqual([
-      { key: 'a', nRef: 5, nCur: 10, medRef: 100, medCur: 90, ratio: 0.9, used: true },
-      { key: 'b', nRef: 5, nCur: 5, medRef: 200, medCur: 190, ratio: 0.95, used: true },
+      { key: 'a', nRef: 5, nCur: 10, medRef: 100, medCur: 90, ratio: 0.9, used: true, weight: 10 / 15 },
+      { key: 'b', nRef: 5, nCur: 5, medRef: 200, medCur: 190, ratio: 0.95, used: true, weight: 5 / 15 },
     ]);
   });
 
@@ -47,6 +47,35 @@ describe('matchedRatio', () => {
     if (result.status === 'insufficient') expect(result.reason).toContain('표본 부족');
     const total = matchedRatio(rows('a', [1, 1, 1, 1, 1]), rows('a', [1, 1, 1, 1, 1, Number.NaN]), binOf, valueOf, { rng: createRng(1) });
     expect(total.status).toBe('insufficient');
+  });
+
+  it('가중치: bin 통계량은 가중 중앙값, 결합 가중치는 최근 표본 가중치 합 비율 (방법 명시)', () => {
+    type WRow = Row & { readonly w: number };
+    const wrows = (bin: string, values: readonly (readonly [number, number])[]): WRow[] => values.map(([value, w]) => ({ bin, value, w }));
+    // 기준 a: 100 ×3(가중 1) + 불확실한 80 ×2(가중 0.1) → 가중 중앙값 100 (보통 중앙값도 100)
+    // 최근 a: 불확실한 70 ×3(가중 0.1) + 확실한 90 ×2(가중 4) → 가중 중앙값 90 (보통 중앙값이면 70)
+    const reference = [...wrows('a', [[100, 1], [100, 1], [100, 1], [80, 0.1], [80, 0.1]]), ...wrows('b', [[200, 1], [200, 1], [200, 1]])];
+    const recent = [...wrows('a', [[70, 0.1], [70, 0.1], [70, 0.1], [90, 4], [90, 4]]), ...wrows('b', [[180, 1], [180, 1], [180, 1]])];
+    const weighted = matchedRatio(reference, recent, binOf, valueOf, { rng: createRng(1), minPerBin: 3, minTotal: 5, iterations: 50, weightKey: (r) => r.w });
+    expect(weighted.status).toBe('ok');
+    const weightA = 8.3 / (8.3 + 3);
+    expect(weighted.bins.map((b) => [b.key, b.medCur, b.weight])).toEqual([
+      ['a', 90, weightA],
+      ['b', 180, 1 - weightA],
+    ]);
+    expect(weighted.ratio).toBeCloseTo(weightA * 0.9 + (1 - weightA) * 0.9, 12);
+    const plain = matchedRatio(reference, recent, binOf, valueOf, { rng: createRng(1), minPerBin: 3, minTotal: 5, iterations: 50 });
+    expect(plain.bins.find((b) => b.key === 'a')?.medCur).toBe(70);
+    // 가중치 0 이하·유한하지 않은 표본은 뺀다
+    const dropped = matchedRatio(reference, [...recent, { bin: 'a', value: 1, w: 0 }], binOf, valueOf, { rng: createRng(1), minPerBin: 3, minTotal: 5, iterations: 50, weightKey: (r) => r.w });
+    expect(dropped.bins.find((b) => b.key === 'a')?.nCur).toBe(5);
+  });
+
+  it('기준 합계 하한을 따로 줄 수 있다 (bin마다 기준을 고르는 경우)', () => {
+    const reference = [...rows('a', [100, 100, 100, 100, 100]), ...rows('b', [200, 200, 200, 200, 200])];
+    const recent = [...rows('a', Array(10).fill(95)), ...rows('b', Array(10).fill(190))];
+    expect(matchedRatio(reference, recent, binOf, valueOf, { rng: createRng(1), iterations: 10 }).status).toBe('insufficient');
+    expect(matchedRatio(reference, recent, binOf, valueOf, { rng: createRng(1), iterations: 10, minTotalReference: 5 }).status).toBe('ok');
   });
 
   it('결정성: 같은 시드면 CI가 같다', () => {

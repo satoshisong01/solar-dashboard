@@ -114,6 +114,15 @@ function tallyDetectors(outcomes: readonly DetectorOutcome[]): SiteRunStats['det
   return tally;
 }
 
+/** 근거 bin 표의 기준 기간 (bin별 기준이면 bin마다 다르다) */
+function referenceRanges(evidence: unknown): { from: number; to: number }[] {
+  const bins = evidence !== null && typeof evidence === 'object' && 'bins' in evidence && Array.isArray(evidence.bins) ? (evidence.bins as unknown[]) : [];
+  return bins.flatMap((bin) => {
+    const b = bin !== null && typeof bin === 'object' ? (bin as Record<string, unknown>) : {};
+    return b.used === true && typeof b.ref_from === 'number' && typeof b.ref_to === 'number' ? [{ from: b.ref_from, to: b.ref_to }] : [];
+  });
+}
+
 /** 용량 감소 finding이 난 랙은 대표 세션 충전 곡선을 읽어 같은 시드로 다시 탐지해 오버레이를 채운다 */
 async function withCapacityCurves(ctx: SiteRunContext, snapshot: SiteSnapshot, points: readonly PointRow[], outcomes: readonly DetectorOutcome[], options: DetectOptions): Promise<DetectorOutcome[]> {
   const index = indexSnapshot(snapshot);
@@ -125,7 +134,9 @@ async function withCapacityCurves(ctx: SiteRunContext, snapshot: SiteSnapshot, p
     }
     try {
       const sessions = index.episodesOf(outcome.assetId, 'ess.charge').filter((s) => s.valid && s.end <= options.now);
-      const candidates = [...sessions.slice(0, 60), ...sessions.filter((s) => s.start >= options.now - 45 * MS_PER_DAY)];
+      const ranges = referenceRanges(outcome.findings[0]?.evidence);
+      const referenceSessions = ranges.length === 0 ? sessions.slice(0, 60) : sessions.filter((s) => ranges.some((range) => s.start >= range.from && s.start <= range.to));
+      const candidates = [...referenceSessions, ...sessions.filter((s) => s.start >= options.now - 45 * MS_PER_DAY)];
       const curves = await loadChargeCurves(ctx.db, outcome.assetId, points, [...new Map(candidates.map((s) => [s.start, { start: s.start, end: s.end }])).values()]);
       const rerun = runSiteDetectors({ ...snapshot, curves: new Map([[outcome.assetId, curves]]) }, { ...options, detectorIds: ['ess.capacity_fade'], targetAssetIds: new Set([outcome.assetId]) });
       result.push(rerun[0] ?? outcome);

@@ -53,6 +53,29 @@ describe('탐지기별 메시지 템플릿', () => {
     expect(textOf(draft, 'finding.1.advice')).toBe('권고: 기준 조건 용량시험으로 감소 폭 확정; 셀 밸런싱 후 같은 조건으로 재평가. 기각 전 확인할 오탐 요인: 운영 SOC 상한 변경, 셀 불균형으로 인한 조기 종료.');
   });
 
+  it('용량 감소(휴지 앵커): 방향 bin은 전류 범위 없이 휴지 규칙·쌍 수, SOC 기반 추정 주의 문구를 붙이고 validateDraft를 통과한다', () => {
+    const snapshot = capacityFinding().snapshot as Record<string, unknown>;
+    const rest = capacityFinding({
+      effect: { metric: 'rest_anchored', value: -6.2, unit: '%', ciLow: -6.6, ciHigh: -5.8, baseline: 598.1, current: 561, levelUnit: 'Ah' },
+      snapshot: {
+        ...snapshot,
+        metric: 'rest_anchored',
+        cautions: ['soc_estimate_depends_on_bms_recalibration'],
+        rest_pair_rules: { rest_minutes: 30, min_delta_soc_pct: 25, soc_sigma_pct: 1 },
+        bins: [
+          { key: 'chg|20', n_ref: 5, n_cur: 21, med_ref: 598.4, med_cur: 561.1, ratio: 0.9377, used: true, weight: 0.51 },
+          { key: 'dis|20', n_ref: 5, n_cur: 20, med_ref: 597.8, med_cur: 560.9, ratio: 0.9383, used: true, weight: 0.49 },
+        ],
+      },
+    });
+    const pack = buildEvidencePack(packInput({ findings: [rest] }));
+    const draft = templateComposer.compose(pack);
+    const text = textOf(draft, 'finding.1.message');
+    expect(text).toContain('같은 조건(셀온도 20~25°C, 30분 이상 휴지 끝 SOC 두 점, SOC 변화 ≥ 25%, 기준 10쌍·최근 41쌍)으로 휴지 앵커 사이 충방전을 비교하면 유효용량이 598.1 Ah → 561 Ah로 −6.2%');
+    expect(text).toContain('주의: SOC 기반 용량 추정은 BMS SOC 재보정 품질에 의존합니다.');
+    expect(validateDraft(draft, pack)).toMatchObject({ ok: true, issues: [] });
+  });
+
   it('잠정: 탐지 1회면 "잠정" 표기', () => {
     const draft = templateComposer.compose(buildEvidencePack(packInput({ findings: [pvFinding()] })));
     expect(textOf(draft, 'finding.3.message')).toBe(

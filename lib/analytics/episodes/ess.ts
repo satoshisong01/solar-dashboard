@@ -1,4 +1,4 @@
-// ESS 랙 에피소드 추출기: ess.charge@1 · ess.discharge@1 · ess.rest@1 (설계 §3.1).
+// ESS 랙 에피소드 추출기: ess.charge@1 · ess.discharge@1 · ess.rest@2 (설계 §3.1).
 // 입력 메트릭: batt.current(충전 +, 필수) · batt.voltage · batt.soc(%) · cell.temp.avg · cell.voltage.max/min(V)
 import { MS_PER_SECOND, type TimeWindow } from '../types';
 import { activeSegments, activityRuns, restSegments, type Segment, type SegmentRules } from './ess-activity';

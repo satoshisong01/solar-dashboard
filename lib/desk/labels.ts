@@ -59,3 +59,10 @@ export const VERDICT_LABELS: Readonly<Record<string, string>> = {
 };
 
 export const verdictLabel = (verdict: string): string => VERDICT_LABELS[verdict] ?? verdict;
+
+/** 근거 주의 코드 → 문구 (화면·리포트 공용) */
+export const CAUTION_LABELS: Readonly<Record<string, string>> = {
+  soc_estimate_depends_on_bms_recalibration: 'SOC 기반 용량 추정은 BMS SOC 재보정 품질에 의존합니다. BMS 교정·펌웨어 변경 이력과 함께 보세요.',
+};
+
+export const cautionLabel = (code: string): string => CAUTION_LABELS[code] ?? code;

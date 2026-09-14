@@ -18,4 +18,4 @@ export {
   type StackNameplate,
   type StackSteadyConditions,
 } from './stack-episodes';
-export { EXTRACTOR_VERSION, extractorId, type Episode, type EpisodeDq, type EpisodeKind, type ExtractInput } from './types';
+export { EXTRACTOR_VERSIONS, extractorId, type Episode, type EpisodeDq, type EpisodeKind, type ExtractInput } from './types';

@@ -3,6 +3,7 @@ import { createRng } from '@/lib/sim/rng';
 import { MS_PER_DAY } from '../types';
 import { capacityChecks, ESS_CAPACITY_DEFAULTS } from './index';
 import { essCapacityFade, type EssCapacityInput } from './ess-capacity-fade';
+import { restCycleHistory } from './rest-fixtures';
 import { capacityHistory, chargeSession, DAY0 } from './test-fixtures';
 import type { DetectorContext, EssCapacityParams } from './index';
 
@@ -81,7 +82,7 @@ describe('ess.capacity_fade@1', () => {
   it('세션이 부족하거나 정격이 없으면 insufficient와 이유', () => {
     const few = essCapacityFade.detect(input(capacityHistory(400, 375, 15).slice(0, 25)), ctx());
     expect(few).toMatchObject({ status: 'insufficient' });
-    if (few.status === 'insufficient') expect(few.reason).toContain('세션 부족');
+    if (few.status === 'insufficient') expect(few.reason).toContain('표본 부족');
     expect(essCapacityFade.detect(input([], { ratedCapacityAh: 0 }), ctx()).status).toBe('insufficient');
   });
 
@@ -103,6 +104,78 @@ describe('ess.capacity_fade@1', () => {
     const overlay = (result.findings[0]?.evidence as Record<string, Record<string, unknown>>).overlay;
     expect(overlay?.reference).not.toBeNull();
     expect(overlay?.recent).not.toBeNull();
+  });
+});
+
+describe('ess.capacity_fade@1 휴지 앵커·bin별 기준 (연계형 부분 사이클)', () => {
+  const fade = (from: number, to: number, total: number) => (day: number) => 400 * (1 - (total / 100) * Math.min(1, Math.max(0, (day - from) / (to - from))));
+  const restInput = (history: ReturnType<typeof restCycleHistory>, extra: Partial<EssCapacityInput> = {}): EssCapacityInput =>
+    input(history.charges, { discharges: history.discharges, rests: history.rests, ...extra });
+  const evidenceOf = (result: ReturnType<typeof essCapacityFade.detect>) => (result.status === 'ok' ? (result.findings[0]?.evidence as Record<string, unknown> | undefined) : undefined);
+
+  it('CV 종료 앵커가 없는 부분 사이클에서 휴지 앵커로 −6% 감소를 −6 ± 1%p로 추정하고 방식·방식별 표본 수·SOC 주의 코드를 남긴다', () => {
+    const history = restCycleHistory({ days: 90, seed: 21, capacityAh: fade(20, 60, 6) });
+    const result = essCapacityFade.detect(restInput(history), ctx());
+    expect(result.status).toBe('ok');
+    if (result.status !== 'ok') return;
+    const [finding] = result.findings;
+    expect(finding?.effect.metric).toBe('rest_anchored');
+    expect(finding?.effect.value).toBeGreaterThan(-7);
+    expect(finding?.effect.value).toBeLessThan(-5);
+    expect(finding?.effect.ciHigh).toBeLessThan(0);
+    expect(finding?.summary).toContain('휴지 앵커');
+    const evidence = evidenceOf(result) ?? {};
+    expect(evidence.cautions).toEqual(['soc_estimate_depends_on_bms_recalibration']);
+    expect(evidence.reference_mode).toBe('per_bin');
+    expect(evidence.methods).toMatchObject({ capacity_ah_anchored: { status: 'insufficient', samples: 0 }, rest_anchored: { status: 'ok' } });
+    const bins = evidence.bins as { key: string; used: boolean; ref_from: number | null; ref_to: number | null; excluded: string | null }[];
+    expect(bins.map((b) => [b.key, b.used, b.excluded])).toEqual([
+      ['chg|20', true, null],
+      ['dis|20', true, null],
+    ]);
+    expect(bins.every((b) => b.ref_from !== null && b.ref_to !== null && b.ref_to < DAY0 + 10 * MS_PER_DAY)).toBe(true);
+    expect(evidence.rest_pair_rules).toEqual({ rest_minutes: 30, min_delta_soc_pct: 25, soc_sigma_pct: 1 });
+    // 대표 충전 곡선: 중앙값에 가까운 휴지 앵커 쌍 안의 충전 세션
+    const curves = history.charges.map((c) => ({ start: c.start, points: [{ elapsed_s: 0, ah: 0, soc: 20 }, { elapsed_s: 18_000, ah: c.features.ah_in, soc: c.features.soc_end }] }));
+    const withCurves = evidenceOf(essCapacityFade.detect(restInput(history, { curves }), ctx())) ?? {};
+    const overlay = withCurves.overlay as { reference: { start: number } | null; recent: { start: number } | null };
+    expect(history.charges.some((c) => c.start === overlay.reference?.start)).toBe(true);
+    expect(overlay.recent?.start ?? 0).toBeGreaterThan(DAY0 + 60 * MS_PER_DAY);
+  });
+
+  it('계절이 바뀌어 셀 온도 bin이 달라져도 새 bin의 기준으로 판정한다 (여름 insufficient 해소, 변화 없으면 0건)', () => {
+    const history = restCycleHistory({ days: 200, seed: 22, capacityAh: () => 400, tempC: (day) => (day < 120 ? 23 : 27) });
+    const summer = essCapacityFade.detect(restInput(history), ctx(1, { now: DAY0 + 200 * MS_PER_DAY }));
+    expect(summer).toEqual({ status: 'ok', findings: [] });
+    // 첫 20 세션만 기준으로 쓰던 방식이면 여름(25°C bin)에 기준이 없다 → 기준 창을 봄까지로 고정하면 여름은 판정 불능
+    const fixedWindow = essCapacityFade.detect(restInput(history), ctx(1, { now: DAY0 + 200 * MS_PER_DAY, referenceWindow: { start: DAY0 - MS_PER_DAY, end: DAY0 + 20 * MS_PER_DAY } }));
+    expect(fixedWindow.status).toBe('insufficient');
+  });
+
+  it('SOC 상한 설정 변경(90% → 80%) 대조군: 휴지 앵커 판정이 ok인 상태에서 finding 0건', () => {
+    const history = restCycleHistory({ days: 120, seed: 23, capacityAh: () => 400, socMaxPct: (day) => (day < 70 ? 90 : 80) });
+    const events = [{ ts: DAY0 + 70 * MS_PER_DAY, kind: 'setpoint_change', resetsBaseline: false }] as const;
+    const result = essCapacityFade.detect(restInput(history, { events }), ctx(1, { now: DAY0 + 120 * MS_PER_DAY }));
+    expect(result).toEqual({ status: 'ok', findings: [] });
+  });
+
+  it('판별 체크 ② SOC 상한 설정 변경은 용량 감소 판정이 나온 상황에서 설정 변경 기록·충전 종료 SOC 하락을 지지로 판정한다', () => {
+    const history = restCycleHistory({ days: 90, seed: 24, capacityAh: fade(20, 60, 8), socMaxPct: (day) => (day < 55 ? 90 : 80) });
+    const events = [{ ts: DAY0 + 55 * MS_PER_DAY, kind: 'setpoint_change', resetsBaseline: false }] as const;
+    const result = essCapacityFade.detect(restInput(history, { events }), ctx());
+    expect(result.status === 'ok' && result.findings.length).toBe(1);
+    const checks = (evidenceOf(result)?.checks ?? []) as { id: string; status: string; measured: Record<string, number> }[];
+    expect(checks.find((c) => c.id === 'soc_setpoint')).toMatchObject({ status: 'supports', measured: { setpoint_changes: 1, soc_end_ref: 70, soc_end_recent: 65 } });
+    const noEvent = essCapacityFade.detect(restInput(history), ctx());
+    const noEventChecks = (evidenceOf(noEvent)?.checks ?? []) as { id: string; status: string }[];
+    expect(noEventChecks.find((c) => c.id === 'soc_setpoint')?.status).toBe('supports'); // 기록이 없어도 충전 종료 SOC 중앙값 5%p 하락
+  });
+
+  it('휴지 앵커를 끄면 다음 방식으로 넘어가고, 모두 표본이 없으면 방식별 표본 수를 담은 insufficient', () => {
+    const history = restCycleHistory({ days: 60, seed: 25, capacityAh: () => 400 });
+    const off = essCapacityFade.detect(restInput(history), ctx(1, { now: DAY0 + 60 * MS_PER_DAY, params: { useRestAnchored: false } }));
+    expect(off.status).toBe('insufficient');
+    if (off.status === 'insufficient') expect(off.reason).toMatch(/앵커 기준 0·최근 0, CC 구간 기준 0·최근 0, SOC 변화 기준 0·최근 0/);
   });
 });
 

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { essCapacityFade } from '@/lib/analytics/detectors/ess-capacity-fade';
 import { essCellImbalance } from '@/lib/analytics/detectors/ess-cell-imbalance';
 import { elVoltageRise } from '@/lib/analytics/detectors/stack-detectors';
+import { restCycleHistory } from '@/lib/analytics/detectors/rest-fixtures';
 import { capacityHistory, DAY0, elRuns } from '@/lib/analytics/detectors/test-fixtures';
 import type { CandidateFinding, DetectorResult } from '@/lib/analytics/detectors/types';
 import { MS_PER_DAY } from '@/lib/analytics/types';
@@ -16,6 +17,23 @@ const firstFinding = (result: DetectorResult): CandidateFinding => {
 };
 
 describe('parseEvidence', () => {
+  it('ess.capacity_fade 휴지 앵커: 방식·주의 코드·휴지 규칙·bin별 기준 기간을 읽는다', () => {
+    const history = restCycleHistory({ days: 90, seed: 31, capacityAh: (day) => 400 * (1 - 0.07 * Math.min(1, Math.max(0, (day - 20) / 40))) });
+    const finding = firstFinding(
+      essCapacityFade.detect(
+        { assetId: 7, ratedCapacityAh: 400, commissionedAt: DAY0 - MS_PER_DAY, sessions: history.charges, discharges: history.discharges, rests: history.rests, events: [] },
+        { now: DAY0 + 90 * MS_PER_DAY, rng: createRng(1), params: {} },
+      ),
+    );
+    const view = parseEvidence(finding.evidence);
+    if (view.kind !== 'capacity') throw new Error(`capacity가 아닙니다: ${view.kind}`);
+    expect(view.metric).toBe('rest_anchored');
+    expect(view.cautions).toEqual(['soc_estimate_depends_on_bms_recalibration']);
+    expect(view.rules).toMatchObject({ restMinutes: 30, minDeltaSocRestPct: 25 });
+    expect(view.bins.every((b) => b.used && b.refFrom !== null && b.refTo !== null && b.excluded === null)).toBe(true);
+    expect(capacityConditionSentence({ metric: view.metric, bins: view.bins, widths: view.widths, rules: view.rules })).toMatch(/^셀온도 20~25°C, 30분 이상 휴지 끝 SOC 두 점, SOC 변화 ≥ 25%, 기준 10쌍·최근 \d+쌍$/);
+  });
+
   it('ess.capacity_fade: bin·bin 폭·추세·오버레이·체크를 읽고 조건 문장을 만든다', () => {
     const sessions = capacityHistory(400, 375, 11);
     const curves = sessions.map((s) => ({ start: s.start, points: [{ elapsed_s: 0, ah: 0, soc: 10 }, { elapsed_s: 28_800, ah: s.features.ah_in, soc: 100 }] }));

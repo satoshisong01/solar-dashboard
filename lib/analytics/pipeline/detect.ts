@@ -79,6 +79,8 @@ function capacityRuns(index: SnapshotIndex, options: DetectOptions): DetectorOut
         ratedCapacityAh: ratedCapacityAh(rack),
         commissionedAt: rack.commissionedAt,
         sessions: index.episodesOf(rack.id, 'ess.charge'),
+        discharges: index.episodesOf(rack.id, 'ess.discharge'),
+        rests: index.episodesOf(rack.id, 'ess.rest'),
         events: index.eventsFor(rack.id),
         curves: index.snapshot.curves?.get(rack.id),
       },

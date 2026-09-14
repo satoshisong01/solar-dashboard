@@ -123,16 +123,40 @@ export function scoreDetector(jobs: readonly SiteJobResult[], detectorId: EvalDe
   };
 }
 
+export interface PartialScoreOptions {
+  readonly toleranceDays?: number;
+  /** 이 사이트 주입만 (예: 태양광+ESS SIM-A · 연계형 SIM-B) */
+  readonly siteCode?: string;
+}
+
+/** 크기 오차 ÷ |참 크기| (참 크기가 0이거나 없으면 null) */
+const relativeError = (injection: InjectionResult): number | null => {
+  const error = absError(injection);
+  return error === null || injection.trueEffect === null || injection.trueEffect === 0 ? null : error / Math.abs(injection.trueEffect);
+};
+
 /** 크기 이상 주입만 모은 부분 점수 (게이트용) */
-export function scoreAtLeast(jobs: readonly SiteJobResult[], detectorId: EvalDetectorId, minMagnitude: number, toleranceDays = DEFAULT_TOLERANCE_DAYS): Pick<DetectorScore, 'recall' | 'medianDelayDays' | 'magnitudeMae'> & { readonly injections: number } {
-  const injections = jobs.flatMap((job) => job.injections.filter((i) => i.detectorId === detectorId && i.magnitude >= minMagnitude));
+export function scoreAtLeast(
+  jobs: readonly SiteJobResult[],
+  detectorId: EvalDetectorId,
+  minMagnitude: number,
+  options: PartialScoreOptions = {},
+): Pick<DetectorScore, 'recall' | 'medianDelayDays' | 'magnitudeMae'> & { readonly injections: number; readonly magnitudeRelErrorMedian: number | null } {
+  const toleranceDays = options.toleranceDays ?? DEFAULT_TOLERANCE_DAYS;
+  const injections = jobs.flatMap((job) => job.injections.filter((i) => i.detectorId === detectorId && i.magnitude >= minMagnitude && (options.siteCode === undefined || i.injection.siteCode === options.siteCode)));
   const hits = injections.filter((i) => isHit(i, toleranceDays));
   return {
     injections: injections.length,
     recall: injections.length === 0 ? null : hits.length / injections.length,
     medianDelayDays: medianOrNull(hits.map(delayDays)),
     magnitudeMae: meanOrNull(hits.map(absError)),
+    magnitudeRelErrorMedian: medianOrNull(hits.map(relativeError)),
   };
+}
+
+/** 사이트 한 곳 주입만의 크기별 곡선 (용량 감소처럼 사이트 운전 방식마다 성능이 다른 탐지기) */
+export function curveForSite(jobs: readonly SiteJobResult[], detectorId: EvalDetectorId, siteCode: string, toleranceDays = DEFAULT_TOLERANCE_DAYS): CurvePoint[] {
+  return curveOf(jobs.flatMap((job) => job.injections.filter((i) => i.detectorId === detectorId && i.injection.siteCode === siteCode)), toleranceDays);
 }
 
 export const scoreAll = (jobs: readonly SiteJobResult[], toleranceDays = DEFAULT_TOLERANCE_DAYS): DetectorScore[] => EVAL_DETECTOR_IDS.map((id) => scoreDetector(jobs, id, toleranceDays));

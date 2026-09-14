@@ -3,7 +3,7 @@ import { NUM_CLASS, TABLE_CLASS, TD_CLASS, TH_CLASS, TableScroll } from '@/compo
 import { capacityBinLabel } from '@/lib/desk/conditions';
 import type { CapacityEvidence, CellImbalanceEvidence, DqEvidence, PvPeerEvidence, StackEvidence } from '@/lib/desk/evidence-types';
 import { formatSigned } from '@/lib/desk/effect';
-import { formatNumber } from '@/lib/format';
+import { formatKstDate, formatNumber } from '@/lib/format';
 
 const Th = ({ children, right = false }: Readonly<{ children: ReactNode; right?: boolean }>) => (
   <th scope="col" className={`${TH_CLASS} ${right ? 'text-right' : ''}`}>
@@ -18,12 +18,13 @@ export function CapacityBinsTable({ evidence }: Readonly<{ evidence: CapacityEvi
       <table className={TABLE_CLASS}>
         <thead>
           <tr>
-            <Th>조건 (C-rate · 셀온도)</Th>
+            <Th>{evidence.metric === 'rest_anchored' ? '조건 (방향 · 셀온도)' : '조건 (C-rate · 셀온도)'}</Th>
             <Th right>기준 n</Th>
             <Th right>기준 중앙값 (Ah)</Th>
             <Th right>최근 n</Th>
             <Th right>최근 중앙값 (Ah)</Th>
             <Th right>비율</Th>
+            <Th>기준 기간</Th>
             <Th>비교</Th>
           </tr>
         </thead>
@@ -36,7 +37,8 @@ export function CapacityBinsTable({ evidence }: Readonly<{ evidence: CapacityEvi
               <td className={`${TD_CLASS} ${NUM_CLASS}`}>{bin.nCur}</td>
               <td className={`${TD_CLASS} ${NUM_CLASS}`}>{formatNumber(bin.medCur, 1)}</td>
               <td className={`${TD_CLASS} ${NUM_CLASS}`}>{bin.ratio === null ? '—' : `${formatNumber(bin.ratio, 4)} (${formatSigned((bin.ratio - 1) * 100, 1)}%)`}</td>
-              <td className={`${TD_CLASS} text-xs`}>{bin.used ? '사용' : '표본 부족'}</td>
+              <td className={`${TD_CLASS} whitespace-nowrap text-xs`}>{bin.refFrom != null && bin.refTo != null ? `${formatKstDate(bin.refFrom)} ~ ${formatKstDate(bin.refTo)}` : '—'}</td>
+              <td className={`${TD_CLASS} text-xs`}>{bin.used ? '사용' : bin.excluded === 'reference_spread' ? '기준 시점 차이로 제외' : '표본 부족'}</td>
             </tr>
           ))}
         </tbody>

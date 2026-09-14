@@ -2,12 +2,23 @@
 import type { Json, JsonObject } from '@/lib/analytics/types';
 import type { DetectorOutcome } from '@/lib/analytics/pipeline/types';
 import type { InjectionTruth } from '../truth';
-import { EVAL_DETECTOR_IDS, type DetectionRecord, type EvalDetectorId, type EvidenceWindows, type OutcomeTally } from './types';
+import { EVAL_DETECTOR_IDS, type BinWindow, type DetectionRecord, type EvalDetectorId, type EvidenceWindows, type OutcomeTally } from './types';
 
 export const isEvalDetector = (id: string): id is EvalDetectorId => (EVAL_DETECTOR_IDS as readonly string[]).includes(id);
 
 const asObject = (value: Json | undefined): JsonObject | null => (value !== null && typeof value === 'object' && !Array.isArray(value) ? (value as JsonObject) : null);
 const asNumber = (value: Json | undefined): number | null => (typeof value === 'number' && Number.isFinite(value) ? value : null);
+
+/** 근거 bin 표에서 결합에 쓴 bin의 기준·최근 기간과 가중치 */
+function binWindows(bins: Json | undefined): BinWindow[] {
+  if (!Array.isArray(bins)) return [];
+  return bins.flatMap((raw: Json) => {
+    const b = asObject(raw);
+    const [referenceFrom, referenceTo, recentFrom, recentTo, weight] = [asNumber(b?.ref_from), asNumber(b?.ref_to), asNumber(b?.cur_from), asNumber(b?.cur_to), asNumber(b?.weight)];
+    if (b?.used !== true || referenceFrom === null || referenceTo === null || recentFrom === null || recentTo === null || weight === null || !(weight > 0)) return [];
+    return [{ referenceFrom, referenceTo, recentFrom, recentTo, weight }];
+  });
+}
 
 /** ess.capacity_fade 근거의 기준·최근 창 (없으면 null) */
 export function evidenceWindows(evidence: JsonObject): EvidenceWindows | null {
@@ -16,7 +27,7 @@ export function evidenceWindows(evidence: JsonObject): EvidenceWindows | null {
   const values = [asNumber(reference?.from), asNumber(reference?.to), asNumber(recent?.from), asNumber(recent?.to)];
   const [referenceFrom, referenceTo, recentFrom, recentTo] = values;
   if (referenceFrom == null || referenceTo == null || recentFrom == null || recentTo == null) return null;
-  return { referenceFrom, referenceTo, recentFrom, recentTo };
+  return { referenceFrom, referenceTo, recentFrom, recentTo, bins: binWindows(evidence.bins) };
 }
 
 /** 점검 시각 하나의 결과 → 설비 finding 기록 */

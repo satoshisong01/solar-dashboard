@@ -11,10 +11,23 @@ export type EpisodeKind =
   | 'fc.steady_run'
   | 'fc.start';
 
-export const EXTRACTOR_VERSION = 1;
+/**
+ * 에피소드 종류별 추출기 버전. 특징(features)이 바뀐 종류만 올린다 — 이전 버전으로 저장한 에피소드는 조회에서 빠지고 다시 추출하면 교체된다.
+ * ess.rest@2: 휴지 끝 SOC(soc_end)·휴지 구간 순 Ah(ah_net) 추가 (ess.capacity_fade 휴지 앵커 방식)
+ */
+export const EXTRACTOR_VERSIONS: Readonly<Record<EpisodeKind, number>> = {
+  'ess.charge': 1,
+  'ess.discharge': 1,
+  'ess.rest': 2,
+  'pv.day': 1,
+  'el.steady_run': 1,
+  'el.start': 1,
+  'fc.steady_run': 1,
+  'fc.start': 1,
+};
 
 /** om.episode.extractor_version 값: 'ess.charge@1' */
-export const extractorId = (kind: EpisodeKind): string => `${kind}@${EXTRACTOR_VERSION}`;
+export const extractorId = (kind: EpisodeKind): string => `${kind}@${EXTRACTOR_VERSIONS[kind]}`;
 
 export type EpisodeDq = {
   /** 기대 샘플 대비 good 샘플 비율 (필수 메트릭 중 가장 낮은 값) */

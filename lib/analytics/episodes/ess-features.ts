@@ -69,6 +69,10 @@ export type EssDischargeFeatures = {
 export type EssRestFeatures = {
   readonly duration_s: number;
   readonly soc_mean: number | null;
+  /** 휴지 끝 SOC (BMS가 휴지 OCV로 재보정했을 가능성이 높은 시점, ess.capacity_fade 휴지 앵커) */
+  readonly soc_end: number | null;
+  /** 휴지 구간 전류 적분 [Ah] (|I| ≤ 임계 전류와 짧은 블립, 충전 +) */
+  readonly ah_net: number;
   readonly t_cell_mean: number | null;
   readonly cell_dv_end: number | null;
   readonly v_end: number | null;
@@ -174,6 +178,8 @@ export function restFeatures(signals: EssSignals, segment: TimeWindow): EssRestF
   return {
     duration_s: (segment.end - segment.start) / MS_PER_SECOND,
     soc_mean: meanValue(pointsIn(signals.soc, segment)),
+    soc_end: valueAtOrBefore(signals.soc, segment.end - 1, tolerance),
+    ah_net: ahOf(signals, segment),
     t_cell_mean: meanValue(pointsIn(signals.cellTemp, segment)),
     cell_dv_end: cellDvMv(signals, segment.end - 1),
     v_end: valueAtOrBefore(signals.voltage, segment.end - 1, tolerance),

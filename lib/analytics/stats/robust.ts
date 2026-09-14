@@ -29,6 +29,29 @@ export const quantile = (values: readonly number[], p: number): number => quanti
 
 export const median = (values: readonly number[]): number => quantile(values, 0.5);
 
+/**
+ * 가중 중앙값: 값 오름차순으로 가중치를 누적해 처음으로 전체의 절반 이상이 되는 값.
+ * 누적이 정확히 절반에 닿으면 그 값과 다음 값의 평균 (가중치가 모두 같으면 median과 같다).
+ * 가중치는 0 이상이어야 하고 합이 0보다 커야 한다.
+ */
+export function weightedMedian(values: readonly number[], weights: readonly number[]): number {
+  requireNonEmpty(values, 'weightedMedian');
+  if (values.length !== weights.length) throw new RangeError('weightedMedian: 값과 가중치 길이가 다릅니다');
+  if (weights.some((w) => !(w >= 0) || !Number.isFinite(w))) throw new RangeError('weightedMedian: 가중치는 0 이상 유한수여야 합니다');
+  const order = values.map((value, i) => ({ value, weight: weights[i] as number })).sort((a, b) => a.value - b.value);
+  const total = order.reduce((sum, item) => sum + item.weight, 0);
+  if (!(total > 0)) throw new RangeError('weightedMedian: 가중치 합이 0입니다');
+  const half = total / 2;
+  const tolerance = total * 1e-12;
+  let cumulative = 0;
+  for (let i = 0; i < order.length; i += 1) {
+    cumulative += (order[i] as { weight: number }).weight;
+    if (Math.abs(cumulative - half) <= tolerance && i + 1 < order.length) return ((order[i] as { value: number }).value + (order[i + 1] as { value: number }).value) / 2;
+    if (cumulative > half) return (order[i] as { value: number }).value;
+  }
+  return (order[order.length - 1] as { value: number }).value;
+}
+
 export function mean(values: readonly number[]): number {
   requireNonEmpty(values, 'mean');
   return values.reduce((sum, v) => sum + v, 0) / values.length;

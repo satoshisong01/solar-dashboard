@@ -98,7 +98,12 @@ export const EVAL_PRESET = Object.freeze({
   faultStartDay: 120,
   capacityFadeDays: 30,
   sweeps: {
+    /** SIM-A 랙 1 (태양광+ESS, 매일 SOC 10~90% 사이클) */
     capacityFadePct: [1, 3, 5, 7, 10],
+    /** SIM-B 랙 1 (연계형: 전해조 뒤 남는 전력으로만 부분 충전) */
+    integratedCapacityFadePct: [1, 3, 5, 7, 10],
+    /** SIM-A 랙 3 셀 전압 산포 증가 [mV/월] */
+    cellSpreadMvPerMonth: [5, 10, 20],
     elzUvPerH: [5, 10, 20, 40],
     fcUvPerH: [5, 10, 20, 40],
     inverterDropPctPoints: [0.5, 1, 2, 3],
@@ -118,6 +123,8 @@ export type EvalPreset = typeof EVAL_PRESET;
 
 export interface EvalMagnitudes {
   readonly capacityFadePct: number | null;
+  readonly integratedCapacityFadePct: number | null;
+  readonly cellSpreadMvPerMonth: number | null;
   readonly elzUvPerH: number | null;
   readonly fcUvPerH: number | null;
   readonly inverterDropPctPoints: number | null;
@@ -135,7 +142,7 @@ export interface EvalRunPlan {
 
 /**
  * 시드 × 스윕 순번마다 실행 하나. 순번 i에서 각 스윕의 i번째 크기를 설비 하나에만 넣는다
- * (동종 비교 기준이 남도록 SIM-A 랙·인버터는 1대씩, 목록이 짧은 스윕은 그 순번에 고장 없음).
+ * (동종 비교 기준이 남도록 랙·인버터는 1대씩 — SIM-A 랙 1 용량·랙 3 셀 불균형, SIM-B 랙 1 용량 — 목록이 짧은 스윕은 그 순번에 고장 없음).
  */
 export function evalRunPlans(preset: EvalPreset = EVAL_PRESET): readonly EvalRunPlan[] {
   const { sweeps, faultStartDay: startDay } = preset;
@@ -144,6 +151,8 @@ export function evalRunPlans(preset: EvalPreset = EVAL_PRESET): readonly EvalRun
     Array.from({ length: runs }, (_, i): EvalRunPlan => {
       const magnitudes: EvalMagnitudes = {
         capacityFadePct: sweeps.capacityFadePct[i] ?? null,
+        integratedCapacityFadePct: sweeps.integratedCapacityFadePct[i] ?? null,
+        cellSpreadMvPerMonth: sweeps.cellSpreadMvPerMonth[i] ?? null,
         elzUvPerH: sweeps.elzUvPerH[i] ?? null,
         fcUvPerH: sweeps.fcUvPerH[i] ?? null,
         inverterDropPctPoints: sweeps.inverterDropPctPoints[i] ?? null,
@@ -151,6 +160,8 @@ export function evalRunPlans(preset: EvalPreset = EVAL_PRESET): readonly EvalRun
       const faults: Scenario[] = [
         ...(magnitudes.capacityFadePct === null ? [] : [{ kind: 'fault.battery_capacity_fade', site: 'SIM-A', asset: 'ESS1/RACK01', startDay, totalPct: magnitudes.capacityFadePct, days: preset.capacityFadeDays } as const]),
         ...(magnitudes.inverterDropPctPoints === null ? [] : [{ kind: 'fault.inverter_efficiency_drop', site: 'SIM-A', asset: 'PV1/INV01', pctPoints: magnitudes.inverterDropPctPoints, startDay } as const]),
+        ...(magnitudes.cellSpreadMvPerMonth === null ? [] : [{ kind: 'fault.cell_imbalance', site: 'SIM-A', asset: 'ESS1/RACK03', mVPerMonth: magnitudes.cellSpreadMvPerMonth, startDay } as const]),
+        ...(magnitudes.integratedCapacityFadePct === null ? [] : [{ kind: 'fault.battery_capacity_fade', site: 'SIM-B', asset: 'ESS1/RACK01', startDay, totalPct: magnitudes.integratedCapacityFadePct, days: preset.capacityFadeDays } as const]),
         ...(magnitudes.elzUvPerH === null ? [] : [{ kind: 'fault.elz_stack_degradation', site: 'SIM-B', uvPerH: magnitudes.elzUvPerH, startDay } as const]),
         ...(magnitudes.fcUvPerH === null ? [] : [{ kind: 'fault.fc_voltage_decay', site: 'SIM-B', uvPerH: magnitudes.fcUvPerH, startDay } as const]),
       ];

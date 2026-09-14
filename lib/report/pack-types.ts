@@ -67,6 +67,11 @@ export interface CapacityPackEvidence {
   readonly anchorSocMaxPct: number;
   readonly minCcSocSpanPct: number;
   readonly minSocSpanPct: number;
+  /** 휴지 앵커 규칙: 휴지 최소 [분]·SOC 변화 하한 [%p] */
+  readonly restMinutes: number;
+  readonly minDeltaSocRestPct: number;
+  /** 근거 주의 코드 (예: SOC 기반 추정은 BMS SOC 재보정 품질에 의존) */
+  readonly cautions: readonly string[];
   readonly referenceCurrentA: number | null;
   readonly baselineHours: number | null;
   readonly currentHours: number | null;

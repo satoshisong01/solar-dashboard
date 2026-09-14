@@ -32,6 +32,8 @@ export interface SohTargetView {
 export interface CapacityEvidence {
   readonly kind: 'capacity';
   readonly metric: CapacityMetric;
+  /** 주의 코드 (예: soc_estimate_depends_on_bms_recalibration) */
+  readonly cautions: readonly string[];
   readonly widths: BinWidths;
   readonly rules: SessionRules;
   readonly bins: readonly CapacityBinView[];

@@ -14,11 +14,22 @@ export const EVAL_DETECTOR_CLASS: Readonly<Record<EvalDetectorId, string>> = {
   'fc.voltage_decay': 'fc.stack',
 };
 
+/** bin별 기준을 쓴 비교에서 결합에 쓴 bin 하나의 기준·최근 기간과 결합 가중치 */
+export interface BinWindow {
+  readonly referenceFrom: number;
+  readonly referenceTo: number;
+  readonly recentFrom: number;
+  readonly recentTo: number;
+  readonly weight: number;
+}
+
 export interface EvidenceWindows {
   readonly referenceFrom: number;
   readonly referenceTo: number;
   readonly recentFrom: number;
   readonly recentTo: number;
+  /** 결합에 쓴 bin별 기간 (근거에 없으면 빈 배열 → 전체 기간으로 참값을 계산) */
+  readonly bins: readonly BinWindow[];
 }
 
 /** 점검 시각 하나에서 나온 finding 요약 */
@@ -58,6 +69,13 @@ export interface InjectionResult {
   readonly trueEffect: number | null;
 }
 
+/** 점검 시각 하나에서 설비 단위 탐지기 한 대의 판정 상태 (ess.capacity_fade 판정 가능 기간 집계용) */
+export interface CheckpointStatus {
+  readonly ts: number;
+  readonly assetId: number;
+  readonly status: 'ok' | 'insufficient' | 'error';
+}
+
 export interface SiteJobStats {
   readonly simulationMs: number;
   readonly extractionMs: number;
@@ -80,5 +98,7 @@ export interface SiteJobResult {
   readonly injections: readonly InjectionResult[];
   readonly controls: readonly ControlEventTruth[];
   readonly tallies: readonly OutcomeTally[];
+  /** ess.capacity_fade 점검 시각별 설비 판정 상태 */
+  readonly capacityStatuses: readonly CheckpointStatus[];
   readonly stats: SiteJobStats;
 }

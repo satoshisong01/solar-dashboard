@@ -5,7 +5,7 @@ import type { CheckStatus } from '@/lib/analytics/detectors/types';
 import { DEFAULT_ESS_EXTRACTOR_PARAMS } from '@/lib/analytics/episodes/ess';
 import { DEFAULT_STACK_EXTRACTOR_PARAMS } from '@/lib/analytics/episodes/stack-episodes';
 import { DAYS_PER_MONTH, MS_PER_DAY } from '@/lib/analytics/types';
-import { parseCapacityBinKey, type CapacityMetric } from './conditions';
+import { CAPACITY_METRICS, parseCapacityBinKey, type CapacityMetric } from './conditions';
 import { formatSigned } from './effect';
 import type { CapacityEvidence, CellImbalanceEvidence, CheckView, DqEvidence, EvidenceView, MeasuredValue, PvPeerEvidence, Span, StackEvidence } from './evidence-types';
 import { asArray, asBoolean, asNumber, asRecord, asString, xyPoints, type JsonRecord } from './json-read';
@@ -14,7 +14,6 @@ import type { ChargeCurve } from './overlay';
 import type { TrendView } from './trend';
 
 const CHECK_STATUSES: readonly CheckStatus[] = ['supports', 'refutes', 'unknown', 'no_data'];
-const CAPACITY_METRICS: readonly CapacityMetric[] = ['capacity_ah_anchored', 'capacity_ah_cc', 'capacity_ah_soc'];
 const MS_PER_MONTH = DAYS_PER_MONTH * MS_PER_DAY;
 
 const slopeText = (slope: number | null, low: number | null, high: number | null, unit: string, digits: number): string | null =>
@@ -79,16 +78,26 @@ function parseCapacity(s: JsonRecord): CapacityEvidence {
   const trend = asRecord(s.trend);
   const target = asRecord(trend.soh_target_date);
   const window = (value: unknown) => ({ n: asNumber(asRecord(value).n) ?? 0, from: asNumber(asRecord(value).from), to: asNumber(asRecord(value).to) });
+  const restRules = asRecord(s.rest_pair_rules);
   return {
     kind: 'capacity',
     metric: metric !== null && (CAPACITY_METRICS as readonly string[]).includes(metric) ? (metric as CapacityMetric) : 'capacity_ah_anchored',
+    cautions: asArray(s.cautions).flatMap((c) => (typeof c === 'string' ? [c] : [])),
     widths: { cRate: asNumber(widths.c_rate) ?? ESS_CAPACITY_DEFAULTS.cRateBinWidth, tempC: asNumber(widths.temp_c) ?? ESS_CAPACITY_DEFAULTS.tempBinWidthC },
-    rules: { anchorSocMaxPct: DEFAULT_ESS_EXTRACTOR_PARAMS.anchorSocMaxPct, minCcSocSpanPct: DEFAULT_ESS_EXTRACTOR_PARAMS.minCcSocSpanPct, minSocSpanPct: DEFAULT_ESS_EXTRACTOR_PARAMS.minSocSpanPct },
+    rules: {
+      anchorSocMaxPct: DEFAULT_ESS_EXTRACTOR_PARAMS.anchorSocMaxPct,
+      minCcSocSpanPct: DEFAULT_ESS_EXTRACTOR_PARAMS.minCcSocSpanPct,
+      minSocSpanPct: DEFAULT_ESS_EXTRACTOR_PARAMS.minSocSpanPct,
+      restMinutes: asNumber(restRules.rest_minutes) ?? ESS_CAPACITY_DEFAULTS.restMinutes,
+      minDeltaSocRestPct: asNumber(restRules.min_delta_soc_pct) ?? ESS_CAPACITY_DEFAULTS.minDeltaSocRest,
+    },
     bins: asArray(s.bins)
       .flatMap((item) => {
         const b = asRecord(item);
         const key = asString(b.key);
-        return key === null ? [] : [{ key, nRef: asNumber(b.n_ref) ?? 0, nCur: asNumber(b.n_cur) ?? 0, medRef: asNumber(b.med_ref), medCur: asNumber(b.med_cur), ratio: asNumber(b.ratio), used: asBoolean(b.used) ?? false }];
+        return key === null
+          ? []
+          : [{ key, nRef: asNumber(b.n_ref) ?? 0, nCur: asNumber(b.n_cur) ?? 0, medRef: asNumber(b.med_ref), medCur: asNumber(b.med_cur), ratio: asNumber(b.ratio), used: asBoolean(b.used) ?? false, refFrom: asNumber(b.ref_from), refTo: asNumber(b.ref_to), excluded: asString(b.excluded) }];
       })
       .sort(byCapacityBin),
     reference: window(s.reference),

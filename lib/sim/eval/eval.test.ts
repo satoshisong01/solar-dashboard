@@ -6,9 +6,10 @@ import { evalSite } from './assets';
 import { selectPlans, siteJobs, type SiteJob } from './jobs';
 import { detectionOf, evidenceWindows, injectionMagnitude, tallyOutcomes } from './records';
 import { evaluatePreparedJob, prepareSiteJob } from './replay';
+import { capacityAvailability, socLimitControlScore } from './availability';
 import { evaluateGates } from './scorecard';
 import { scoreAll, scoreAtLeast, scoreDetector } from './score';
-import type { DetectionRecord, InjectionResult, SiteJobResult } from './types';
+import type { CheckpointStatus, DetectionRecord, InjectionResult, SiteJobResult } from './types';
 
 const DAY = 86_400_000;
 const T0 = Date.parse('2026-01-01T00:00:00+09:00');
@@ -20,7 +21,8 @@ describe('평가 잡 분해', () => {
     const control = jobs.filter((j) => j.siteCode === 'SIM-C');
     expect(control.map((j) => j.runIds.length)).toEqual([5, 5, 5]);
     expect(control.every((j) => j.scenarios.length === EVAL_PRESET.controls.length)).toBe(true);
-    expect(jobs.find((j) => j.id === 's101-SIM-A-3')?.scenarios.map((s) => s.kind)).toEqual(['fault.battery_capacity_fade', 'fault.inverter_efficiency_drop']);
+    expect(jobs.find((j) => j.id === 's101-SIM-A-3')?.scenarios.map((s) => s.kind)).toEqual(['fault.battery_capacity_fade', 'fault.inverter_efficiency_drop', 'fault.cell_imbalance']);
+    expect(jobs.find((j) => j.id === 's101-SIM-B-5')?.scenarios.map((s) => s.kind)).toEqual(['fault.battery_capacity_fade']);
   });
 
   it('시드·순번으로 고른다', () => {
@@ -69,6 +71,7 @@ function job(overrides: Partial<SiteJobResult> = {}): SiteJobResult {
     injections: [hit, { ...hit, injection: injection({ params: { totalPct: 3, days: 30 } }), magnitude: 3, firstDetectionTs: null, finalEffect: null, trueEffect: null }],
     controls: [],
     tallies: [],
+    capacityStatuses: [],
     stats: { simulationMs: 0, extractionMs: 0, detectionMs: 0, samples: 0, episodes: 0 },
     ...overrides,
   };
@@ -100,9 +103,53 @@ describe('스코어', () => {
   });
 });
 
+describe('용량 판정 가능 기간·SOC 상한 변경 대조군', () => {
+  const summerDay = Date.parse('2026-06-01T00:00:00+09:00');
+  const status = (day: number, assetId: number, value: CheckpointStatus['status']): CheckpointStatus => ({ ts: summerDay + day * DAY, assetId, status: value });
+
+  it('여름 연속 insufficient 일수 = (마지막 − 처음) + 점검 간격, 사이트별 비율', () => {
+    const statuses = [status(-7, 1, 'insufficient'), status(0, 1, 'insufficient'), status(7, 1, 'insufficient'), status(14, 1, 'ok'), status(21, 1, 'insufficient'), status(0, 2, 'ok')];
+    const summerJob = job({ checkpointTs: [summerDay, summerDay + 7 * DAY], capacityStatuses: statuses });
+    const [site] = capacityAvailability([summerJob]);
+    // 5월 31일 점검은 여름이 아니다 → 여름 연속 구간은 0~7일(2개) = 7 + 7 = 14일
+    expect(site).toMatchObject({ siteCode: 'SIM-A', checkpoints: 6, insufficient: 4, summerLongestInsufficientDays: 14 });
+    expect(site?.insufficientRatio).toBeCloseTo(4 / 6, 12);
+    expect(site?.summerInsufficientRatio).toBeCloseTo(3 / 5, 12);
+  });
+
+  it('SOC 상한 변경 대조군: ESS 설비 아래 랙마다 변경 7일 뒤 ok 점검 수(최소)와 변경 이후 finding 수', () => {
+    const site = evalSite('SIM-C');
+    const [rack1, rack2] = ['SIM-C/ESS1/RACK01', 'SIM-C/ESS1/RACK02'].map((path) => site.byPath.get(path)?.id ?? 0);
+    const controlTs = T0 + 60 * DAY;
+    const controlJob = job({
+      siteCode: 'SIM-C',
+      controls: [{ siteCode: 'SIM-C', assetPath: 'SIM-C/ESS1', kind: 'control.soc_upper_limit_change', startTs: controlTs, endTs: T0 + 126 * DAY, params: {}, confoundedDetectors: ['ess.capacity_fade'] }],
+      capacityStatuses: [status(0, rack1 as number, 'ok'), { ts: controlTs + 7 * DAY, assetId: rack1 as number, status: 'ok' }, { ts: controlTs + 14 * DAY, assetId: rack1 as number, status: 'ok' }, { ts: controlTs + 14 * DAY, assetId: rack2 as number, status: 'ok' }, { ts: controlTs + 3 * DAY, assetId: rack2 as number, status: 'ok' }],
+      detections: [{ ...detection(70, rack2 as number) }],
+    });
+    expect(socLimitControlScore([controlJob])).toMatchObject({ racks: 2, minOkCheckpoints: 1, falsePositives: 1 });
+    expect(socLimitControlScore([job()])).toMatchObject({ racks: 0, minOkCheckpoints: null, falsePositives: 0 });
+  });
+
+  it('사이트별 부분 점수와 크기 상대오차 중앙값, 연계형 용량·여름·대조군 게이트', () => {
+    const integrated = job({ siteCode: 'SIM-B', injections: [{ ...job().injections[0], injection: injection({ siteCode: 'SIM-B', assetPath: 'SIM-B/ESS1/RACK01' }) } as InjectionResult] });
+    expect(scoreAtLeast([job(), integrated], 'ess.capacity_fade', 5, { siteCode: 'SIM-B' })).toMatchObject({ injections: 1, recall: 1 });
+    expect(scoreAtLeast([job()], 'ess.capacity_fade', 5).magnitudeRelErrorMedian).toBeCloseTo(0.4 / 5, 12);
+    const gates = evaluateGates([job(), integrated], scoreAll([job(), integrated]));
+    expect(gates.find((g) => g.id === 'ess.capacity_fade.integrated_recall_5pct')).toMatchObject({ value: 1, pass: true });
+    expect(gates.find((g) => g.id === 'ess.capacity_fade.summer_insufficient_run_days')).toMatchObject({ value: 0, comparator: '<', pass: true });
+    expect(gates.find((g) => g.id === 'ess.capacity_fade.soc_limit_control_ok_checks')).toMatchObject({ value: null, pass: false });
+  });
+});
+
 describe('평가 기록', () => {
   it('근거 창·주입 크기·상태 집계', () => {
-    expect(evidenceWindows({ reference: { from: 1, to: 2 }, recent: { from: 3, to: 4 } })).toEqual({ referenceFrom: 1, referenceTo: 2, recentFrom: 3, recentTo: 4 });
+    expect(evidenceWindows({ reference: { from: 1, to: 2 }, recent: { from: 3, to: 4 } })).toEqual({ referenceFrom: 1, referenceTo: 2, recentFrom: 3, recentTo: 4, bins: [] });
+    const bins = [
+      { key: 'chg|20', used: true, weight: 0.6, ref_from: 1, ref_to: 2, cur_from: 5, cur_to: 6 },
+      { key: 'dis|25', used: false, weight: 0, ref_from: 3, ref_to: 4, cur_from: null, cur_to: null },
+    ];
+    expect(evidenceWindows({ reference: { from: 1, to: 4 }, recent: { from: 5, to: 6 }, bins })?.bins).toEqual([{ referenceFrom: 1, referenceTo: 2, recentFrom: 5, recentTo: 6, weight: 0.6 }]);
     expect(evidenceWindows({ reference: { from: 1 } })).toBeNull();
     expect(injectionMagnitude(injection({ kind: 'fault.elz_stack_degradation', params: { uvPerH: 20 } }))).toEqual({ magnitude: 20, unit: 'µV/h' });
     expect(injectionMagnitude(injection({ kind: 'fault.inverter_efficiency_drop', params: { pctPoints: 2 } }))).toEqual({ magnitude: 2, unit: '%p' });

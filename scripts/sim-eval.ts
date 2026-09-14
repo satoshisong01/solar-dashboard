@@ -34,7 +34,10 @@ const PARAMS_NOTE: Readonly<Record<string, string>> = {
   'ess.capacity_fade':
     '시뮬레이터 EMS가 SOC 90%에서 충전을 멈춰 앵커(CV 종료)·CC 보조 세션이 없으므로 부분 충전 쿨롱 카운팅 용량(capacity_ah_soc = 충전 Ah ÷ SOC 변화, SOC 변화 40% 이상) 보조 지표를 추가. ' +
     '5% 이상 탐지 지연 중앙값 23일 → 19일: recentDays 30 → 21, minPerBin 5 → 3 (minTotal 15·심각도 임계 −3/−5/−10%·CI 상한 < 0 조건은 그대로). ' +
-    'C-rate·셀 온도 bin 폭을 탐지기 설정(cRateBinWidth 0.05·tempBinWidthC 5, 값은 그대로)으로 옮겨 재추출 없이 조정 가능.',
+    'C-rate·셀 온도 bin 폭을 탐지기 설정(cRateBinWidth 0.05·tempBinWidthC 5, 값은 그대로)으로 옮겨 재추출 없이 조정 가능. ' +
+    'P2 보강: 첫 20 세션 전체 기준 → bin별 기준(referencePerBin 5, 주 bin 기준 시점과 maxReferenceSpreadDays 120일 넘게 떨어진 bin 제외, 최근 합계 15는 그대로·기준 합계는 bin당 5). ' +
+    '휴지 앵커 방식(rest_anchored: 30분 이상 휴지 끝 SOC 두 점 사이 순 Ah ÷ ΔSOC, |ΔSOC| ≥ 25%, 가중치 = 1/상대분산[SOC 1σ 1%p·전류 적분 0.5%])을 앵커 다음 순위로 추가하고 matchedRatio를 가중 중앙값·최근 가중치 결합으로 확장. ' +
+    '연계형(SIM-B) 판정 불능 약 95% → 0%, 여름 연속 판정 불능 약 5개월 → 0일. 심각도 임계·CI 조건·recentDays·minPerBin은 그대로.',
   'fc.voltage_decay':
     '정출력 운전에서 전압이 떨어지면 전류밀도·온도가 함께 올라 bin 안 회귀 보정이 열화를 지워 20·40 µV/h를 0/6 탐지. ' +
     'correctCurrentDensity·correctTemperature = false(전류밀도 bin·회귀 끔, 온도 bin 유지), 전압은 v_cell_at_jref만 사용(v_cell_mean 대체 제거). ' +
@@ -42,7 +45,7 @@ const PARAMS_NOTE: Readonly<Record<string, string>> = {
   'el.voltage_rise': '변경 없음 (break-in 1,000 h 이후만 쓰므로 1년 평가에서 탐지 지연이 김).',
   'pv.inverter_peer':
     '동종 4대에서는 MAD가 거의 항상 하한이라 하한이 곧 임계다. madFloorRatio 0.5% → 0.3%(수정 z −3.5 기준 유효 탐지 편차 약 2.6% → 1.6%)로 인버터 2%p 저하 0/3 → 3/3, 1%p는 0/3 그대로, 대조군(흐린 주·출력제어) 포함 오탐 0. z 임계 −3.5·최근 7일 중 5일 조건은 그대로.',
-  'ess.cell_imbalance': '변경 없음. eval 프리셋에 셀 불균형 주입이 없어 오탐만 평가.',
+  'ess.cell_imbalance': '탐지기 변경 없음. eval 프리셋에 SIM-A 랙 3 셀 전압 산포 증가 주입(월 5·10·20 mV, 120일째 시작)을 추가해 재현율도 평가.',
 };
 
 interface EvalConfig {

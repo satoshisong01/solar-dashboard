@@ -13,7 +13,8 @@ import { assetEventsOf, evalSite, type EvalSite } from './assets';
 import type { SiteJob } from './jobs';
 import { assetSeriesFor } from './memory-series';
 import { detectionOf, injectionMagnitude, isEvalDetector, tallyOutcomes } from './records';
-import { EVAL_DETECTOR_CLASS, EVAL_DETECTOR_IDS, type DetectionRecord, type EvalDetectorId, type InjectionResult, type SiteJobResult } from './types';
+import type { DetectorOutcome } from '@/lib/analytics/pipeline/types';
+import { EVAL_DETECTOR_CLASS, EVAL_DETECTOR_IDS, type CheckpointStatus, type DetectionRecord, type EvalDetectorId, type EvidenceWindows, type InjectionResult, type SiteJobResult } from './types';
 
 /** 랙 경로 → 시간 평균 참 SOH [ts, soh] (용량 탐지 크기 참값용. 탐지기에는 넘기지 않는다) */
 export type HourlySoh = Readonly<Record<string, readonly (readonly [ts: number, soh: number])[]>>;
@@ -112,14 +113,32 @@ function windowMean(points: readonly (readonly [number, number])[] | undefined, 
   return inside.length === 0 ? null : inside.reduce((sum, [, v]) => sum + v, 0) / inside.length;
 }
 
+/** 참 SOH 비율 변화 [%]. bin별 기준이면 bin마다 (최근 기간 평균 ÷ 기준 기간 평균)을 결합 가중치로 합친다 (탐지기 추정과 같은 정의) */
+function trueCapacityEffect(soh: readonly (readonly [number, number])[] | undefined, windows: EvidenceWindows): number | null {
+  const ratio = (refFrom: number, refTo: number, curFrom: number, curTo: number): number | null => {
+    const reference = windowMean(soh, refFrom, refTo);
+    const recent = windowMean(soh, curFrom, curTo);
+    return reference === null || recent === null || reference === 0 ? null : recent / reference;
+  };
+  if (windows.bins.length === 0) {
+    const whole = ratio(windows.referenceFrom, windows.referenceTo, windows.recentFrom, windows.recentTo);
+    return whole === null ? null : (whole - 1) * 100;
+  }
+  const parts = windows.bins.map((b) => ({ weight: b.weight, ratio: ratio(b.referenceFrom, b.referenceTo, b.recentFrom, b.recentTo) }));
+  if (parts.some((p) => p.ratio === null)) return null;
+  const totalWeight = parts.reduce((sum, p) => sum + p.weight, 0);
+  return (parts.reduce((sum, p) => sum + (p.weight / totalWeight) * (p.ratio as number), 0) - 1) * 100;
+}
+
 function trueEffectOf(ctx: InjectionContext, detectorId: EvalDetectorId, assetPath: string, magnitude: number, last: DetectionRecord | undefined): number | null {
   if (detectorId === 'el.voltage_rise' || detectorId === 'fc.voltage_decay') return magnitude;
   if (detectorId === 'pv.inverter_peer') return -magnitude;
   if (detectorId !== 'ess.capacity_fade' || !last?.windows) return null;
-  const soh = ctx.prepared.soh[assetPath];
-  const reference = windowMean(soh, last.windows.referenceFrom, last.windows.referenceTo);
-  const recent = windowMean(soh, last.windows.recentFrom, last.windows.recentTo);
-  return reference === null || recent === null || reference === 0 ? null : (recent / reference - 1) * 100;
+  return trueCapacityEffect(ctx.prepared.soh[assetPath], last.windows);
+}
+
+function capacityStatusesOf(runs: readonly { readonly now: number; readonly outcomes: readonly DetectorOutcome[] }[]): CheckpointStatus[] {
+  return runs.flatMap(({ now, outcomes }) => outcomes.flatMap((o) => (o.detectorId === 'ess.capacity_fade' && o.assetId !== null ? [{ ts: now, assetId: o.assetId, status: o.status }] : [])));
 }
 
 function injectionResults(ctx: InjectionContext, injection: InjectionTruth): InjectionResult[] {
@@ -161,6 +180,7 @@ export function evaluatePreparedJob(prepared: PreparedJob, options: EvaluateOpti
     injections,
     controls: prepared.truth.controls,
     tallies: tallyOutcomes(runs.flatMap((r) => r.outcomes)),
+    capacityStatuses: capacityStatusesOf(runs),
     stats: { ...prepared.stats, detectionMs: clock() - started, episodes: prepared.episodes.length },
   };
 }

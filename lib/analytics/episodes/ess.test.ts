@@ -103,7 +103,7 @@ describe('extractEssEpisodes: ess.charge@1', () => {
   });
 });
 
-describe('extractEssEpisodes: ess.discharge@1 · ess.rest@1', () => {
+describe('extractEssEpisodes: ess.discharge@1 · ess.rest@2', () => {
   it('방전 Ah는 양수, 휴지 특징', () => {
     const { discharges, rests } = extract(essDischarge(T0 + 60 * MS_PER_MINUTE, 100, 60), MS_PER_DAY);
     expect(discharges).toHaveLength(1);
@@ -112,7 +112,8 @@ describe('extractEssEpisodes: ess.discharge@1 · ess.rest@1', () => {
     expect(discharges[0]?.features.i_mean_c).toBeCloseTo(0.25, 9);
     expect(discharges[0]?.conditions).toMatchObject({ c_rate_bin: 0.25, t_cell_bin: 20, pre_rest: false, end_reason: 'rest' });
     expect(rests).toHaveLength(2);
-    expect(rests[1]?.features).toMatchObject({ duration_s: 600, soc_mean: 50, t_cell_mean: 24, v_end: 830 });
+    expect(rests[1]?.features).toMatchObject({ duration_s: 600, soc_mean: 50, soc_end: 50, ah_net: 0, t_cell_mean: 24, v_end: 830 });
+    expect(rests[1]?.extractorVersion).toBe('ess.rest@2');
     expect(rests[1]?.features.cell_dv_end).toBeCloseTo(10, 6);
   });
 });

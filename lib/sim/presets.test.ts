@@ -100,6 +100,8 @@ describe('EVAL_PRESET · evalRunPlans', () => {
     for (const seed of EVAL_PRESET.seeds) {
       const runs = plans.filter((p) => p.seed === seed);
       expect(runs.map((r) => r.magnitudes.capacityFadePct)).toEqual([1, 3, 5, 7, 10]);
+      expect(runs.map((r) => r.magnitudes.integratedCapacityFadePct)).toEqual([1, 3, 5, 7, 10]);
+      expect(runs.map((r) => r.magnitudes.cellSpreadMvPerMonth)).toEqual([5, 10, 20, null, null]);
       expect(runs.map((r) => r.magnitudes.elzUvPerH)).toEqual([5, 10, 20, 40, null]);
       expect(runs.map((r) => r.magnitudes.fcUvPerH)).toEqual([5, 10, 20, 40, null]);
       expect(runs.map((r) => r.magnitudes.inverterDropPctPoints)).toEqual([0.5, 1, 2, 3, null]);
@@ -107,7 +109,7 @@ describe('EVAL_PRESET · evalRunPlans', () => {
     expect(new Set(plans.map((p) => p.id)).size).toBe(plans.length);
   });
 
-  it('고장은 SIM-A 랙·인버터 1대와 SIM-B 스택에만, 대조군 조건은 SIM-C에만 넣고 모두 검증을 통과한다', () => {
+  it('고장은 SIM-A 랙·인버터 1대와 SIM-B 랙 1대·스택에만, 대조군 조건은 SIM-C에만 넣고 모두 검증을 통과한다', () => {
     for (const plan of plans) {
       const faults = plan.scenarios.filter((s) => s.kind.startsWith('fault.'));
       const controls = plan.scenarios.filter((s) => s.kind.startsWith('control.'));
@@ -117,6 +119,6 @@ describe('EVAL_PRESET · evalRunPlans', () => {
       expect(controls.every((s) => 'site' in s && s.site === 'SIM-C')).toBe(true);
       expect(() => planScenarios(SIM_SITES, plan.scenarios, { originMs: scenarioOriginMs(plan.from) })).not.toThrow();
     }
-    expect(plans.at(-1)?.scenarios.filter((s) => s.kind.startsWith('fault.'))).toHaveLength(1);
+    expect(plans.at(-1)?.scenarios.filter((s) => s.kind.startsWith('fault.')).map((s) => ('site' in s ? s.site : ''))).toEqual(['SIM-A', 'SIM-B']);
   });
 });

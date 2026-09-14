@@ -1,4 +1,5 @@
 import { EmptyNote, Panel } from '@/components/ui/panel';
+import { cautionLabel } from '@/lib/desk/labels';
 import type { CapacityEvidence, EvidenceView, SohTargetView } from '@/lib/desk/evidence-types';
 import type { TrendView } from '@/lib/desk/trend';
 import { formatKstDate } from '@/lib/format';
@@ -37,8 +38,17 @@ function CapacityCanvas({ evidence, chargeTimeText }: Readonly<{ evidence: Capac
   const hasOverlay = evidence.overlay.reference !== null || evidence.overlay.recent !== null;
   return (
     <>
-      <Panel title="같은 조건 비교표" meta="bin별 표본 수·중앙값·비율 (표본 가중 결합 + 부트스트랩 95% CI)">
-        <CapacityBinsTable evidence={evidence} />
+      <Panel title="같은 조건 비교표" meta="bin별 기준(각 bin의 가장 이른 표본)·최근 표본 수·가중 중앙값·비율 (최근 가중치 결합 + 부트스트랩 95% CI)">
+        <div className="flex flex-col gap-2">
+          <CapacityBinsTable evidence={evidence} />
+          {evidence.cautions.length > 0 && (
+            <ul className="flex flex-col gap-0.5 text-xs text-ink-2">
+              {evidence.cautions.map((code) => (
+                <li key={code}>주의: {cautionLabel(code)}</li>
+              ))}
+            </ul>
+          )}
+        </div>
       </Panel>
       <Panel title="에피소드 오버레이" meta="기준·최근 대표 충전 (용량 추정값이 중앙값에 가장 가까운 세션), t=0 정렬">
         {hasOverlay ? <OverlayChart curves={evidence.overlay} chargeTimeText={chargeTimeText} /> : <EmptyNote>근거에 대표 충전 곡선이 없습니다</EmptyNote>}
