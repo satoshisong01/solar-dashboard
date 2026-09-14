@@ -51,6 +51,8 @@ export interface RunScope {
   readonly assetIds: readonly number[] | null;
   readonly fromMs: number | null;
   readonly toMs: number | null;
+  /** 조치 추적의 "검증만 실행" (분석 단계 없이 조치 효과 검증만) */
+  readonly verifyOnly: boolean;
 }
 
 export function parseRunScope(scope: unknown): RunScope {
@@ -61,7 +63,7 @@ export function parseRunScope(scope: unknown): RunScope {
     const ms = text === null ? Number.NaN : Date.parse(text);
     return Number.isFinite(ms) ? ms : null;
   };
-  return { siteIds: ids(s.siteIds), assetIds: Array.isArray(s.assetIds) ? ids(s.assetIds) : null, fromMs: time(s.from), toMs: time(s.to) };
+  return { siteIds: ids(s.siteIds), assetIds: Array.isArray(s.assetIds) ? ids(s.assetIds) : null, fromMs: time(s.from), toMs: time(s.to), verifyOnly: s.mode === 'verify' };
 }
 
 export const RUN_STATUS_LABELS: Readonly<Record<string, string>> = {

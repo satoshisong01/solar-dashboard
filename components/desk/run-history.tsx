@@ -42,6 +42,7 @@ export function RunHistory({ runs }: Readonly<{ runs: readonly RunHistoryRow[] }
                 <span className="block font-medium text-ink">
                   {run.siteCodes.join(', ')}
                   {run.assetCount !== null && <span className="font-normal text-muted"> · 설비 {run.assetCount}개</span>}
+                  {run.verifyOnly && <span className="font-normal text-muted"> · 조치 효과 검증만</span>}
                 </span>
                 <span className="block text-xs text-muted">{periodText(run)}</span>
               </td>

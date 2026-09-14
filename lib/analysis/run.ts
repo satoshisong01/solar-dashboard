@@ -35,6 +35,8 @@ export interface RunAnalysisOptions {
   /** 부트스트랩 난수 시드 (같은 입력·시드 → 같은 CI) */
   readonly seed?: number;
   readonly log?: (message: string) => void;
+  /** 'verify': 롤업·에피소드 추출·KPI·탐지를 건너뛰고 저장된 에피소드로 조치 효과 검증만 한다 (조치 추적의 "검증만 실행") */
+  readonly stages?: 'all' | 'verify';
 }
 
 export type AnalysisStatus = 'succeeded' | 'partial' | 'failed';
@@ -76,9 +78,10 @@ async function execute(db: Kysely<DB>, request: AnalysisRequest, runId: string, 
   const abandoned = await failAbandonedRuns(db, runId, request.siteIds, startedAt);
   const sites = await loadSites(db, request.siteIds);
   if (sites.length !== request.siteIds.length) throw new Error(`없는 사이트가 있습니다: ${request.siteIds.filter((id) => !sites.some((s) => s.id === id)).join(', ')}`);
-  const pointIds = (await Promise.all(sites.map((s) => loadSitePoints(db, s.id)))).flat().map((p) => p.pointId);
-  const rollup = await drainDirty(db, { limit: ROLLUP_LIMIT, maxRounds: 1_000, pointIds });
-  log(`남은 dirty 롤업 ${rollup.picked}개 처리`);
+  const verifyOnly = options.stages === 'verify';
+  const pointIds = verifyOnly ? [] : (await Promise.all(sites.map((s) => loadSitePoints(db, s.id)))).flat().map((p) => p.pointId);
+  const rollup = verifyOnly ? { picked: 0, upserted: 0 } : await drainDirty(db, { limit: ROLLUP_LIMIT, maxRounds: 1_000, pointIds });
+  if (!verifyOnly) log(`남은 dirty 롤업 ${rollup.picked}개 처리`);
 
   const errors: RunError[] = []; // 실행 동안 단계별 오류를 모으는 누적 목록 (이 함수 안에서만 채운다)
   const ctx: SiteRunContext = {
@@ -93,6 +96,7 @@ async function execute(db: Kysely<DB>, request: AnalysisRequest, runId: string, 
     deadline: startedAt.getTime() + (options.timeBudgetMs ?? DEFAULT_TIME_BUDGET_MS),
     errors,
     log,
+    verifyOnly,
   };
   const siteStats: SiteRunStats[] = [];
   for (const site of sites) {
@@ -114,7 +118,7 @@ async function execute(db: Kysely<DB>, request: AnalysisRequest, runId: string, 
 export async function runAnalysis(db: Kysely<DB>, input: AnalysisRequest, options: RunAnalysisOptions = {}): Promise<AnalysisRunResult> {
   const request = analysisRequestSchema.parse(input);
   const now = options.now ?? (() => new Date());
-  const scope = { siteIds: request.siteIds, ...(request.assetIds ? { assetIds: request.assetIds } : {}), from: request.from.toISOString(), to: request.to.toISOString() };
+  const scope = { siteIds: request.siteIds, ...(request.assetIds ? { assetIds: request.assetIds } : {}), from: request.from.toISOString(), to: request.to.toISOString(), ...(options.stages === 'verify' ? { mode: 'verify' } : {}) };
   const run = await db.insertInto('om.analysis_run').values({ requested_by: request.requestedBy, scope: JSON.stringify(scope), started_at: now() }).returning(['id', 'started_at']).executeTakeFirstOrThrow();
 
   let outcome;

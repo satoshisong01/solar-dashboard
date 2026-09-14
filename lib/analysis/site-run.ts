@@ -57,6 +57,8 @@ export interface SiteRunContext {
   readonly deadline: number;
   readonly errors: RunError[];
   readonly log: (message: string) => void;
+  /** 저장된 에피소드로 조치 효과 검증만 한다 */
+  readonly verifyOnly?: boolean;
 }
 
 const message = (error: unknown): string => (error instanceof Error ? error.message : String(error));
@@ -180,7 +182,20 @@ async function detect(ctx: SiteRunContext, data: SiteData, history: readonly Sto
   return outcomes;
 }
 
+async function verifySite(ctx: SiteRunContext, site: SiteRow): Promise<SiteRunStats> {
+  const started = ctx.now().getTime();
+  const assets = await loadSiteAssets(ctx.db, site.id);
+  const targets = assets.filter((a) => ctx.assetIds === null || ctx.assetIds.has(a.id));
+  const history = await loadEpisodes(ctx.db, targets.filter((a) => isExtractable(a.classKey)).map((a) => a.id), ctx.window.end);
+  const verification = await verifyActions(ctx.db, { runId: ctx.runId, siteId: site.id, assetIds: ctx.assetIds, until: ctx.window.end, episodes: history, seed: ctx.seed }).catch((error: unknown) => {
+    recordError(ctx, { stage: 'verify', siteId: site.id }, error);
+    return null;
+  });
+  return { siteId: site.id, siteCode: site.code, assets: targets.length, extractedAssets: 0, episodesSaved: 0, episodesInHistory: history.length, kpiRows: 0, detectors: {}, findings: EMPTY_PERSIST_STATS, verification, skipped: [], elapsedMs: ctx.now().getTime() - started };
+}
+
 export async function runSite(ctx: SiteRunContext, site: SiteRow): Promise<SiteRunStats> {
+  if (ctx.verifyOnly) return verifySite(ctx, site);
   const started = ctx.now().getTime();
   const [assets, points] = await Promise.all([loadSiteAssets(ctx.db, site.id), loadSitePoints(ctx.db, site.id)]);
   const data: SiteData = { site, assets, points, targets: assets.filter((a) => ctx.assetIds === null || ctx.assetIds.has(a.id)) };

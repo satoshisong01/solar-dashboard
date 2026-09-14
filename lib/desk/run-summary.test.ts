@@ -63,7 +63,9 @@ describe('parseRunScope', () => {
       assetIds: null,
       fromMs: Date.parse('2026-05-17T17:00:00.000Z'),
       toMs: Date.parse('2026-09-14T17:00:00.000Z'),
+      verifyOnly: false,
     });
-    expect(parseRunScope({ siteIds: [1], assetIds: [5, 'x'], from: 'bad' })).toEqual({ siteIds: [1], assetIds: [5], fromMs: null, toMs: null });
+    expect(parseRunScope({ siteIds: [1], assetIds: [5, 'x'], from: 'bad' })).toEqual({ siteIds: [1], assetIds: [5], fromMs: null, toMs: null, verifyOnly: false });
+    expect(parseRunScope({ siteIds: [1], mode: 'verify' }).verifyOnly).toBe(true);
   });
 });

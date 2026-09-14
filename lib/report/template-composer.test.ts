@@ -1,0 +1,97 @@
+import { describe, expect, it } from 'vitest';
+import { SAFETY_NOTICE, type ReportDraft } from './composer';
+import { buildEvidencePack } from './evidence-pack';
+import { resolveReportPeriod } from './period';
+import { templateComposer, TEMPLATE_COMPOSER_ID } from './template-composer';
+import { capacityFinding, cellFinding, KST_2026_09_01, packInput, pvFinding, stackFinding } from './test-fixtures';
+import { validateDraft } from './validate';
+
+const DAY = 86_400_000;
+const textOf = (draft: ReportDraft, blockId: string): string => draft.sections.flatMap((s) => s.blocks).find((b) => b.id === blockId)?.text ?? '';
+
+describe('templateComposer@1 섹션', () => {
+  it('요약 → 할 일 → 발견사항 → 데이터 품질 → 검증된 조치 → KPI → 안전 순서, 팩 해시·composer id 기록', () => {
+    const pack = buildEvidencePack(packInput());
+    const draft = templateComposer.compose(pack);
+    expect(draft.composerId).toBe(TEMPLATE_COMPOSER_ID);
+    expect(draft.packHash).toBe(pack.provenance.packHash);
+    expect(draft.sections.map((s) => s.kind)).toEqual(['summary', 'todo', 'findings', 'data_quality', 'verified_actions', 'kpi', 'safety']);
+    expect(draft.sections[1]?.title).toBe('이번 달 할 일');
+    expect(textOf(draft, 'safety.notice')).toBe(SAFETY_NOTICE);
+    expect(textOf(draft, 'summary.overview')).toBe('SIM-A 2026-09-01 ~ 2026-09-30: 발견사항 5건(심각도 4 이상 1건, 판정 보류 0건), 조치 효과 검증 1건(개선 확인 1건).');
+  });
+
+  it('분기 리포트는 "이번 분기 할 일", 할 일은 심각도×신뢰도×추정 영향 상위 3개', () => {
+    const quarter = resolveReportPeriod({ kind: 'quarter', year: 2026, quarter: 3 });
+    if (!quarter.ok) throw new Error('period');
+    const draft = templateComposer.compose(buildEvidencePack(packInput({ period: quarter.period })));
+    const todo = draft.sections.find((s) => s.kind === 'todo');
+    expect(todo?.title).toBe('이번 분기 할 일');
+    expect(todo?.blocks.map((b) => b.text)).toEqual([
+      '1. [SIM-B/ELZ1/STACK1] OCV 대기 최소화·램프율 제한 — 전해조 셀 전압 상승 +21.4 µV/h (심각도 4, 신뢰도 99%)',
+      '2. [SIM-A/ESS1/RACK03] 완충 유지로 밸런싱 시간 확보 — 셀 전압 편차 증가 +23.7 mV (심각도 3, 신뢰도 98%)',
+      '3. [SIM-A/ESS1/RACK01] 기준 조건 용량시험으로 감소 폭 확정 — 배터리 유효용량 감소 −7.4% (심각도 3, 신뢰도 85%)',
+    ]);
+  });
+
+  it('발견사항이 없으면 빈 안내 블록을 둔다', () => {
+    const draft = templateComposer.compose(buildEvidencePack(packInput({ findings: [], verifications: [], kpiRows: [], market: [] })));
+    expect(textOf(draft, 'todo.none')).toBe('우선 조치할 발견사항이 없습니다.');
+    expect(textOf(draft, 'findings.none')).toBe('이번 리포트에 포함한 발견사항이 없습니다.');
+    expect(textOf(draft, 'kpi.none')).toContain('분석을 실행하면');
+  });
+});
+
+describe('탐지기별 메시지 템플릿', () => {
+  it('용량 감소: 같은 조건 문장·Ah·효과·95% CI·환산 충전시간·확정 표기', () => {
+    const draft = templateComposer.compose(buildEvidencePack(packInput({ findings: [capacityFinding()] })));
+    expect(textOf(draft, 'finding.1.message')).toBe(
+      '[SIM-A/ESS1/RACK01] 배터리 유효용량 감소 (확정, 신뢰도 85%·탐지 3회): 같은 조건(충전전류 0.1~0.2C, 셀온도 20~25°C, SOC 변화 ≥ 40%인 부분 충전, 기준 20회·최근 12회)으로 충전을 비교하면 ' +
+        '유효용량이 586.5 Ah → 543.1 Ah로 −7.4%(95% CI −7.5 ~ −7.2) 변했습니다. 59 A 기준 환산 충전시간은 10h 00m → 9h 16m입니다. ' +
+        '정격 대비 추세 −2.5%p/월(95% CI −2.72 ~ −2.29), SOH 80% 도달 추정 2027-05-01. 함께 확인된 신호: 셀 불균형으로 인한 조기 종료.',
+    );
+    expect(textOf(draft, 'finding.1.advice')).toBe('권고: 기준 조건 용량시험으로 감소 폭 확정; 셀 밸런싱 후 같은 조건으로 재평가. 기각 전 확인할 오탐 요인: 운영 SOC 상한 변경, 셀 불균형으로 인한 조기 종료.');
+  });
+
+  it('잠정: 탐지 1회면 "잠정" 표기', () => {
+    const draft = templateComposer.compose(buildEvidencePack(packInput({ findings: [pvFinding()] })));
+    expect(textOf(draft, 'finding.3.message')).toBe(
+      '[SIM-A/PV1/INV01] 인버터 동종 비교 (잠정, 신뢰도 73%·탐지 1회): 평가 7일 중 7일은 같은 사이트 동종 인버터(4대) 대비 kWh/kWp가 낮았습니다. 동종 중앙값 4.18 → 이 인버터 4.09 kWh/kWp, −2.05%(95% CI −2.07 ~ −2.04). 출력제한·클리핑·정지일 1일은 제외했습니다.',
+    );
+  });
+
+  it('판정 보류: 최소 데이터 기간 미달이면 효과 수치 없이 관찰 중으로 쓰고 권고 블록을 두지 않는다', () => {
+    const short = capacityFinding({ windowStart: KST_2026_09_01, windowEnd: KST_2026_09_01 + 12 * DAY });
+    const draft = templateComposer.compose(buildEvidencePack(packInput({ findings: [short] })));
+    const text = textOf(draft, 'finding.1.message');
+    expect(text).toBe('[SIM-A/ESS1/RACK01] 배터리 유효용량 감소 — 판정 보류(관찰 중): 근거 데이터 기간이 최소 21일에 못 미칩니다(현재 12일). 데이터가 더 쌓인 뒤 분석을 다시 실행해 판정합니다.');
+    expect(text).not.toContain('Ah');
+    expect(textOf(draft, 'finding.1.advice')).toBe('');
+  });
+
+  it('스택 전압: 누적 운전시간 축 µV/h·CI·운전 구간 동안 변화', () => {
+    const draft = templateComposer.compose(buildEvidencePack(packInput({ findings: [stackFinding()] })));
+    expect(textOf(draft, 'finding.4.message')).toBe(
+      '[SIM-B/ELZ1/STACK1] 전해조 셀 전압 상승 (확정, 신뢰도 99%·탐지 3회): break-in 1,000 h 이후 정상운전 240구간(누적 운전 1,020~1,950 h)을 같은 전류밀도·온도 구간 2개로 맞추면 셀 평균 전압이 21.4 µV/h(95% CI 20.7 ~ 22.2)로 상승하고 있습니다. 운전 930 h 동안 셀당 약 19.9 mV 상승.',
+    );
+  });
+
+  it('셀 편차: 기준 → 최근 mV·추세·동종 비교', () => {
+    const draft = templateComposer.compose(buildEvidencePack(packInput({ findings: [cellFinding()] })));
+    expect(textOf(draft, 'finding.2.message')).toContain('기준 8 mV(15회) → 최근 31.7 mV(20회)로 +23.7 mV(95% CI +22.8 ~ +25.6) 변했습니다. 추세 +10.1 mV/월(95% CI +9.4 ~ +10.9). 동종 랙 3대 대비 수정 z 5.2.');
+  });
+
+  it('데이터 품질·검증된 조치·KPI 문장', () => {
+    const draft = templateComposer.compose(buildEvidencePack(packInput()));
+    expect(textOf(draft, 'dq.7.message')).toBe('[SIM-A/PV1/INV02] 데이터 결측·고착: 수신 결측 포인트 1개(완결성 최저 91.2%, 결측 최대 6시간), 값 고착 포인트 1개(최장 12.5시간). 게이트웨이·통신 경로 점검과 센서 교정·배선 점검을 요청합니다.');
+    expect(textOf(draft, 'dq.completeness.1')).toBe('[SIM-A/PV1/INV02] 태양광 발전량 데이터 완결성 90%(3일) — 기준 95%에 못 미칩니다. 통신·계측 경로 점검을 요청합니다.');
+    expect(textOf(draft, 'action.9')).toBe('[SIM-A/ESS1/RACK03] 조치 "완충 유지로 밸런싱 시간 확보"(수행 2026-07-23): 충전 종료 셀 전압 편차 −6.2 mV(95% CI −7.1 ~ −5.3, 전 12회·후 11회 비교) → 개선 확인.');
+    const kpi = draft.sections.find((s) => s.kind === 'kpi');
+    expect(kpi?.blocks.map((b) => b.text)).toEqual(['태양광 발전량 합계 12,030 kWh(3일, 일평균 4,010 kWh), 데이터 완결성 99%.', 'ESS 왕복효율 평균 90.6%, 설비별 90~91.2%(2대, 최대 3일), 데이터 완결성 100%.', 'SMP (육지) 기간 평균 142.3 원/kWh(2일 입력, 140.1~144.5).']);
+  });
+
+  it('만든 초안은 validateDraft를 통과한다', () => {
+    const pack = buildEvidencePack(packInput());
+    expect(validateDraft(templateComposer.compose(pack), pack)).toMatchObject({ ok: true, issues: [] });
+  });
+});

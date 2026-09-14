@@ -100,21 +100,35 @@ export async function reopenFinding(db: Kysely<DB>, input: { findingId: string; 
   return db.transaction().execute((trx) => applyTransition(trx, input.findingId, 'reopen', input.actor, { note: input.note }));
 }
 
+export interface MarkInReportInput {
+  readonly findingIds: readonly string[];
+  readonly actor: string;
+  readonly note?: string | null;
+}
+
+export interface MarkInReportResult {
+  readonly moved: readonly string[];
+  readonly skipped: readonly string[];
+}
+
 /** 리포트 승인 시: 승인한 리포트가 인용한 발견사항을 in_report로. 이미 그 뒤 단계거나 닫힌 건은 건너뛴다 */
-export async function markFindingsInReport(db: Kysely<DB>, input: { findingIds: readonly string[]; actor: string; note?: string | null }): Promise<{ readonly moved: readonly string[]; readonly skipped: readonly string[] }> {
-  return db.transaction().execute(async (trx) => {
-    const moved: string[] = [];
-    const skipped: string[] = [];
-    for (const findingId of [...new Set(input.findingIds)].sort()) {
-      try {
-        moved.push((await applyTransition(trx, findingId, 'report', input.actor, { note: input.note })).findingId);
-      } catch (error) {
-        if (!(error instanceof TransitionError) || error.code === 'not_found') throw error;
-        skipped.push(findingId);
-      }
+export async function markFindingsInReport(db: Kysely<DB>, input: MarkInReportInput): Promise<MarkInReportResult> {
+  return db.transaction().execute((trx) => markFindingsInReportInTransaction(trx, input));
+}
+
+/** markFindingsInReport의 트랜잭션 안 버전 (리포트 승인과 같은 트랜잭션에서 쓴다) */
+export async function markFindingsInReportInTransaction(trx: Transaction<DB>, input: MarkInReportInput): Promise<MarkInReportResult> {
+  const moved: string[] = [];
+  const skipped: string[] = [];
+  for (const findingId of [...new Set(input.findingIds)].sort()) {
+    try {
+      moved.push((await applyTransition(trx, findingId, 'report', input.actor, { note: input.note })).findingId);
+    } catch (error) {
+      if (!(error instanceof TransitionError) || error.code === 'not_found') throw error;
+      skipped.push(findingId);
     }
-    return { moved, skipped };
-  });
+  }
+  return { moved, skipped };
 }
 
 export const expectedEffectSchema = z.object({
@@ -140,24 +154,32 @@ export interface MaintenanceActionInput {
   readonly actor: string;
 }
 
+export interface RegisterActionResult {
+  readonly actionId: string;
+  readonly transition: TransitionResult | null;
+}
+
 /** 정비 조치를 기록하고, 발견사항과 연결했으면 action_taken으로 옮긴다 (이미 action_taken이면 그대로) */
-export async function registerMaintenanceAction(db: Kysely<DB>, input: MaintenanceActionInput): Promise<{ readonly actionId: string; readonly transition: TransitionResult | null }> {
+export async function registerMaintenanceAction(db: Kysely<DB>, input: MaintenanceActionInput): Promise<RegisterActionResult> {
+  return db.transaction().execute((trx) => registerMaintenanceActionInTransaction(trx, input));
+}
+
+/** registerMaintenanceAction의 트랜잭션 안 버전 (CSV 가져오기는 모든 행을 한 트랜잭션에서 넣는다) */
+export async function registerMaintenanceActionInTransaction(trx: Transaction<DB>, input: MaintenanceActionInput): Promise<RegisterActionResult> {
   const effect = input.expectedEffect === null ? null : expectedEffectSchema.parse(input.expectedEffect);
   if (input.actionType.trim() === '') throw new TransitionError('invalid', '조치 종류를 입력하세요');
-  return db.transaction().execute(async (trx) => {
-    const asset = await trx.selectFrom('om.asset').select('id').where('id', '=', input.assetId).where('site_id', '=', input.siteId).executeTakeFirst();
-    if (!asset) throw new TransitionError('invalid', '사이트에 없는 설비입니다');
-    const action = await trx
-      .insertInto('om.maintenance_action')
-      .values({ site_id: input.siteId, asset_id: input.assetId, finding_id: input.findingId, action_type: input.actionType.trim(), performed_at: input.performedAt, performed_by: input.performedBy ?? null, notes: input.notes ?? null, expected_effect: effect === null ? null : JSON.stringify(effect), source: input.source, created_by: requireActor(input.actor) })
-      .returning('id')
-      .executeTakeFirstOrThrow();
-    if (input.findingId === null) return { actionId: action.id, transition: null };
-    const current = await trx.selectFrom('om.finding').select('status').where('id', '=', input.findingId).executeTakeFirst();
-    if (!current) throw new TransitionError('not_found', `발견사항 ${input.findingId}을(를) 찾을 수 없습니다`);
-    if (current.status === 'action_taken') return { actionId: action.id, transition: null };
-    return { actionId: action.id, transition: await applyTransition(trx, input.findingId, 'action', input.actor, { note: `조치 기록: ${input.actionType.trim()}` }) };
-  });
+  const asset = await trx.selectFrom('om.asset').select('id').where('id', '=', input.assetId).where('site_id', '=', input.siteId).executeTakeFirst();
+  if (!asset) throw new TransitionError('invalid', '사이트에 없는 설비입니다');
+  const action = await trx
+    .insertInto('om.maintenance_action')
+    .values({ site_id: input.siteId, asset_id: input.assetId, finding_id: input.findingId, action_type: input.actionType.trim(), performed_at: input.performedAt, performed_by: input.performedBy ?? null, notes: input.notes ?? null, expected_effect: effect === null ? null : JSON.stringify(effect), source: input.source, created_by: requireActor(input.actor) })
+    .returning('id')
+    .executeTakeFirstOrThrow();
+  if (input.findingId === null) return { actionId: action.id, transition: null };
+  const current = await trx.selectFrom('om.finding').select('status').where('id', '=', input.findingId).executeTakeFirst();
+  if (!current) throw new TransitionError('not_found', `발견사항 ${input.findingId}을(를) 찾을 수 없습니다`);
+  if (current.status === 'action_taken') return { actionId: action.id, transition: null };
+  return { actionId: action.id, transition: await applyTransition(trx, input.findingId, 'action', input.actor, { note: `조치 기록: ${input.actionType.trim()}` }) };
 }
 
 /** 조치 효과 검증이 개선을 확인하면 system이 verified로 옮긴다 (action_taken일 때만) */

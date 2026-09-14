@@ -29,6 +29,7 @@ export async function dropAnalysisFixture(db: Kysely<DB>): Promise<void> {
     const actions = trx.selectFrom('om.maintenance_action').select('id').where('site_id', '=', site.id);
     const gateways = trx.selectFrom('om.gateway').select('id').where('site_id', '=', site.id);
     const points = trx.selectFrom('om.point').select('id').where('gateway_id', 'in', gateways);
+    await trx.deleteFrom('om.report').where('site_id', '=', site.id).execute();
     await trx.deleteFrom('om.action_verification').where('action_id', 'in', actions).execute();
     await trx.deleteFrom('om.maintenance_action').where('site_id', '=', site.id).execute();
     await trx.updateTable('om.finding').set({ latest_evidence_id: null, previous_finding_id: null }).where('site_id', '=', site.id).execute();
@@ -52,7 +53,7 @@ export async function dropAnalysisFixture(db: Kysely<DB>): Promise<void> {
 async function insertMeasurements(db: Kysely<DB>, points: Readonly<Record<string, number>>, days: number, stepDay: number): Promise<void> {
   await sql`
     WITH minutes AS (
-      SELECT d, m, ${ANALYSIS_BASE_MS}::float8 + (d * 86400000 + m * 60000)::float8 AS ts_ms,
+      SELECT d, m, ${ANALYSIS_BASE_MS}::float8 + (d::float8 * 86400000 + m * 60000) AS ts_ms,
         (m >= 60 AND m < 360) OR (m >= 420 AND m < 720) AS running,
         2000 + (d * 600 + least(greatest(m - 60, 0), 300) + least(greatest(m - 420, 0), 300)) / 60.0 AS run_hours
       FROM generate_series(0, ${days - 1}) AS d, generate_series(0, 1439) AS m

@@ -12,6 +12,7 @@ export interface RunHistoryRow {
   readonly siteCodes: readonly string[];
   /** 설비를 골라 실행했으면 그 수, 사이트 전체면 null */
   readonly assetCount: number | null;
+  readonly verifyOnly: boolean;
   readonly fromMs: number | null;
   readonly toMs: number | null;
   readonly summary: RunSummary;
@@ -34,6 +35,7 @@ export async function listRecentRuns(limit: number): Promise<readonly RunHistory
       finishedMs: run.finished_at ? run.finished_at.getTime() : null,
       siteCodes: scope.siteIds.map((id) => codeOf.get(id) ?? `#${id}`),
       assetCount: scope.assetIds === null ? null : scope.assetIds.length,
+      verifyOnly: scope.verifyOnly,
       fromMs: scope.fromMs,
       toMs: scope.toMs,
       summary: summarizeRunStats(run.stats),
