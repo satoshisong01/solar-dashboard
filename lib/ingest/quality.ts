@@ -13,3 +13,22 @@ export const QUALITY = Object.freeze({
 } as const);
 
 export type QualityFlag = keyof typeof QUALITY;
+
+/** 값 자체를 믿을 수 없게 하는 비트. 하나라도 켜지면 good이 아니다 (m_1h.n_good에서 빠진다). */
+export const BAD_MASK = QUALITY.DEVICE_BAD | QUALITY.HARD_RANGE | QUALITY.SPIKE | QUALITY.FLATLINE;
+
+/**
+ * 값은 유효하고 수신·출처 상태만 알리는 비트. good 판정에 영향을 주지 않는다.
+ * CLOCK_SUSPECT는 시각이 의심스러울 뿐 값은 유효로 본다 (시각이 중요한 분석은 isGoodWithTrustedClock으로 뺀다).
+ */
+export const INFO_MASK = QUALITY.CLOCK_SUSPECT | QUALITY.LATE | QUALITY.REPROCESSED;
+
+/** BAD 비트가 하나도 없으면 true. LATE·REPROCESSED·CLOCK_SUSPECT는 무시한다. */
+export function isGood(quality: number): boolean {
+  return (quality & BAD_MASK) === 0;
+}
+
+/** isGood이면서 CLOCK_SUSPECT도 없으면 true (에피소드 경계·지연 시간처럼 시각 정확도가 판정에 들어가는 분석용) */
+export function isGoodWithTrustedClock(quality: number): boolean {
+  return (quality & (BAD_MASK | QUALITY.CLOCK_SUSPECT)) === 0;
+}

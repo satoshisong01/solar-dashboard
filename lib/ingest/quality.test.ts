@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { QUALITY } from './quality';
+import { BAD_MASK, INFO_MASK, isGood, isGoodWithTrustedClock, QUALITY } from './quality';
 
 const MIGRATIONS_DIR = resolve(process.cwd(), 'db/migrations');
 
@@ -30,5 +30,29 @@ describe('QUALITY', () => {
 
   it('measurement 마이그레이션 주석과 값이 같다', () => {
     expect(readQualityBitsFromMigration()).toEqual({ ...QUALITY });
+  });
+
+  it('모든 비트는 BAD 또는 INFO 중 정확히 한쪽에 속한다', () => {
+    const all = Object.values(QUALITY).reduce((mask, bit) => mask | bit, 0);
+
+    expect(BAD_MASK & INFO_MASK).toBe(0);
+    expect(BAD_MASK | INFO_MASK).toBe(all);
+    expect(BAD_MASK).toBe(QUALITY.DEVICE_BAD | QUALITY.HARD_RANGE | QUALITY.SPIKE | QUALITY.FLATLINE);
+  });
+});
+
+describe('isGood / isGoodWithTrustedClock', () => {
+  it.each([
+    ['0', 0, true, true],
+    ['LATE만', QUALITY.LATE, true, true],
+    ['REPROCESSED | LATE', QUALITY.REPROCESSED | QUALITY.LATE, true, true],
+    ['CLOCK_SUSPECT', QUALITY.CLOCK_SUSPECT, true, false],
+    ['DEVICE_BAD', QUALITY.DEVICE_BAD, false, false],
+    ['HARD_RANGE | LATE', QUALITY.HARD_RANGE | QUALITY.LATE, false, false],
+    ['SPIKE', QUALITY.SPIKE, false, false],
+    ['FLATLINE | CLOCK_SUSPECT', QUALITY.FLATLINE | QUALITY.CLOCK_SUSPECT, false, false],
+  ])('%s → good=%s, 시계 신뢰 good=%s', (_label, quality, good, trusted) => {
+    expect(isGood(quality)).toBe(good);
+    expect(isGoodWithTrustedClock(quality)).toBe(trusted);
   });
 });

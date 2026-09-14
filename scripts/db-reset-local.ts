@@ -3,19 +3,7 @@
 // 안전장치: localhost:54320(embedded-postgres)이 아니면 아무것도 하지 않고 실패한다.
 import pg from 'pg';
 import { getServerEnv } from '../lib/env';
-import { LOCAL_PG, log } from './local-pg';
-
-const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
-
-function assertLocalDatabase(databaseUrl: string): URL {
-  const url = new URL(databaseUrl);
-  if (!LOCAL_HOSTS.has(url.hostname) || url.port !== String(LOCAL_PG.port)) {
-    throw new Error(
-      `로컬 DB(localhost:${LOCAL_PG.port})가 아니어서 중단합니다: ${url.hostname}:${url.port || '5432'}`,
-    );
-  }
-  return url;
-}
+import { assertLocalDatabaseUrl, log } from './local-pg';
 
 async function resetSchemas(client: pg.Client): Promise<string[]> {
   const { rows } = await client.query<{ nspname: string }>(
@@ -42,7 +30,7 @@ async function resetSchemas(client: pg.Client): Promise<string[]> {
 
 async function main(): Promise<void> {
   const { DATABASE_URL } = getServerEnv();
-  const url = assertLocalDatabase(DATABASE_URL);
+  const url = assertLocalDatabaseUrl(DATABASE_URL);
 
   const client = new pg.Client({ connectionString: DATABASE_URL });
   await client.connect();

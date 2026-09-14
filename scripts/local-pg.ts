@@ -52,6 +52,19 @@ export function stopServer(bins: PgBinaries): boolean {
   return !existsSync(LOCAL_PG.pidFile);
 }
 
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+/** 로컬 전용 스크립트의 안전장치: DATABASE_URL이 localhost:54320(embedded-postgres)이 아니면 예외. */
+export function assertLocalDatabaseUrl(databaseUrl: string): URL {
+  const url = new URL(databaseUrl);
+  if (!LOCAL_HOSTS.has(url.hostname) || url.port !== String(LOCAL_PG.port)) {
+    throw new Error(
+      `로컬 DB(localhost:${LOCAL_PG.port})가 아니어서 중단합니다: ${url.hostname}:${url.port || '5432'}`,
+    );
+  }
+  return url;
+}
+
 export function log(message: string): void {
   console.log(`[db] ${message}`);
 }

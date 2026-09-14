@@ -22,6 +22,7 @@
     "db:seed": "dotenv -e .env.development.local -- tsx scripts/db-seed.ts --env-file .env.development.local",
     "db:seed:test": "dotenv -e .env.test.local -- tsx scripts/db-seed.ts --env-file .env.test.local",
     "db:reset": "dotenv -e .env.development.local -- tsx scripts/db-reset-local.ts && npm run db:migrate",
+    "db:rollup:rebuild": "dotenv -e .env.development.local -- tsx scripts/db-rollup-rebuild.ts",
     "sim:backfill": "dotenv -e .env.development.local -- tsx scripts/sim-backfill.ts",
     "sim:live": "dotenv -e .env.development.local -- tsx scripts/sim-live.ts",
     "verify:ingest": "dotenv -e .env.development.local -- tsx scripts/verify-ingest.ts",

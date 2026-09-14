@@ -10,6 +10,7 @@ import type { IngestEnvelopeInput } from '@/lib/ingest/envelope';
 import type { IngestDeps } from '@/lib/ingest/handler';
 import { decodeEncryptionKey } from '@/lib/ingest/key-crypto';
 import { issueGatewayKey } from '@/lib/ingest/keys';
+import { BAD_MASK } from '@/lib/ingest/quality';
 import { signBatch } from '@/lib/ingest/signature';
 import { assertTestDatabaseUrl } from './test-env';
 
@@ -182,14 +183,15 @@ export function testDeps(db: Kysely<DB>, fixture: IngestFixture, nowMs: number, 
   return { deps, runScheduled };
 }
 
-/** m_1h와 원시 재집계가 다른 (포인트, 버킷) 수와 비교한 버킷 수. 모든 열을 IS DISTINCT FROM으로 비교한다. */
+/** m_1h와 원시 재집계(lib/ingest/rollup의 NULL·BAD 비트 규칙)가 다른 (포인트, 버킷) 수와 비교한 버킷 수. 모든 열을 IS DISTINCT FROM으로 비교한다. */
 export async function compareRollupWithRaw(db: Kysely<DB>, pointIds: readonly number[]): Promise<{ buckets: number; mismatches: number }> {
   const { rows } = await sql<{ buckets: number; mismatches: number }>`
     WITH raw AS (
       SELECT point_id, date_trunc('hour', ts, 'UTC') AS bucket,
-        count(*)::int AS n, (count(*) FILTER (WHERE quality = 0))::int AS n_good,
+        count(*)::int AS n, (count(*) FILTER (WHERE value IS NOT NULL AND (quality & ${BAD_MASK}::int2) = 0))::int AS n_good,
         min(value) AS v_min, max(value) AS v_max, avg(value) AS v_avg,
-        (array_agg(value ORDER BY ts))[1] AS v_first, (array_agg(value ORDER BY ts DESC))[1] AS v_last, sum(value) AS v_sum
+        (array_agg(value ORDER BY ts) FILTER (WHERE value IS NOT NULL))[1] AS v_first,
+        (array_agg(value ORDER BY ts DESC) FILTER (WHERE value IS NOT NULL))[1] AS v_last, sum(value) AS v_sum
       FROM om.measurement WHERE point_id = ANY(${[...pointIds]}::int4[])
       GROUP BY 1, 2
     ),

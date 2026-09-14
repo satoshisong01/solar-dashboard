@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { handleIngestRequest } from '@/lib/ingest/handler';
 import { QUALITY } from '@/lib/ingest/quality';
 import { replayGateway } from '@/lib/ingest/replay';
-import { computeHourlyRollup } from '@/lib/ingest/rollup';
+import { computeHourlyRollup, drainDirty, rebuildHourlyRollups } from '@/lib/ingest/rollup';
 import {
   compareRollupWithRaw,
   createIngestFixture,
@@ -70,11 +70,12 @@ describe('롤업 재계산과 재처리 (hysol_test)', () => {
     await late.runScheduled();
 
     const raw = await db.selectFrom('om.measurement').select(['ts', 'value', 'quality']).where('point_id', '=', pointId).where('ts', '<', new Date(BASE + HOUR)).execute();
-    const expected = computeHourlyRollup(raw.map((row) => ({ tsMs: row.ts.getTime(), value: row.value ?? Number.NaN, quality: row.quality })));
+    const expected = computeHourlyRollup(raw.map((row) => ({ tsMs: row.ts.getTime(), value: row.value, quality: row.quality })));
     const rolled = await db.selectFrom('om.m_1h').selectAll().where('point_id', '=', pointId).where('bucket', '=', new Date(BASE)).executeTakeFirstOrThrow();
 
     expect(raw.filter((row) => row.quality === QUALITY.LATE)).toHaveLength(2);
-    expect(expected).toEqual({ n: 5, nGood: 3, min: 0.5, max: 4.25, avg: 12.25 / 5, first: 1.5, last: 3.5, sum: 12.25 });
+    // LATE는 INFO 비트라 n_good에 포함된다
+    expect(expected).toEqual({ n: 5, nGood: 5, min: 0.5, max: 4.25, avg: 12.25 / 5, first: 1.5, last: 3.5, sum: 12.25 });
     expect(rolled).toMatchObject({
       n: expected.n,
       n_good: expected.nGood,
@@ -87,6 +88,49 @@ describe('롤업 재계산과 재처리 (hysol_test)', () => {
     });
     expect(await dirtyGen(pointId, BASE)).toBeUndefined();
     expect(await compareRollupWithRaw(db, [pointId])).toEqual({ buckets: 2, mismatches: 0 });
+  });
+
+  it('값이 NULL인 원시 행은 n에만 들어가고, 롤업 재계산(rebuild)도 dirty 처리와 같은 값을 쓴다', async () => {
+    const pointId = fixture.pointIds.SOC;
+    const bucket = BASE + 24 * HOUR;
+    const rows = [
+      { ts: bucket, value: null, quality: 0 },
+      { ts: bucket + 5 * MINUTE, value: 2, quality: QUALITY.HARD_RANGE },
+      { ts: bucket + 10 * MINUTE, value: null, quality: QUALITY.LATE },
+      { ts: bucket + 15 * MINUTE, value: 5, quality: QUALITY.LATE | QUALITY.CLOCK_SUSPECT },
+      { ts: bucket + 20 * MINUTE, value: 4, quality: 0 },
+      { ts: bucket + 25 * MINUTE, value: null, quality: 0 },
+    ];
+    await db.insertInto('om.measurement').values(rows.map((row) => ({ point_id: pointId, ts: new Date(row.ts), value: row.value, quality: row.quality }))).execute();
+    await db.insertInto('om.rollup_dirty').values({ point_id: pointId, bucket: new Date(bucket) }).execute();
+
+    const expected = computeHourlyRollup(rows.map((row) => ({ tsMs: row.ts, value: row.value, quality: row.quality })));
+    expect(expected).toEqual({ n: 6, nGood: 2, min: 2, max: 5, avg: 11 / 3, first: 2, last: 4, sum: 11 });
+    const readRollup = () => db.selectFrom('om.m_1h').selectAll().where('point_id', '=', pointId).where('bucket', '=', new Date(bucket)).executeTakeFirstOrThrow();
+    const asStats = {
+      n: expected.n,
+      n_good: expected.nGood,
+      v_min: expected.min,
+      v_max: expected.max,
+      v_avg: expected.avg,
+      v_first: expected.first,
+      v_last: expected.last,
+      v_sum: expected.sum,
+    };
+
+    await drainDirty(db, { pointIds: [pointId] });
+    expect(await readRollup()).toMatchObject(asStats);
+
+    await db.updateTable('om.m_1h').set({ n_good: 0, v_first: 999 }).where('point_id', '=', pointId).where('bucket', '=', new Date(bucket)).execute();
+    const rebuilt = await rebuildHourlyRollups(db, { fromMs: bucket, toMs: bucket + HOUR });
+    expect(rebuilt).toBeGreaterThanOrEqual(1);
+    expect(await readRollup()).toMatchObject(asStats);
+    expect(await compareRollupWithRaw(db, [pointId])).toMatchObject({ mismatches: 0 });
+  });
+
+  it('rebuildHourlyRollups는 정시가 아닌 구간을 거부한다', async () => {
+    await expect(rebuildHourlyRollups(db, { fromMs: BASE + MINUTE, toMs: BASE + HOUR })).rejects.toThrow(/UTC 정시/);
+    await expect(rebuildHourlyRollups(db, { fromMs: BASE + HOUR, toMs: BASE + HOUR })).rejects.toThrow(/from < to/);
   });
 
   it('미매핑 태그를 인박스에 쌓았다가 포인트를 매핑하고 재처리하면 과거 값이 채워진다', async () => {

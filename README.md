@@ -54,6 +54,7 @@
 | `db:types` | DB에서 `lib/db/types.ts` 생성 (om, public 스키마. 파티션 자식 테이블은 제외) |
 | `db:seed` / `db:seed:test` | 개발 / 테스트 DB에 카탈로그·가상 사이트 멱등 upsert. 게이트웨이 개발용 비밀값이 없으면 해당 env 파일에 생성 |
 | `db:reset` | **로컬 전용.** 개발 DB 스키마를 모두 지우고 다시 migrate. `localhost:54320`이 아니면 중단 |
+| `db:rollup:rebuild` | **로컬 전용.** `om.m_1h`를 원시 측정값에서 UTC 하루 단위로 전부 다시 집계한다(롤업 규칙이 바뀐 뒤 과거분을 맞출 때). 끝나면 `n_good/n` 비율을 출력. `localhost:54320`이 아니면 중단 |
 | `admin:create` / `admin:create:test` | 개발 / 테스트 DB에 관리자 계정 생성. 이미 있으면 안내 후 종료 |
 | `typecheck` / `lint` | `tsc --noEmit` / ESLint |
 
@@ -99,7 +100,10 @@
 
 **알아 둘 점**
 
-- 과거분을 지금 한꺼번에 보내므로 수신 시각보다 1시간 넘게 지난 샘플에는 모두 `LATE` 비트가 붙습니다(설계 §5.1 규칙 6). 그래서 `m_1h.n_good`(quality = 0 개수)은 거의 0입니다.
+- 과거분을 지금 한꺼번에 보내므로 수신 시각보다 1시간 넘게 지난 샘플에는 모두 `LATE` 비트가 붙습니다(설계 §5.1 규칙 6). 품질 비트는 두 종류입니다.
+  - **BAD**(`DEVICE_BAD`·`HARD_RANGE`·`SPIKE`·`FLATLINE`): 값을 믿을 수 없음. `m_1h.n_good`에서 빠집니다.
+  - **INFO**(`CLOCK_SUSPECT`·`LATE`·`REPROCESSED`): 값은 유효하고 수신·출처 상태만 표시. `n_good`에 포함됩니다. 시각 정확도가 중요한 분석은 `isGoodWithTrustedClock`으로 `CLOCK_SUSPECT`까지 뺄 수 있습니다(`lib/ingest/quality.ts`).
+  - `n_good` = 값이 NULL이 아니고 BAD 비트가 없는 샘플 수입니다. 이 규칙 이전에 적재한 개발 DB는 `npm run db:rollup:rebuild`로 `m_1h`를 다시 집계하세요.
 - 봉투의 `sent_at`은 실제 전송 시각으로 찍습니다. 따라서 `CLOCK_SUSPECT`는 시계 오차 구간의 배치에만 붙습니다.
 - 같은 시간대에 같은 옵션으로 다시 실행하면 409(같은 `batch_id`에 `sent_at`만 다른 본문)가 나옵니다. 샘플은 이미 들어 있습니다. 다른 시각에 다시 실행하면 기간이 겹쳐 (a)가 맞지 않습니다. 처음부터 다시 만들려면 `npm run db:reset` → `npm run db:seed` → `npm run admin:create`(계정도 지워짐) 후 4~6단계를 반복하세요.
 - 실시간 전송: `npm run sim:live -- --sites SIM-A,SIM-B,SIM-C` 는 현재 시각부터 5분 창마다 보냅니다(시나리오 없음, Ctrl+C로 종료). 설비 상태를 시작 시각으로 추정하므로 적재한 과거 데이터와 값이 이어지지는 않습니다.

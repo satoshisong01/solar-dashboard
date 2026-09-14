@@ -3,7 +3,7 @@
 import { sql, type Kysely } from 'kysely';
 import type { DB } from '@/lib/db/types';
 import type { RollupObservation, SiteObservation } from '@/lib/sim/verify-checks';
-import { QUALITY } from './quality';
+import { BAD_MASK, QUALITY } from './quality';
 import { drainDirty } from './rollup';
 
 /** avg·sum 비교 허용 오차: |a − b| ≤ 1e-9 × max(|a|, |b|, 1) */
@@ -102,9 +102,9 @@ export async function observeRollup(db: Kysely<DB>): Promise<Omit<RollupObservat
         SELECT point_id, bucket, n, n_good, v_min, v_max, v_avg, v_sum, vals[1] AS v_first, vals[cardinality(vals)] AS v_last
         FROM (
           SELECT point_id, date_trunc('hour', ts, 'UTC') AS bucket,
-            count(*)::int AS n, (count(*) FILTER (WHERE quality = 0))::int AS n_good,
+            count(*)::int AS n, (count(*) FILTER (WHERE value IS NOT NULL AND (quality & ${BAD_MASK}::int2) = 0))::int AS n_good,
             min(value) AS v_min, max(value) AS v_max, avg(value) AS v_avg, sum(value) AS v_sum,
-            array_agg(value ORDER BY ts) AS vals
+            array_agg(value ORDER BY ts) FILTER (WHERE value IS NOT NULL) AS vals
           FROM om.measurement
           GROUP BY 1, 2
         ) grouped
