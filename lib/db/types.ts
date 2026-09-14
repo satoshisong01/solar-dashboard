@@ -128,6 +128,7 @@ export interface OmEventLog {
   gateway_id: number;
   id: Generated<Int8>;
   is_safety: Generated<boolean>;
+  received_at: Timestamp | null;
   severity: string;
   site_id: number;
   source_key: string;

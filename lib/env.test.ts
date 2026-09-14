@@ -7,7 +7,7 @@ const VALID_ENV = {
   BETTER_AUTH_URL: 'http://localhost:3100',
 } as const;
 
-const OPTIONAL_KEYS = ['DATABASE_SSL', 'DATABASE_SSL_CA_PATH', 'BETTER_AUTH_TRUSTED_ORIGINS'] as const;
+const OPTIONAL_KEYS = ['DATABASE_SSL', 'DATABASE_SSL_CA_PATH', 'BETTER_AUTH_TRUSTED_ORIGINS', 'SAFETY_SILENCE_MINUTES'] as const;
 
 type EnvKey = keyof typeof VALID_ENV | (typeof OPTIONAL_KEYS)[number];
 type EnvOverrides = Partial<Record<EnvKey, string | undefined>>;
@@ -37,7 +37,7 @@ describe('getServerEnv', () => {
 
     const env = getServerEnv();
 
-    expect(env).toEqual({ ...VALID_ENV, DATABASE_SSL: 'disable', BETTER_AUTH_TRUSTED_ORIGINS: [] });
+    expect(env).toEqual({ ...VALID_ENV, DATABASE_SSL: 'disable', BETTER_AUTH_TRUSTED_ORIGINS: [], SAFETY_SILENCE_MINUTES: 10 });
     expect(env).not.toHaveProperty('DB_HOST');
     expect(Object.isFrozen(env)).toBe(true);
     expect(Object.isFrozen(env.BETTER_AUTH_TRUSTED_ORIGINS)).toBe(true);
@@ -148,5 +148,28 @@ describe('getServerEnv — BETTER_AUTH_TRUSTED_ORIGINS', () => {
     const getServerEnv = await loadGetServerEnv();
 
     expect(() => getServerEnv()).toThrow(/origin 목록이어야 합니다[\s\S]*BETTER_AUTH_TRUSTED_ORIGINS/);
+  });
+});
+
+describe('getServerEnv — SAFETY_SILENCE_MINUTES', () => {
+  it('없거나 빈 값이면 10분', async () => {
+    stubServerEnv({ SAFETY_SILENCE_MINUTES: '' });
+    const getServerEnv = await loadGetServerEnv();
+
+    expect(getServerEnv().SAFETY_SILENCE_MINUTES).toBe(10);
+  });
+
+  it('정수 문자열을 분 수로 읽는다', async () => {
+    stubServerEnv({ SAFETY_SILENCE_MINUTES: '30' });
+    const getServerEnv = await loadGetServerEnv();
+
+    expect(getServerEnv().SAFETY_SILENCE_MINUTES).toBe(30);
+  });
+
+  it.each(['0', '2.5', 'ten', '1441'])('%s는 거부한다', async (value) => {
+    stubServerEnv({ SAFETY_SILENCE_MINUTES: value });
+    const getServerEnv = await loadGetServerEnv();
+
+    expect(() => getServerEnv()).toThrow(/SAFETY_SILENCE_MINUTES/);
   });
 });

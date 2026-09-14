@@ -18,6 +18,11 @@ export interface ReplayOptions {
   readonly from?: Date;
   /** 한 트랜잭션에서 처리할 배치 수 */
   readonly chunkSize?: number;
+  /**
+   * 이 원본 태그의 시계열만 다시 넣는다 (새로 매핑한 태그). 없으면 배치의 모든 시계열.
+   * 이미 적재된 다른 태그 샘플을 다시 INSERT 시도하지 않아 큰 게이트웨이도 빨리 끝난다. 합계도 이 태그 기준이다.
+   */
+  readonly sourceKeys?: readonly string[];
 }
 
 export interface ReplayTotals {
@@ -78,10 +83,21 @@ async function decodeBatch(row: BatchRow): Promise<IngestEnvelope | null> {
 
 const EMPTY_TOTALS: ReplayTotals = { batches: 0, failed: 0, accepted: 0, duplicate: 0, rejected: 0, unmapped: 0, missing: 0 };
 
+/** sourceKeys가 있으면 그 태그의 시계열만 남긴다 */
+function onlySources(envelope: IngestEnvelope, sourceKeys: ReadonlySet<string> | undefined): IngestEnvelope {
+  if (sourceKeys === undefined) return envelope;
+  return { ...envelope, series: envelope.series.filter((series) => sourceKeys.has(series.src)) };
+}
+
 /** 청크 하나: 매핑 조회 → 정규화 → 파티션 준비 → 한 트랜잭션에서 배치별 원시 INSERT */
-async function replayChunk(db: Kysely<DB>, gatewayId: number, rows: readonly BatchRow[]): Promise<{ readonly totals: ReplayTotals; readonly pointIds: readonly number[] }> {
+async function replayChunk(
+  db: Kysely<DB>,
+  gatewayId: number,
+  rows: readonly BatchRow[],
+  sourceKeys: ReadonlySet<string> | undefined,
+): Promise<{ readonly totals: ReplayTotals; readonly pointIds: readonly number[] }> {
   const decoded = await Promise.all(rows.map(async (row) => ({ row, envelope: await decodeBatch(row) })));
-  const valid = decoded.flatMap(({ row, envelope }) => (envelope ? [{ row, envelope }] : []));
+  const valid = decoded.flatMap(({ row, envelope }) => (envelope ? [{ row, envelope: onlySources(envelope, sourceKeys) }] : []));
   const pointsBySource = await loadPointMappings(db, gatewayId, valid.flatMap(({ envelope }) => envelope.series.map((s) => s.src)));
   const normalized: readonly NormalizedBatch[] = valid.map(({ row, envelope }) =>
     normalizeSamples(envelope, { pointsBySource, receivedAtMs: row.received_at.getTime(), reprocessed: true }),
@@ -127,11 +143,12 @@ export async function replayGateway(db: Kysely<DB>, gatewayId: number, options: 
   if (!Number.isInteger(chunkSize) || chunkSize < 1) throw new Error(`chunkSize는 1 이상의 정수여야 합니다: ${chunkSize}`);
 
   const ids = await listBatchIds(db, gatewayId, options.from);
+  const sourceKeys = options.sourceKeys === undefined ? undefined : new Set(options.sourceKeys);
   let totals = EMPTY_TOTALS;
   let touched: ReadonlySet<number> = new Set();
   for (let start = 0; start < ids.length; start += chunkSize) {
     const rows = await fetchBatches(db, ids.slice(start, start + chunkSize));
-    const chunk = await replayChunk(db, gatewayId, rows);
+    const chunk = await replayChunk(db, gatewayId, rows, sourceKeys);
     totals = addTotals(totals, chunk.totals);
     touched = new Set([...touched, ...chunk.pointIds]);
   }

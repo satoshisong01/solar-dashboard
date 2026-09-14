@@ -53,6 +53,16 @@ const serverEnvSchema = z
       error: 'http(s):// 형식의 URL이어야 합니다',
     }),
     BETTER_AUTH_TRUSTED_ORIGINS: trustedOriginsSchema,
+    // 수소·ESS 설비가 있는 사이트의 게이트웨이가 이 시간(분) 이상 무수신이면 안전 화면에 "안전감시 공백"으로 표시한다.
+    SAFETY_SILENCE_MINUTES: z.preprocess(
+      emptyToUndefined,
+      z.coerce
+        .number({ error: '분 단위 정수여야 합니다' })
+        .int('분 단위 정수여야 합니다')
+        .min(1, '1분 이상이어야 합니다')
+        .max(1440, '1440분(24시간) 이하여야 합니다')
+        .default(10),
+    ),
   })
   .refine((env) => env.DATABASE_SSL !== 'verify-full' || env.DATABASE_SSL_CA_PATH !== undefined, {
     path: ['DATABASE_SSL_CA_PATH'],

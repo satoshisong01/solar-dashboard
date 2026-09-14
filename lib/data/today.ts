@@ -2,6 +2,7 @@ import 'server-only';
 import { sql } from 'kysely';
 import { db } from '@/lib/db/kysely';
 import { formatKstDate } from '@/lib/format';
+import { isMarketKey, MARKET_LABELS } from '@/lib/market/keys';
 import { getEnergyByWindows, type EnergyValues } from './energy';
 import { getEvents, type EventRow } from './sites';
 import { kstMonthStartMs, yesterdayAndToday } from './time';
@@ -94,12 +95,6 @@ export async function getEnergySummary(nowMs: number): Promise<readonly SiteEner
   });
 }
 
-export const MARKET_LABELS: Readonly<Record<string, string>> = {
-  smp_land: 'SMP (육지)',
-  smp_jeju: 'SMP (제주)',
-  rec_avg: 'REC 평균',
-};
-
 export interface MarketSummaryRow {
   readonly key: string;
   readonly label: string;
@@ -132,7 +127,7 @@ export async function getMarketSummary(nowMs: number): Promise<readonly MarketSu
 
   return rows.map((row) => ({
     key: row.market_key,
-    label: MARKET_LABELS[row.market_key] ?? row.market_key,
+    label: isMarketKey(row.market_key) ? MARKET_LABELS[row.market_key] : row.market_key,
     unit: row.unit,
     latestDay: row.latest_day,
     latestValue: row.latest_value,

@@ -157,12 +157,18 @@ async function upsertUnmapped(trx: Transaction<DB>, gatewayId: number, unmapped:
 }
 
 /** 이벤트를 기록한다. 같은 (게이트웨이, 태그, 시각, 코드)는 한 번만 들어가고 확인(ack) 정보는 건드리지 않는다. */
-async function insertEvents(trx: Transaction<DB>, siteId: number, gatewayId: number, events: readonly NormalizedEvent[]): Promise<number> {
+async function insertEvents(
+  trx: Transaction<DB>,
+  siteId: number,
+  gatewayId: number,
+  events: readonly NormalizedEvent[],
+  receivedAt: string,
+): Promise<number> {
   if (events.length === 0) return 0;
   const { rows } = await sql<{ inserted: number }>`
     WITH ins AS (
-      INSERT INTO om.event_log (site_id, gateway_id, asset_id, ts, source_key, code, severity, is_safety, text)
-      SELECT ${siteId}, ${gatewayId}, t.asset_id, t.ts, t.source_key, t.code, t.severity, t.is_safety, t.text
+      INSERT INTO om.event_log (site_id, gateway_id, asset_id, ts, source_key, code, severity, is_safety, text, received_at)
+      SELECT ${siteId}, ${gatewayId}, t.asset_id, t.ts, t.source_key, t.code, t.severity, t.is_safety, t.text, ${receivedAt}::timestamptz
       FROM unnest(
         ${events.map((e) => e.assetId)}::int4[],
         ${events.map((e) => toIso(e.tsMs))}::timestamptz[],
@@ -254,7 +260,7 @@ export async function storeBatch(db: Kysely<DB>, input: StoreBatchInput): Promis
     const receivedAt = toIso(input.receivedAtMs);
     const samples = await insertSamples(trx, normalized.samples);
     await upsertUnmapped(trx, input.gatewayId, normalized.unmapped, receivedAt);
-    const events = await insertEvents(trx, input.siteId, input.gatewayId, input.events);
+    const events = await insertEvents(trx, input.siteId, input.gatewayId, input.events, receivedAt);
 
     await sql`
       UPDATE om.gateway SET
