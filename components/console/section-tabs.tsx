@@ -33,6 +33,7 @@ export const DATA_TABS: readonly SectionTab[] = [
   { href: '/data', label: '게이트웨이' },
   { href: '/data/unmapped', label: '미매핑 태그' },
   { href: '/data/quality', label: '데이터 품질' },
+  { href: '/data/readiness', label: '탐지 준비도' },
 ];
 
 export const SETTINGS_TABS: readonly SectionTab[] = [
