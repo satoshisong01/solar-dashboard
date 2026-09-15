@@ -1,6 +1,6 @@
 // 원장 테스트용 합성 입력 도우미 (테스트 전용).
 import { kstDayStart, MS_PER_HOUR } from '../types';
-import { h2PressureAbelNobleBar } from './hydrogen';
+import { h2PressureBar } from '../detectors/hydrogen-eos';
 import type { LedgerAsset, LedgerHourRow } from './types';
 
 /** 2026-06-15 KST 0시 */
@@ -55,7 +55,7 @@ export function hydrogenScenario(scenario: H2DayScenario, firstId = 100): { read
   const mass = [scenario.startMassKg];
   for (let h = 0; h < 24; h += 1) mass.push((mass[h] as number) + (scenario.producedKgH[h] ?? 0) - (scenario.fcKgH[h] ?? 0) - leakPerHour);
   const volumeM3 = (TANK_COUNT * TANK_VOLUME_L) / 1000;
-  const pressure = (index: number, tank: number) => h2PressureAbelNobleBar(mass[index] as number, gasTempC(index), volumeM3) + TANK_OFFSETS[tank].bar;
+  const pressure = (index: number, tank: number) => h2PressureBar(mass[index] as number, gasTempC(index), volumeM3) + TANK_OFFSETS[tank].bar;
   const temp = (index: number, tank: number) => gasTempC(index) + TANK_OFFSETS[tank].c;
 
   const tankRows = tankIds.flatMap((id, tank) =>

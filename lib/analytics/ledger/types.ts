@@ -90,6 +90,12 @@ export interface H2Ledger {
     readonly stored_delta: string | null;
     readonly vented: VentedMethod;
   };
+  /** 물질수지 판별 체크 보조값 (h2chain.mass_balance_gap): 스택 전류 이론 생산량 [kg, η_F = 1], 퍼지 횟수 증가분, 저장용기 가스 온도 끝 − 시작 평균 [°C] */
+  readonly aux: {
+    readonly faraday_expected: number | null;
+    readonly purge_count: number | null;
+    readonly tank_temp_delta_c: number | null;
+  };
 }
 
 /** PV 미활용 손실 버킷 [kWh]. 합계 = expected − actual (unexplained가 나머지를 받는다, 음수 가능) */

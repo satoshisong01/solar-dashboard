@@ -11,13 +11,12 @@ import { relativeCiWidth, scoreConfidence } from '../stats/confidence';
 import { median } from '../stats/robust';
 import { MS_PER_DAY } from '../types';
 import { levelCheck, medianChangePct, medianOrNull, medianShift } from './check-helpers';
+import { H2_KG_PER_AMP_HOUR_PER_CELL } from './hydrogen-eos';
 import { fixed, insufficient, r, signed, withDefaults, type TimedNumber } from './common';
 import { binWeightedShift, compareRise, riseEvidence, riseParamShape, riseWindow, trendAgrees, type RiseParams, type RiseResult, type RiseSample } from './matched-rise';
 import { completenessParam, numParam } from './param-schema';
 import type { CandidateFinding, Detector, DetectorContext, DetectorResult, DiagnosticCheck } from './types';
 
-/** 셀 1개·1 A·1 h 이론 수소 [kg/(A·h)] = 3600 × M_H2 / (2F) */
-export const H2_KG_PER_AMP_HOUR_PER_CELL = (3_600 * 2.015_88e-3) / (2 * 96_485.332);
 
 export interface ElSecRiseInput {
   /** finding을 붙일 설비 (스택 또는 전해조 설비) */

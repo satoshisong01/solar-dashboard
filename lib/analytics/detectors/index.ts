@@ -37,7 +37,7 @@ export { cellDvPoints, essCellImbalance, ESS_CELL_IMBALANCE_DEFAULTS, ESS_CELL_I
 export { essResistanceGrowth, ESS_RESISTANCE_DEFAULTS, ESS_RESISTANCE_PARAM_SCHEMA, type EssResistanceInput, type EssResistanceParams } from './ess-resistance-growth';
 export { fcBlowerWear, FC_BLOWER_WEAR_DEFAULTS, FC_BLOWER_WEAR_PARAM_SCHEMA, type FcBlowerWearInput, type FcBlowerWearParams } from './fc-blower-wear';
 export { H2_MASS_BALANCE_DEFAULTS, H2_MASS_BALANCE_PARAM_SCHEMA, h2ChainMassBalanceGap, type H2LedgerDayInput, type H2MassBalanceInput, type H2MassBalanceParams, type StaticLeakCrossCheck } from './h2chain-mass-balance';
-export { ABEL_NOBLE_DEFAULTS, h2DensityKgM3, h2DensityPerBar, h2MassKg, type AbelNobleConstants } from './hydrogen-eos';
+export { ABEL_NOBLE_DEFAULTS, H2_KG_PER_AMP_HOUR_PER_CELL, h2DensityKgM3, h2DensityPerBar, h2MassKg, h2PressureBar, type AbelNobleConstants } from './hydrogen-eos';
 export { INV_THERMAL_DERATING_DEFAULTS, INV_THERMAL_DERATING_PARAM_SCHEMA, invThermalDerating, type InverterFaultEvent, type InvThermalDeratingInput, type InvThermalDeratingParams, type ThermalInverter } from './inv-thermal-derating';
 export type { ParamMeta } from './param-schema';
 export { pvInverterPeer, PV_INVERTER_PEER_DEFAULTS, PV_INVERTER_PEER_PARAM_SCHEMA, type PvInverterPeerInput, type PvInverterPeerParams } from './pv-inverter-peer';

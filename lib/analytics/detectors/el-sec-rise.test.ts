@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { createRng } from '@/lib/sim/rng';
 import type { ElSteadyEpisode } from '../episodes/stack-episodes';
 import { MS_PER_DAY, MS_PER_HOUR } from '../types';
-import { EL_SEC_RISE_DEFAULTS, elSecRise, H2_KG_PER_AMP_HOUR_PER_CELL, type ElSecRiseInput } from './el-sec-rise';
+import { EL_SEC_RISE_DEFAULTS, elSecRise, type ElSecRiseInput } from './el-sec-rise';
+import { H2_KG_PER_AMP_HOUR_PER_CELL } from './hydrogen-eos';
 import { DAY0, DQ_FULL } from './test-fixtures';
 
 const DAYS = 150;

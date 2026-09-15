@@ -1,5 +1,5 @@
 // 탐지 준비도 매트릭스 입력·출력 타입 (설계 §4 /data/readiness, §4.1 "이 메트릭을 확보하면 풀리는 고장모드 수"). 순수 모듈.
-// 탐지기 레지스트리는 import하지 않는다 — 레지스트리의 requires를 DetectorRequirement로 옮겨 넣는 연결은 다음 단계가 맡는다.
+// 레지스트리 requires → DetectorRequirement 변환은 registry.ts(requirementsFromDetectors).
 
 /** 탐지기(고장모드) 하나의 데이터 요구 조건 */
 export interface DetectorRequirement {
@@ -9,8 +9,8 @@ export interface DetectorRequirement {
   readonly assetClass: readonly string[];
   /** 필수 메트릭 키 */
   readonly metrics: readonly string[];
-  /** 허용하는 가장 긴 포인트 주기 [s]. 포인트 period_s가 이보다 길면 partial */
-  readonly minPeriodS: number;
+  /** 허용하는 가장 긴 포인트 주기 [s]. 포인트 period_s가 이보다 길면 partial. null이면 주기와 무관 (레지스트리 requires와 같다) */
+  readonly minPeriodS: number | null;
   /** 필요한 데이터 이력 [일] */
   readonly minHistoryDays: number;
   /** 고장모드 심각도 1~5 (메트릭 확보 순위 동률 가중). 없으면 1 */

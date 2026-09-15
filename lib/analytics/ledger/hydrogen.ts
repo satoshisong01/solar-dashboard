@@ -9,49 +9,13 @@
 //   residual_pct = residual / max(produced, fc_consumed, params.residualFloorKg) × 100
 // 한계: 시간 평균 × 1 h 적산이다. 유량계 행이 빠진 시간은 0으로 더해지므로 잔차를 보기 전에 dq.h2.completeness를 확인한다. 탱크 압력은 절대압으로 본다(게이지압이면 약 1 bar 해당 질량이 일정하게 편향되지만 차분에서는 대부분 상쇄).
 //       충전·방출 직후 가스 온도와 센서 온도 차이는 재고를 흔든다(하루 끝·시작이 정지 구간일 때 가장 정확하다).
+import { h2MassKg, H2_EOS_VERSION, H2_KG_PER_AMP_HOUR_PER_CELL } from '../detectors/hydrogen-eos';
 import { assetsOf, dayBoundary, dayCompleteness, goodAvg, hasDayData, hourIntegral, meanOrNull, nameplateNumber, round, roundOrNull, type LedgerContext } from './hourly';
 import type { LedgerParams } from './params';
 import type { H2Ledger, H2ProducedMethod, SiteEnergyDq } from './types';
 
-export const GAS_CONSTANT_J_PER_MOL_K = 8.314_462_618;
-export const H2_MOLAR_MASS_KG_PER_MOL = 2.015_88e-3;
-export const FARADAY_C_PER_MOL = 96_485.332_12;
-const KELVIN_OFFSET = 273.15;
-const PA_PER_BAR = 1e5;
-
-/** 수소 비기체상수 R/M [J/(kg·K)] ≈ 4124.48 */
-export const H2_SPECIFIC_GAS_CONSTANT = GAS_CONSTANT_J_PER_MOL_K / H2_MOLAR_MASS_KG_PER_MOL;
-/**
- * Abel–Noble 공부피 b [m³/kg] (Chenoweth 1983, Sandia HyRAM 수소 상태식 기본값).
- * tank.static_leak 탐지기와 반드시 같은 수식·상수를 쓴다 — hydrogen.test.ts가 기준값을 고정한다.
- */
-export const H2_ABEL_NOBLE_COVOLUME_M3_PER_KG = 7.691e-3;
-export const H2_EOS_VERSION = 'abel_noble@1';
-
-/** 셀 1개·1 A·1 h 수소 [kg/(A·h)] = 3600 × M / (2F) ≈ 3.7608e-5 (lib/sim/models/common.ts와 같은 값) */
-export const H2_KG_PER_AMP_HOUR_PER_CELL = (3_600 * H2_MOLAR_MASS_KG_PER_MOL) / (2 * FARADAY_C_PER_MOL);
-
-function kelvin(tempC: number): number {
-  const t = tempC + KELVIN_OFFSET;
-  if (!(t > 0)) throw new RangeError(`수소 상태식: 절대온도가 0 이하입니다 (${tempC} °C)`);
-  return t;
-}
-
-/** Abel–Noble 밀도 [kg/m³]: P(1/ρ − b) = R_s·T → ρ = P / (R_s·T + b·P). 절대압 [bar], 음수 압력은 0 */
-export function h2DensityAbelNoble(pressureBar: number, tempC: number): number {
-  const pressurePa = Math.max(0, pressureBar) * PA_PER_BAR;
-  return pressurePa / (H2_SPECIFIC_GAS_CONSTANT * kelvin(tempC) + H2_ABEL_NOBLE_COVOLUME_M3_PER_KG * pressurePa);
-}
-
-export const h2MassAbelNobleKg = (pressureBar: number, tempC: number, volumeM3: number): number => h2DensityAbelNoble(pressureBar, tempC) * volumeM3;
-
-/** 역함수: 질량 → 절대압 [bar] = ρ·R_s·T / (1 − b·ρ) */
-export function h2PressureAbelNobleBar(massKg: number, tempC: number, volumeM3: number): number {
-  const density = massKg / volumeM3;
-  const denominator = 1 - H2_ABEL_NOBLE_COVOLUME_M3_PER_KG * density;
-  if (!(denominator > 0)) throw new RangeError(`수소 상태식: 밀도 ${density} kg/m³가 공부피 한계를 넘습니다`);
-  return (density * H2_SPECIFIC_GAS_CONSTANT * kelvin(tempC)) / denominator / PA_PER_BAR;
-}
+// 상태식·패러데이 상수는 tank.static_leak 탐지기와 같은 정의(detectors/hydrogen-eos.ts) 하나만 쓴다.
+export { H2_EOS_VERSION, H2_KG_PER_AMP_HOUR_PER_CELL };
 
 const sumHours = (ctx: LedgerContext, classKey: string, metricKey: string, perHour: (value: number, assetId: number) => number): number =>
   assetsOf(ctx, classKey).reduce((sum, asset) => sum + ctx.hours.reduce((acc, h) => {
@@ -65,18 +29,23 @@ interface Produced {
   readonly completeness: number | null;
 }
 
+/** 스택 전류로 계산한 이론 생산량 [kg] (셀 수 × 전류 × η_F × 원단위). 전류 데이터·셀 수가 없으면 null */
+function faradayKg(ctx: LedgerContext, efficiency: number): number | null {
+  const stacks = assetsOf(ctx, 'h2.elz.stack');
+  if (!hasDayData(ctx, 'h2.elz.stack', 'stack.current') || stacks.some((s) => nameplateNumber(s, 'cell_count') === null)) return null;
+  const cells = new Map(stacks.map((s) => [s.id, nameplateNumber(s, 'cell_count') ?? 0]));
+  return ctx.hours.reduce((sum, h) => sum + stacks.reduce((acc, s) => {
+    const current = goodAvg(ctx.row(s.id, 'stack.current', h));
+    return current === null ? acc : acc + (cells.get(s.id) ?? 0) * Math.max(0, current) * efficiency * H2_KG_PER_AMP_HOUR_PER_CELL;
+  }, 0), 0);
+}
+
 function produced(ctx: LedgerContext, params: LedgerParams): Produced {
   if (hasDayData(ctx, 'h2.elz', 'h2.flow.mass')) {
     return { kg: sumHours(ctx, 'h2.elz', 'h2.flow.mass', (v) => Math.max(0, v)), method: 'meter', completeness: dayCompleteness(ctx, 'h2.elz', 'h2.flow.mass') };
   }
-  const stacks = assetsOf(ctx, 'h2.elz.stack');
-  if (!hasDayData(ctx, 'h2.elz.stack', 'stack.current') || stacks.some((s) => nameplateNumber(s, 'cell_count') === null)) return { kg: null, method: null, completeness: null };
-  const cells = new Map(stacks.map((s) => [s.id, nameplateNumber(s, 'cell_count') ?? 0]));
-  const kg = ctx.hours.reduce((sum, h) => sum + stacks.reduce((acc, s) => {
-    const current = goodAvg(ctx.row(s.id, 'stack.current', h));
-    return current === null ? acc : acc + (cells.get(s.id) ?? 0) * Math.max(0, current) * params.faradayEfficiency * H2_KG_PER_AMP_HOUR_PER_CELL;
-  }, 0), 0);
-  return { kg, method: 'faraday_estimate', completeness: dayCompleteness(ctx, 'h2.elz.stack', 'stack.current') };
+  const kg = faradayKg(ctx, params.faradayEfficiency);
+  return kg === null ? { kg: null, method: null, completeness: null } : { kg, method: 'faraday_estimate', completeness: dayCompleteness(ctx, 'h2.elz.stack', 'stack.current') };
 }
 
 /** 저장용기별 끝·시작 질량 차의 합. 용기가 없거나 한 용기라도 P·T 경계값·내용적이 없으면 null */
@@ -89,9 +58,17 @@ export function storedDeltaKg(ctx: LedgerContext): number | null {
     const t = dayBoundary(ctx, tank.id, 'tank.temp');
     if (volumeL === null || p.start === null || p.end === null || t.start === null || t.end === null) return null;
     const volumeM3 = volumeL / 1000;
-    return h2MassAbelNobleKg(p.end, t.end, volumeM3) - h2MassAbelNobleKg(p.start, t.start, volumeM3);
+    return h2MassKg(p.end, t.end, volumeM3) - h2MassKg(p.start, t.start, volumeM3);
   });
   return deltas.some((d) => d === null) ? null : deltas.reduce<number>((sum, d) => sum + (d ?? 0), 0);
+}
+
+/** 저장용기 가스 온도 하루 끝 − 시작의 평균 [°C] (물질수지 온도 보정 판별 체크용). 경계값이 있는 용기가 없으면 null */
+function tankTempDeltaC(ctx: LedgerContext): number | null {
+  return meanOrNull(assetsOf(ctx, 'h2.storage.tank').map((tank) => {
+    const t = dayBoundary(ctx, tank.id, 'tank.temp');
+    return t.start === null || t.end === null ? null : t.end - t.start;
+  }));
 }
 
 function purgeCount(ctx: LedgerContext): number | null {
@@ -134,6 +111,11 @@ export function hydrogenLedger(ctx: LedgerContext, params: LedgerParams): Hydrog
         fc_consumed: fcMeasured ? 'meter' : null,
         stored_delta: stored === null ? null : H2_EOS_VERSION,
         vented: ventedEstimated ? 'params' : 'not_estimated',
+      },
+      aux: {
+        faraday_expected: roundOrNull(hasHydrogen ? faradayKg(ctx, 1) : null, 4),
+        purge_count: purges,
+        tank_temp_delta_c: roundOrNull(tankTempDeltaC(ctx), 3),
       },
     },
     dq: {

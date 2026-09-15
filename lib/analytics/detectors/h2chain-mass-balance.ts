@@ -1,6 +1,6 @@
 // h2chain.mass_balance_gap@1 — 사이트 수소 물질수지 잔차 (사이트 단위, assetId null).
-// 입력은 일별 수소 원장(생산 − 연료전지 소비 − 저장량 변화 − 배출 추정 = 잔차). 원장 계산(lib/analytics/ledger → om.site_energy_daily)과
-// 이 입력 타입을 잇는 어댑터는 파이프라인 단계가 구현한다 (필드 이름은 site_energy_daily.h2_kg jsonb와 같게 두었다).
+// 입력은 일별 수소 원장(생산 − 연료전지 소비 − 저장량 변화 − 배출 추정 = 잔차). 필드 이름은 체인 원장 H2Ledger(om.site_energy_daily.h2_kg)와 같고,
+// 판별 체크 보조값(faraday_expected·purge_count·tank_temp_delta_c)은 H2Ledger.aux에서 온다.
 // 판정: 최근 recentDays일 잔차율 중앙값의 절댓값 > residualPct 이고, 기준 구간으로 표준화한 일 잔차율 CUSUM(같은 부호 방향)이 경보.
 // 판별 체크: ① 유량계 드리프트(패러데이 기대 생산량 대비 유량계 비율 변화) ② 온도 보정 오차(잔차와 탱크 온도 변화·일교차 상관)
 //           ③ 퍼지·배기 추정 부족(퍼지 횟수와 잔차 상관) ④ 저장부 누설 의심(tank.static_leak 결과와 교차 확인) ⑤ 데이터 결측일.
@@ -22,15 +22,15 @@ import type { CandidateFinding, Detector, DetectorContext, DetectorResult, Diagn
 export interface H2LedgerDayInput {
   /** KST 0시 epoch ms */
   readonly day: number;
-  readonly produced_kg: number | null;
-  readonly fc_consumed_kg: number | null;
-  readonly stored_delta_kg: number | null;
-  readonly vented_est_kg: number | null;
-  readonly residual_kg: number | null;
+  readonly produced: number | null;
+  readonly fc_consumed: number | null;
+  readonly stored_delta: number | null;
+  readonly vented_est: number | null;
+  readonly residual: number | null;
   readonly residual_pct: number | null;
   readonly dq: { readonly completeness: number | null };
   /** 판별 체크 보조 (없으면 해당 체크 데이터없음): 스택 전류로 계산한 이론 생산량 [kg] */
-  readonly faraday_expected_kg?: number | null;
+  readonly faraday_expected?: number | null;
   /** 퍼지 횟수 증가분 [회] */
   readonly purge_count?: number | null;
   /** 저장용기 가스 온도 하루 끝 − 시작 [°C] */
@@ -111,11 +111,11 @@ export const H2_MASS_BALANCE_PARAM_SCHEMA = z.object({
 const META = { id: 'h2chain.mass_balance_gap', version: '1', failureMode: 'h2chain.mass_balance_gap', category: 'performance' } as const;
 
 interface ValidDay extends H2LedgerDayInput {
-  readonly residual_kg: number;
+  readonly residual: number;
   readonly residual_pct: number;
 }
 
-const isValid = (d: H2LedgerDayInput, p: H2MassBalanceParams): d is ValidDay => d.residual_kg !== null && d.residual_pct !== null && Number.isFinite(d.residual_pct) && (d.dq.completeness ?? 0) >= p.minCompleteness;
+const isValid = (d: H2LedgerDayInput, p: H2MassBalanceParams): d is ValidDay => d.residual !== null && d.residual_pct !== null && Number.isFinite(d.residual_pct) && (d.dq.completeness ?? 0) >= p.minCompleteness;
 
 function correlationCheck(id: string, label: string, days: readonly ValidDay[], pick: (d: ValidDay) => number | null | undefined, p: H2MassBalanceParams, notes: { supports: string; refutes: string }): DiagnosticCheck {
   const pairs = days.flatMap((d) => {
@@ -132,7 +132,7 @@ function correlationCheck(id: string, label: string, days: readonly ValidDay[], 
 }
 
 function checksOf(input: H2MassBalanceInput, reference: readonly ValidDay[], recent: readonly ValidDay[], trend: readonly ValidDay[], recentWindowDays: number, p: H2MassBalanceParams): DiagnosticCheck[] {
-  const ratio = (items: readonly ValidDay[]) => medianOrNull(items.flatMap((d) => (d.produced_kg !== null && d.faraday_expected_kg && d.faraday_expected_kg > 0 ? [(d.produced_kg / d.faraday_expected_kg) * 100] : [])));
+  const ratio = (items: readonly ValidDay[]) => medianOrNull(items.flatMap((d) => (d.produced !== null && d.faraday_expected && d.faraday_expected > 0 ? [(d.produced / d.faraday_expected) * 100] : [])));
   const refRatio = ratio(reference);
   const curRatio = ratio(recent);
   const drift = refRatio === null || curRatio === null ? null : Math.abs(curRatio - refRatio);
@@ -151,7 +151,7 @@ function checksOf(input: H2MassBalanceInput, reference: readonly ValidDay[], rec
     refutes: '잔차는 퍼지 횟수와 관계가 약합니다.',
   });
   const leak = input.staticLeak ?? null;
-  const dailyResidual = medianOrNull(recent.map((d) => d.residual_kg));
+  const dailyResidual = medianOrNull(recent.map((d) => d.residual));
   const share = leak?.status === 'finding' && leak.leakKgPerDay !== null && dailyResidual !== null && dailyResidual > 0 ? leak.leakKgPerDay / dailyResidual : null;
   const leakStatus = leak === null || leak.status === 'insufficient' ? 'no_data' : leak.status === 'no_finding' ? 'refutes' : share !== null && share >= p.leakShare && (leak.ciLowKgPerDay ?? 0) > 0 ? 'supports' : 'unknown';
   const storageLeak = makeCheck('storage_leak', '저장부 누설 의심 (정지 보유 누설률 교차 확인)', leakStatus, { static_leak_status: leak?.status ?? null, leak_kg_per_day: r(leak?.leakKgPerDay ?? null, 3), residual_kg_per_day: r(dailyResidual, 3), share: r(share, 3) }, {
@@ -213,8 +213,8 @@ function buildFinding(input: H2MassBalanceInput, ctx: DetectorContext<H2MassBala
   const checks = checksOf(input, reference, recent, split.valid.filter((d) => d.day >= ctx.now - p.trendDays * MS_PER_DAY), p.recentDays, p);
   const severity: Severity = checks.find((c) => c.id === 'storage_leak')?.status === 'supports' ? 3 : 2;
   const referencePct = median(reference.map((d) => d.residual_pct));
-  const residualKgDay = median(recent.map((d) => d.residual_kg));
-  const producedDay = medianOrNull(recent.flatMap((d) => d.produced_kg ?? []));
+  const residualKgDay = median(recent.map((d) => d.residual));
+  const producedDay = medianOrNull(recent.flatMap((d) => d.produced ?? []));
   const supported = checks.filter((c) => c.status === 'supports').map((c) => c.label);
   const evidence: JsonObject = {
     method: 'residual_median_cusum',
@@ -222,7 +222,7 @@ function buildFinding(input: H2MassBalanceInput, ctx: DetectorContext<H2MassBala
     reference: { days: reference.length, from: reference[0]?.day ?? null, median_pct: r(referencePct, 3) },
     recent: { days: recent.length, from: recent[0]?.day ?? null, median_pct: r(currentPct, 3), median_kg: r(residualKgDay, 3) },
     cusum: { direction: alarm.direction, alarm_day: alarm.alarmDay === null ? null : kstDateString(alarm.alarmDay), change_start_day: alarm.changeStartDay === null ? null : kstDateString(alarm.changeStartDay), k: p.cusumK, h: p.cusumH },
-    days: downsample(split.inRange, 60).map((d) => ({ date: kstDateString(d.day), produced_kg: r(d.produced_kg, 2), residual_kg: r(d.residual_kg, 3), residual_pct: r(d.residual_pct, 2) })),
+    days: downsample(split.inRange, 60).map((d) => ({ date: kstDateString(d.day), produced: r(d.produced, 2), residual: r(d.residual, 3), residual_pct: r(d.residual_pct, 2) })),
     checks,
     note: `청정수소 인증 공식 산정이 아닙니다. ${SAFETY_DISCLAIMER}`,
   };

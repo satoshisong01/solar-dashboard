@@ -26,7 +26,7 @@ export const appliesTo = (requirement: DetectorRequirement, classKey: string): b
 function pointReasons(metricKey: string, point: ReadinessPoint, requirement: DetectorRequirement, params: ReadinessParams): PartialReason[] {
   const reasons: PartialReason[] = [];
   if ((point.completeness ?? 0) < params.minCompleteness) reasons.push({ code: 'low_completeness', metricKey, completeness: point.completeness, required: params.minCompleteness });
-  if (point.periodS > requirement.minPeriodS) reasons.push({ code: 'coarse_period', metricKey, periodS: point.periodS, requiredS: requirement.minPeriodS });
+  if (requirement.minPeriodS !== null && point.periodS > requirement.minPeriodS) reasons.push({ code: 'coarse_period', metricKey, periodS: point.periodS, requiredS: requirement.minPeriodS });
   return reasons;
 }
 
