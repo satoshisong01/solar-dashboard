@@ -1,0 +1,5 @@
+// 탐지 준비도 매트릭스 (설계 §4 /data/readiness, P3). 순수 모듈 — 레지스트리·포인트 통계 로드는 다음 단계가 연결한다.
+export { ACQUISITION_CSV_HEADER, acquisitionCsvRows, csvField, csvLine, READINESS_CSV_HEADER, readinessCsvRows, reasonText, STATUS_LABELS, toCsvText, type CsvValue } from './csv';
+export { appliesTo, readinessCell, readinessMatrix, readinessSummary } from './matrix';
+export { metricAcquisitionRanking } from './ranking';
+export * from './types';
