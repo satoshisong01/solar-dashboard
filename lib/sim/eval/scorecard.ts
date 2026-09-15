@@ -1,33 +1,16 @@
 // CI 게이트(설계 §5.5)와 스코어카드 JSON (lib/analytics/scorecard.json). 탐지기 신뢰 배지·/sim 화면이 이 파일을 읽는다.
-import { P2_DETECTORS } from '@/lib/analytics/detectors';
+import { DETECTORS } from '@/lib/analytics/detectors';
 import { r } from '@/lib/analytics/detectors/common';
 import type { EvalPreset } from '../presets';
 import { capacityAvailability, socLimitControlScore } from './availability';
+import { gate, type GateResult } from './gate';
+import { fanDelays, healthyResidualStats, leakMassBalanceShare, p3Gates, pvControlFindings, secPathSupport } from './p3-gates';
 import { curveForSite, scoreAll, scoreAtLeast, type CurvePoint, type DetectorScore } from './score';
 import { EVAL_DETECTOR_IDS, type SiteJobResult } from './types';
 
-export const SCORECARD_VERSION = 1;
+export type { GateResult } from './gate';
 
-export interface GateResult {
-  readonly id: string;
-  readonly description: string;
-  readonly value: number | null;
-  readonly comparator: '>=' | '<=' | '<';
-  readonly threshold: number;
-  /** 평가할 주입이 없으면(value null) 실패로 본다 */
-  readonly pass: boolean;
-}
-
-const compare = (value: number, comparator: GateResult['comparator'], threshold: number): boolean => (comparator === '>=' ? value >= threshold : comparator === '<=' ? value <= threshold : value < threshold);
-
-const gate = (id: string, description: string, value: number | null, comparator: GateResult['comparator'], threshold: number): GateResult => ({
-  id,
-  description,
-  value: value === null ? null : (r(value, 4) ?? null),
-  comparator,
-  threshold,
-  pass: value !== null && compare(value, comparator, threshold),
-});
+export const SCORECARD_VERSION = 2;
 
 /** 태양광+ESS(SIM-A)와 연계형(SIM-B) 용량 감소 게이트, 판정 가능 기간·SOC 상한 변경 대조군 게이트 */
 function capacityGates(jobs: readonly SiteJobResult[]): GateResult[] {
@@ -60,6 +43,7 @@ export function evaluateGates(jobs: readonly SiteJobResult[], scores: readonly D
     gate('fc.voltage_decay.rel_error_20uvh', `fc.voltage_decay 20 µV/h 이상 크기 상대오차 중앙값 (주입 ${fuelCell.injections}건)`, fuelCell.magnitudeRelErrorMedian, '<=', 0.1),
     gate('ess.cell_imbalance.recall_10mv', `ess.cell_imbalance 월 10 mV 이상 재현율 (주입 ${cell.injections}건)`, cell.recall, '>=', 0.9),
     gate('dq.gap_flatline.recall_6h', `dq.gap_flatline 6시간 이상 결측·고착 재현율 (주입 ${dq.injections}건)`, dq.recall, '>=', 0.9),
+    ...p3Gates(jobs, scores),
   ];
 }
 
@@ -70,6 +54,8 @@ export interface ScorecardOptions {
   readonly generatedAt: string;
   readonly elapsedMs: number;
   readonly paramsNote: Readonly<Record<string, string>>;
+  /** CI 축소 조합 (--runs)과 그 소요시간 기록 */
+  readonly reducedRuns?: { readonly runs: readonly number[]; readonly note: string };
 }
 
 const roundCurve = (curve: readonly CurvePoint[]) =>
@@ -94,14 +80,15 @@ function capacityExtras(jobs: readonly SiteJobResult[]) {
 export function buildScorecard(jobs: readonly SiteJobResult[], options: ScorecardOptions) {
   const scores = scoreAll(jobs);
   const gates = evaluateGates(jobs, scores);
-  const versions = Object.fromEntries(P2_DETECTORS.map((d) => [d.id, `${d.id}@${d.version}`]));
+  const versions = Object.fromEntries(DETECTORS.map((d) => [d.id, `${d.id}@${d.version}`]));
   return {
     version: SCORECARD_VERSION,
     generated_at: options.generatedAt,
     mode: 'memory',
-    preset: { from: options.preset.from, days: options.preset.days, fault_start_day: options.preset.faultStartDay, capacity_fade_days: options.preset.capacityFadeDays, seeds: options.seeds, runs: options.runs, sweeps: options.preset.sweeps },
+    preset: { from: options.preset.from, days: options.preset.days, fault_start_day: options.preset.faultStartDay, capacity_fade_days: options.preset.capacityFadeDays, seeds: options.seeds, runs: options.runs, sweeps: options.preset.sweeps, p3: { runs: options.preset.p3.runs, fault_start_day: options.preset.p3.faultStartDay, sweeps: options.preset.p3.sweeps } },
     jobs: jobs.length,
     elapsed_s: r(options.elapsedMs / 1000, 1),
+    reduced_runs: options.reducedRuns ?? null,
     not_evaluated: {},
     detectors: Object.fromEntries(
       EVAL_DETECTOR_IDS.map((id) => {
@@ -128,6 +115,13 @@ export function buildScorecard(jobs: readonly SiteJobResult[], options: Scorecar
         ];
       }),
     ),
+    p3: {
+      healthy_mass_balance: healthyResidualStats(jobs),
+      pv_control_findings: pvControlFindings(jobs),
+      el_sec_rise_path_support: secPathSupport(jobs),
+      tank_leak_mass_balance_share: leakMassBalanceShare(jobs),
+      fan_failure_delays: fanDelays(jobs),
+    },
     gates,
     pass: gates.every((g) => g.pass),
   };

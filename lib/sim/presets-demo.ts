@@ -9,21 +9,25 @@ import type { Scenario } from './scenarios';
 export const DEMO_TANK_LEAK_SAFETY_KG_PER_DAY = 0.5;
 
 export const DEMO_P3 = Object.freeze({
-  pvSoiling: { pctPerDay: 0.08, startDay: 0, rainDays: [45, 85] },
+  pvSoiling: { pctPerDay: 0.08, startDay: 0, rainDays: [45, 75] },
   rackResistance: { rack: 'ESS1/RACK02', pct: 45, startDay: 50, rampDays: 60 },
   inverterFan: { inverter: 'PV1/INV02', startDay: 40 },
   tankLeak: { tank: 'H2BANK1/TANK3', kgPerDay: 0.05, startDay: 60, escalationDay: 90, escalationKgPerDay: 2 * DEMO_TANK_LEAK_SAFETY_KG_PER_DAY },
   compressorValveWear: { pct: 12, startDay: 40, rampDays: 60 },
   elzSecRise: { mode: 'rectifier', pct: 6, startDay: 45, rampDays: 60 },
-  fcAirFilterClog: { pct: 25, startDay: 40, rampDays: 45, cleanedDay: 100 },
+  fcAirFilterClog: { pct: 35, startDay: 70, rampDays: 20, cleanedDay: 110 },
   simC: { hotWeekDay: 98, dayNightSwingDay: 110 },
 } as const);
 
 /**
- * - SIM-A: 전 인버터 끈적한 오염 0.08%/일(45·85일째 강한 비로 복원), 랙 2 저항 +45%(50일째부터 60일 램프), 인버터 2 냉각팬 고장(40일째)
+ * - SIM-A: 전 인버터 끈적한 오염 0.08%/일(45·75일째 강한 비로 복원), 랙 2 저항 +45%(50일째부터 60일 램프), 인버터 2 냉각팬 고장(40일째)
  * - SIM-B: 용기 3 누설 60일째 0.05 kg/일 → 90일째 안전 임계의 2배, 압축기 밸브 마모 +12%(40일째부터 60일 램프),
- *          전해조 비에너지 +6% 정류기 경로(45일째부터 60일 램프), 연료전지 공기 필터 막힘 블로워 +25%(40일째부터 45일 램프, 100일째 필터 교체)
+ *          전해조 비에너지 +6% 정류기 경로(45일째부터 60일 램프), 연료전지 공기 필터 막힘 35%(70일째부터 20일 램프, 110일째 필터 교체)
  * - SIM-C: 고온 주(98일째)·일교차 확대(110일째)
+ * 120일 적재의 끝(분석 시각)에 탐지되도록 둔 배치:
+ * - 오염: 마지막 강한 비 뒤 무세척 구간에 맑은 날이 6일 이상 있어야 판정한다. 85일째 비(8~9월 장마철 35일, 맑은 날 5일)면 판정 불능이라 75일째로 당겼다.
+ * - 필터 막힘: 블로워 비교 bin(공기 유량·외기 온도)의 여름 bin 기준이 70일째 무렵 생기므로 그 뒤에 시작하고, 끝 무렵(110일째) 교체해
+ *   최근 30일 상승이 남은 채 교체 뒤 회복(베어링·임펠러 체크 반박)이 보이게 했다. 40일째 시작·100일째 교체면 기준이 막힌 뒤에 생기고 끝에는 회복돼 finding이 없다.
  */
 export function demoP3Scenarios(): readonly Scenario[] {
   const d = DEMO_P3;

@@ -3,8 +3,8 @@
 //   주 단위 점검 시각마다 돌려 재현율·정밀도·자산월당 오탐·탐지 지연·크기 오차·최소 탐지 크기 곡선을 계산한다.
 //   게이트 미달이면 종료 코드 1. 전체 프리셋이면 lib/analytics/scorecard.json을 갱신하고, 로컬 DB가 떠 있으면 sim.eval_result에 기록한다.
 //
-//   npm run sim:eval                                  전체 (시드 3 × 스윕 5)
-//   npm run sim:eval -- --runs 3,4,5                  CI 축소: 스윕 3~5번(용량 5·7·10%, 전해조 20·40 µV/h)만 — 용량·스택 게이트 주입은 전체와 같고 셀 불균형·데이터 품질은 가장 큰 크기만
+//   npm run sim:eval                                  전체 (시드 3 × (P2 스윕 5 + P3 순번 12) = 사이트 잡 84개)
+//   npm run sim:eval -- --runs 3,4,5,6,8,9,10,13,17   CI 축소(사이트 잡 51개): P2 스윕 3~5번 + P3 순번 1·3·4·5·8·12 — 게이트마다 기준 크기 이상 주입이 시드마다 남는다(REDUCED_RUNS)
 //   npm run sim:eval -- --cache .data/sim-eval        시뮬레이션·추출 결과를 저장해 탐지기 파라미터만 바꿔 다시 평가
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { availableParallelism } from 'node:os';
@@ -44,7 +44,8 @@ const PARAMS_NOTE: Readonly<Record<string, string>> = {
     '추출기 기준 전류밀도 0.5 → 0.6 A/cm², 분극 기울기 0.25 → 0.2 V/(A/cm²), 환산 허용 거리 0.25 → 0.3. 심각도 임계(10/20/40 µV/h)는 그대로. ' +
     'P2 보강: el.voltage_rise와 같은 변화점 이후 기울기 규칙(minHoursAfterChange 300 h, 변화 전·후 CI 분리).',
   'el.voltage_rise':
-    'break-in 1,000 h 이후만 쓰므로 1년 평가에서 탐지 지연이 김. P2 보강: CUSUM 변화 시작점 뒤 누적 운전시간 300 h 이상이고 변화 전·후 기울기 95% CI가 겹치지 않으면 변화점 이후 기울기를 효과로 사용(기울기가 일정하면 전체 기울기 유지). 심각도 임계·CI 조건은 그대로.',
+    'break-in 1,000 h 이후만 쓰므로 1년 평가에서 탐지 지연이 김. P2 보강: CUSUM 변화 시작점 뒤 누적 운전시간 300 h 이상이고 변화 전·후 기울기 95% CI가 겹치지 않으면 변화점 이후 기울기를 효과로 사용(기울기가 일정하면 전체 기울기 유지). 심각도 임계·CI 조건은 그대로. ' +
+    'P3 연결: 전류밀도 보정 방식을 bin + 전체 점 회귀 → 기준 구간(break-in 이후 앞 25%) 기울기 하나(currentDensityMode reference_slope, j bin 없음)로 변경. 전력 설정값 운전에서 정류기 효율이 떨어져 같은 전력의 전류밀도가 3~5% 옮겨 가면 bin 중앙값 빼기가 열화를 지웠다(데모 SIM-B 25 µV/h 주입: 정류기 고장 없으면 23.1, 있으면 finding 없음 → 변경 뒤 20.5 µV/h). 평가 영향: 10 µV/h 지연 72 → 40일, 20 µV/h 이상 상대오차 중앙값 0.038 → 0.003, 오탐 0 그대로.',
   'pv.inverter_peer':
     '동종 4대에서는 MAD가 거의 항상 하한이라 하한이 곧 임계다. madFloorRatio 0.5% → 0.3%(수정 z −3.5 기준 유효 탐지 편차 약 2.6% → 1.6%)로 인버터 2%p 저하 0/3 → 3/3, 1%p는 0/3 그대로, 대조군(흐린 주·출력제어) 포함 오탐 0. z 임계 −3.5·최근 7일 중 5일 조건은 그대로.',
   'dq.gap_flatline':
@@ -52,6 +53,34 @@ const PARAMS_NOTE: Readonly<Record<string, string>> = {
     '고착 구간 끝을 마지막 샘플 + 주기로 바꿔(6시간 고착이 샘플 간격만큼 짧게 재지던 문제) 6시간 기준에서 빠지지 않게 하고, 일사량 metric_def에 고착 기준 2시간·야간 |값| ≤ 5 W/m² 제외 규칙 추가. ' +
     '전송 계층 단절 후 백필·지연·시계 오차는 메모리 모드가 재현하지 않아 DB E2E 모드에서 확인.',
   'ess.cell_imbalance': '탐지기 변경 없음. eval 프리셋에 SIM-A 랙 3 셀 전압 산포 증가 주입(월 5·10·20 mV, 120일째 시작)을 추가해 재현율도 평가.',
+  'el.sec_rise':
+    '운전 조건 bin을 전류밀도 → 설비 AC 전력(binBy ac_power, 50 kW)으로 변경. 재생전력 연계 전해조는 전력 설정값으로 운전해 정류기·스택 열화 시 같은 전력의 전류밀도가 낮아지고, ' +
+    '전류밀도 bin 기준이 고장 뒤 표본으로 새로 만들어져 상승이 가려졌다(정류기 10% 주입: 월 중앙 SEC 57.7 → 63.2 kWh/kg인데 finding 0). 전류 설정값 운전 설비는 binBy current_density로 되돌린다. ' +
+    '평가 프리셋에서 유량계 드리프트를 비에너지 스윕과 다른 순번(P3 10~12)으로 분리(드리프트가 계량 kg을 키워 kWh/kg 상승을 가림). 첫 전체 평가 5% 이상 재현율 0.5 → 이 스코어카드. 심각도 임계·CI 조건·break-in 1,000 h는 그대로.',
+  'tank.static_leak':
+    '상태식을 Abel–Noble → NIST Lemmon–Huber–Leachman 2008 압축계수(eosModel lemmon2008, 300 K·10 MPa Z = 1.05986)로 변경(Abel–Noble 온도 편향이 일교차 정지 보유에서 약 0.03 kg/일 가짜 손실). ' +
+    '기준 정지 보유(최초 12개 중 6개 이상) 손실 중앙값을 편향으로 빼고(±3σ/√n 제한), 잡음 σ = max(MAD σ, 기준 CI 반폭 중앙값/1.96, noiseFloor)로 하한을 둠(MAD만 쓰면 보유 수가 적을 때 σ 과소). ' +
+    'zSigma 3·noiseFloor 0.02 kg/일·안전 심각도 4(CI 하한 > 0.5 kg/일) 조건은 그대로.',
+  'pv.soiling_rate':
+    '맑은 날 판정에 이웃 날 변동성 분위수(clearVariabilityQuantile 0.2)를 추가: 고정 변동성 상한만으로는 시뮬레이터 기상에서 맑은 날이 거의 없어 1년 내내 판정 불능이었다. 오염률 임계·세척 리셋 규칙은 그대로.',
+  'ess.resistance_growth': '전류 스텝 SOC 범위 30~70% → 10~90%: SIM-A 충방전 스텝이 SOC 끝단(충전 시작·방전 시작)에서 생겨 30~70%에서는 판정 불능. SOC bin 비교는 그대로라 SOC 의존 저항 차이는 bin 안에서만 비교된다. 심각도 임계는 그대로.',
+  'inv.thermal_derating':
+    '지속 저감 조건 추가(sustainedDerateHours 6): 냉각팬 고장은 저감 시간이 길어도 에너지 손실률이 작아(0.73% < 심각도 2 임계 1%) finding이 없었다. 손실률 임계 1%·3%는 그대로 두고 최근 기간 동종 대비 저감 6시간 이상이면 severity 2로 알린다.',
+  'h2chain.mass_balance_gap':
+    '탐지기 변경 없음. 체인 원장 생산량을 전해조 적산계(h2.mass.total) 하루 증가량 우선으로 변경: 5분 순시 유량 시간 평균은 기동·정지가 표본 사이에 걸릴 때마다 최대 (유량 × 5분)씩 틀려 ' +
+    '건강한 사이트 일 |잔차| p95가 2.08%였다(적산계 기준 약 0.3%). 저장량 경계는 정지 시간이면 P·T 시간 평균 사용.',
+  'comp.sec_rise':
+    '운전 최소 이송량 minMassKg 1 → 5 kg: 1~2 kg 보충 운전(30분)은 기동·정지 에너지 때문에 비에너지가 정상 운전의 약 1.5배(약 3.0 vs 1.9 kWh/kg)라 기준 bin에 섞이면 부트스트랩 중앙값이 두 봉우리 사이를 오가 CI가 0을 넘었다(데모 밸브 마모 12%: 상승 +10.8%인데 CI −18 ~ +13%). 심각도 임계·bin 폭은 그대로. 평가 영향: 밸브 5% 3/3(129일) → 2/3(117일), 10%·20%·오탐 0은 그대로(짧은 운전을 빼 표본이 줄어 작은 상승의 CI가 넓어짐).',
+  'fc.blower_wear': '탐지기 변경 없음.',
+};
+
+/** CI 축소 조합: 게이트마다 기준 크기 이상 주입이 시드마다 한 건 이상 남는 순번 */
+const REDUCED_RUNS: { readonly runs: readonly number[]; readonly note: string } = {
+  runs: [3, 4, 5, 6, 8, 9, 10, 13, 17],
+  note:
+    'P2 스윕 3~5(용량 5·7·10%, 전해조·연료전지 20·40 µV/h, 셀 불균형·데이터 품질은 가장 큰 크기) + P3 순번 1·3·4·5·8·12(순번 k = --runs 5+k): ' +
+    '비에너지 5% 이상 정류기 10%·패러데이 6%·스택 6%, 밸브 20%, 블로워 마모 10%/월·필터 25%, 오염 0.1·0.2%/일, 저항 50%, 냉각팬 겨울·여름 시작, 누설 0.005~0.1 kg/일, 유량계 드리프트 4%/월. ' +
+    '대조군 SIM-C 잡(P2·P3)은 전체와 같다. 전체 결과로 계산한 게이트 판정이 모두 전체와 같다.',
 };
 
 interface EvalConfig {
@@ -146,7 +175,7 @@ async function main(): Promise<void> {
   }
   const results = responses.flatMap((r) => (r.kind === 'result' ? [r.result] : []));
   const elapsedMs = Date.now() - started;
-  const scorecard = buildScorecard(results, { preset: EVAL_PRESET, seeds: config.seeds, runs: config.runs, generatedAt: kstDateString(Date.now()), elapsedMs, paramsNote: PARAMS_NOTE });
+  const scorecard = buildScorecard(results, { preset: EVAL_PRESET, seeds: config.seeds, runs: config.runs, generatedAt: kstDateString(Date.now()), elapsedMs, paramsNote: PARAMS_NOTE, reducedRuns: REDUCED_RUNS });
 
   printScores(results);
   for (const g of scorecard.gates) console.log(`[sim:eval] ${g.pass ? '통과' : '실패'} ${g.description}: ${fmt(g.value, 3)} (기준 ${g.comparator} ${g.threshold})`);

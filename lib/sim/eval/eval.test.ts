@@ -15,9 +15,9 @@ const DAY = 86_400_000;
 const T0 = Date.parse('2026-01-01T00:00:00+09:00');
 
 describe('평가 잡 분해', () => {
-  it('사이트마다 같은 시드·시나리오는 한 잡: 시드 3 × P2(SIM-A 5 + SIM-B 5 + SIM-C 1) + 시드 3 × P3(SIM-A 4 + SIM-B 10 + SIM-C 1) = 78', () => {
+  it('사이트마다 같은 시드·시나리오는 한 잡: 시드 3 × P2(SIM-A 5 + SIM-B 5 + SIM-C 1) + 시드 3 × P3(SIM-A 4 + SIM-B 12 + SIM-C 1) = 84', () => {
     const jobs = siteJobs(evalRunPlans());
-    expect(jobs).toHaveLength(78);
+    expect(jobs).toHaveLength(84);
     const p2Jobs = jobs.filter((j) => j.runIds.every((id) => !id.includes('-p3-')));
     expect(p2Jobs).toHaveLength(33);
     const control = p2Jobs.filter((j) => j.siteCode === 'SIM-C');

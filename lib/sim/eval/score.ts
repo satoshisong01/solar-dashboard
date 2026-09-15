@@ -131,6 +131,8 @@ export interface PartialScoreOptions {
   readonly toleranceDays?: number;
   /** 이 사이트 주입만 (예: 태양광+ESS SIM-A · 연계형 SIM-B) */
   readonly siteCode?: string;
+  /** 추가 조건 (예: 주입 종류가 섞인 탐지기에서 한 종류만) */
+  readonly filter?: (injection: InjectionResult) => boolean;
 }
 
 /** 크기 오차 ÷ |참 크기| (참 크기가 0이거나 없으면 null) */
@@ -147,7 +149,9 @@ export function scoreAtLeast(
   options: PartialScoreOptions = {},
 ): Pick<DetectorScore, 'recall' | 'medianDelayDays' | 'magnitudeMae'> & { readonly injections: number; readonly magnitudeRelErrorMedian: number | null } {
   const toleranceDays = options.toleranceDays ?? DEFAULT_TOLERANCE_DAYS;
-  const injections = jobs.flatMap((job) => job.injections.filter((i) => i.detectorId === detectorId && i.magnitude >= minMagnitude && (options.siteCode === undefined || i.injection.siteCode === options.siteCode)));
+  const injections = jobs.flatMap((job) =>
+    job.injections.filter((i) => i.detectorId === detectorId && i.magnitude >= minMagnitude && (options.siteCode === undefined || i.injection.siteCode === options.siteCode) && (options.filter?.(i) ?? true)),
+  );
   const hits = injections.filter((i) => isHit(i, toleranceDays));
   return {
     injections: injections.length,

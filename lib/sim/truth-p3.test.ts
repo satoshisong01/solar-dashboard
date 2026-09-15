@@ -22,16 +22,16 @@ describe('buildTruth — demo (P3 추가분)', () => {
       ['SIM-B/H2BANK1/TANK3', 'fault.tank_leak', day(60), TO, ['h2.storage_leak'], ['tank.static_leak'], ['h2chain.mass_balance_gap']],
       ['SIM-B/COMP1', 'fault.compressor_valve_wear', day(40), TO, ['comp.efficiency_loss'], ['comp.sec_rise'], []],
       ['SIM-B/ELZ1', 'fault.elz_sec_rise', day(45), TO, ['el.system_efficiency_loss'], ['el.sec_rise'], []],
-      ['SIM-B/FC1/BLOWER1', 'fault.fc_air_filter_clog', day(40), day(100, 10), ['fc.blower_wear'], ['fc.blower_wear'], []],
+      ['SIM-B/FC1/BLOWER1', 'fault.fc_air_filter_clog', day(70), day(110, 10), ['fc.blower_wear'], ['fc.blower_wear'], []],
     ]);
   });
 
-  it('크기 파라미터: 누설 일정(0.05 → 90일째 안전 임계 2배), 오염 복원 시각(강우일 45·85일째 03시), 필터 교체 시각', () => {
+  it('크기 파라미터: 누설 일정(0.05 → 90일째 안전 임계 2배), 오염 복원 시각(강우일 45·75일째 03시), 필터 교체 시각', () => {
     const leak = p3.find((i) => i.kind === 'fault.tank_leak');
     const soiling = p3.find((i) => i.kind === 'fault.pv_soiling');
 
     expect(leak?.params).toMatchObject({ kgPerDay: 0.05, maxKgPerDay: DEMO_P3.tankLeak.escalationKgPerDay, schedule: `0.05@${day(60)};${DEMO_P3.tankLeak.escalationKgPerDay}@${day(90)}`, fullEffectTs: day(90) });
-    expect(soiling?.params).toMatchObject({ pctPerDay: 0.08, rainDays: '45,85', restoreTs: `${day(45, 3)},${day(85, 3)}` });
+    expect(soiling?.params).toMatchObject({ pctPerDay: 0.08, rainDays: '45,75', restoreTs: `${day(45, 3)},${day(75, 3)}` });
     expect(p3.find((i) => i.kind === 'fault.elz_sec_rise')?.params).toMatchObject({ mode: 'rectifier', pct: 6, faultAsset: 'ELZ1/RECT1' });
   });
 
@@ -42,7 +42,7 @@ describe('buildTruth — demo (P3 추가분)', () => {
     ]);
     expect(truth.assetEvents).toEqual([
       expect.objectContaining({ kind: 'setpoint_change', assetPath: 'SIM-B/ESS1' }),
-      { siteCode: 'SIM-B', assetPath: 'SIM-B/FC1/BLOWER1', ts: day(100, 10), kind: 'replacement', resetsBaseline: false, note: '연료전지 공기 필터 교체' },
+      { siteCode: 'SIM-B', assetPath: 'SIM-B/FC1/BLOWER1', ts: day(110, 10), kind: 'replacement', resetsBaseline: false, note: '연료전지 공기 필터 교체' },
     ]);
   });
 });

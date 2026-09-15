@@ -1,11 +1,16 @@
 // 시뮬레이터 평가 결과 타입 (잡 → 워커 → 집계). 모두 JSON으로 주고받을 수 있는 값이다.
 import type { ControlEventTruth, InjectionTruth } from '../truth';
 
-/** 메모리 모드에서 평가하는 탐지기. dq.gap_flatline은 저장값 수준 결측·고착 주입만 평가한다 (전송 계층 단절·지연은 DB E2E 모드) */
-export const EVAL_DETECTOR_IDS = ['ess.capacity_fade', 'ess.cell_imbalance', 'pv.inverter_peer', 'el.voltage_rise', 'fc.voltage_decay', 'dq.gap_flatline'] as const;
+/** 메모리 모드에서 평가하는 탐지기 (P2 6종 + P3 8종). dq.gap_flatline은 저장값 수준 결측·고착 주입만 평가한다 (전송 계층 단절·지연은 DB E2E 모드) */
+export const EVAL_P2_DETECTOR_IDS = ['ess.capacity_fade', 'ess.cell_imbalance', 'pv.inverter_peer', 'el.voltage_rise', 'fc.voltage_decay', 'dq.gap_flatline'] as const;
+export const EVAL_P3_DETECTOR_IDS = ['el.sec_rise', 'h2chain.mass_balance_gap', 'tank.static_leak', 'comp.sec_rise', 'fc.blower_wear', 'pv.soiling_rate', 'ess.resistance_growth', 'inv.thermal_derating'] as const;
+export const EVAL_DETECTOR_IDS = [...EVAL_P2_DETECTOR_IDS, ...EVAL_P3_DETECTOR_IDS] as const;
 export type EvalDetectorId = (typeof EVAL_DETECTOR_IDS)[number];
 
-/** 탐지기가 적용되는 설비 종류 ('*' = 데이터 품질 포인트가 있는 모든 설비) */
+/** 사이트 단위 탐지기의 finding·주입 결과 설비 id (사이트 하나당 자산 1개로 센다) */
+export const SITE_ASSET_ID = 0;
+
+/** 탐지기가 적용되는 설비 종류 ('*' = 데이터 품질 포인트가 있는 모든 설비). 사이트 단위 탐지기는 사이트에 있어야 하는 설비 종류 */
 export const EVAL_DETECTOR_CLASS: Readonly<Record<EvalDetectorId, string>> = {
   'dq.gap_flatline': '*',
   'ess.capacity_fade': 'ess.rack',
@@ -13,7 +18,18 @@ export const EVAL_DETECTOR_CLASS: Readonly<Record<EvalDetectorId, string>> = {
   'pv.inverter_peer': 'pv.inverter',
   'el.voltage_rise': 'h2.elz.stack',
   'fc.voltage_decay': 'fc.stack',
+  'el.sec_rise': 'h2.elz.stack',
+  'h2chain.mass_balance_gap': 'h2.elz',
+  'tank.static_leak': 'h2.storage.tank',
+  'comp.sec_rise': 'h2.compressor',
+  'fc.blower_wear': 'fc.blower',
+  'pv.soiling_rate': 'pv.inverter',
+  'ess.resistance_growth': 'ess.rack',
+  'inv.thermal_derating': 'pv.inverter',
 };
+
+/** 사이트 단위로 채점하는 탐지기 (finding 설비 = SITE_ASSET_ID, 사이트 여러 설비에 걸친 주입은 한 건) */
+export const SITE_SCOPED_DETECTORS: ReadonlySet<string> = new Set(['h2chain.mass_balance_gap', 'pv.soiling_rate']);
 
 /** bin별 기준을 쓴 비교에서 결합에 쓴 bin 하나의 기준·최근 기간과 결합 가중치 */
 export interface BinWindow {
@@ -45,6 +61,8 @@ export interface DetectionRecord {
   readonly ciLow: number | null;
   readonly ciHigh: number | null;
   readonly windows: EvidenceWindows | null;
+  /** 판별 체크 중 '지지' id (el.sec_rise 주입 경로 적중률 집계) */
+  readonly supportedChecks?: readonly string[];
 }
 
 export interface OutcomeTally {
@@ -110,5 +128,14 @@ export interface SiteJobResult {
   readonly tallies: readonly OutcomeTally[];
   /** ess.capacity_fade 점검 시각별 설비 판정 상태 */
   readonly capacityStatuses: readonly CheckpointStatus[];
+  /** 체인 원장 일 잔차 (수소 설비가 있는 사이트, 건강한 사이트 물질수지 게이트) */
+  readonly ledgerResiduals?: readonly LedgerResidualDay[];
   readonly stats: SiteJobStats;
+}
+
+export interface LedgerResidualDay {
+  readonly day: number;
+  readonly residualPct: number | null;
+  readonly completeness: number | null;
+  readonly producedKg: number | null;
 }

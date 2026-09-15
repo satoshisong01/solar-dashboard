@@ -72,13 +72,16 @@ export interface TruthOptions {
 interface Expectation {
   readonly failureModes: readonly string[];
   readonly detectors: readonly string[];
+  /** 함께 일으킬 수 있는 다른 탐지기 (오탐으로 세지 않는다) */
+  readonly related?: readonly string[];
 }
 
 const TYPED_FAULT_EXPECTATION: Readonly<Record<TypedFaultKind, Expectation>> = {
   'fault.battery_capacity_fade': { failureModes: ['ess.capacity_fade'], detectors: ['ess.capacity_fade'] },
   'fault.cell_imbalance': { failureModes: ['ess.cell_imbalance'], detectors: ['ess.cell_imbalance'] },
   'fault.inverter_efficiency_drop': { failureModes: ['pv.inverter_underperformance'], detectors: ['pv.inverter_peer'] },
-  'fault.elz_stack_degradation': { failureModes: ['el.stack_voltage_degradation'], detectors: ['el.voltage_rise'] },
+  // 스택 셀 전압이 오르면 같은 전류에서 전해조 시스템 비에너지도 오른다 (el.sec_rise가 스택 열화 동반으로 잡는다)
+  'fault.elz_stack_degradation': { failureModes: ['el.stack_voltage_degradation'], detectors: ['el.voltage_rise'], related: ['el.sec_rise'] },
   'fault.fc_voltage_decay': { failureModes: ['fc.stack_voltage_decay'], detectors: ['fc.voltage_decay'] },
 };
 
@@ -160,6 +163,7 @@ function faultTruths(sites: readonly SiteDef[], plans: ReadonlyMap<string, SiteS
       params: { ...resolved.params, fullEffectTs: resolved.fullEffectMs },
       expectedFailureModes: expectation.failureModes,
       expectedDetectors: expectation.detectors,
+      ...(expectation.related ? { relatedDetectors: expectation.related } : {}),
     }];
   });
 }

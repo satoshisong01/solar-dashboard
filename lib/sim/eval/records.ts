@@ -1,8 +1,9 @@
 // 탐지기 실행 결과 → 평가 기록 (순수): finding 요약, 근거 창, 주입 크기, 상태 집계.
+import type { CandidateFinding } from '@/lib/analytics/detectors/types';
 import type { Json, JsonObject } from '@/lib/analytics/types';
 import type { DetectorOutcome } from '@/lib/analytics/pipeline/types';
 import type { InjectionTruth } from '../truth';
-import { EVAL_DETECTOR_IDS, type BinWindow, type DetectionRecord, type EvalDetectorId, type EvidenceWindows, type OutcomeTally } from './types';
+import { EVAL_DETECTOR_IDS, SITE_ASSET_ID, SITE_SCOPED_DETECTORS, type BinWindow, type DetectionRecord, type EvalDetectorId, type EvidenceWindows, type OutcomeTally } from './types';
 
 export const isEvalDetector = (id: string): id is EvalDetectorId => (EVAL_DETECTOR_IDS as readonly string[]).includes(id);
 
@@ -30,14 +31,28 @@ export function evidenceWindows(evidence: JsonObject): EvidenceWindows | null {
   return { referenceFrom, referenceTo, recentFrom, recentTo, bins: binWindows(evidence.bins) };
 }
 
-/** 점검 시각 하나의 결과 → 설비 finding 기록 */
+/** 채점용 finding 설비 id: 사이트 단위 탐지기는 SITE_ASSET_ID (pv.soiling_rate의 pv.plant 설비도), 그 밖에는 finding 설비. 설비가 없으면 null */
+export const findingAssetId = (f: Pick<CandidateFinding, 'detectorId' | 'assetId'>): number | null => (SITE_SCOPED_DETECTORS.has(f.detectorId) ? SITE_ASSET_ID : f.assetId);
+
+/** 근거 판별 체크 중 '지지' id */
+function supportedChecks(evidence: JsonObject): string[] {
+  const checks = evidence.checks;
+  if (!Array.isArray(checks)) return [];
+  return checks.flatMap((raw: Json) => {
+    const c = asObject(raw);
+    return c?.status === 'supports' && typeof c.id === 'string' ? [c.id] : [];
+  });
+}
+
+/** 점검 시각 하나의 결과 → finding 기록 */
 export function detectionOf(outcomes: readonly DetectorOutcome[], now: number): DetectionRecord[] {
   return outcomes.flatMap((outcome) =>
-    outcome.findings.flatMap((f): DetectionRecord[] =>
-      f.assetId === null
+    outcome.findings.flatMap((f): DetectionRecord[] => {
+      const assetId = findingAssetId(f);
+      return assetId === null
         ? []
-        : [{ ts: now, detectorId: f.detectorId, assetId: f.assetId, failureMode: f.failureMode, severity: f.severity, confidence: f.confidence, effect: f.effect.value, ciLow: f.effect.ciLow, ciHigh: f.effect.ciHigh, windows: evidenceWindows(f.evidence) }],
-    ),
+        : [{ ts: now, detectorId: f.detectorId, assetId, failureMode: f.failureMode, severity: f.severity, confidence: f.confidence, effect: f.effect.value, ciLow: f.effect.ciLow, ciHigh: f.effect.ciHigh, windows: evidenceWindows(f.evidence), supportedChecks: supportedChecks(f.evidence) }];
+    }),
   );
 }
 

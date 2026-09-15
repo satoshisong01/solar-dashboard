@@ -1,6 +1,7 @@
 // P3 평가 프리셋: 수소 저장·압축기·전해조 비에너지·연료전지 블로워·태양광 오염·랙 저항·인버터 냉각팬 고장의 크기 스윕과 P3 대조군.
 // 실행 순번 i마다 각 스윕의 i번째 크기를 넣는다(null이면 그 순번에 없음). 서로 헷갈리게 하는 고장은 같은 순번에 두지 않는다:
-//   누설(0~6) ↔ 유량계 드리프트(7~9) · 비에너지 경로는 순번마다 하나 · 밸브 마모(0~2) ↔ 씰 누설(3~5) · 블로워 마모(0~2) ↔ 필터 막힘(3~5).
+//   누설(0~6)·비에너지 상승(0~8) ↔ 유량계 드리프트(9~11) · 비에너지 경로는 순번마다 하나 · 밸브 마모(0~2) ↔ 씰 누설(3~5) · 블로워 마모(0~2) ↔ 필터 막힘(3~5).
+//   유량계 드리프트는 측정 수소량을 키워 전해조 비에너지(kWh/kg) 상승을 가리므로 비에너지 스윕과도 겹치지 않게 한다.
 // 대조군 사이트 SIM-C에는 P3 대조군만 넣는다(P2 평가 잡과 다른 잡). 고장이 없는 순번의 SIM-A는 실행하지 않는다.
 import type { ElzSecRiseMode } from './fault-scenarios-p3';
 import type { Scenario } from './scenarios';
@@ -15,7 +16,7 @@ export interface SecRiseMagnitude {
 export const EVAL_P3_PRESET = Object.freeze({
   /** 고장 시작일: 앞 120일은 기준선 */
   faultStartDay: 120,
-  runs: 10,
+  runs: 12,
   targets: { rack: 'ESS1/RACK02', inverter: 'PV1/INV02', tank: 'H2BANK1/TANK2' },
   sweeps: {
     /** SIM-A 전 인버터 끈적한 오염층 [%/일] */
@@ -47,7 +48,7 @@ export const EVAL_P3_PRESET = Object.freeze({
     /** SIM-B 공기 필터 막힘 [%] (60일 램프, 330일째 교체) */
     fcAirFilterClogPct: [null, null, null, 10, 25, 40],
     /** SIM-B 전해조 유량계 드리프트 [%/월] */
-    flowmeterDriftPctPerMonth: [null, null, null, null, null, null, null, 1, 2, 4],
+    flowmeterDriftPctPerMonth: [null, null, null, null, null, null, null, null, null, 1, 2, 4],
   },
   /** 오염 고장 강한 비 (고장 시작 뒤 60일 간격) */
   pvSoilingRainDays: [180, 240, 300],

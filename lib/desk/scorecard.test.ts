@@ -5,8 +5,23 @@ import { formatMagnitude, parseScorecard, trustBadgeFor } from './scorecard';
 describe('parseScorecard (저장소의 scorecard.json)', () => {
   const scorecard = parseScorecard(scorecardJson);
 
-  it('탐지기 6종·게이트·곡선을 읽는다', () => {
-    expect(scorecard.detectors.map((d) => d.detectorId)).toEqual(['ess.capacity_fade', 'ess.cell_imbalance', 'pv.inverter_peer', 'el.voltage_rise', 'fc.voltage_decay', 'dq.gap_flatline']);
+  it('탐지기 14종(P2 6종 + P3 8종)·게이트·곡선을 읽는다', () => {
+    expect(scorecard.detectors.map((d) => d.detectorId)).toEqual([
+      'ess.capacity_fade',
+      'ess.cell_imbalance',
+      'pv.inverter_peer',
+      'el.voltage_rise',
+      'fc.voltage_decay',
+      'dq.gap_flatline',
+      'el.sec_rise',
+      'h2chain.mass_balance_gap',
+      'tank.static_leak',
+      'comp.sec_rise',
+      'fc.blower_wear',
+      'pv.soiling_rate',
+      'ess.resistance_growth',
+      'inv.thermal_derating',
+    ]);
     expect(scorecard.gates.length).toBeGreaterThan(0);
     expect(scorecard.pass).toBe(true);
     const capacity = scorecard.detectors[0];
@@ -20,6 +35,8 @@ describe('parseScorecard (저장소의 scorecard.json)', () => {
     expect(trustBadgeFor(scorecard, 'el.voltage_rise')).toMatchObject({ kind: 'evaluated', minDetectable: '10 µV/h' });
     expect(trustBadgeFor(scorecard, 'ess.cell_imbalance')).toMatchObject({ kind: 'evaluated', recall: 1, minDetectable: '5 mV/월', fpPerAssetMonth: 0 });
     expect(trustBadgeFor(scorecard, 'dq.gap_flatline')).toMatchObject({ kind: 'evaluated', minDetectable: '6 h', fpPerAssetMonth: 0 });
+    expect(trustBadgeFor(scorecard, 'tank.static_leak')).toMatchObject({ kind: 'evaluated', minDetectable: '0.1 kg/일' });
+    expect(trustBadgeFor(scorecard, 'pv.soiling_rate')).toMatchObject({ kind: 'evaluated', minDetectable: '0.05%/일', fpPerAssetMonth: 0 });
     expect(trustBadgeFor(parseScorecard({}), 'ess.capacity_fade')).toEqual({ kind: 'none', note: null });
   });
 });

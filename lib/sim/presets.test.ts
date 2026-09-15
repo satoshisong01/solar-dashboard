@@ -134,16 +134,18 @@ describe('EVAL_PRESET · evalRunPlans', () => {
     expect(plans.at(-1)?.scenarios.filter((s) => s.kind.startsWith('fault.')).map((s) => ('site' in s ? s.site : ''))).toEqual(['SIM-A', 'SIM-B']);
   });
 
-  it('P3 순번: 스윕 크기를 순번마다 넣고, 헷갈리게 하는 고장(누설↔유량계 드리프트, 밸브↔씰, 블로워 마모↔필터)은 같은 순번에 두지 않는다', () => {
+  it('P3 순번: 스윕 크기를 순번마다 넣고, 헷갈리게 하는 고장(누설·비에너지↔유량계 드리프트, 밸브↔씰, 블로워 마모↔필터)은 같은 순번에 두지 않는다', () => {
     const p3 = allPlans.filter((p) => p.seed === 101 && p.magnitudes.p3 !== null);
     const kindsOf = (plan: (typeof p3)[number]) => plan.scenarios.map((s) => s.kind);
 
     expect(p3.map((p) => p.id)).toEqual(Array.from({ length: EVAL_PRESET.p3.runs }, (_, i) => `eval-s101-p3-${i + 1}`));
-    expect(p3.map((p) => p.magnitudes.p3?.tankLeakKgPerDay ?? null)).toEqual([0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, null, null, null]);
-    expect(p3.map((p) => p.magnitudes.p3?.elzSecRise?.mode ?? null)).toEqual(['rectifier', 'rectifier', 'rectifier', 'faradaic', 'faradaic', 'faradaic', 'stack', 'stack', 'stack', null]);
+    expect(p3.map((p) => p.magnitudes.p3?.tankLeakKgPerDay ?? null)).toEqual([0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, null, null, null, null, null]);
+    expect(p3.map((p) => p.magnitudes.p3?.elzSecRise?.mode ?? null)).toEqual(['rectifier', 'rectifier', 'rectifier', 'faradaic', 'faradaic', 'faradaic', 'stack', 'stack', 'stack', null, null, null]);
+    expect(p3.map((p) => p.magnitudes.p3?.flowmeterDriftPctPerMonth ?? null)).toEqual([null, null, null, null, null, null, null, null, null, 1, 2, 4]);
     for (const plan of p3) {
       const kinds = kindsOf(plan);
       expect(kinds.includes('fault.tank_leak') && kinds.includes('fault.flowmeter_drift')).toBe(false);
+      expect(kinds.includes('fault.elz_sec_rise') && kinds.includes('fault.flowmeter_drift')).toBe(false);
       expect(kinds.includes('fault.compressor_valve_wear') && kinds.includes('fault.compressor_leak_seal')).toBe(false);
       expect(kinds.includes('fault.fc_blower_wear') && kinds.includes('fault.fc_air_filter_clog')).toBe(false);
       expect(kinds.filter((k) => k === 'fault.elz_sec_rise').length).toBeLessThanOrEqual(1);
@@ -174,7 +176,8 @@ describe('presetScenarios — demo (demo120 + P3)', () => {
       'SIM-C:control.day_night_swing',
     ]);
     expect(demo.find((s) => s.kind === 'fault.tank_leak')).toMatchObject({ kgPerDay: 0.05, startDay: 60, escalations: [{ day: 90, kgPerDay: 2 * DEMO_TANK_LEAK_SAFETY_KG_PER_DAY }] });
-    expect(demo.find((s) => s.kind === 'fault.fc_air_filter_clog')).toMatchObject({ pct: 25, cleanedDay: 100 });
+    expect(demo.find((s) => s.kind === 'fault.fc_air_filter_clog')).toMatchObject({ pct: 35, startDay: 70, cleanedDay: 110 });
+    expect(demo.find((s) => s.kind === 'fault.pv_soiling')).toMatchObject({ rainDays: [45, 75] });
     expect(() => planScenarios(SIM_SITES, demo, { originMs: scenarioOriginMs(fromMs) })).not.toThrow();
     expect(SCENARIO_PRESETS).toContain('demo');
     expect(() => presetScenarios('demo', ['SIM-A', 'SIM-B'], window(120))).toThrow('SIM-C');

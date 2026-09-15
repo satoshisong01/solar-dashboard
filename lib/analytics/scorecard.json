@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "generated_at": "2026-09-15",
   "mode": "memory",
   "preset": {
@@ -56,10 +56,134 @@
         2,
         3
       ]
+    },
+    "p3": {
+      "runs": 12,
+      "fault_start_day": 120,
+      "sweeps": {
+        "pvSoilingPctPerDay": [
+          0.02,
+          0.05,
+          0.1,
+          0.2
+        ],
+        "rackResistancePct": [
+          10,
+          20,
+          35,
+          50
+        ],
+        "inverterFanFailureStartDay": [
+          120,
+          200,
+          280
+        ],
+        "tankLeakKgPerDay": [
+          0.005,
+          0.01,
+          0.02,
+          0.05,
+          0.1,
+          0.2,
+          0.5
+        ],
+        "elzSecRise": [
+          {
+            "mode": "rectifier",
+            "pct": 3
+          },
+          {
+            "mode": "rectifier",
+            "pct": 6
+          },
+          {
+            "mode": "rectifier",
+            "pct": 10
+          },
+          {
+            "mode": "faradaic",
+            "pct": 3
+          },
+          {
+            "mode": "faradaic",
+            "pct": 6
+          },
+          {
+            "mode": "faradaic",
+            "pct": 10
+          },
+          {
+            "mode": "stack",
+            "pct": 3
+          },
+          {
+            "mode": "stack",
+            "pct": 6
+          },
+          {
+            "mode": "stack",
+            "pct": 10
+          }
+        ],
+        "compressorValveWearPct": [
+          5,
+          10,
+          20
+        ],
+        "compressorSealLeakBarPerDay": [
+          null,
+          null,
+          null,
+          0.02,
+          0.05,
+          0.1
+        ],
+        "fcBlowerWearPctPerMonth": [
+          2,
+          5,
+          10
+        ],
+        "fcAirFilterClogPct": [
+          null,
+          null,
+          null,
+          10,
+          25,
+          40
+        ],
+        "flowmeterDriftPctPerMonth": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          1,
+          2,
+          4
+        ]
+      }
     }
   },
-  "jobs": 33,
-  "elapsed_s": 318.4,
+  "jobs": 84,
+  "elapsed_s": 1366.3,
+  "reduced_runs": {
+    "runs": [
+      3,
+      4,
+      5,
+      6,
+      8,
+      9,
+      10,
+      13,
+      17
+    ],
+    "note": ""
+  },
   "not_evaluated": {},
   "detectors": {
     "ess.capacity_fade": {
@@ -70,10 +194,10 @@
       "fn": 6,
       "recall": 0.8,
       "precision": 1,
-      "asset_months": 1062.8,
+      "asset_months": 2457.8,
       "fp_per_asset_month": 0,
       "median_delay_days": 19.5,
-      "magnitude_mae": 0.061,
+      "magnitude_mae": 0.079,
       "min_detectable_magnitude": 3,
       "curve": [
         {
@@ -90,7 +214,7 @@
           "detected": 6,
           "recall": 1,
           "median_delay_days": 26,
-          "magnitude_mae": 0.052
+          "magnitude_mae": 0.082
         },
         {
           "magnitude": 5,
@@ -98,7 +222,7 @@
           "detected": 6,
           "recall": 1,
           "median_delay_days": 21,
-          "magnitude_mae": 0.069
+          "magnitude_mae": 0.086
         },
         {
           "magnitude": 7,
@@ -106,15 +230,15 @@
           "detected": 6,
           "recall": 1,
           "median_delay_days": 18,
-          "magnitude_mae": 0.073
+          "magnitude_mae": 0.077
         },
         {
           "magnitude": 10,
           "injections": 6,
           "detected": 6,
           "recall": 1,
-          "median_delay_days": 15.5,
-          "magnitude_mae": 0.051
+          "median_delay_days": 16,
+          "magnitude_mae": 0.07
         }
       ],
       "curve_by_site": {
@@ -175,15 +299,15 @@
             "detected": 3,
             "recall": 1,
             "median_delay_days": 26,
-            "magnitude_mae": 0.025
+            "magnitude_mae": 0.086
           },
           {
             "magnitude": 5,
             "injections": 3,
             "detected": 3,
             "recall": 1,
-            "median_delay_days": 20,
-            "magnitude_mae": 0.062
+            "median_delay_days": 21,
+            "magnitude_mae": 0.095
           },
           {
             "magnitude": 7,
@@ -191,22 +315,22 @@
             "detected": 3,
             "recall": 1,
             "median_delay_days": 18,
-            "magnitude_mae": 0.074
+            "magnitude_mae": 0.081
           },
           {
             "magnitude": 10,
             "injections": 3,
             "detected": 3,
             "recall": 1,
-            "median_delay_days": 15,
-            "magnitude_mae": 0.042
+            "median_delay_days": 16,
+            "magnitude_mae": 0.08
           }
         ]
       },
       "availability": [
         {
           "site": "SIM-A",
-          "checkpoints": 3000,
+          "checkpoints": 5400,
           "insufficient": 0,
           "insufficient_ratio": 0,
           "summer_insufficient_ratio": 0,
@@ -214,7 +338,7 @@
         },
         {
           "site": "SIM-B",
-          "checkpoints": 1500,
+          "checkpoints": 5100,
           "insufficient": 0,
           "insufficient_ratio": 0,
           "summer_insufficient_ratio": 0,
@@ -222,7 +346,7 @@
         },
         {
           "site": "SIM-C",
-          "checkpoints": 300,
+          "checkpoints": 600,
           "insufficient": 0,
           "insufficient_ratio": 0,
           "summer_insufficient_ratio": 0,
@@ -245,7 +369,7 @@
       "fn": 0,
       "recall": 1,
       "precision": 1,
-      "asset_months": 1062.8,
+      "asset_months": 2457.8,
       "fp_per_asset_month": 0,
       "median_delay_days": 74,
       "magnitude_mae": null,
@@ -286,7 +410,7 @@
       "fn": 6,
       "recall": 0.5,
       "precision": 1,
-      "asset_months": 1461.4,
+      "asset_months": 3719.8,
       "fp_per_asset_month": 0,
       "median_delay_days": 5,
       "magnitude_mae": 0.065,
@@ -335,10 +459,10 @@
       "fn": 3,
       "recall": 0.75,
       "precision": 1,
-      "asset_months": 199.3,
+      "asset_months": 631,
       "fp_per_asset_month": 0,
-      "median_delay_days": 41,
-      "magnitude_mae": 0.546,
+      "median_delay_days": 37,
+      "magnitude_mae": 0.104,
       "min_detectable_magnitude": 10,
       "curve": [
         {
@@ -354,27 +478,27 @@
           "injections": 3,
           "detected": 3,
           "recall": 1,
-          "median_delay_days": 46,
-          "magnitude_mae": 0.025
+          "median_delay_days": 40,
+          "magnitude_mae": 0.013
         },
         {
           "magnitude": 20,
           "injections": 3,
           "detected": 3,
           "recall": 1,
-          "median_delay_days": 41,
-          "magnitude_mae": 0.275
+          "median_delay_days": 37,
+          "magnitude_mae": 0.186
         },
         {
           "magnitude": 40,
           "injections": 3,
           "detected": 3,
           "recall": 1,
-          "median_delay_days": 41,
-          "magnitude_mae": 1.337
+          "median_delay_days": 37,
+          "magnitude_mae": 0.112
         }
       ],
-      "params_note": "break-in 1,000 h 이후만 쓰므로 1년 평가에서 탐지 지연이 김. P2 보강: CUSUM 변화 시작점 뒤 누적 운전시간 300 h 이상이고 변화 전·후 기울기 95% CI가 겹치지 않으면 변화점 이후 기울기를 효과로 사용(기울기가 일정하면 전체 기울기 유지). 심각도 임계·CI 조건은 그대로."
+      "params_note": "break-in 1,000 h 이후만 쓰므로 1년 평가에서 탐지 지연이 김. P2 보강: CUSUM 변화 시작점 뒤 누적 운전시간 300 h 이상이고 변화 전·후 기울기 95% CI가 겹치지 않으면 변화점 이후 기울기를 효과로 사용(기울기가 일정하면 전체 기울기 유지). 심각도 임계·CI 조건은 그대로. P3 연결: 전류밀도 보정 방식을 bin + 전체 점 회귀 → 기준 구간(break-in 이후 앞 25%) 기울기 하나(currentDensityMode reference_slope, j bin 없음)로 변경. 전력 설정값 운전에서 정류기 효율이 떨어져 같은 전력의 전류밀도가 3~5% 옮겨 가면 bin 중앙값 빼기가 열화를 지웠다(데모 SIM-B 25 µV/h 주입: 정류기 고장 없으면 23.1, 있으면 finding 없음 → 변경 뒤 20.5 µV/h). 평가 영향: 10 µV/h 지연 72 → 40일, 20 µV/h 이상 상대오차 중앙값 0.038 → 0.003, 오탐 0 그대로."
     },
     "fc.voltage_decay": {
       "detector": "fc.voltage_decay@1",
@@ -384,10 +508,10 @@
       "fn": 6,
       "recall": 0.5,
       "precision": 1,
-      "asset_months": 199.3,
+      "asset_months": 631,
       "fp_per_asset_month": 0,
-      "median_delay_days": 26,
-      "magnitude_mae": 0.949,
+      "median_delay_days": 25.5,
+      "magnitude_mae": 1.02,
       "min_detectable_magnitude": 20,
       "curve": [
         {
@@ -412,7 +536,7 @@
           "detected": 3,
           "recall": 1,
           "median_delay_days": 30,
-          "magnitude_mae": 0.61
+          "magnitude_mae": 0.675
         },
         {
           "magnitude": 40,
@@ -420,7 +544,7 @@
           "detected": 3,
           "recall": 1,
           "median_delay_days": 21,
-          "magnitude_mae": 1.287
+          "magnitude_mae": 1.364
         }
       ],
       "params_note": "정출력 운전에서 전압이 떨어지면 전류밀도·온도가 함께 올라 bin 안 회귀 보정이 열화를 지워 20·40 µV/h를 0/6 탐지. correctCurrentDensity·correctTemperature = false(전류밀도 bin·회귀 끔, 온도 bin 유지), 전압은 v_cell_at_jref만 사용(v_cell_mean 대체 제거). 추출기 기준 전류밀도 0.5 → 0.6 A/cm², 분극 기울기 0.25 → 0.2 V/(A/cm²), 환산 허용 거리 0.25 → 0.3. 심각도 임계(10/20/40 µV/h)는 그대로. P2 보강: el.voltage_rise와 같은 변화점 이후 기울기 규칙(minHoursAfterChange 300 h, 변화 전·후 CI 분리)."
@@ -433,7 +557,7 @@
       "fn": 6,
       "recall": 0.833,
       "precision": 1,
-      "asset_months": 4251.2,
+      "asset_months": 17470,
       "fp_per_asset_month": 0,
       "median_delay_days": 0.8,
       "magnitude_mae": null,
@@ -465,7 +589,467 @@
         }
       ],
       "params_note": "탐지기 변경 없음. 메모리 모드에 저장값 수준 결측(dq.sample_loss: 샘플 제거)·고착(dq.stuck_sensor: 값 고정) 주입(3·6·12시간)을 넣고 DB 경로와 같은 요약 규칙(lib/analytics/dq/summary.ts)으로 주 단위 7일 창을 평가. 고착 구간 끝을 마지막 샘플 + 주기로 바꿔(6시간 고착이 샘플 간격만큼 짧게 재지던 문제) 6시간 기준에서 빠지지 않게 하고, 일사량 metric_def에 고착 기준 2시간·야간 |값| ≤ 5 W/m² 제외 규칙 추가. 전송 계층 단절 후 백필·지연·시계 오차는 메모리 모드가 재현하지 않아 DB E2E 모드에서 확인."
+    },
+    "el.sec_rise": {
+      "detector": "el.sec_rise@1",
+      "unit": "%",
+      "tp": 18,
+      "fp": 0,
+      "fn": 9,
+      "recall": 0.667,
+      "precision": 1,
+      "asset_months": 631,
+      "fp_per_asset_month": 0,
+      "median_delay_days": 61,
+      "magnitude_mae": 3.381,
+      "min_detectable_magnitude": 6,
+      "curve": [
+        {
+          "magnitude": 3,
+          "injections": 9,
+          "detected": 0,
+          "recall": 0,
+          "median_delay_days": null,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 6,
+          "injections": 9,
+          "detected": 9,
+          "recall": 1,
+          "median_delay_days": 68,
+          "magnitude_mae": 2.446
+        },
+        {
+          "magnitude": 10,
+          "injections": 9,
+          "detected": 9,
+          "recall": 1,
+          "median_delay_days": 56,
+          "magnitude_mae": 4.316
+        }
+      ],
+      "params_note": "운전 조건 bin을 전류밀도 → 설비 AC 전력(binBy ac_power, 50 kW)으로 변경. 재생전력 연계 전해조는 전력 설정값으로 운전해 정류기·스택 열화 시 같은 전력의 전류밀도가 낮아지고, 전류밀도 bin 기준이 고장 뒤 표본으로 새로 만들어져 상승이 가려졌다(정류기 10% 주입: 월 중앙 SEC 57.7 → 63.2 kWh/kg인데 finding 0). 전류 설정값 운전 설비는 binBy current_density로 되돌린다. 평가 프리셋에서 유량계 드리프트를 비에너지 스윕과 다른 순번(P3 10~12)으로 분리(드리프트가 계량 kg을 키워 kWh/kg 상승을 가림). 첫 전체 평가 5% 이상 재현율 0.5 → 이 스코어카드. 심각도 임계·CI 조건·break-in 1,000 h는 그대로."
+    },
+    "h2chain.mass_balance_gap": {
+      "detector": "h2chain.mass_balance_gap@1",
+      "unit": "%/월",
+      "tp": 9,
+      "fp": 3,
+      "fn": 0,
+      "recall": 1,
+      "precision": 0.75,
+      "asset_months": 631,
+      "fp_per_asset_month": 0.0048,
+      "median_delay_days": 34,
+      "magnitude_mae": null,
+      "min_detectable_magnitude": 1,
+      "curve": [
+        {
+          "magnitude": 1,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 62,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 2,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 34,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 4,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 19,
+          "magnitude_mae": null
+        }
+      ],
+      "params_note": "탐지기 변경 없음. 체인 원장 생산량을 전해조 적산계(h2.mass.total) 하루 증가량 우선으로 변경: 5분 순시 유량 시간 평균은 기동·정지가 표본 사이에 걸릴 때마다 최대 (유량 × 5분)씩 틀려 건강한 사이트 일 |잔차| p95가 2.08%였다(적산계 기준 약 0.3%). 저장량 경계는 정지 시간이면 P·T 시간 평균 사용."
+    },
+    "tank.static_leak": {
+      "detector": "tank.static_leak@1",
+      "unit": "kg/일",
+      "tp": 14,
+      "fp": 198,
+      "fn": 7,
+      "recall": 0.667,
+      "precision": 0.066,
+      "asset_months": 2524.2,
+      "fp_per_asset_month": 0.0784,
+      "median_delay_days": 10.5,
+      "magnitude_mae": 0.039,
+      "min_detectable_magnitude": 0.1,
+      "curve": [
+        {
+          "magnitude": 0.005,
+          "injections": 3,
+          "detected": 1,
+          "recall": 0.333,
+          "median_delay_days": 96,
+          "magnitude_mae": 0.082
+        },
+        {
+          "magnitude": 0.01,
+          "injections": 3,
+          "detected": 0,
+          "recall": 0,
+          "median_delay_days": null,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 0.02,
+          "injections": 3,
+          "detected": 2,
+          "recall": 0.667,
+          "median_delay_days": 155.5,
+          "magnitude_mae": 0.058
+        },
+        {
+          "magnitude": 0.05,
+          "injections": 3,
+          "detected": 2,
+          "recall": 0.667,
+          "median_delay_days": 53.5,
+          "magnitude_mae": 0.062
+        },
+        {
+          "magnitude": 0.1,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 15,
+          "magnitude_mae": 0.01
+        },
+        {
+          "magnitude": 0.2,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 5,
+          "magnitude_mae": 0.043
+        },
+        {
+          "magnitude": 0.5,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 5,
+          "magnitude_mae": 0.023
+        }
+      ],
+      "params_note": "상태식을 Abel–Noble → NIST Lemmon–Huber–Leachman 2008 압축계수(eosModel lemmon2008, 300 K·10 MPa Z = 1.05986)로 변경(Abel–Noble 온도 편향이 일교차 정지 보유에서 약 0.03 kg/일 가짜 손실). 기준 정지 보유(최초 12개 중 6개 이상) 손실 중앙값을 편향으로 빼고(±3σ/√n 제한), 잡음 σ = max(MAD σ, 기준 CI 반폭 중앙값/1.96, noiseFloor)로 하한을 둠(MAD만 쓰면 보유 수가 적을 때 σ 과소). zSigma 3·noiseFloor 0.02 kg/일·안전 심각도 4(CI 하한 > 0.5 kg/일) 조건은 그대로."
+    },
+    "comp.sec_rise": {
+      "detector": "comp.sec_rise@1",
+      "unit": "%",
+      "tp": 8,
+      "fp": 0,
+      "fn": 10,
+      "recall": 0.444,
+      "precision": 1,
+      "asset_months": 631,
+      "fp_per_asset_month": 0,
+      "median_delay_days": 42,
+      "magnitude_mae": 2.636,
+      "min_detectable_magnitude": 10,
+      "curve": [
+        {
+          "magnitude": 0.02,
+          "injections": 3,
+          "detected": 0,
+          "recall": 0,
+          "median_delay_days": null,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 0.05,
+          "injections": 3,
+          "detected": 0,
+          "recall": 0,
+          "median_delay_days": null,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 0.1,
+          "injections": 3,
+          "detected": 0,
+          "recall": 0,
+          "median_delay_days": null,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 5,
+          "injections": 3,
+          "detected": 2,
+          "recall": 0.667,
+          "median_delay_days": 116.5,
+          "magnitude_mae": 1.217
+        },
+        {
+          "magnitude": 10,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 43,
+          "magnitude_mae": 2.729
+        },
+        {
+          "magnitude": 20,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 32,
+          "magnitude_mae": 3.488
+        }
+      ],
+      "params_note": "운전 최소 이송량 minMassKg 1 → 5 kg: 1~2 kg 보충 운전(30분)은 기동·정지 에너지 때문에 비에너지가 정상 운전의 약 1.5배(약 3.0 vs 1.9 kWh/kg)라 기준 bin에 섞이면 부트스트랩 중앙값이 두 봉우리 사이를 오가 CI가 0을 넘었다(데모 밸브 마모 12%: 상승 +10.8%인데 CI −18 ~ +13%). 심각도 임계·bin 폭은 그대로. 평가 영향: 밸브 5% 3/3(129일) → 2/3(117일), 10%·20%·오탐 0은 그대로(짧은 운전을 빼 표본이 줄어 작은 상승의 CI가 넓어짐)."
+    },
+    "fc.blower_wear": {
+      "detector": "fc.blower_wear@1",
+      "unit": "%/월",
+      "tp": 14,
+      "fp": 0,
+      "fn": 4,
+      "recall": 0.778,
+      "precision": 1,
+      "asset_months": 631,
+      "fp_per_asset_month": 0,
+      "median_delay_days": 50.5,
+      "magnitude_mae": 5.067,
+      "min_detectable_magnitude": 5,
+      "curve": [
+        {
+          "magnitude": 2,
+          "injections": 3,
+          "detected": 2,
+          "recall": 0.667,
+          "median_delay_days": 232,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 5,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 92,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 10,
+          "injections": 6,
+          "detected": 3,
+          "recall": 0.5,
+          "median_delay_days": 51,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 25,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 44,
+          "magnitude_mae": 5.999
+        },
+        {
+          "magnitude": 40,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 35,
+          "magnitude_mae": 4.135
+        }
+      ],
+      "params_note": "탐지기 변경 없음."
+    },
+    "pv.soiling_rate": {
+      "detector": "pv.soiling_rate@1",
+      "unit": "%/일",
+      "tp": 9,
+      "fp": 0,
+      "fn": 3,
+      "recall": 0.75,
+      "precision": 1,
+      "asset_months": 930,
+      "fp_per_asset_month": 0,
+      "median_delay_days": 45,
+      "magnitude_mae": null,
+      "min_detectable_magnitude": 0.05,
+      "curve": [
+        {
+          "magnitude": 0.02,
+          "injections": 3,
+          "detected": 0,
+          "recall": 0,
+          "median_delay_days": null,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 0.05,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 110,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 0.1,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 45,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 0.2,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 30,
+          "magnitude_mae": null
+        }
+      ],
+      "params_note": "맑은 날 판정에 이웃 날 변동성 분위수(clearVariabilityQuantile 0.2)를 추가: 고정 변동성 상한만으로는 시뮬레이터 기상에서 맑은 날이 거의 없어 1년 내내 판정 불능이었다. 오염률 임계·세척 리셋 규칙은 그대로."
+    },
+    "ess.resistance_growth": {
+      "detector": "ess.resistance_growth@1",
+      "unit": "%",
+      "tp": 10,
+      "fp": 30,
+      "fn": 2,
+      "recall": 0.833,
+      "precision": 0.25,
+      "asset_months": 2457.8,
+      "fp_per_asset_month": 0.0122,
+      "median_delay_days": 54.5,
+      "magnitude_mae": 11.63,
+      "min_detectable_magnitude": 20,
+      "curve": [
+        {
+          "magnitude": 10,
+          "injections": 3,
+          "detected": 1,
+          "recall": 0.333,
+          "median_delay_days": 138,
+          "magnitude_mae": 17.438
+        },
+        {
+          "magnitude": 20,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 83,
+          "magnitude_mae": 13.578
+        },
+        {
+          "magnitude": 35,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 57,
+          "magnitude_mae": 10.936
+        },
+        {
+          "magnitude": 50,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 27,
+          "magnitude_mae": 9.737
+        }
+      ],
+      "params_note": "전류 스텝 SOC 범위 30~70% → 10~90%: SIM-A 충방전 스텝이 SOC 끝단(충전 시작·방전 시작)에서 생겨 30~70%에서는 판정 불능. SOC bin 비교는 그대로라 SOC 의존 저항 차이는 bin 안에서만 비교된다. 심각도 임계는 그대로."
+    },
+    "inv.thermal_derating": {
+      "detector": "inv.thermal_derating@1",
+      "unit": "냉각 저하 배율",
+      "tp": 9,
+      "fp": 0,
+      "fn": 0,
+      "recall": 1,
+      "precision": 1,
+      "asset_months": 3719.8,
+      "fp_per_asset_month": 0,
+      "median_delay_days": 115,
+      "magnitude_mae": null,
+      "min_detectable_magnitude": 1,
+      "curve": [
+        {
+          "magnitude": 1,
+          "injections": 9,
+          "detected": 9,
+          "recall": 1,
+          "median_delay_days": 115,
+          "magnitude_mae": null
+        }
+      ],
+      "params_note": "지속 저감 조건 추가(sustainedDerateHours 6): 냉각팬 고장은 저감 시간이 길어도 에너지 손실률이 작아(0.73% < 심각도 2 임계 1%) finding이 없었다. 손실률 임계 1%·3%는 그대로 두고 최근 기간 동종 대비 저감 6시간 이상이면 severity 2로 알린다."
     }
+  },
+  "p3": {
+    "healthy_mass_balance": {
+      "days": 2190,
+      "median_pct": 0.101,
+      "p90_pct": 0.248,
+      "p95_pct": 0.297,
+      "max_pct": 5.42
+    },
+    "pv_control_findings": 0,
+    "el_sec_rise_path_support": {
+      "overall": 0.722,
+      "detected": 18,
+      "by_mode": {
+        "rectifier": {
+          "detected": 6,
+          "support_ratio": 0.333
+        },
+        "faradaic": {
+          "detected": 6,
+          "support_ratio": 0.833
+        },
+        "stack": {
+          "detected": 6,
+          "support_ratio": 1
+        }
+      },
+      "target": 0.7
+    },
+    "tank_leak_mass_balance_share": {
+      "injections": 6,
+      "with_mass_balance_finding": 3,
+      "share": 0.5
+    },
+    "fan_failure_delays": [
+      {
+        "start_day": 120,
+        "delays_days": [
+          194,
+          153,
+          131
+        ]
+      },
+      {
+        "start_day": 200,
+        "delays_days": [
+          115,
+          73,
+          115
+        ]
+      },
+      {
+        "start_day": 280,
+        "delays_days": [
+          43,
+          36,
+          35
+        ]
+      }
+    ]
   },
   "gates": [
     {
@@ -534,7 +1118,7 @@
     },
     {
       "id": "ess.capacity_fade.fp_per_asset_month",
-      "description": "ess.capacity_fade 오탐 [건/자산·월] (대조군 포함, 1062.8 자산·월)",
+      "description": "ess.capacity_fade 오탐 [건/자산·월] (대조군 포함, 2457.8 자산·월)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -542,7 +1126,7 @@
     },
     {
       "id": "ess.cell_imbalance.fp_per_asset_month",
-      "description": "ess.cell_imbalance 오탐 [건/자산·월] (대조군 포함, 1062.8 자산·월)",
+      "description": "ess.cell_imbalance 오탐 [건/자산·월] (대조군 포함, 2457.8 자산·월)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -550,7 +1134,7 @@
     },
     {
       "id": "pv.inverter_peer.fp_per_asset_month",
-      "description": "pv.inverter_peer 오탐 [건/자산·월] (대조군 포함, 1461.4 자산·월)",
+      "description": "pv.inverter_peer 오탐 [건/자산·월] (대조군 포함, 3719.8 자산·월)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -558,7 +1142,7 @@
     },
     {
       "id": "el.voltage_rise.fp_per_asset_month",
-      "description": "el.voltage_rise 오탐 [건/자산·월] (대조군 포함, 199.3 자산·월)",
+      "description": "el.voltage_rise 오탐 [건/자산·월] (대조군 포함, 631 자산·월)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -566,7 +1150,7 @@
     },
     {
       "id": "fc.voltage_decay.fp_per_asset_month",
-      "description": "fc.voltage_decay 오탐 [건/자산·월] (대조군 포함, 199.3 자산·월)",
+      "description": "fc.voltage_decay 오탐 [건/자산·월] (대조군 포함, 631 자산·월)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -574,7 +1158,71 @@
     },
     {
       "id": "dq.gap_flatline.fp_per_asset_month",
-      "description": "dq.gap_flatline 오탐 [건/자산·월] (대조군 포함, 4251.2 자산·월)",
+      "description": "dq.gap_flatline 오탐 [건/자산·월] (대조군 포함, 17470 자산·월)",
+      "value": 0,
+      "comparator": "<=",
+      "threshold": 0.1,
+      "pass": true
+    },
+    {
+      "id": "el.sec_rise.fp_per_asset_month",
+      "description": "el.sec_rise 오탐 [건/자산·월] (대조군 포함, 631 자산·월)",
+      "value": 0,
+      "comparator": "<=",
+      "threshold": 0.1,
+      "pass": true
+    },
+    {
+      "id": "h2chain.mass_balance_gap.fp_per_asset_month",
+      "description": "h2chain.mass_balance_gap 오탐 [건/자산·월] (대조군 포함, 631 자산·월)",
+      "value": 0.0048,
+      "comparator": "<=",
+      "threshold": 0.1,
+      "pass": true
+    },
+    {
+      "id": "tank.static_leak.fp_per_asset_month",
+      "description": "tank.static_leak 오탐 [건/자산·월] (대조군 포함, 2524.2 자산·월)",
+      "value": 0.0784,
+      "comparator": "<=",
+      "threshold": 0.1,
+      "pass": true
+    },
+    {
+      "id": "comp.sec_rise.fp_per_asset_month",
+      "description": "comp.sec_rise 오탐 [건/자산·월] (대조군 포함, 631 자산·월)",
+      "value": 0,
+      "comparator": "<=",
+      "threshold": 0.1,
+      "pass": true
+    },
+    {
+      "id": "fc.blower_wear.fp_per_asset_month",
+      "description": "fc.blower_wear 오탐 [건/자산·월] (대조군 포함, 631 자산·월)",
+      "value": 0,
+      "comparator": "<=",
+      "threshold": 0.1,
+      "pass": true
+    },
+    {
+      "id": "pv.soiling_rate.fp_per_asset_month",
+      "description": "pv.soiling_rate 오탐 [건/자산·월] (대조군 포함, 930 자산·월)",
+      "value": 0,
+      "comparator": "<=",
+      "threshold": 0.1,
+      "pass": true
+    },
+    {
+      "id": "ess.resistance_growth.fp_per_asset_month",
+      "description": "ess.resistance_growth 오탐 [건/자산·월] (대조군 포함, 2457.8 자산·월)",
+      "value": 0.0122,
+      "comparator": "<=",
+      "threshold": 0.1,
+      "pass": true
+    },
+    {
+      "id": "inv.thermal_derating.fp_per_asset_month",
+      "description": "inv.thermal_derating 오탐 [건/자산·월] (대조군 포함, 3719.8 자산·월)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -591,7 +1239,7 @@
     {
       "id": "el.voltage_rise.rel_error_20uvh",
       "description": "el.voltage_rise 20 µV/h 이상 크기 상대오차 중앙값",
-      "value": 0.0274,
+      "value": 0.003,
       "comparator": "<=",
       "threshold": 0.1,
       "pass": true
@@ -599,7 +1247,7 @@
     {
       "id": "fc.voltage_decay.rel_error_20uvh",
       "description": "fc.voltage_decay 20 µV/h 이상 크기 상대오차 중앙값 (주입 6건)",
-      "value": 0.0313,
+      "value": 0.034,
       "comparator": "<=",
       "threshold": 0.1,
       "pass": true
@@ -618,6 +1266,94 @@
       "value": 1,
       "comparator": ">=",
       "threshold": 0.9,
+      "pass": true
+    },
+    {
+      "id": "h2chain.healthy_residual_median",
+      "description": "대조군 SIM-C 일별 수소 물질수지 |잔차율| 중앙값 [%] (2190일)",
+      "value": 0.101,
+      "comparator": "<",
+      "threshold": 1,
+      "pass": true
+    },
+    {
+      "id": "h2chain.healthy_residual_p95",
+      "description": "SIM-C 일별 |잔차율| 95퍼센타일 [%]",
+      "value": 0.297,
+      "comparator": "<",
+      "threshold": 2,
+      "pass": true
+    },
+    {
+      "id": "tank.static_leak.min_detectable_kg_per_day",
+      "description": "tank.static_leak 재현율 0.9 이상 최소 누설률 [kg/일] (스윕 최대 0.5 이하여야 함)",
+      "value": 0.1,
+      "comparator": "<=",
+      "threshold": 0.5,
+      "pass": true
+    },
+    {
+      "id": "pv.control_findings",
+      "description": "PV 대조군(출력제어·흐린 주·비 오는 주) 구간 PV 탐지기 finding 수",
+      "value": 0,
+      "comparator": "<=",
+      "threshold": 0,
+      "pass": true
+    },
+    {
+      "id": "el.sec_rise.recall_5pct",
+      "description": "el.sec_rise 비에너지 5% 이상(정류기·패러데이·스택 경로) 재현율 (주입 18건)",
+      "value": 1,
+      "comparator": ">=",
+      "threshold": 0.8,
+      "pass": true
+    },
+    {
+      "id": "comp.sec_rise.recall_valve_10pct",
+      "description": "comp.sec_rise 밸브 마모 10% 이상 재현율 (주입 6건)",
+      "value": 1,
+      "comparator": ">=",
+      "threshold": 0.8,
+      "pass": true
+    },
+    {
+      "id": "fc.blower_wear.recall_20pct",
+      "description": "fc.blower_wear 블로워 비전력 +20% 이상(필터 막힘 20% 이상·마모 누적 20% 이상) 재현율 (주입 12건)",
+      "value": 1,
+      "comparator": ">=",
+      "threshold": 0.8,
+      "pass": true
+    },
+    {
+      "id": "pv.soiling_rate.recall_0_1pct_day",
+      "description": "pv.soiling_rate 오염 0.1%/일 이상 재현율 (주입 6건)",
+      "value": 1,
+      "comparator": ">=",
+      "threshold": 0.8,
+      "pass": true
+    },
+    {
+      "id": "ess.resistance_growth.recall_40pct",
+      "description": "ess.resistance_growth 내부저항 +40% 이상 재현율 (주입 3건)",
+      "value": 1,
+      "comparator": ">=",
+      "threshold": 0.8,
+      "pass": true
+    },
+    {
+      "id": "inv.thermal_derating.recall_fan_failure",
+      "description": "inv.thermal_derating 냉각팬 고장(겨울·봄·여름 시작, 여름 고온기 포함) 재현율 (주입 9건)",
+      "value": 1,
+      "comparator": ">=",
+      "threshold": 0.8,
+      "pass": true
+    },
+    {
+      "id": "h2chain.mass_balance_gap.recall_drift_3pct",
+      "description": "h2chain.mass_balance_gap 유량계 드리프트 3%/월 이상 재현율 (주입 3건)",
+      "value": 1,
+      "comparator": ">=",
+      "threshold": 0.8,
       "pass": true
     }
   ],
