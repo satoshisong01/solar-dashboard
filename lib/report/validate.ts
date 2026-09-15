@@ -5,6 +5,9 @@
 //   4) 심각도 4 이상 발견사항은 포함한 블록이 모두 인용
 //   5) 금지 표현(법정 안전 판단 대체·안전 보장 등) 없음, 안전 고정 문구는 포함·원문 그대로
 //   6) 효과 값 뒤 같은 문장의 방향 단어가 효과 부호와 맞음 (편집으로 '감소'를 '증가'로 바꾸면 불일치, lib/report/direction.ts)
+//   7) 안전 발견사항(안전 카테고리·심각도 4 이상)은 요약 절 맨 앞 포함 블록이 모두 인용하고 대체 불가 고정 문구를 담음
+//   (에너지·수소 원장 수치도 energyLedger 경로 토큰이라 3)에서 팩 값과 대조한다)
+import { isSafetyFinding, SAFETY_FINDING_NOTICE } from '@/lib/desk/safety';
 import { SAFETY_NOTICE, type DraftBlock, type ReportDraft } from './composer';
 import { DIRECTION_WORDS, directionIssues } from './direction';
 import { computePackHash } from './evidence-pack';
@@ -12,7 +15,7 @@ import type { EvidencePack } from './pack-types';
 import { SEVERE_THRESHOLD } from './planner';
 import { blockTokenIssues, type TokenIssueCode } from './tokens';
 
-export type ValidationIssueCode = TokenIssueCode | 'pack_hash_mismatch' | 'citation_missing' | 'severity_not_mentioned' | 'forbidden_expression' | 'safety_notice_missing' | 'exclude_reason_missing' | 'empty_text' | 'direction_mismatch';
+export type ValidationIssueCode = TokenIssueCode | 'pack_hash_mismatch' | 'citation_missing' | 'severity_not_mentioned' | 'forbidden_expression' | 'safety_notice_missing' | 'exclude_reason_missing' | 'empty_text' | 'direction_mismatch' | 'safety_urgent_missing';
 
 export interface ValidationIssue {
   readonly code: ValidationIssueCode;
@@ -52,6 +55,7 @@ export function packCitationIds(pack: EvidencePack): ReadonlySet<string> {
     'stats',
     'energy',
     'data_quality',
+    ...(pack.energyLedger ? ['ledger'] : []),
     ...pack.findings.flatMap((f) => [`finding:${f.id}`, ...(f.evidenceId ? [`evidence:${f.evidenceId}`] : [])]),
     ...pack.verifiedActions.flatMap((a) => [`verification:${a.verificationId}`, `action:${a.actionId}`]),
     ...pack.kpis.map((k) => `kpi:${k.key}`),
@@ -73,6 +77,17 @@ function blockIssues(block: ValidatableBlock, pack: EvidencePack, citations: Rea
   ];
 }
 
+/** 안전 발견사항: 요약 절의 첫 포함 블록이 인용하고 고정 문구를 담아야 한다 */
+function urgentIssues(draft: ValidatableDraft, pack: EvidencePack): ValidationIssue[] {
+  const safety = pack.findings.filter(isSafetyFinding);
+  if (safety.length === 0) return [];
+  const first = draft.sections.find((section) => section.kind === 'summary')?.blocks.find(isIncluded);
+  const notice = first !== undefined && first.text.includes(SAFETY_FINDING_NOTICE);
+  return safety
+    .filter((f) => !notice || !first?.citations.includes(`finding:${f.id}`))
+    .map((f): ValidationIssue => ({ code: 'safety_urgent_missing', blockId: first?.id ?? null, message: `안전 발견사항 #${f.id}(${f.assetPath})을 요약 맨 앞 '즉시 확인 필요' 블록에 인용하고 고정 문구("${SAFETY_FINDING_NOTICE}")를 넣어야 합니다` }));
+}
+
 export function validateDraft(draft: ValidatableDraft, pack: EvidencePack): ValidationResult {
   const blocks = draft.sections.flatMap((section) => section.blocks.map((b) => ({ section: section.kind, block: b })));
   const included = blocks.filter(({ block }) => isIncluded(block));
@@ -89,6 +104,6 @@ export function validateDraft(draft: ValidatableDraft, pack: EvidencePack): Vali
     .map((f): ValidationIssue => ({ code: 'severity_not_mentioned', blockId: null, message: `심각도 ${f.severity} 발견사항 #${f.id}(${f.assetPath})을 언급한 블록이 없습니다` }));
   const safety = included.some(({ section, block }) => section === 'safety' && block.text.includes(SAFETY_NOTICE));
   const safetyIssues: ValidationIssue[] = safety ? [] : [{ code: 'safety_notice_missing', blockId: null, message: `안전 고정 문구가 없습니다: "${SAFETY_NOTICE}"` }];
-  const issues = [...hashIssues, ...included.flatMap(({ block }) => blockIssues(block, pack, citations)), ...excludeIssues, ...severityIssues, ...safetyIssues];
+  const issues = [...hashIssues, ...included.flatMap(({ block }) => blockIssues(block, pack, citations)), ...excludeIssues, ...severityIssues, ...urgentIssues(draft, pack), ...safetyIssues];
   return { ok: issues.length === 0, issues, checkedBlocks: included.length };
 }

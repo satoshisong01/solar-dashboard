@@ -1,6 +1,6 @@
 // 효과 방향 단어 (순수): 템플릿이 효과 부호로 증가/감소 단어를 만들고, validateDraft가 편집으로 뒤집힌 방향 단어를 찾는다.
 // 규칙
-//   - 방향 = 효과 값 부호 × 메트릭 극성. v_cell_decay_rate(연료전지 감쇠율)는 양수가 전압 감소, 나머지는 양수가 증가.
+//   - 방향 = 효과 값 부호 × 메트릭 극성. v_cell_decay_rate(연료전지 감쇠율)·tank_leak_kg_per_day(누설률)는 양수가 감소, 나머지는 양수가 증가.
 //     데이터 품질 메트릭(dq.*)과 0은 방향을 따지지 않는다.
 //   - 검사 범위: 본문에서 그 발견사항 effect.value 토큰이 처음 나온 곳부터 그 문장 끝('다.')까지.
 //     그 안에 반대 방향 단어가 있으면 불일치 (같은 방향 다른 표현 '줄었습니다'·중립 '변했습니다'는 허용).
@@ -9,7 +9,8 @@ import type { NumberToken } from './composer';
 
 export type EffectDirection = 'increase' | 'decrease';
 
-const DECREASE_POSITIVE_METRICS: readonly string[] = ['v_cell_decay_rate'];
+/** 양수가 감소 방향인 효과: 연료전지 감쇠율(전압 감소), 저장용기 누설률(온도 보정 질량 감소) */
+const DECREASE_POSITIVE_METRICS: readonly string[] = ['v_cell_decay_rate', 'tank_leak_kg_per_day'];
 
 export const DIRECTION_WORDS: Readonly<Record<EffectDirection, readonly string[]>> = {
   increase: ['증가', '상승', '늘었', '늘어', '커졌', '커지', '높아', '올랐', '오르'],

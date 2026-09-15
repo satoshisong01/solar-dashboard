@@ -5,7 +5,10 @@ import { hashInput } from '@/lib/analytics/hash';
 import { PLAYBOOKS } from '@/lib/analytics/playbooks';
 import { parseEffect } from '@/lib/desk/effect';
 import { detectorLabel } from '@/lib/desk/labels';
+import type { SiteEnergyDay } from '@/lib/analytics/ledger/types';
+import { MESSAGE_TEMPLATE_VERSION } from './messages/version';
 import { summarizeEvidence, roundTo } from './pack-evidence';
+import { energyLedgerOf } from './pack-ledger';
 import { dataQualityOf, kpiAssetSummaries, kpiSummaries, revenueOf, verifiedActionsOf, type KpiRowInput, type MarketRowInput, type VerificationInput } from './pack-sections';
 import { byReportOrder, dataSpanOf, impactOf, judgementOf, MIN_DATA_SPANS, pickTodo, priorityOf, SEVERE_THRESHOLD } from './planner';
 import {
@@ -61,6 +64,8 @@ export interface PackInput {
   readonly energy: PackEnergy;
   readonly verifications: readonly VerificationInput[];
   readonly market: readonly MarketRowInput[];
+  /** 기간 안 끝난 날의 체인 원장 일 행 (om.site_energy_daily). 팩에는 기간 합만 넣는다 */
+  readonly ledgerDays: readonly SiteEnergyDay[];
 }
 
 const TRANSITION_LIMIT = 10;
@@ -80,7 +85,7 @@ function effectOf(raw: unknown): PackEffect {
 
 export function packFindingOf(input: FindingInput, siteCode: string): PackFinding {
   const effect = effectOf(input.effect);
-  const evidence = summarizeEvidence(input.snapshot, effect);
+  const evidence = summarizeEvidence(input.snapshot, effect, input.detectorId);
   const dataSpan = dataSpanOf(input.detectorId, evidence, { start: input.windowStart, end: input.windowEnd });
   const minDataSpan = MIN_DATA_SPANS[input.detectorId] ?? null;
   const confidence = roundTo(input.confidence, 3) ?? 0;
@@ -158,9 +163,11 @@ export function buildEvidencePack(input: PackInput): EvidencePack {
     dataQuality: dataQualityOf(kpiByAsset, findings.filter((f) => f.category === 'data_quality').map((f) => f.id)),
     verifiedActions,
     revenueSummary: revenueOf(input.market),
+    energyLedger: energyLedgerOf(input.ledgerDays),
     provenance: {
       schema: EVIDENCE_PACK_SCHEMA,
       engineVersion: REPORT_ENGINE_VERSION,
+      templateVersion: MESSAGE_TEMPLATE_VERSION,
       kpiCalcVersion: KPI_CALC_VERSION,
       detectorVersions: [...new Set(findings.map((f) => `${f.detectorId}@${f.detectorVersion}`))].sort(),
       generatedAt: input.generatedAt,

@@ -1,8 +1,10 @@
 // templateComposer@1 (설계 §5.4): EvidencePack → ReportDraft. 탐지기별 한국어 메시지 템플릿(messages/)과 플레이북으로 문장을 만든다.
-// 섹션: 요약 / 이번 달·분기 할 일 3개 / 발견사항 / 데이터 품질 요청 / 검증된 조치 효과 / KPI / 안전 고정 문구.
+// 섹션: 요약(안전 발견사항이 있으면 맨 앞 '즉시 확인 필요') / 이번 달·분기 할 일 3개 / 발견사항 / 데이터 품질 요청 / 검증된 조치 효과 / KPI / 에너지·수소 원장 / 안전 고정 문구.
 // 모든 숫자는 팩 경로 토큰이라 validateDraft가 팩 값과 대조한다.
 import { verdictLabel } from '@/lib/desk/labels';
-import { SAFETY_NOTICE, type DraftBlock, type DraftSection, type ReportComposer, type ReportDraft } from './composer';
+import { isSafetyFinding, SAFETY_FINDING_NOTICE } from '@/lib/desk/safety';
+import { SAFETY_NOTICE, URGENT_BLOCK_ID, type DraftBlock, type DraftSection, type ReportComposer, type ReportDraft } from './composer';
+import { ledgerSection } from './ledger-section';
 import { ENERGY_KEYS, ENERGY_LABELS, KPI_TEXT_KEYS, kpiDisplay } from './kpi-labels';
 import { effectCiDigits, formatSigned } from '@/lib/desk/effect';
 import { adviceMessage, findingMessage, scopeOf, type Scope } from './messages';
@@ -42,7 +44,20 @@ function summarySection(pack: EvidencePack, s: Scope): DraftSection {
   );
   const energyParts = ENERGY_KEYS.flatMap((key) => (s.has(`energySummary.${key}`) ? [seq(`${ENERGY_LABELS[key].label} `, s.num(`energySummary.${key}`, key === 'h2Kg' ? 1 : 0), ` ${ENERGY_LABELS[key].unit}`)] : []));
   const energy = energyParts.length === 0 ? '기간 발전·수소 계측값이 없습니다.' : seq('기간 계측: ', joinPresent(energyParts, ' · '), '.');
-  return { kind: 'summary', title: '요약', blocks: [block('summary.overview', overview, ['stats']), block('summary.energy', energy, ['energy'])] };
+  const urgent = urgentBlock(pack, s);
+  return { kind: 'summary', title: '요약', blocks: [...(urgent ? [urgent] : []), block('summary.overview', overview, ['stats']), block('summary.energy', energy, ['energy'])] };
+}
+
+/** 안전 발견사항(안전 카테고리·심각도 4 이상)을 요약 맨 앞에 모은다: 설비·항목·제목·심각도 + 현장 확인 우선 + 대체 불가 고정 문구 */
+function urgentBlock(pack: EvidencePack, s: Scope): DraftBlock | null {
+  const safety = pack.findings.flatMap((f, index) => (isSafetyFinding(f) ? [{ f, index }] : []));
+  if (safety.length === 0) return null;
+  const items = safety.map(({ index }) => {
+    const fs = s.at(`findings[${index}]`);
+    return seq('[', fs.label('assetPath'), '] ', fs.label('detectorLabel'), ' — ', fs.label('title'), '(심각도 ', fs.num('severity'), ')');
+  });
+  const piece = seq('즉시 확인 필요: ', joinPresent(items, '; '), `. 가스 검지기 기록과 현장 점검을 먼저 확인하고, 운전 정지 여부는 현장 안전책임자가 판단하세요. ${SAFETY_FINDING_NOTICE}`);
+  return block(URGENT_BLOCK_ID, piece, safety.map(({ f }) => `finding:${f.id}`));
 }
 
 const TODO_TITLES = { month: '이번 달 할 일', quarter: '이번 분기 할 일', custom: '이번 기간 할 일' } as const;
@@ -150,6 +165,7 @@ export const templateComposer: ReportComposer = {
         dataQualitySection(pack, s),
         verifiedActionsSection(pack, s),
         kpiSection(pack, s),
+        ledgerSection(pack, s),
         { kind: 'safety', title: '안전 안내', blocks: [block('safety.notice', SAFETY_NOTICE, [])] },
       ],
     };

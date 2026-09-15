@@ -34,6 +34,8 @@ export function citationChip(id: string, pack: Pick<EvidencePack, 'verifiedActio
       return { id, label: '발전·수소 계측', href: null };
     case 'data_quality':
       return { id, label: '데이터 품질 요약', href: null };
+    case 'ledger':
+      return { id, label: '에너지·수소 원장', href: null };
     default:
       return { id, label: id, href: null };
   }
@@ -43,7 +45,7 @@ export interface StoredValidationView extends ValidationResult {
   readonly checkedAt: number | null;
 }
 
-const ISSUE_CODES: readonly ValidationIssueCode[] = ['token_path', 'token_value', 'untracked_number', 'missing_number', 'missing_label', 'pack_hash_mismatch', 'citation_missing', 'severity_not_mentioned', 'forbidden_expression', 'safety_notice_missing', 'exclude_reason_missing', 'empty_text'];
+const ISSUE_CODES: readonly ValidationIssueCode[] = ['token_path', 'token_value', 'untracked_number', 'missing_number', 'missing_label', 'pack_hash_mismatch', 'citation_missing', 'severity_not_mentioned', 'forbidden_expression', 'safety_notice_missing', 'exclude_reason_missing', 'empty_text', 'direction_mismatch', 'safety_urgent_missing'];
 
 /** om.report.validation jsonb → 표시용. 모르는 값은 검증 실패로 본다 */
 export function parseStoredValidation(raw: unknown): StoredValidationView {

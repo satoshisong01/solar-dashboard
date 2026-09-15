@@ -9,7 +9,7 @@
 //   3) validateDraft를 통과한 초안만 채택하고, 실패하면 templateComposer 결과로 되돌린다. 바뀌는 것은 문장 품질뿐이다.
 import type { EvidencePack } from './pack-types';
 
-export type SectionKind = 'summary' | 'todo' | 'findings' | 'data_quality' | 'verified_actions' | 'kpi' | 'safety';
+export type SectionKind = 'summary' | 'todo' | 'findings' | 'data_quality' | 'verified_actions' | 'kpi' | 'ledger' | 'safety';
 
 /** 본문 숫자 표기 방식 */
 export type TokenFormat = 'number' | 'signed' | 'percent' | 'date' | 'duration' | 'label';
@@ -60,6 +60,9 @@ export interface ReportComposer {
   readonly id: string;
   compose(pack: EvidencePack, options?: ComposeOptions): ReportDraft;
 }
+
+/** 요약 맨 앞 '즉시 확인 필요' 블록 id (안전 발견사항이 있을 때만). 편집·제외할 수 없다 */
+export const URGENT_BLOCK_ID = 'summary.urgent';
 
 /** 안전 고정 문구 (설계 §9: 콘솔을 안전설비로 오인하지 않게). 편집·제외할 수 없다 */
 export const SAFETY_NOTICE = '이 리포트는 법정 안전설비·현장 PLC 인터록 판단을 대체하지 않습니다.';

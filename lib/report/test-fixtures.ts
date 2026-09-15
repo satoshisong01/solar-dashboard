@@ -217,6 +217,7 @@ export function packInput(overrides: Partial<PackInput> = {}): PackInput {
       { day: '2026-09-01', key: 'smp_land', value: 140.1, unit: '원/kWh' },
       { day: '2026-09-02', key: 'smp_land', value: 144.5, unit: '원/kWh' },
     ],
+    ledgerDays: [],
     ...overrides,
   };
 }

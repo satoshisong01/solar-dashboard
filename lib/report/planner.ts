@@ -22,6 +22,16 @@ export const MIN_DATA_SPANS: Readonly<Record<string, DataSpan>> = {
   'pv.inverter_peer': { value: 7, unit: 'days' },
   'el.voltage_rise': { value: 200, unit: 'op_hours' },
   'fc.voltage_decay': { value: 200, unit: 'op_hours' },
+  // P3 (탐지 창 = 기준 첫 표본 ~ 최근 마지막 표본): 같은 조건 상승 4종은 최근 비교 기간 30일, 물질수지는 기준 14일 + 최근 7일,
+  // 누설은 탐지기 최소 이력 14일, 오염은 최소 무세척 구간 14일, 열 저감은 최근 기간 30일
+  'el.sec_rise': { value: 30, unit: 'days' },
+  'comp.sec_rise': { value: 30, unit: 'days' },
+  'fc.blower_wear': { value: 30, unit: 'days' },
+  'ess.resistance_growth': { value: 30, unit: 'days' },
+  'h2chain.mass_balance_gap': { value: 21, unit: 'days' },
+  'tank.static_leak': { value: 14, unit: 'days' },
+  'pv.soiling_rate': { value: 14, unit: 'days' },
+  'inv.thermal_derating': { value: 30, unit: 'days' },
 };
 
 /** 근거가 덮는 데이터 기간. 탐지 창(windowStart~End) 또는 스택 운전시간 폭 */
@@ -40,7 +50,7 @@ export function judgementOf(input: { readonly confidence: number; readonly detec
 
 const clamp = (value: number, low: number, high: number): number => Math.min(high, Math.max(low, value));
 
-/** 효과 크기를 탐지기별 "크다고 볼 크기"로 나눈 값 (1 ≈ 심각도 3~4 수준) */
+/** 효과 크기를 탐지기별 "크다고 볼 크기"로 나눈 값 (1 ≈ 심각도 3~4 수준, P3는 탐지기 severity 4 기준값·안전 누설률 0.5 kg/일·오염 severity 3 손실 4%·열 저감 severity 3 손실 3%·물질수지 5%) */
 function magnitudeOf(detectorId: string, value: number | null, evidence: PackEvidence): number {
   const v = Math.abs(value ?? 0);
   switch (detectorId) {
@@ -53,6 +63,22 @@ function magnitudeOf(detectorId: string, value: number | null, evidence: PackEvi
     case 'el.voltage_rise':
     case 'fc.voltage_decay':
       return v / 30;
+    case 'el.sec_rise':
+      return v / 10;
+    case 'comp.sec_rise':
+      return v / 20;
+    case 'fc.blower_wear':
+      return v / 35;
+    case 'ess.resistance_growth':
+      return v / 60;
+    case 'tank.static_leak':
+      return v / 0.5;
+    case 'h2chain.mass_balance_gap':
+      return v / 5;
+    case 'pv.soiling_rate':
+      return v / 4;
+    case 'inv.thermal_derating':
+      return v / 3;
     case 'dq.gap_flatline':
       return evidence.kind === 'dq' && evidence.worstCompletenessPct !== null ? (100 - evidence.worstCompletenessPct) / 10 : 0.3;
     default:

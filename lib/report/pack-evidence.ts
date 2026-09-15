@@ -5,24 +5,14 @@ import { parseEvidence } from '@/lib/desk/evidence';
 import type { CapacityEvidence, CellImbalanceEvidence, CheckView, DqEvidence, PvPeerEvidence, StackEvidence } from '@/lib/desk/evidence-types';
 import type { TrendView } from '@/lib/desk/trend';
 import { DAYS_PER_MONTH, MS_PER_DAY } from '@/lib/analytics/types';
-import { MAX_EVIDENCE_POINTS, type PackCheck, type PackEvidence, type PackSeries } from './pack-types';
+import { downsamplePoints, roundTo } from './pack-evidence-shared';
+import { summarizeP3Evidence } from './pack-evidence-p3';
+import type { PackCheck, PackEvidence, PackSeries } from './pack-types';
 
 const MS_PER_MONTH = DAYS_PER_MONTH * MS_PER_DAY;
 const KST_OFFSET_MS = 9 * 3_600_000;
 
-/** 부동소수 잡음 없이 반올림 (팩 해시가 입력의 계산 경로에 흔들리지 않게) */
-export const roundTo = (value: number | null, digits: number): number | null => {
-  if (value === null || !Number.isFinite(value)) return null;
-  const factor = 10 ** digits;
-  return Math.round(value * factor) / factor;
-};
-
-/** 앞·뒤 점을 남기고 고르게 max개 이하로 줄인다 */
-export function downsamplePoints<T>(points: readonly T[], max = MAX_EVIDENCE_POINTS): T[] {
-  if (points.length <= max) return [...points];
-  const step = (points.length - 1) / (max - 1);
-  return Array.from({ length: max }, (_, i) => points[Math.round(i * step)] as T);
-}
+export { downsamplePoints, roundTo };
 
 function seriesOf(trend: TrendView | null, yDigits: number): PackSeries | null {
   if (!trend || trend.points.length === 0) return null;
@@ -144,9 +134,9 @@ export interface EffectLevels {
   readonly current: number | null;
 }
 
-/** 스냅샷 jsonb → 팩 근거 요약. 모르는 형식이면 unknown */
-export function summarizeEvidence(snapshot: unknown, levels: EffectLevels): PackEvidence {
-  const evidence = parseEvidence(snapshot);
+/** 스냅샷 jsonb → 팩 근거 요약. 탐지기 id로 P3 근거를 가린다 (용량 감소와 같은 matched_ratio). 모르는 형식이면 unknown */
+export function summarizeEvidence(snapshot: unknown, levels: EffectLevels, detectorId?: string | null): PackEvidence {
+  const evidence = parseEvidence(snapshot, detectorId);
   switch (evidence.kind) {
     case 'capacity':
       return capacity(evidence, levels);
@@ -158,8 +148,10 @@ export function summarizeEvidence(snapshot: unknown, levels: EffectLevels): Pack
       return pvPeer(evidence);
     case 'dq':
       return dq(evidence);
-    default:
+    case 'unknown':
       return { kind: 'unknown' };
+    default:
+      return summarizeP3Evidence(evidence);
   }
 }
 

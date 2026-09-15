@@ -2,10 +2,11 @@
 // 무엇을 말할지(항목·수치·우선순위·판정)는 팩을 만드는 결정적 엔진(evidence-pack.ts·planner.ts)이 정하고,
 // 어떻게 말할지만 ReportComposer가 정한다. 원시 시계열은 넣지 않는다 — 근거 요약 시계열(≤120점)만.
 import type { CapacityMetric } from '@/lib/desk/conditions';
+import type { P3PackEvidence, PackEnergyLedger } from './pack-types-p3';
 
 export const EVIDENCE_PACK_SCHEMA = 'om.evidence-pack.v1';
 /** 팩 조립·우선순위 규칙 버전. 규칙을 바꾸면 올린다 (같은 입력 → 같은 팩 해시) */
-export const REPORT_ENGINE_VERSION = 'report-planner@1';
+export const REPORT_ENGINE_VERSION = 'report-planner@2';
 /** 근거 요약 시계열 점 수 상한 (finding_evidence 다운샘플과 같다) */
 export const MAX_EVIDENCE_POINTS = 120;
 
@@ -141,7 +142,7 @@ export interface DqPackEvidence {
   readonly longestFlatlineHours: number | null;
 }
 
-export type PackEvidence = CapacityPackEvidence | StackPackEvidence | CellImbalancePackEvidence | PvPeerPackEvidence | DqPackEvidence | { readonly kind: 'unknown' };
+export type PackEvidence = CapacityPackEvidence | StackPackEvidence | CellImbalancePackEvidence | PvPeerPackEvidence | DqPackEvidence | P3PackEvidence | { readonly kind: 'unknown' };
 
 export type DataSpanUnit = 'days' | 'op_hours';
 
@@ -315,6 +316,8 @@ export interface PackProvenance {
   readonly engineVersion: string;
   readonly kpiCalcVersion: string;
   readonly detectorVersions: readonly string[];
+  /** 탐지기별 문장 템플릿 버전 (composerId는 templateComposer@1 그대로). report-planner@1 팩에는 없다 */
+  readonly templateVersion?: string;
   /** 만든 시각. 팩 해시에는 넣지 않는다 */
   readonly generatedAt: number;
   readonly packHash: string;
@@ -335,5 +338,7 @@ export interface EvidencePack {
   readonly dataQuality: PackDataQuality;
   readonly verifiedActions: readonly PackVerifiedAction[];
   readonly revenueSummary: readonly PackRevenue[];
+  /** 에너지·수소 체인 원장 기간 합 (원장이 없으면 null). report-planner@1 팩에는 없다 */
+  readonly energyLedger?: PackEnergyLedger | null;
   readonly provenance: PackProvenance;
 }

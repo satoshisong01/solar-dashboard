@@ -1,5 +1,5 @@
 // P3 분석 실행 (hysol_test): 체인 원장 site_energy_daily 멱등 · 사이트 단위 finding dedup · 설정 검증 실패(invalid_config) ·
-// 저장용기 정지 구간 원시 부분 로드 · 조치 효과 검증 신규 지표(압축기 비에너지).
+// 저장용기 정지 구간 원시 부분 로드 · 조치 효과 검증 신규 지표(압축기 비에너지) · 리포트 팩 에너지·수소 원장과 안전 발견사항 '즉시 확인 필요'.
 // 픽스처: 시드된 SIM-B의 수소 체인 포인트 21일(10일째부터 저장용기 2 누설 2 kg/일, tests/support/p3-fixture.ts).
 import { sql } from 'kysely';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -9,6 +9,12 @@ import { loadAssetSeries } from '@/lib/analysis/series';
 import { extractTankHoldsWindowed, loadTankHoldPoints } from '@/lib/analysis/tank-holds';
 import { loadEpisodes } from '@/lib/analysis/episodes';
 import { registerMaintenanceAction } from '@/lib/analysis/transitions';
+import { isSafetyFinding } from '@/lib/desk/safety';
+import { URGENT_BLOCK_ID } from '@/lib/report/composer';
+import { readStoredPack } from '@/lib/report/evidence-pack';
+import { resolveReportPeriod } from '@/lib/report/period';
+import { parseReviewDraft } from '@/lib/report/review';
+import { createReport } from '@/lib/report/service';
 import { TANK_STATIC_LEAK_DEFAULTS } from '@/lib/analytics/detectors/tank-static-leak';
 import { tankHoldPoints } from '@/lib/analytics/episodes/tank-hold';
 import { extractAssetEpisodes } from '@/lib/analytics/pipeline/extract';
@@ -79,6 +85,23 @@ describe('P3 분석 실행 (hysol_test)', () => {
     const chain = await db.selectFrom('om.finding').select(['id', 'detection_count', 'status']).where('site_id', '=', fixture.siteId).where('detector_id', '=', 'h2chain.mass_balance_gap').execute();
     expect(chain).toEqual([expect.objectContaining({ detection_count: 2, status: 'new' })]);
     expect(result.stats.sites[0]?.findings.created).toBe(0);
+  }, 240_000);
+
+  it('리포트 팩: 기간 안 끝난 날의 체인 원장 합(원시·일 행 없음)과 원장 절, 안전 발견사항은 요약 맨 앞 즉시 확인 필요로 검증 통과', async () => {
+    const period = resolveReportPeriod({ kind: 'custom', from: '2026-02-01', to: '2026-02-21' });
+    if (!period.ok) throw new Error('기간');
+    const findings = await db.selectFrom('om.finding').select(['id', 'category', 'severity']).where('site_id', '=', fixture.siteId).where('detector_id', 'in', ['tank.static_leak', 'h2chain.mass_balance_gap']).execute();
+    const report = await createReport(db, { siteId: fixture.siteId, period: period.period, findingIds: findings.map((f) => f.id), includeVerifiedActions: false, actor: ADMIN, now: p3At(P3_DAYS + 1) });
+    expect(report.validation).toMatchObject({ ok: true, issues: [] });
+    const row = await db.selectFrom('om.report').select(['pack', 'draft']).where('id', '=', report.reportId).executeTakeFirstOrThrow();
+    const pack = readStoredPack(row.pack);
+    expect(pack?.energyLedger).toMatchObject({ days: P3_DAYS, allocVersion: 'pool_hourly@1' });
+    expect(pack?.energyLedger?.hydrogen?.daysUsed).toBeGreaterThan(0);
+    expect(JSON.stringify(row.pack)).not.toContain('flows_kwh');
+    const draft = parseReviewDraft(row.draft);
+    expect(draft?.sections.map((s) => s.kind)).toContain('ledger');
+    const summaryFirst = draft?.sections.find((s) => s.kind === 'summary')?.blocks[0];
+    expect(summaryFirst?.id === URGENT_BLOCK_ID).toBe(findings.some(isSafetyFinding));
   }, 240_000);
 
   it('설정 검증 실패(범위 밖 값)는 그 탐지기만 invalid_config 판정 불능으로 남기고 실행 통계에 적는다', async () => {

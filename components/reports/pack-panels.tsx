@@ -129,6 +129,7 @@ export function PackProvenance({ pack }: Readonly<{ pack: EvidencePack }>) {
         <dt className="text-xs text-muted">스키마 · 엔진</dt>
         <dd className="font-mono text-xs text-ink-2">
           {p.schema} · {p.engineVersion} · {p.kpiCalcVersion}
+          {p.templateVersion ? ` · ${p.templateVersion}` : ''}
         </dd>
       </div>
       <div>

@@ -15,7 +15,7 @@ describe('templateComposer@1 섹션', () => {
     const draft = templateComposer.compose(pack);
     expect(draft.composerId).toBe(TEMPLATE_COMPOSER_ID);
     expect(draft.packHash).toBe(pack.provenance.packHash);
-    expect(draft.sections.map((s) => s.kind)).toEqual(['summary', 'todo', 'findings', 'data_quality', 'verified_actions', 'kpi', 'safety']);
+    expect(draft.sections.map((s) => s.kind)).toEqual(['summary', 'todo', 'findings', 'data_quality', 'verified_actions', 'kpi', 'ledger', 'safety']);
     expect(draft.sections[1]?.title).toBe('이번 달 할 일');
     expect(textOf(draft, 'safety.notice')).toBe(SAFETY_NOTICE);
     expect(textOf(draft, 'summary.overview')).toBe('SIM-A 2026-09-01 ~ 2026-09-30: 발견사항 5건(심각도 4 이상 1건, 판정 보류 0건), 조치 효과 검증 1건(개선 확인 1건).');

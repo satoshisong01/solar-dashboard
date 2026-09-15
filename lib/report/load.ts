@@ -2,7 +2,9 @@
 // 'server-only'를 넣지 않는다: integration 테스트에서도 쓴다. 호출 전 관리자 확인은 Server Action이 한다.
 import { sql, type Kysely } from 'kysely';
 import { ENERGY_KPI_KEYS, ENERGY_KPIS, computeEnergy, sumNullable, type HourBucket } from '@/lib/data/energy-calc';
+import { ALLOC_VERSION, type SiteEnergyDay } from '@/lib/analytics/ledger/types';
 import { kstDayStart } from '@/lib/analytics/types';
+import { parseLedgerRow, type LedgerDbRow } from '@/lib/chain/parse';
 import type { DB } from '@/lib/db/types';
 import type { FindingInput, PackInput } from './evidence-pack';
 import type { KpiRowInput, MarketRowInput, VerificationInput } from './pack-sections';
@@ -144,6 +146,18 @@ async function loadVerifications(db: Kysely<DB>, siteId: number, period: PackPer
   return rows.map((r) => ({ id: r.id, actionId: r.action_id, findingId: r.finding_id, assetPath: r.path, actionType: r.action_type, performedAt: r.performed_at.getTime(), verdict: r.verdict, effect: r.effect, ciLow: r.ci_low, ciHigh: r.ci_high, beforeStats: r.before_stats, afterStats: r.after_stats, computedAt: r.computed_at.getTime() }));
 }
 
+/** 체인 원장 일 행: 기간 안의 끝난 날만 (기간 끝과 오늘 0시(KST) 중 이른 쪽 전날까지, 원장은 하루가 끝난 날만 저장된다) */
+async function loadLedgerDays(db: Kysely<DB>, siteId: number, period: PackPeriod, now: Date): Promise<SiteEnergyDay[]> {
+  const endDay = kstDay(Math.min(period.to, kstDayStart(now.getTime())));
+  const { rows } = await sql<LedgerDbRow>`
+    SELECT to_char(day, 'YYYY-MM-DD') AS day, flows_kwh, energy_kwh, h2_kg, elz_grid_share, renewable_share, elz_sec_kwh_per_kg, fc_kg_per_mwh, p2p_efficiency, pv_loss_kwh, dq, calc_version
+    FROM om.site_energy_daily
+    WHERE site_id = ${siteId} AND alloc_version = ${ALLOC_VERSION} AND day >= ${kstDay(period.from)}::date AND day < ${endDay}::date
+    ORDER BY day
+  `.execute(db);
+  return rows.map(parseLedgerRow);
+}
+
 async function loadMarket(db: Kysely<DB>, period: PackPeriod): Promise<MarketRowInput[]> {
   const { rows } = await sql<{ day: string; market_key: string; value: number; unit: string }>`
     SELECT to_char(day, 'YYYY-MM-DD') AS day, market_key, value::float8 AS value, unit
@@ -158,12 +172,13 @@ export async function loadPackInput(db: Kysely<DB>, request: ReportRequest, now:
   const site = await db.selectFrom('om.site').select(['id', 'code', 'name']).where('id', '=', request.siteId).executeTakeFirst();
   if (!site) throw new ReportError('not_found', '사이트를 찾을 수 없습니다');
   const ids = [...new Set(request.findingIds)];
-  const [findings, kpiRows, energy, verifications, market] = await Promise.all([
+  const [findings, kpiRows, energy, verifications, market, ledgerDays] = await Promise.all([
     loadFindings(db, site.id, ids),
     loadKpiRows(db, site.id, request.period, now),
     loadEnergy(db, site.id, { fromMs: request.period.from, toMs: Math.min(request.period.to, now.getTime()) }),
     request.includeVerifiedActions ? loadVerifications(db, site.id, request.period) : Promise.resolve([]),
     loadMarket(db, request.period),
+    loadLedgerDays(db, site.id, request.period, now),
   ]);
-  return { site: { id: site.id, code: site.code, name: site.name }, period: request.period, selection: { findingIds: ids, includeVerifiedActions: request.includeVerifiedActions, basedOnReportId: request.basedOnReportId ?? null }, generatedAt: now.getTime(), findings, kpiRows, energy, verifications, market };
+  return { site: { id: site.id, code: site.code, name: site.name }, period: request.period, selection: { findingIds: ids, includeVerifiedActions: request.includeVerifiedActions, basedOnReportId: request.basedOnReportId ?? null }, generatedAt: now.getTime(), findings, kpiRows, energy, verifications, market, ledgerDays };
 }

@@ -1,7 +1,7 @@
 // 리포트 초안 검토 상태 (순수): 문장 편집(숫자 토큰 잠금) · 블록 포함/제외(사유) · 저장된 jsonb 읽기.
 // 편집은 새 초안 객체를 돌려주고 원본을 바꾸지 않는다. 승인 여부 확인(상태 draft)은 DB 서비스가 한다.
 import { asArray, asBoolean, asNumber, asRecord, asString } from '@/lib/desk/json-read';
-import type { DraftBlock, NumberToken, ReportDraft, SectionKind, TokenFormat } from './composer';
+import { URGENT_BLOCK_ID, type DraftBlock, type NumberToken, type ReportDraft, type SectionKind, type TokenFormat } from './composer';
 import { textTokenIssues } from './tokens';
 
 export const BLOCK_TEXT_MAX = 2_000;
@@ -37,7 +37,8 @@ export function toReviewDraft(draft: ReportDraft): ReviewDraft {
     ...draft,
     sections: draft.sections.map((section) => ({
       ...section,
-      blocks: section.blocks.map((b) => ({ ...b, included: true, excludeReason: null, locked: section.kind === 'safety', originalText: b.text, editedBy: null, editedAt: null })),
+      // 안전 고정 문구와 요약 맨 앞 '즉시 확인 필요'(안전 발견사항)는 잠근다
+      blocks: section.blocks.map((b) => ({ ...b, included: true, excludeReason: null, locked: section.kind === 'safety' || b.id === URGENT_BLOCK_ID, originalText: b.text, editedBy: null, editedAt: null })),
     })),
   };
 }
@@ -92,7 +93,7 @@ export function reportedFindingIds(draft: ReviewDraft): string[] {
   return [...new Set(ids)].sort((a, b) => Number(a) - Number(b));
 }
 
-const SECTION_KINDS: readonly SectionKind[] = ['summary', 'todo', 'findings', 'data_quality', 'verified_actions', 'kpi', 'safety'];
+const SECTION_KINDS: readonly SectionKind[] = ['summary', 'todo', 'findings', 'data_quality', 'verified_actions', 'kpi', 'ledger', 'safety'];
 const TOKEN_FORMATS: readonly TokenFormat[] = ['number', 'signed', 'percent', 'date', 'duration', 'label'];
 
 function parseToken(raw: unknown): NumberToken | null {
@@ -118,7 +119,7 @@ function parseBlock(raw: unknown, kind: SectionKind): ReviewBlock | null {
     numberTokens: tokens as NumberToken[],
     included: asBoolean(b.included) ?? true,
     excludeReason: asString(b.excludeReason),
-    locked: asBoolean(b.locked) ?? kind === 'safety',
+    locked: asBoolean(b.locked) ?? (kind === 'safety' || id === URGENT_BLOCK_ID),
     originalText: asString(b.originalText) ?? text,
     editedBy: asString(b.editedBy),
     editedAt: asNumber(b.editedAt),

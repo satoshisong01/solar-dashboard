@@ -57,6 +57,7 @@ export async function dropP3Fixture(db: Kysely<DB>): Promise<void> {
     const findings = trx.selectFrom('om.finding').select('id').where('site_id', '=', site.id);
     const actions = trx.selectFrom('om.maintenance_action').select('id').where('site_id', '=', site.id);
     const points = trx.selectFrom('om.point').select('id').where('asset_id', 'in', assets);
+    await trx.deleteFrom('om.report').where('site_id', '=', site.id).execute();
     await trx.deleteFrom('om.action_verification').where('action_id', 'in', actions).execute();
     await trx.deleteFrom('om.maintenance_action').where('site_id', '=', site.id).execute();
     await trx.updateTable('om.finding').set({ latest_evidence_id: null, previous_finding_id: null }).where('site_id', '=', site.id).execute();

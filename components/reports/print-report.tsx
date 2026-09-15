@@ -3,10 +3,14 @@ import type { ReportDetail } from '@/lib/data/reports';
 import { detectorLabel } from '@/lib/desk/labels';
 import { formatKstDate, formatKstDateTime, formatNumber } from '@/lib/format';
 import { JUDGEMENT_LABELS, reportStatusLabel } from '@/lib/report/citations';
+import { URGENT_BLOCK_ID } from '@/lib/report/composer';
 import { kpiDisplay } from '@/lib/report/kpi-labels';
 import type { EvidencePack, PackFinding, PackSeries } from '@/lib/report/pack-types';
 import type { ReviewDraft, ReviewSection } from '@/lib/report/review';
+import { LedgerPrint } from './print-ledger';
 import { SeriesSvg } from './series-svg';
+
+const X_AXIS_NAMES = { time: '날짜', op_hours: '누적 운전시간', elapsed_days: '경과일' } as const;
 
 const TH = 'border-b border-rule-strong bg-sunken px-2 py-1 text-left text-[11px] font-semibold text-ink-2';
 const TD = 'border-b border-rule px-2 py-1 align-top text-[12px]';
@@ -92,7 +96,7 @@ function FindingChart({ finding, series, figure }: Readonly<{ finding: PackFindi
     <figure className="print-keep my-2">
       <SeriesSvg series={series} label={`${finding.assetPath} ${series.yName} 근거 요약 차트`} />
       <figcaption className="text-center text-[10px] text-muted">
-        [그림 {figure}] {finding.assetPath} · {series.yName} ({series.xKind === 'time' ? '날짜' : '누적 운전시간'} 축, 점 {series.points.length}개{series.line ? ', 빨간 선 = 추세' : ''})
+        [그림 {figure}] {finding.assetPath} · {series.yName} ({X_AXIS_NAMES[series.xKind]} 축, 점 {series.points.length}개{series.line ? ', 빨간 선 = 추세' : ''})
       </figcaption>
     </figure>
   );
@@ -112,7 +116,7 @@ function Section({ section, index, pack }: Readonly<{ section: ReviewSection; in
           const chart = charts.includes(block.id) ? chartSeries(pack, block.id) : null;
           return (
             <div key={block.id} className="print-keep">
-              <p className={`text-[12.5px] leading-relaxed ${section.kind === 'safety' ? 'rounded border border-warn/50 bg-warn-fill px-2 py-1 font-medium text-warn' : 'text-ink'}`}>{block.text}</p>
+              <p className={`text-[12.5px] leading-relaxed ${section.kind === 'safety' ? 'rounded border border-warn/50 bg-warn-fill px-2 py-1 font-medium text-warn' : block.id === URGENT_BLOCK_ID ? 'rounded border-2 border-crit bg-crit-fill px-2 py-1 font-semibold text-crit' : 'text-ink'}`}>{block.text}</p>
               {chart && <FindingChart finding={chart.finding} series={chart.series} figure={charts.indexOf(block.id) + 1} />}
             </div>
           );
@@ -120,6 +124,7 @@ function Section({ section, index, pack }: Readonly<{ section: ReviewSection; in
       </div>
       {section.kind === 'todo' && <FindingTable pack={pack} />}
       {section.kind === 'kpi' && <KpiPrintTable pack={pack} />}
+      {section.kind === 'ledger' && pack.energyLedger && <LedgerPrint ledger={pack.energyLedger} />}
     </section>
   );
 }
@@ -170,7 +175,7 @@ export function PrintReport({ report, draft, pack }: Readonly<{ report: ReportDe
         <Section key={section.kind} section={section} index={index} pack={pack} />
       ))}
       <footer className="mt-6 border-t border-rule pt-2 text-[10px] leading-snug text-muted">
-        문장: {draft.composerId} · 판정·우선순위: {pack.provenance.engineVersion} · 탐지기: {pack.provenance.detectorVersions.join(', ') || '—'}
+        문장: {draft.composerId}{pack.provenance.templateVersion ? ` (${pack.provenance.templateVersion})` : ''} · 판정·우선순위: {pack.provenance.engineVersion} · 탐지기: {pack.provenance.detectorVersions.join(', ') || '—'}
         <br />
         근거 팩 {pack.provenance.packHash} · 팩 생성 {formatKstDateTime(pack.provenance.generatedAt)} KST · 인쇄 화면은 파일로 저장하지 않으며 전달은 별도로 합니다.
       </footer>
