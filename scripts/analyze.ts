@@ -44,9 +44,13 @@ function readConfig(): AnalyzeConfig {
 function printStats(result: AnalysisRunResult): void {
   console.log(`[analyze] 실행 ${result.runId} · ${result.status} · 롤업 ${result.stats.rollup.picked}버킷 · 중단 실행 정리 ${result.stats.abandonedRunsFailed} · ${formatDuration(result.stats.elapsedMs)}`);
   for (const site of result.stats.sites) {
-    const detectors = Object.entries(site.detectors).map(([id, t]) => `${id} ok ${t.ok}/부족 ${t.insufficient}/오류 ${t.error}/finding ${t.findings}`).join(' · ');
+    const detectors = Object.entries(site.detectors).map(([id, t]) => `${id} ok ${t.ok}/부족 ${t.insufficient}${t.invalidConfig > 0 ? `(설정 오류 ${t.invalidConfig})` : ''}/오류 ${t.error}/finding ${t.findings}`).join(' · ');
+    const stages = Object.entries(site.stages).map(([stage, ms]) => `${stage} ${formatDuration(ms ?? 0)}`).join(' · ');
     console.log(`[analyze] ${site.siteCode}: 설비 ${site.assets} (추출 ${site.extractedAssets}) · 에피소드 저장 ${site.episodesSaved} (누적 ${site.episodesInHistory}) · KPI ${site.kpiRows}행 · ${formatDuration(site.elapsedMs)}`);
+    console.log(`[analyze]   단계: ${stages}`);
     console.log(`[analyze]   탐지: ${detectors}`);
+    if (site.ledger) console.log(`[analyze]   체인 원장: ${site.ledger.days}일 · 1시간 롤업 ${site.ledger.hourRows}행 · 기준 PR ${site.ledger.prRef ?? '-'} · 오염 손실 추정 ${site.ledger.soilingDays}일 · 정지 구간 원시 창 ${site.tankHoldRaw.windows}개 (${site.tankHoldRaw.hours} h)`);
+    site.configIssues.forEach((issue) => console.warn(`[analyze]   설정 오류 ${issue.detectorId}${issue.assetId === null ? '' : ` asset ${issue.assetId}`}: ${issue.reason}`));
     console.log(`[analyze]   finding: 새 ${site.findings.created} (재발 ${site.findings.recurrences}) · 갱신 ${site.findings.updated} (악화 ${site.findings.worsened}) · 억제 ${site.findings.suppressed}${site.verification ? ` · 조치 검증 ${site.verification.checked} (대기 ${site.verification.pending})` : ''}`);
   }
   result.stats.errors.forEach((e) => console.warn(`[analyze] 오류 ${e.stage} site ${e.siteId}${e.assetId ? ` asset ${e.assetId}` : ''}${e.detectorId ? ` ${e.detectorId}` : ''}: ${e.message}`));

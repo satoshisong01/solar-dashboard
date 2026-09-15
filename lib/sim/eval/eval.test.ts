@@ -172,7 +172,7 @@ describe('평가 기록', () => {
     expect(injectionMagnitude(injection({ kind: 'fault.inverter_efficiency_drop', params: { pctPoints: 2 } }))).toEqual({ magnitude: 2, unit: '%p' });
     expect(injectionMagnitude(injection({ kind: 'fault.tank_leak', params: { kgPerDay: 0.05 } }))).toEqual({ magnitude: 0.05, unit: 'kg/일' });
     expect(injectionMagnitude(injection({ kind: 'fault.elz_sec_rise', params: { pct: 6, mode: 'stack' } }))).toEqual({ magnitude: 6, unit: '%' });
-    const base: DetectorOutcome = { detectorId: 'el.voltage_rise', detectorVersion: '1', siteId: 1, assetId: 5, status: 'insufficient', findings: [], reason: '누적 운전시간 범위 부족: 12 h (100 h 필요)', configVersions: [] };
+    const base: DetectorOutcome = { detectorId: 'el.voltage_rise', detectorVersion: '1', siteId: 1, assetId: 5, status: 'insufficient', findings: [], reason: '누적 운전시간 범위 부족: 12 h (100 h 필요)', configVersions: [], config: { scope: 'code_default', version: null, paramsHash: 'x', applied: [] } };
     const tally = tallyOutcomes([base, { ...base, reason: '누적 운전시간 범위 부족: 40 h (100 h 필요)' }, { ...base, status: 'ok', reason: null }]).find((t) => t.detectorId === 'el.voltage_rise');
     expect(tally).toMatchObject({ ok: 1, insufficient: 2, error: 0, topReasons: [['누적 운전시간 범위 부족: # h (# h 필요)', 2]] });
     expect(detectionOf([base], T0)).toEqual([]);

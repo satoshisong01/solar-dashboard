@@ -1,33 +1,46 @@
-// 사이트 하나 분석: 에피소드 추출·저장(겹침 재처리) → 일 KPI → 탐지기 → finding 저장 → 조치 효과 검증.
+// 사이트 하나 분석: 에피소드 추출·저장(겹침 재처리) → 일 KPI → 탐지기(P2·P3) → 체인 원장 → 물질수지 → finding 저장 → 조치 효과 검증.
 // 설비·탐지기 단위 오류는 기록하고 계속한다 (실행 상태 partial). 시간 예산을 넘으면 남은 단계를 건너뛴다.
+// 단계별 소요시간은 stats.stages [ms]에 남긴다.
 import { sql, type Kysely } from 'kysely';
-import { essCapacityFade } from '@/lib/analytics/detectors/ess-capacity-fade';
-import { runSiteDetectors, type DetectOptions } from '@/lib/analytics/pipeline/detect';
+import { INVALID_CONFIG } from '@/lib/analytics/pipeline/config';
 import { extractAssetEpisodes, stackRunningCurrentA } from '@/lib/analytics/pipeline/extract';
 import { dailyKpiRows, type KpiRow } from '@/lib/analytics/pipeline/kpis';
-import { indexSnapshot, type SiteSnapshot } from '@/lib/analytics/pipeline/snapshot';
 import { isExtractable, seriesRequests } from '@/lib/analytics/pipeline/sources';
 import type { DetectorConfigRow, DetectorOutcome, PipelineAsset, StoredEpisode } from '@/lib/analytics/pipeline/types';
 import { KPI_CALC_VERSION } from '@/lib/analytics/kpi/daily';
-import { kstDayStart, MS_PER_DAY, MS_PER_HOUR, type TimeWindow } from '@/lib/analytics/types';
+import { kstDayStart, MS_PER_HOUR, type TimeWindow } from '@/lib/analytics/types';
 import type { DB } from '@/lib/db/types';
-import { loadAssetEvents, loadSiteAssets, loadSitePoints, type PointRow, type SiteRow } from './catalog';
-import { loadDqInput } from './dq-summary';
+import { loadSiteAssets, loadSitePoints, type PointRow, type SiteRow } from './catalog';
 import { extractionStart, kindsOfClass, loadEpisodes, replaceEpisodes } from './episodes';
 import { EMPTY_PERSIST_STATS, persistFindings, type FindingPersistStats } from './findings';
-import { loadAssetSeries, loadChargeCurves, loadHourly, loadStackPriorState } from './series';
+import type { LedgerStats } from './ledger';
+import { loadAssetSeries, loadHourly, loadStackPriorState } from './series';
+import { detectSite } from './site-detect';
+import { extractTankHoldsWindowed } from './tank-holds';
 import { verifyActions, type VerificationStats } from './verification';
 
 /** 원시 조회 앞 여유: 휴지 후 시작 판정(1시간)·직전 SOC·기상값 조회용 */
 const SERIES_LEAD_MS = 2 * MS_PER_HOUR;
 const MAX_ERRORS = 50;
+const MAX_CONFIG_ISSUES = 20;
 
 export interface RunError {
-  readonly stage: 'run' | 'extract' | 'kpi' | 'dq' | 'detect' | 'curves' | 'findings' | 'verify';
+  readonly stage: 'run' | 'extract' | 'kpi' | 'dq' | 'detect' | 'curves' | 'ledger' | 'findings' | 'verify';
   readonly siteId: number;
   readonly assetId?: number;
   readonly detectorId?: string;
   readonly message: string;
+}
+
+export type StageKey = 'extract' | 'kpi' | 'aux' | 'detect' | 'ledger' | 'findings' | 'verify';
+
+export interface DetectorTally {
+  readonly ok: number;
+  readonly insufficient: number;
+  readonly error: number;
+  readonly findings: number;
+  /** insufficient 중 설정 검증 실패 (invalid_config) */
+  readonly invalidConfig: number;
 }
 
 export interface SiteRunStats {
@@ -38,10 +51,16 @@ export interface SiteRunStats {
   readonly episodesSaved: number;
   readonly episodesInHistory: number;
   readonly kpiRows: number;
-  readonly detectors: Readonly<Record<string, { ok: number; insufficient: number; error: number; findings: number }>>;
+  readonly detectors: Readonly<Record<string, DetectorTally>>;
+  /** 설정 검증에 실패한 탐지기 실행 (탐지기·설비·사유) */
+  readonly configIssues: readonly { readonly detectorId: string; readonly assetId: number | null; readonly reason: string }[];
+  readonly ledger: LedgerStats | null;
+  /** tank.hold 추출에서 원시를 읽은 창 수·길이 */
+  readonly tankHoldRaw: { readonly windows: number; readonly hours: number };
   readonly findings: FindingPersistStats;
   readonly verification: VerificationStats | null;
   readonly skipped: readonly string[];
+  readonly stages: Readonly<Partial<Record<StageKey, number>>>;
   readonly elapsedMs: number;
 }
 
@@ -67,6 +86,20 @@ const recordError = (ctx: SiteRunContext, error: Omit<RunError, 'message'>, caus
 };
 const overBudget = (ctx: SiteRunContext): boolean => ctx.now().getTime() > ctx.deadline;
 
+/** 단계별 소요시간 누적기 (실행 하나 안에서만 쓰는 가변 기록) */
+function stageTimer(ctx: SiteRunContext) {
+  const stages: Partial<Record<StageKey, number>> = {};
+  const time = async <T>(stage: StageKey, work: () => Promise<T>): Promise<T> => {
+    const started = ctx.now().getTime();
+    try {
+      return await work();
+    } finally {
+      stages[stage] = (stages[stage] ?? 0) + ctx.now().getTime() - started;
+    }
+  };
+  return { stages, time };
+}
+
 /** 스택이면 창 시작 전 운전 상태(끝 구간만 다시 추출해도 창 첫 기동의 꺼짐 시간을 잃지 않게), 아니면 null */
 async function stackPrior(ctx: SiteRunContext, asset: PipelineAsset, points: readonly PointRow[], windowStart: number) {
   const runningA = stackRunningCurrentA(asset);
@@ -74,13 +107,23 @@ async function stackPrior(ctx: SiteRunContext, asset: PipelineAsset, points: rea
   return runningA === null || !currentPoint ? null : loadStackPriorState(ctx.db, currentPoint.pointId, windowStart, runningA);
 }
 
-async function extractAsset(ctx: SiteRunContext, asset: PipelineAsset, assets: readonly PipelineAsset[], points: readonly PointRow[]): Promise<number> {
-  if (!isExtractable(asset.classKey)) return 0;
+interface AssetExtraction {
+  readonly saved: number;
+  readonly rawWindows: number;
+  readonly rawHours: number;
+}
+
+async function extractAsset(ctx: SiteRunContext, asset: PipelineAsset, assets: readonly PipelineAsset[], points: readonly PointRow[]): Promise<AssetExtraction> {
+  if (!isExtractable(asset.classKey)) return { saved: 0, rawWindows: 0, rawHours: 0 };
   const start = await extractionStart(ctx.db, asset.id, kstDayStart(ctx.window.start - ctx.overlapMs));
   const window = { start, end: ctx.window.end };
+  if (asset.classKey === 'h2.storage.tank') {
+    const holds = await extractTankHoldsWindowed(ctx.db, asset, assets, points, window);
+    return { saved: await replaceEpisodes(ctx.db, asset.id, kindsOfClass(asset.classKey), window, holds.episodes, ctx.runId), rawWindows: holds.windows, rawHours: holds.rawHours };
+  }
   const series = await loadAssetSeries(ctx.db, seriesRequests(asset, assets), points, { start: start - SERIES_LEAD_MS, end: window.end });
   const episodes = extractAssetEpisodes(asset, series, window, {}, { stackPrior: await stackPrior(ctx, asset, points, start) });
-  return replaceEpisodes(ctx.db, asset.id, kindsOfClass(asset.classKey), window, episodes, ctx.runId);
+  return { saved: await replaceEpisodes(ctx.db, asset.id, kindsOfClass(asset.classKey), window, episodes, ctx.runId), rawWindows: 0, rawHours: 0 };
 }
 
 async function upsertKpis(db: Kysely<DB>, rows: readonly KpiRow[]): Promise<number> {
@@ -106,47 +149,17 @@ async function upsertKpis(db: Kysely<DB>, rows: readonly KpiRow[]): Promise<numb
 }
 
 function tallyDetectors(outcomes: readonly DetectorOutcome[]): SiteRunStats['detectors'] {
-  const tally: Record<string, { ok: number; insufficient: number; error: number; findings: number }> = {};
+  const tally: Record<string, DetectorTally> = {};
   for (const o of outcomes) {
-    const current = tally[o.detectorId] ?? { ok: 0, insufficient: 0, error: 0, findings: 0 };
-    tally[o.detectorId] = { ...current, [o.status]: current[o.status] + 1, findings: current.findings + o.findings.length };
+    const current = tally[o.detectorId] ?? { ok: 0, insufficient: 0, error: 0, findings: 0, invalidConfig: 0 };
+    const invalid = o.reason?.startsWith(INVALID_CONFIG) ? 1 : 0;
+    tally[o.detectorId] = { ...current, [o.status]: current[o.status] + 1, findings: current.findings + o.findings.length, invalidConfig: current.invalidConfig + invalid };
   }
   return tally;
 }
 
-/** 근거 bin 표의 기준 기간 (bin별 기준이면 bin마다 다르다) */
-function referenceRanges(evidence: unknown): { from: number; to: number }[] {
-  const bins = evidence !== null && typeof evidence === 'object' && 'bins' in evidence && Array.isArray(evidence.bins) ? (evidence.bins as unknown[]) : [];
-  return bins.flatMap((bin) => {
-    const b = bin !== null && typeof bin === 'object' ? (bin as Record<string, unknown>) : {};
-    return b.used === true && typeof b.ref_from === 'number' && typeof b.ref_to === 'number' ? [{ from: b.ref_from, to: b.ref_to }] : [];
-  });
-}
-
-/** 용량 감소 finding이 난 랙은 대표 세션 충전 곡선을 읽어 같은 시드로 다시 탐지해 오버레이를 채운다 */
-async function withCapacityCurves(ctx: SiteRunContext, snapshot: SiteSnapshot, points: readonly PointRow[], outcomes: readonly DetectorOutcome[], options: DetectOptions): Promise<DetectorOutcome[]> {
-  const index = indexSnapshot(snapshot);
-  const result: DetectorOutcome[] = [];
-  for (const outcome of outcomes) {
-    if (outcome.detectorId !== essCapacityFade.id || outcome.assetId === null || outcome.findings.length === 0) {
-      result.push(outcome);
-      continue;
-    }
-    try {
-      const sessions = index.episodesOf(outcome.assetId, 'ess.charge').filter((s) => s.valid && s.end <= options.now);
-      const ranges = referenceRanges(outcome.findings[0]?.evidence);
-      const referenceSessions = ranges.length === 0 ? sessions.slice(0, 60) : sessions.filter((s) => ranges.some((range) => s.start >= range.from && s.start <= range.to));
-      const candidates = [...referenceSessions, ...sessions.filter((s) => s.start >= options.now - 45 * MS_PER_DAY)];
-      const curves = await loadChargeCurves(ctx.db, outcome.assetId, points, [...new Map(candidates.map((s) => [s.start, { start: s.start, end: s.end }])).values()]);
-      const rerun = runSiteDetectors({ ...snapshot, curves: new Map([[outcome.assetId, curves]]) }, { ...options, detectorIds: ['ess.capacity_fade'], targetAssetIds: new Set([outcome.assetId]) });
-      result.push(rerun[0] ?? outcome);
-    } catch (error) {
-      recordError(ctx, { stage: 'curves', siteId: snapshot.siteId, assetId: outcome.assetId, detectorId: outcome.detectorId }, error);
-      result.push(outcome);
-    }
-  }
-  return result;
-}
+const configIssuesOf = (outcomes: readonly DetectorOutcome[]): SiteRunStats['configIssues'] =>
+  outcomes.filter((o) => o.reason?.startsWith(INVALID_CONFIG)).slice(0, MAX_CONFIG_ISSUES).map((o) => ({ detectorId: o.detectorId, assetId: o.assetId, reason: o.reason ?? '' }));
 
 interface SiteData {
   readonly site: SiteRow;
@@ -156,23 +169,26 @@ interface SiteData {
 }
 
 /** 대상 설비 에피소드 추출·저장. 시간 예산을 넘은 설비는 건너뛴다 */
-async function extractSite(ctx: SiteRunContext, data: SiteData): Promise<{ extractedAssets: number; episodesSaved: number; skipped: string[] }> {
+async function extractSite(ctx: SiteRunContext, data: SiteData): Promise<{ extractedAssets: number; episodesSaved: number; skipped: string[]; tankHoldRaw: SiteRunStats['tankHoldRaw'] }> {
   const skipped: string[] = [];
   let extractedAssets = 0;
   let episodesSaved = 0;
+  let tankHoldRaw = { windows: 0, hours: 0 };
   for (const asset of data.targets.filter((a) => isExtractable(a.classKey))) {
     if (overBudget(ctx)) {
       skipped.push(`extract:${asset.code}`);
       continue;
     }
     try {
-      episodesSaved += await extractAsset(ctx, asset, data.assets, data.points);
+      const result = await extractAsset(ctx, asset, data.assets, data.points);
+      episodesSaved += result.saved;
+      tankHoldRaw = { windows: tankHoldRaw.windows + result.rawWindows, hours: tankHoldRaw.hours + result.rawHours };
       extractedAssets += 1;
     } catch (error) {
       recordError(ctx, { stage: 'extract', siteId: data.site.id, assetId: asset.id }, error);
     }
   }
-  return { extractedAssets, episodesSaved, skipped };
+  return { extractedAssets, episodesSaved, skipped, tankHoldRaw: { windows: tankHoldRaw.windows, hours: Math.round(tankHoldRaw.hours * 10) / 10 } };
 }
 
 async function computeKpis(ctx: SiteRunContext, data: SiteData, history: readonly StoredEpisode[]): Promise<number> {
@@ -187,19 +203,6 @@ async function computeKpis(ctx: SiteRunContext, data: SiteData, history: readonl
   }
 }
 
-async function detect(ctx: SiteRunContext, data: SiteData, history: readonly StoredEpisode[]): Promise<DetectorOutcome[]> {
-  const dq = await loadDqInput(ctx.db, data.site.id, data.points.filter((p) => ctx.assetIds === null || ctx.assetIds.has(p.assetId)), ctx.window).catch((error: unknown) => {
-    recordError(ctx, { stage: 'dq', siteId: data.site.id }, error);
-    return null;
-  });
-  const events = await loadAssetEvents(ctx.db, data.assets.map((a) => a.id), new Date(ctx.window.end));
-  const snapshot: SiteSnapshot = { siteId: data.site.id, assets: data.assets, episodes: history, events, configs: ctx.configs, dq };
-  const options: DetectOptions = { now: ctx.window.end, seed: ctx.seed, targetAssetIds: ctx.assetIds ?? undefined };
-  const outcomes = await withCapacityCurves(ctx, snapshot, data.points, runSiteDetectors(snapshot, options), options);
-  outcomes.filter((o) => o.status === 'error').forEach((o) => recordError(ctx, { stage: 'detect', siteId: data.site.id, assetId: o.assetId ?? undefined, detectorId: o.detectorId }, o.reason));
-  return outcomes;
-}
-
 async function verifySite(ctx: SiteRunContext, site: SiteRow): Promise<SiteRunStats> {
   const started = ctx.now().getTime();
   const assets = await loadSiteAssets(ctx.db, site.id);
@@ -209,30 +212,55 @@ async function verifySite(ctx: SiteRunContext, site: SiteRow): Promise<SiteRunSt
     recordError(ctx, { stage: 'verify', siteId: site.id }, error);
     return null;
   });
-  return { siteId: site.id, siteCode: site.code, assets: targets.length, extractedAssets: 0, episodesSaved: 0, episodesInHistory: history.length, kpiRows: 0, detectors: {}, findings: EMPTY_PERSIST_STATS, verification, skipped: [], elapsedMs: ctx.now().getTime() - started };
+  const elapsedMs = ctx.now().getTime() - started;
+  return { siteId: site.id, siteCode: site.code, assets: targets.length, extractedAssets: 0, episodesSaved: 0, episodesInHistory: history.length, kpiRows: 0, detectors: {}, configIssues: [], ledger: null, tankHoldRaw: { windows: 0, hours: 0 }, findings: EMPTY_PERSIST_STATS, verification, skipped: [], stages: { verify: elapsedMs }, elapsedMs };
 }
 
 export async function runSite(ctx: SiteRunContext, site: SiteRow): Promise<SiteRunStats> {
   if (ctx.verifyOnly) return verifySite(ctx, site);
   const started = ctx.now().getTime();
+  const { stages, time } = stageTimer(ctx);
   const [assets, points] = await Promise.all([loadSiteAssets(ctx.db, site.id), loadSitePoints(ctx.db, site.id)]);
   const data: SiteData = { site, assets, points, targets: assets.filter((a) => ctx.assetIds === null || ctx.assetIds.has(a.id)) };
-  const extraction = await extractSite(ctx, data);
-  const base = { siteId: site.id, siteCode: site.code, assets: data.targets.length, extractedAssets: extraction.extractedAssets, episodesSaved: extraction.episodesSaved };
+  const extraction = await time('extract', () => extractSite(ctx, data));
+  const base = { siteId: site.id, siteCode: site.code, assets: data.targets.length, extractedAssets: extraction.extractedAssets, episodesSaved: extraction.episodesSaved, tankHoldRaw: extraction.tankHoldRaw };
   if (overBudget(ctx)) {
     ctx.log(`${site.code}: 시간 예산 초과로 KPI·탐지·검증을 건너뜁니다`);
-    return { ...base, episodesInHistory: 0, kpiRows: 0, detectors: {}, findings: EMPTY_PERSIST_STATS, verification: null, skipped: [...extraction.skipped, 'kpi', 'detect', 'verify'], elapsedMs: ctx.now().getTime() - started };
+    return { ...base, episodesInHistory: 0, kpiRows: 0, detectors: {}, configIssues: [], ledger: null, findings: EMPTY_PERSIST_STATS, verification: null, skipped: [...extraction.skipped, 'kpi', 'detect', 'verify'], stages: { ...stages }, elapsedMs: ctx.now().getTime() - started };
   }
   const history = await loadEpisodes(ctx.db, assets.filter((a) => isExtractable(a.classKey)).map((a) => a.id), ctx.window.end);
-  const kpiRows = await computeKpis(ctx, data, history);
-  const outcomes = await detect(ctx, data, history);
-  const findings = await persistFindings(ctx.db, { runId: ctx.runId, siteId: site.id, outcomes, now: ctx.now() }).catch((error: unknown) => {
+  const kpiRows = await time('kpi', () => computeKpis(ctx, data, history));
+  const detected = await detectSite(
+    {
+      ...ctx,
+      onError: (stage, error, detail) => recordError(ctx, { stage, siteId: site.id, ...detail }, error),
+      time: (stage, work) => time(stage, work),
+    },
+    { site, assets, points, history },
+  ).catch((error: unknown) => {
+    recordError(ctx, { stage: 'detect', siteId: site.id }, error);
+    return { outcomes: [], ledger: null };
+  });
+  detected.outcomes.filter((o) => o.status === 'error').forEach((o) => recordError(ctx, { stage: 'detect', siteId: site.id, assetId: o.assetId ?? undefined, detectorId: o.detectorId }, o.reason));
+  const findings = await time('findings', () => persistFindings(ctx.db, { runId: ctx.runId, siteId: site.id, outcomes: detected.outcomes, now: ctx.now() })).catch((error: unknown) => {
     recordError(ctx, { stage: 'findings', siteId: site.id }, error);
     return EMPTY_PERSIST_STATS;
   });
-  const verification = await verifyActions(ctx.db, { runId: ctx.runId, siteId: site.id, assetIds: ctx.assetIds, until: ctx.window.end, episodes: history, seed: ctx.seed }).catch((error: unknown) => {
+  const verification = await time('verify', () => verifyActions(ctx.db, { runId: ctx.runId, siteId: site.id, assetIds: ctx.assetIds, until: ctx.window.end, episodes: history, seed: ctx.seed })).catch((error: unknown) => {
     recordError(ctx, { stage: 'verify', siteId: site.id }, error);
     return null;
   });
-  return { ...base, episodesInHistory: history.length, kpiRows, detectors: tallyDetectors(outcomes), findings, verification, skipped: extraction.skipped, elapsedMs: ctx.now().getTime() - started };
+  return {
+    ...base,
+    episodesInHistory: history.length,
+    kpiRows,
+    detectors: tallyDetectors(detected.outcomes),
+    configIssues: configIssuesOf(detected.outcomes),
+    ledger: detected.ledger,
+    findings,
+    verification,
+    skipped: extraction.skipped,
+    stages: { ...stages },
+    elapsedMs: ctx.now().getTime() - started,
+  };
 }

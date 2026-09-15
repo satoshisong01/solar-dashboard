@@ -17,10 +17,14 @@ interface MetricSpec {
   readonly kind: EpisodeKind;
   readonly label: string;
   readonly unit: string;
+  /** 좋아지는 방향 (조치 기대 효과 기본값) */
+  readonly better: 'increase' | 'decrease';
   readonly value: (e: StoredEpisode) => number | null;
   readonly bin: (e: StoredEpisode) => string;
 }
 
+/** 전해조 비에너지 AC 전력 bin 폭 [kW] — el.sec_rise 기본 powerBinWidthKw와 같은 값 (이 모듈은 탐지기·zod를 가져오지 않는다) */
+const EL_POWER_BIN_KW = 50;
 const floorTo = (value: number | null, width: number): string => (value === null ? 'na' : String(Math.round(Math.floor(value / width + 1e-9) * width * 1e6) / 1e6));
 const charge = (e: StoredEpisode): EssChargeEpisode | null => (e.kind === 'ess.charge' ? e : null);
 
@@ -30,17 +34,19 @@ export const VERIFICATION_METRICS: Readonly<Record<string, MetricSpec>> = {
     kind: 'ess.charge',
     label: '랙 유효용량',
     unit: 'Ah',
+    better: 'increase',
     value: (e) => {
       const f = charge(e)?.features;
       return f ? (f.capacity_ah_anchored ?? f.capacity_ah_cc ?? f.capacity_ah_soc) : null;
     },
     bin: (e) => `${floorTo(charge(e)?.features.i_mean_c ?? null, 0.05)}|${floorTo(charge(e)?.features.t_cell_mean ?? null, 5)}`,
   },
-  'ess.cell_dv_mv': { kind: 'ess.charge', label: '충전 종료 셀 전압 편차', unit: 'mV', value: (e) => charge(e)?.features.cell_dv_end ?? null, bin: () => 'all' },
+  'ess.cell_dv_mv': { kind: 'ess.charge', label: '충전 종료 셀 전압 편차', unit: 'mV', better: 'decrease', value: (e) => charge(e)?.features.cell_dv_end ?? null, bin: () => 'all' },
   'el.v_cell_v': {
     kind: 'el.steady_run',
     label: '전해조 셀 평균 전압',
     unit: 'V',
+    better: 'decrease',
     value: (e) => (e.kind === 'el.steady_run' ? e.features.v_cell_mean : null),
     bin: (e) => (e.kind === 'el.steady_run' ? `${(e as ElSteadyEpisode).conditions.j_bin}|${e.conditions.t_bin ?? 'na'}` : 'na'),
   },
@@ -48,8 +54,55 @@ export const VERIFICATION_METRICS: Readonly<Record<string, MetricSpec>> = {
     kind: 'fc.steady_run',
     label: '연료전지 기준 전류밀도 셀 전압',
     unit: 'V',
+    better: 'increase',
     value: (e) => (e.kind === 'fc.steady_run' ? e.features.v_cell_at_jref : null),
     bin: (e) => (e.kind === 'fc.steady_run' ? `${(e as FcSteadyEpisode).conditions.t_bin ?? 'na'}` : 'na'),
+  },
+  // P3: 탐지기 기본 조건 bin과 같은 기준 (AC 전력 50 kW·스택온도 / 압력비·외기 / 유량·외기 / 샘플 주기·SOC·셀온도)
+  'el.sec_kwh_per_kg': {
+    kind: 'el.steady_run',
+    label: '전해조 시스템 비에너지',
+    unit: 'kWh/kg',
+    better: 'decrease',
+    value: (e) => (e.kind === 'el.steady_run' && (e.features.h2_kg ?? 0) >= 0.5 ? e.features.sec_kwh_per_kg : null),
+    // 전력 설정값 운전에서 정류기 수리 뒤에는 같은 전력의 전류밀도가 달라지므로 전류밀도가 아닌 AC 전력 bin (el.sec_rise 기본 binBy와 같다)
+    bin: (e) => (e.kind === 'el.steady_run' && e.features.energy_kwh !== null && e.features.duration_s > 0 ? `${floorTo(e.features.energy_kwh / (e.features.duration_s / 3_600), EL_POWER_BIN_KW)}|${e.conditions.t_bin ?? 'na'}` : 'na'),
+  },
+  'comp.sec_kwh_per_kg': {
+    kind: 'comp.run',
+    label: '압축기 비에너지',
+    unit: 'kWh/kg',
+    better: 'decrease',
+    value: (e) => (e.kind === 'comp.run' && (e.features.mass_kg ?? 0) >= 1 ? e.features.sec_kwh_per_kg : null),
+    bin: (e) => (e.kind === 'comp.run' ? `${e.conditions.ratio_bin ?? 'na'}|${e.conditions.t_bin ?? 'na'}` : 'na'),
+  },
+  'fc.blower_specific_power': {
+    kind: 'fc.blower_run',
+    label: '연료전지 블로워 비전력',
+    unit: 'W/(kg/h)',
+    better: 'decrease',
+    value: (e) => (e.kind === 'fc.blower_run' ? e.features.specific_w_per_kg_h : null),
+    bin: (e) => (e.kind === 'fc.blower_run' ? `${e.conditions.flow_bin}|${e.conditions.t_bin ?? 'na'}` : 'na'),
+  },
+  'pv.performance_index': {
+    kind: 'pv.day',
+    label: '인버터 일 성능지수 (비발전량 ÷ 경사면 일사량)',
+    unit: '',
+    better: 'increase',
+    value: (e) => {
+      if (e.kind !== 'pv.day' || e.conditions.curtailed || e.conditions.clipping || e.conditions.stopped) return null;
+      const insolation = e.features.insolation_kwh_m2;
+      return insolation !== null && insolation >= 1 ? e.features.kwh_per_kwp / insolation : null;
+    },
+    bin: () => 'all',
+  },
+  'ess.resistance_mohm': {
+    kind: 'ess.current_step',
+    label: '랙 전류 계단 저항',
+    unit: 'mΩ',
+    better: 'decrease',
+    value: (e) => (e.kind === 'ess.current_step' && Math.abs(e.features.delta_i_c) >= 0.1 && e.features.soc !== null && e.features.soc >= 30 && e.features.soc < 70 ? e.features.r_mohm : null),
+    bin: (e) => (e.kind === 'ess.current_step' ? `${e.features.period_s}|${e.conditions.soc_bin ?? 'na'}|${e.conditions.t_bin ?? 'na'}` : 'na'),
   },
 };
 

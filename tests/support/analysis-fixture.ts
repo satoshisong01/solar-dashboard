@@ -38,6 +38,7 @@ export async function dropAnalysisFixture(db: Kysely<DB>): Promise<void> {
     await trx.deleteFrom('om.finding').where('site_id', '=', site.id).execute();
     await trx.deleteFrom('om.episode').where('asset_id', 'in', assets).execute();
     await trx.deleteFrom('om.kpi_daily').where((eb) => eb.or([eb.and([eb('scope_type', '=', 'site'), eb('scope_id', '=', site.id)]), eb.and([eb('scope_type', '=', 'asset'), eb('scope_id', 'in', assets)])])).execute();
+    await trx.deleteFrom('om.site_energy_daily').where('site_id', '=', site.id).execute();
     await sql`DELETE FROM om.analysis_run r WHERE EXISTS (SELECT 1 FROM jsonb_array_elements_text(r.scope -> 'siteIds') e(id) WHERE e.id::int = ${site.id})`.execute(trx);
     await trx.deleteFrom('om.asset_event').where('asset_id', 'in', assets).execute();
     await trx.deleteFrom('om.rollup_dirty').where('point_id', 'in', points).execute();

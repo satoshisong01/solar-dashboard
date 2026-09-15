@@ -15,7 +15,6 @@ export interface ExpectedEffectDefaults {
 
 interface Rule {
   readonly metric: string;
-  readonly direction: 'increase' | 'decrease';
   readonly stabilizationDays: number;
   /** effect 수준 단위 → 검증 지표 단위 배율 (mV → V는 0.001) */
   readonly scale: number;
@@ -23,11 +22,16 @@ interface Rule {
   readonly digits: number;
 }
 
+/** 방향은 검증 지표의 좋아지는 방향(VERIFICATION_METRICS[metric].better)을 쓴다. 인버터 열 저감·물질수지·저장용기 누설·오염(발전소 설비)은 에피소드 검증 지표가 없어 기대 효과 없이 기록 */
 const RULES: Readonly<Record<string, Rule>> = {
-  'ess.capacity_fade': { metric: 'ess.capacity_ah', direction: 'increase', stabilizationDays: 7, scale: 1, unit: 'Ah', digits: 1 },
-  'ess.cell_imbalance': { metric: 'ess.cell_dv_mv', direction: 'decrease', stabilizationDays: 3, scale: 1, unit: 'mV', digits: 1 },
-  'el.voltage_rise': { metric: 'el.v_cell_v', direction: 'decrease', stabilizationDays: 7, scale: 0.001, unit: 'V', digits: 4 },
-  'fc.voltage_decay': { metric: 'fc.v_cell_v', direction: 'increase', stabilizationDays: 7, scale: 0.001, unit: 'V', digits: 4 },
+  'ess.capacity_fade': { metric: 'ess.capacity_ah', stabilizationDays: 7, scale: 1, unit: 'Ah', digits: 1 },
+  'ess.cell_imbalance': { metric: 'ess.cell_dv_mv', stabilizationDays: 3, scale: 1, unit: 'mV', digits: 1 },
+  'el.voltage_rise': { metric: 'el.v_cell_v', stabilizationDays: 7, scale: 0.001, unit: 'V', digits: 4 },
+  'fc.voltage_decay': { metric: 'fc.v_cell_v', stabilizationDays: 7, scale: 0.001, unit: 'V', digits: 4 },
+  'el.sec_rise': { metric: 'el.sec_kwh_per_kg', stabilizationDays: 7, scale: 1, unit: 'kWh/kg', digits: 2 },
+  'comp.sec_rise': { metric: 'comp.sec_kwh_per_kg', stabilizationDays: 3, scale: 1, unit: 'kWh/kg', digits: 3 },
+  'fc.blower_wear': { metric: 'fc.blower_specific_power', stabilizationDays: 3, scale: 1, unit: 'W/(kg/h)', digits: 2 },
+  'ess.resistance_growth': { metric: 'ess.resistance_mohm', stabilizationDays: 3, scale: 1, unit: 'mΩ', digits: 1 },
 };
 
 export interface VerificationMetricOption {
@@ -54,7 +58,7 @@ export function expectedEffectDefaults(detectorId: string, effect: Pick<EffectVi
   const current = level(effect.current);
   return {
     metric: rule.metric,
-    direction: rule.direction,
+    direction: VERIFICATION_METRICS[rule.metric]?.better ?? 'increase',
     stabilizationDays: rule.stabilizationDays,
     levelHint: baseline !== null && current !== null ? `기준 ${baseline} → 최근 ${current}` : null,
   };

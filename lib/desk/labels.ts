@@ -22,6 +22,14 @@ const DETECTOR_LABELS: Readonly<Record<string, string>> = {
   'el.voltage_rise': '전해조 셀 전압 상승',
   'fc.voltage_decay': '연료전지 셀 전압 감소',
   'dq.gap_flatline': '데이터 결측·고착',
+  'el.sec_rise': '전해조 시스템 비에너지 상승',
+  'h2chain.mass_balance_gap': '수소 물질수지 잔차',
+  'tank.static_leak': '저장용기 정지 보유 누설',
+  'comp.sec_rise': '압축기 비에너지 상승',
+  'fc.blower_wear': '연료전지 블로워 비전력 증가',
+  'pv.soiling_rate': '태양광 오염 손실',
+  'ess.resistance_growth': '배터리 랙 내부저항 증가',
+  'inv.thermal_derating': '인버터 열 출력저감',
 };
 
 export function detectorLabel(detectorId: string): string {

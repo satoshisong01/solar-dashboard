@@ -1,7 +1,12 @@
 // 설비 하나의 원시 시계열 맵 → 저장할 에피소드 (순수). 명판이 틀리면 NameplateError.
+import { extractCompressorRuns, type CompressorRunParams } from '../episodes/compressor';
 import { extractEssEpisodes, type EssExtractorParams } from '../episodes/ess';
+import { extractCurrentSteps, type EssStepParams } from '../episodes/ess-steps';
+import { extractBlowerRuns, type FcBlowerRunParams } from '../episodes/fc-blower';
 import { extractPvDays, type PvDayParams } from '../episodes/pv';
 import { DEFAULT_STACK_EXTRACTOR_PARAMS, extractElStarts, extractElSteadyRuns, extractFcStarts, extractFcSteadyRuns, type StackExtractorParams, type StackNameplate } from '../episodes/stack-episodes';
+import { extractTankHolds, type TankHoldParams } from '../episodes/tank-hold';
+import { extractWxDays, type WxDayParams } from '../episodes/wx-day';
 import type { StackPriorState } from '../episodes/stack';
 import type { AssetSeries, TimeWindow } from '../types';
 import { isExtractable } from './sources';
@@ -24,8 +29,13 @@ export function nameplateNumber(asset: PipelineAsset, field: string): number {
 
 export interface ExtractorOverrides {
   readonly ess?: Partial<EssExtractorParams>;
+  readonly essSteps?: Partial<EssStepParams>;
   readonly pv?: Partial<PvDayParams>;
   readonly stack?: Partial<StackExtractorParams>;
+  readonly compressor?: Partial<CompressorRunParams>;
+  readonly tank?: Partial<TankHoldParams>;
+  readonly blower?: Partial<FcBlowerRunParams>;
+  readonly wx?: Partial<WxDayParams>;
 }
 
 function stackNameplate(asset: PipelineAsset): StackNameplate {
@@ -55,8 +65,9 @@ export function extractAssetEpisodes(asset: PipelineAsset, series: AssetSeries, 
   const base = { assetId: asset.id, window, series };
   switch (asset.classKey) {
     case 'ess.rack': {
-      const { charges, discharges, rests } = extractEssEpisodes({ ...base, nameplate: { capacity_ah: nameplateNumber(asset, 'capacity_ah') } }, overrides.ess);
-      return [...charges, ...discharges, ...rests];
+      const nameplate = { capacity_ah: nameplateNumber(asset, 'capacity_ah') };
+      const { charges, discharges, rests } = extractEssEpisodes({ ...base, nameplate }, overrides.ess);
+      return [...charges, ...discharges, ...rests, ...extractCurrentSteps({ ...base, nameplate }, overrides.essSteps)];
     }
     case 'pv.inverter':
       return extractPvDays({ ...base, nameplate: { ac_kw: nameplateNumber(asset, 'ac_kw'), dc_kwp: nameplateNumber(asset, 'dc_kwp') } }, overrides.pv);
@@ -68,5 +79,13 @@ export function extractAssetEpisodes(asset: PipelineAsset, series: AssetSeries, 
       const input = { ...base, nameplate: stackNameplate(asset) };
       return [...extractFcSteadyRuns(input, overrides.stack), ...extractFcStarts({ ...input, prior: context.stackPrior }, overrides.stack)];
     }
+    case 'h2.compressor':
+      return extractCompressorRuns({ ...base, nameplate: { rated_kw: nameplateNumber(asset, 'rated_kw') } }, overrides.compressor);
+    case 'h2.storage.tank':
+      return extractTankHolds({ ...base, nameplate: { water_volume_l: nameplateNumber(asset, 'water_volume_l') } }, overrides.tank);
+    case 'fc.blower':
+      return extractBlowerRuns({ ...base, nameplate: { rated_kw: nameplateNumber(asset, 'rated_kw') } }, overrides.blower);
+    case 'wx.station':
+      return extractWxDays({ ...base, nameplate: null }, overrides.wx);
   }
 }

@@ -55,25 +55,42 @@ interface HourlySqlRow {
   readonly hour_start: number;
   readonly n: number;
   readonly n_good: number;
+  readonly v_min: number | null;
+  readonly v_max: number | null;
   readonly v_avg: number | null;
   readonly v_first: number | null;
   readonly v_last: number | null;
 }
 
+/** 1시간 롤업 한 행 (KPI·원장·정지 구간 후보가 함께 쓴다) */
+export interface HourRow extends HourlyPointRow {
+  readonly min: number | null;
+  readonly max: number | null;
+}
+
 /** 포인트들의 1시간 롤업 행 */
-export async function loadHourly(db: Kysely<DB>, points: readonly PointRow[], window: TimeWindow): Promise<HourlyPointRow[]> {
+export async function loadHourly(db: Kysely<DB>, points: readonly PointRow[], window: TimeWindow): Promise<HourRow[]> {
   if (points.length === 0) return [];
   const byId = new Map(points.map((p) => [p.pointId, p]));
   const { rows } = await sql<HourlySqlRow>`
-    SELECT point_id, (extract(epoch FROM bucket) * 1000)::float8 AS hour_start, n, n_good, v_avg, v_first, v_last
+    SELECT point_id, (extract(epoch FROM bucket) * 1000)::float8 AS hour_start, n, n_good, v_min, v_max, v_avg, v_first, v_last
     FROM om.m_1h
     WHERE point_id = ANY(${[...byId.keys()]}::int4[]) AND bucket >= ${iso(window.start)}::timestamptz AND bucket < ${iso(window.end)}::timestamptz
     ORDER BY point_id, bucket
   `.execute(db);
   return rows.flatMap((row) => {
     const point = byId.get(row.point_id);
-    return point ? [{ assetId: point.assetId, metricKey: point.metricKey, periodS: point.periodS ?? 60, hourStart: row.hour_start, n: row.n, nGood: row.n_good, avg: row.v_avg, first: row.v_first, last: row.v_last }] : [];
+    return point ? [{ assetId: point.assetId, metricKey: point.metricKey, periodS: point.periodS ?? 60, hourStart: row.hour_start, n: row.n, nGood: row.n_good, min: row.v_min, max: row.v_max, avg: row.v_avg, first: row.v_first, last: row.v_last }] : [];
   });
+}
+
+/** 포인트들 중 good 샘플이 있는 첫 롤업 시각 (없으면 null) */
+export async function firstHourWithData(db: Kysely<DB>, pointIds: readonly number[]): Promise<number | null> {
+  if (pointIds.length === 0) return null;
+  const { rows } = await sql<{ first_ms: number | null }>`
+    SELECT (extract(epoch FROM min(bucket)) * 1000)::float8 AS first_ms FROM om.m_1h WHERE point_id = ANY(${[...pointIds]}::int4[]) AND n_good > 0
+  `.execute(db);
+  return rows[0]?.first_ms ?? null;
 }
 
 /** 충전 세션들의 에피소드 오버레이 곡선 (전류·SOC 원시를 세션마다 조회) */

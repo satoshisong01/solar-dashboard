@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { capacityHistory, DAY0, elRuns, pvDay } from '../detectors/test-fixtures';
 import { essChargeCycle, T0 } from '../episodes/test-fixtures';
 import { MS_PER_DAY, MS_PER_HOUR, MS_PER_MINUTE } from '../types';
-import { resolveDetectorConfig } from './config';
+import { essCapacityFade } from '../detectors/ess-capacity-fade';
+import { codeDefaultConfigRef, resolveDetectorConfig } from './config';
 import { runSiteDetectors } from './detect';
 import { extractAssetEpisodes, NameplateError, nameplateNumber } from './extract';
 import { indexSnapshot, type SiteSnapshot } from './snapshot';
@@ -68,22 +69,44 @@ describe('resolveDetectorConfig', () => {
   const configs: DetectorConfigRow[] = [
     { detectorId: 'ess.capacity_fade', scope: 'asset:7', version: 3, params: { minTotal: 12, bogus: 1 }, referenceWindow: window },
     { detectorId: 'ess.capacity_fade', scope: 'default', version: 1, params: { minTotal: 20, recentDays: 14, referenceCurrentA: 50 }, referenceWindow: null },
-    { detectorId: 'ess.capacity_fade', scope: 'class:ess.rack', version: 2, params: { recentDays: 'x', sev2Pct: -4 }, referenceWindow: null },
+    { detectorId: 'ess.capacity_fade', scope: 'class:ess.rack', version: 2, params: { sev2Pct: -4 }, referenceWindow: null },
     { detectorId: 'el.voltage_rise', scope: 'default', version: 1, params: { minTotal: 1 }, referenceWindow: null },
   ];
-  const defaults = { minTotal: 15, recentDays: 21, sev2Pct: -3, referenceCurrentA: null as number | null };
 
-  it('default < class < asset 순으로 병합하고, 모르는 키·틀린 타입은 버린다', () => {
-    const resolved = resolveDetectorConfig(configs, 'ess.capacity_fade', { id: 7, classKey: 'ess.rack' }, defaults);
-    expect(resolved.params).toEqual({ minTotal: 12, recentDays: 14, sev2Pct: -4, referenceCurrentA: 50 });
+  it('코드 기본값 < default < class < asset 순으로 병합해 스키마로 검증하고, 모르는 키는 버린다', () => {
+    const resolved = resolveDetectorConfig(configs, 'ess.capacity_fade', { id: 7, classKey: 'ess.rack' }, essCapacityFade);
+    expect(resolved.ok).toBe(true);
+    if (!resolved.ok) return;
+    expect(resolved.params).toEqual({ ...essCapacityFade.defaultParams, minTotal: 12, recentDays: 14, sev2Pct: -4, referenceCurrentA: 50 });
     expect(resolved.referenceWindow).toEqual(window);
     expect(resolved.versions).toEqual(['default@1', 'class:ess.rack@2', 'asset:7@3']);
-    expect(resolved.rejectedKeys).toEqual(['class:ess.rack.recentDays', 'asset:7.bogus']);
+    expect(resolved.ignoredKeys).toEqual(['asset:7.bogus']);
+    expect(resolved.ref).toMatchObject({ scope: 'asset:7', version: 3, applied: ['default@1', 'class:ess.rack@2', 'asset:7@3'] });
+    expect(resolved.ref.paramsHash).toMatch(/^[0-9a-f]{16}$/);
   });
 
-  it('동종 그룹 실행(id null)은 asset 범위를 쓰지 않고, 대상 없음은 default만', () => {
-    expect(resolveDetectorConfig(configs, 'ess.capacity_fade', { id: null, classKey: 'ess.rack' }, defaults).versions).toEqual(['default@1', 'class:ess.rack@2']);
-    expect(resolveDetectorConfig(configs, 'ess.capacity_fade', null, defaults).params).toEqual({ minTotal: 20, recentDays: 14, referenceCurrentA: 50 });
+  it('동종 그룹 실행(id null)은 asset 범위를 쓰지 않고, 대상 없음은 default만, 설정이 없으면 code_default', () => {
+    expect(resolveDetectorConfig(configs, 'ess.capacity_fade', { id: null, classKey: 'ess.rack' }, essCapacityFade).versions).toEqual(['default@1', 'class:ess.rack@2']);
+    const siteLevel = resolveDetectorConfig(configs, 'ess.capacity_fade', null, essCapacityFade);
+    expect(siteLevel.ok && siteLevel.params.minTotal).toBe(20);
+    const none = resolveDetectorConfig([], 'ess.capacity_fade', null, essCapacityFade);
+    expect(none).toMatchObject({ ok: true, ref: { scope: 'code_default', version: null, applied: [] } });
+    expect(none.ref.paramsHash).toBe(codeDefaultConfigRef(essCapacityFade.defaultParams).paramsHash);
+  });
+
+  it('틀린 타입·범위 밖 값은 invalid_config로 거절하고 그 탐지기만 판정 불능이 된다', () => {
+    const bad: DetectorConfigRow[] = [{ detectorId: 'ess.capacity_fade', scope: 'class:ess.rack', version: 4, params: { recentDays: 'x', minTotal: 99_999 }, referenceWindow: null }];
+    const resolved = resolveDetectorConfig(bad, 'ess.capacity_fade', { id: 7, classKey: 'ess.rack' }, essCapacityFade);
+    expect(resolved.ok).toBe(false);
+    if (resolved.ok) return;
+    expect(resolved.reason).toMatch(/^invalid_config: /);
+    expect(resolved.reason).toContain('recentDays');
+    expect(resolved.reason).toContain('minTotal');
+    expect(resolved.reason).toContain('class:ess.rack@4');
+    const outcomes = runSiteDetectors(snapshot({ configs: bad }), { now: NOW, seed: 5, targetAssetIds: new Set([7]), detectorIds: ['ess.capacity_fade', 'ess.cell_imbalance'] });
+    expect(outcomes[0]).toMatchObject({ status: 'insufficient', findings: [], config: { scope: 'class:ess.rack', version: 4 } });
+    expect(outcomes[0]?.reason).toMatch(/^invalid_config/);
+    expect(outcomes[1]?.reason ?? '').not.toMatch(/invalid_config/);
   });
 });
 

@@ -2,10 +2,10 @@
 //   dedup_key = 탐지기|설비(또는 site:<id>)|고장모드 (탐지 창 제외)
 //   열린 건이 있으면 갱신: last_detected_at·detection_count·severity·confidence·effect·제목·요약·창, 조치 뒤 악화면 system이 reopened로
 //   열린 건이 없으면: 억제 기간 안의 기각 건이면 건너뛰고, 아니면 새 finding (닫힌 이전 건은 previous_finding_id로 잇는다 = 재발)
-//   근거는 탐지할 때마다 한 행씩 추가하고 latest_evidence_id가 가리킨다.
+//   근거는 탐지할 때마다 한 행씩 추가하고 latest_evidence_id가 가리킨다. 스냅샷에는 적용 설정 {scope, version, params_hash}를 함께 남긴다.
 import type { Kysely, Transaction } from 'kysely';
 import type { CandidateFinding } from '@/lib/analytics/detectors/types';
-import type { DetectorOutcome } from '@/lib/analytics/pipeline/types';
+import type { ConfigRef, DetectorOutcome } from '@/lib/analytics/pipeline/types';
 import type { DB } from '@/lib/db/types';
 import { applyTransition } from './transitions';
 import { SYSTEM_ACTOR } from './transition-rules';
@@ -30,10 +30,12 @@ interface PersistContext {
   readonly siteId: number;
   readonly now: Date;
   readonly configVersions: readonly string[];
+  readonly config: ConfigRef;
 }
 
 async function appendEvidence(trx: Transaction<DB>, findingId: string, candidate: CandidateFinding, ctx: PersistContext): Promise<void> {
-  const snapshot = { ...candidate.evidence, detector: `${candidate.detectorId}@${candidate.detectorVersion}`, config_versions: [...ctx.configVersions] };
+  const config = { scope: ctx.config.scope, version: ctx.config.version, params_hash: ctx.config.paramsHash };
+  const snapshot = { ...candidate.evidence, detector: `${candidate.detectorId}@${candidate.detectorVersion}`, config_versions: [...ctx.configVersions], config };
   const evidence = await trx
     .insertInto('om.finding_evidence')
     .values({ finding_id: findingId, run_id: ctx.runId, computed_at: ctx.now, input_hash: candidate.inputHash, snapshot: JSON.stringify(snapshot) })
@@ -111,7 +113,7 @@ export async function persistFindings(db: Kysely<DB>, input: { runId: string; si
   let stats = EMPTY_PERSIST_STATS;
   for (const outcome of input.outcomes) {
     for (const candidate of outcome.findings) {
-      const result = await persistOne(db, candidate, { runId: input.runId, siteId: input.siteId, now: input.now, configVersions: outcome.configVersions });
+      const result = await persistOne(db, candidate, { runId: input.runId, siteId: input.siteId, now: input.now, configVersions: outcome.configVersions, config: outcome.config });
       stats = {
         created: stats.created + (result === 'created' || result === 'recurrence' ? 1 : 0),
         updated: stats.updated + (result === 'updated' || result === 'worsened' ? 1 : 0),

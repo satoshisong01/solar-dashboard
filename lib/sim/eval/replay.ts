@@ -1,6 +1,8 @@
 // 사이트 잡 하나: (1) 준비 — 메모리 모드 시뮬레이션 → 설비별 에피소드 추출(분석 파이프라인과 같은 함수) + 참 SOH 요약 + 데이터 품질 압축 요약
 // (2) 평가 — 주 단위 점검 시각마다 탐지기 실행, 주입 고장은 하루 단위로 첫 탐지 시각을 좁힌다.
 // 준비 결과는 JSON으로 저장할 수 있어 탐지기 파라미터만 바꿔 다시 평가할 때 시뮬레이션을 건너뛸 수 있다.
+import { dqGapFlatline } from '@/lib/analytics/detectors/dq-gap-flatline';
+import { codeDefaultConfigRef } from '@/lib/analytics/pipeline/config';
 import { runSiteDetectors } from '@/lib/analytics/pipeline/detect';
 import { extractAssetEpisodes } from '@/lib/analytics/pipeline/extract';
 import { indexSnapshot, type SnapshotIndex } from '@/lib/analytics/pipeline/snapshot';
@@ -109,7 +111,7 @@ interface InjectionContext {
 /** dq.gap_flatline은 스냅샷 대신 메모리 요약으로 실행한다 (사이트 단위 결과 하나) */
 function dqOutcome(prepared: PreparedJob, siteId: number, now: number): DetectorOutcome {
   const findings = dqFindingsAt(prepared.dq, siteId, prepared.fromMs, now, prepared.job.seed);
-  return { detectorId: 'dq.gap_flatline', detectorVersion: '1', siteId, assetId: null, status: 'ok', findings, reason: null, configVersions: [] };
+  return { detectorId: 'dq.gap_flatline', detectorVersion: '1', siteId, assetId: null, status: 'ok', findings, reason: null, configVersions: [], config: codeDefaultConfigRef(dqGapFlatline.defaultParams) };
 }
 
 function outcomesAt(index: SnapshotIndex, prepared: PreparedJob, now: number, detectorIds: readonly EvalDetectorId[], targetAssetIds?: ReadonlySet<number>): DetectorOutcome[] {

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createRng } from '@/lib/sim/rng';
+import { EL_SEC_RISE_DEFAULTS } from '../detectors/el-sec-rise';
 import { chargeSession, DAY0, elRuns } from '../detectors/test-fixtures';
+import type { ElSteadyEpisode } from '../episodes/stack-episodes';
 import type { StoredEpisode } from '../pipeline/types';
 import { MS_PER_DAY } from '../types';
 import { beforeAfter, VERIFICATION_METRICS } from './before-after';
@@ -37,5 +39,10 @@ describe('matched_before_after@1', () => {
     const run = { ...elRuns({ count: 2, startHours: 1200, endHours: 1300, rateUvPerH: 0, seed: 1 })[0], assetId: 7 } as StoredEpisode;
     expect(VERIFICATION_METRICS['el.v_cell_v']?.value(run)).toBeGreaterThan(1.5);
     expect(VERIFICATION_METRICS['fc.v_cell_v']?.value(run)).toBeNull();
+    // 전해조 비에너지는 el.sec_rise 기본값과 같은 AC 전력 bin: 400 kWh / 1 h → 400 kW 구간, 30분 구간 230 kWh → 460 kW → 450 kW 구간
+    const secBin = VERIFICATION_METRICS['el.sec_kwh_per_kg']?.bin;
+    expect(secBin?.(run)).toBe(`${400 - (400 % EL_SEC_RISE_DEFAULTS.powerBinWidthKw)}|${(run as ElSteadyEpisode).conditions.t_bin}`);
+    const halfHour = { ...run, features: { ...(run as ElSteadyEpisode).features, duration_s: 1_800, energy_kwh: 230 } } as StoredEpisode;
+    expect(secBin?.(halfHour)).toBe(`450|${(run as ElSteadyEpisode).conditions.t_bin}`);
   });
 });

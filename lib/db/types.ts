@@ -394,6 +394,25 @@ export interface OmSite {
   timezone: Generated<string>;
 }
 
+export interface OmSiteEnergyDaily {
+  alloc_version: string;
+  calc_version: string;
+  computed_at: Generated<Timestamp>;
+  day: Timestamp;
+  dq: Json;
+  elz_grid_share: number | null;
+  elz_sec_kwh_per_kg: number | null;
+  energy_kwh: Json;
+  fc_kg_per_mwh: number | null;
+  flows_kwh: Json;
+  h2_kg: Json;
+  p2p_efficiency: number | null;
+  pv_loss_kwh: Json | null;
+  renewable_share: number | null;
+  run_id: Int8;
+  site_id: number;
+}
+
 export interface OmUnmappedSource {
   first_seen_at: Generated<Timestamp>;
   gateway_id: number;
@@ -473,6 +492,7 @@ export interface DB {
   "om.report": OmReport;
   "om.rollup_dirty": OmRollupDirty;
   "om.site": OmSite;
+  "om.site_energy_daily": OmSiteEnergyDaily;
   "om.unmapped_source": OmUnmappedSource;
   pgmigrations: Pgmigrations;
   "sim.eval_result": SimEvalResult;
