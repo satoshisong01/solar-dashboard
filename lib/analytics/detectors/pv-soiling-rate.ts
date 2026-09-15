@@ -117,14 +117,17 @@ function economicsOf(days: readonly PiDay[], segment: Segment, smp: number | nul
   return { cumulativeLossKwh: cumulative, dailyLossKwh: daily, lossValueKrw: value, sentence: ` 누적 손실 약 ${fixed(cumulative, 0)} kWh(SMP ${fixed(smp, 1)}원/kWh 기준 약 ${fixed(value, 0)}원, 하루 약 ${fixed(daily * smp, 0)}원)로 추정됩니다.${verdict}` };
 }
 
+/** 구간 기울기선 두 끝점: 구간 시작 ~ 마지막 맑은 날 */
+const segmentLine = (segment: Segment): JsonObject[] =>
+  [segment.from, segment.clearDays.at(-1)?.day ?? segment.from].map((day) => ({ date: kstDateString(day), pi: r(segment.intercept + segment.slope * ((day - segment.from) / MS_PER_DAY), 4) }));
+
 function evidenceOf(days: readonly PiDay[], resets: readonly Reset[], segments: readonly Segment[], current: Segment, economics: Economics, extra: JsonObject): JsonObject {
   const clear = days.filter((d) => d.clear);
-  const last = current.clearDays.at(-1)?.day ?? current.from;
   return {
     method: 'clear_day_pi_theil_sen_segments',
     pi_points: downsample(clear, 120).map((d) => ({ date: kstDateString(d.day), pi: r(d.pi, 4) })),
-    current_line: [current.from, last].map((day) => ({ date: kstDateString(day), pi: r(current.intercept + current.slope * ((day - current.from) / MS_PER_DAY), 4) })),
-    segments: segments.slice(-20).map((s) => ({ from: kstDateString(s.from), to: kstDateString(s.to), clear_days: s.clearDays.length, rate_pct_per_day: r(s.ratePctPerDay, 4), ci_low: r(s.rateCiLow, 4), ci_high: r(s.rateCiHigh, 4) })),
+    current_line: segmentLine(current),
+    segments: segments.slice(-20).map((s) => ({ from: kstDateString(s.from), to: kstDateString(s.to), clear_days: s.clearDays.length, rate_pct_per_day: r(s.ratePctPerDay, 4), ci_low: r(s.rateCiLow, 4), ci_high: r(s.rateCiHigh, 4), line: segmentLine(s) })),
     resets: resets.slice(-30).map((reset) => ({ date: kstDateString(reset.day), kind: reset.kind, recovery_pct: r(reset.recoveryPct, 2) })),
     economics: { cumulative_loss_kwh: r(economics.cumulativeLossKwh, 1), daily_loss_kwh: r(economics.dailyLossKwh, 1), loss_value_krw: r(economics.lossValueKrw, 0) },
     ...extra,

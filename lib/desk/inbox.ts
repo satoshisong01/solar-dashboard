@@ -3,7 +3,7 @@
 //   필터: 사이트 · 도메인(데이터 품질 카테고리는 '데이터품질' 열) · 카테고리 · 최소 심각도 · 상태(기본 열린 건)
 import type { FindingCategory } from '@/lib/analytics/detectors/types';
 import { CLOSED_STATUSES, FINDING_STATUSES, isFindingStatus, type FindingStatus } from '@/lib/analysis/transition-rules';
-import { FLEET_COLUMNS, domainOfClass, type FleetColumn } from '@/lib/data/domains';
+import { FLEET_COLUMNS, domainOfClass, domainOfSiteDetector, type FleetColumn } from '@/lib/data/domains';
 import type { EffectView } from './effect';
 import { isFindingCategory, SEVERITY_LEVELS } from './labels';
 
@@ -73,10 +73,11 @@ export function inboxSearch(filter: InboxFilter): string {
   return params.toString();
 }
 
-/** 발견사항이 속한 플릿 열: 데이터 품질 카테고리는 데이터품질 열, 나머지는 설비 종류의 도메인 */
-export function domainOfFinding(row: Pick<InboxRow, 'category' | 'classKey'>): FleetColumn | null {
+/** 발견사항이 속한 플릿 열: 데이터 품질 카테고리는 데이터품질 열, 설비가 있으면 설비 종류의 도메인, 사이트 단위(설비 없음)는 탐지기로 정한 도메인 */
+export function domainOfFinding(row: Pick<InboxRow, 'category' | 'classKey'> & Partial<Pick<InboxRow, 'detectorId'>>): FleetColumn | null {
   if (row.category === 'data_quality') return 'dq';
-  return row.classKey === null ? null : domainOfClass(row.classKey);
+  if (row.classKey !== null) return domainOfClass(row.classKey);
+  return row.detectorId === undefined ? null : domainOfSiteDetector(row.detectorId);
 }
 
 export function matchesStatus(status: FindingStatus, filter: StatusFilter): boolean {

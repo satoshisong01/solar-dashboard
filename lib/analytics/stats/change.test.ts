@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cusum, ewma, standardize } from './change';
+import { cusum, cusumPath, ewma, standardize } from './change';
 
 describe('cusum', () => {
   it('상향 계단 변화: 경보 인덱스와 변화 시작 인덱스를 손 계산과 맞춘다', () => {
@@ -20,6 +20,15 @@ describe('cusum', () => {
   it('성질: k 이하 잡음만 있으면 경보가 없다', () => {
     const residuals = Array.from({ length: 200 }, (_, i) => (i % 2 === 0 ? 0.4 : -0.4));
     expect(cusum(residuals, { h: 4 }).alarmIndex).toBeNull();
+  });
+});
+
+describe('cusumPath', () => {
+  it('cusum과 같은 점화식으로 경보 뒤까지 누적합 경로를 만든다', () => {
+    const residuals = [0, 0.2, -0.1, 0, 2, 2, 2, 2, -3];
+    expect(cusumPath(residuals, { k: 0.5, direction: 'up' })).toEqual([0, 0, 0, 0, 1.5, 3, 4.5, 6, 2.5]);
+    expect(cusumPath([0, -1.5, -1.5], { direction: 'down' })).toEqual([0, 1, 2]);
+    expect(cusumPath([], { direction: 'up' })).toEqual([]);
   });
 });
 

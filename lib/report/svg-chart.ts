@@ -55,7 +55,7 @@ export function buildSeriesChart(series: PackSeries, box: ChartBox): SeriesChart
   const sy = (y: number) => Math.round((plot.bottom - ((y - y0) / (y1 - y0)) * (plot.bottom - plot.top)) * 10) / 10;
   const yStep = niceStep(y1 - y0, TICKS);
   const yTicks = Array.from({ length: Math.floor(y1 / yStep) - Math.ceil(y0 / yStep) + 1 }, (_, i) => (Math.ceil(y0 / yStep) + i) * yStep).map((y) => ({ at: sy(y), label: formatNumber(y, decimalsFor(yStep)) }));
-  const xTicks = Array.from({ length: TICKS + 1 }, (_, i) => x0 + ((x1 - x0) * i) / TICKS).map((x) => ({ at: sx(x), label: series.xKind === 'time' ? formatKstDate(x).slice(5) : `${formatNumber(x, 0)} h` }));
+  const xTicks = Array.from({ length: TICKS + 1 }, (_, i) => x0 + ((x1 - x0) * i) / TICKS).map((x) => ({ at: sx(x), label: series.xKind === 'time' ? formatKstDate(x).slice(5) : series.xKind === 'elapsed_days' ? `${formatNumber(x, 0)}일` : `${formatNumber(x, 0)} h` }));
   const [a, b] = series.line ?? [];
   return {
     width: box.width,

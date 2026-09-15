@@ -39,7 +39,7 @@ export interface PackEffect {
   readonly levelUnit: string | null;
 }
 
-export type SeriesXKind = 'time' | 'op_hours';
+export type SeriesXKind = 'time' | 'op_hours' | 'elapsed_days';
 
 export interface PackSeries {
   readonly xKind: SeriesXKind;

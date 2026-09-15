@@ -1,37 +1,25 @@
 // 근거 스냅샷(jsonb) → 표시 모델. 탐지기별 스냅샷 형식은 lib/analytics/detectors/*의 evidence 필드를 따른다. 순수 모듈.
 // 예전 스냅샷에 없는 필드(bin 폭 등)는 현재 기본값으로 채운다.
 import { ESS_CAPACITY_DEFAULTS } from '@/lib/analytics/detectors/ess-capacity-fade';
-import type { CheckStatus } from '@/lib/analytics/detectors/types';
 import { DEFAULT_ESS_EXTRACTOR_PARAMS } from '@/lib/analytics/episodes/ess';
 import { DEFAULT_STACK_EXTRACTOR_PARAMS } from '@/lib/analytics/episodes/stack-episodes';
 import { DAYS_PER_MONTH, MS_PER_DAY } from '@/lib/analytics/types';
 import { CAPACITY_METRICS, parseCapacityBinKey, type CapacityMetric } from './conditions';
 import { formatSigned } from './effect';
-import type { CapacityEvidence, CellImbalanceEvidence, CheckView, DqEvidence, EvidenceView, MeasuredValue, PvPeerEvidence, Span, StackEvidence } from './evidence-types';
+import type { CapacityEvidence, CellImbalanceEvidence, DqEvidence, EvidenceView, PvPeerEvidence, Span, StackEvidence } from './evidence-types';
 import { asArray, asBoolean, asNumber, asRecord, asString, xyPoints, type JsonRecord } from './json-read';
-import { measuredLabel } from './measured-labels';
+import { parseChecks } from './evidence-checks';
+import { parseP3Evidence } from './p3-evidence';
 import { projectionOf } from './projection';
 import type { ChargeCurve } from './overlay';
 import type { TrendView } from './trend';
 
-const CHECK_STATUSES: readonly CheckStatus[] = ['supports', 'refutes', 'unknown', 'no_data'];
 const MS_PER_MONTH = DAYS_PER_MONTH * MS_PER_DAY;
+
+export { parseChecks };
 
 const slopeText = (slope: number | null, low: number | null, high: number | null, unit: string, digits: number): string | null =>
   slope === null ? null : `${formatSigned(slope, digits)} ${unit}${low === null || high === null ? '' : ` (95% CI ${formatSigned(low, digits)} ~ ${formatSigned(high, digits)})`}`;
-
-const measuredValue = (value: unknown): MeasuredValue => (typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean' ? value : null);
-
-export function parseChecks(value: unknown): CheckView[] {
-  return asArray(value).flatMap((item) => {
-    const c = asRecord(item);
-    const status = asString(c.status);
-    const id = asString(c.id);
-    if (id === null || status === null || !(CHECK_STATUSES as readonly string[]).includes(status)) return [];
-    const measured = Object.entries(asRecord(c.measured)).map(([key, v]) => [measuredLabel(key), measuredValue(v)] as const);
-    return [{ id, label: asString(c.label) ?? id, status: status as CheckStatus, measured, note: asString(c.note) ?? '' }];
-  });
-}
 
 function parseCurve(value: unknown): ChargeCurve | null {
   const c = asRecord(value);
@@ -207,8 +195,10 @@ function parseDq(s: JsonRecord): DqEvidence {
   };
 }
 
-/** 스냅샷의 method로 형식을 고른다. 모르는 형식은 unknown */
-export function parseEvidence(snapshot: unknown): EvidenceView {
+/** P3 근거는 탐지기 id(인자 → 스냅샷 detector 필드)·method로 p3-evidence.ts가 읽고, 나머지는 스냅샷의 method로 형식을 고른다. 모르는 형식은 unknown */
+export function parseEvidence(snapshot: unknown, detectorId?: string | null): EvidenceView {
+  const p3 = parseP3Evidence(snapshot, detectorId);
+  if (p3 !== null) return p3;
   const s = asRecord(snapshot);
   switch (asString(s.method)) {
     case 'matched_ratio':

@@ -3,6 +3,7 @@
 import type { CheckStatus } from '@/lib/analytics/detectors/types';
 import type { BinWidths, CapacityBinView, CapacityMetric, SessionRules } from './conditions';
 import type { ChargeCurve } from './overlay';
+import type { P3EvidenceView } from './p3-evidence-types';
 import type { ProjectionView } from './projection';
 import type { TrendView } from './trend';
 
@@ -119,4 +120,4 @@ export interface DqEvidence {
   readonly flatlinePoints: number | null;
 }
 
-export type EvidenceView = CapacityEvidence | StackEvidence | CellImbalanceEvidence | PvPeerEvidence | DqEvidence | { readonly kind: 'unknown' };
+export type EvidenceView = CapacityEvidence | StackEvidence | CellImbalanceEvidence | PvPeerEvidence | DqEvidence | P3EvidenceView | { readonly kind: 'unknown' };

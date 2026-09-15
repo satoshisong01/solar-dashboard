@@ -9,9 +9,9 @@ import * as z from 'zod';
 import { downsample } from '../episodes/series';
 import { hashInput } from '../hash';
 import { bootstrapCI } from '../stats/bootstrap';
-import { cusum, standardize } from '../stats/change';
+import { cusum, cusumPath, standardize } from '../stats/change';
 import { relativeCiWidth, scoreConfidence } from '../stats/confidence';
-import { median } from '../stats/robust';
+import { MAD_TO_SIGMA, mad, median } from '../stats/robust';
 import { kstDateString, MS_PER_DAY, type JsonObject } from '../types';
 import { levelCheck, makeCheck, medianOrNull, pearson, SAFETY_DISCLAIMER } from './check-helpers';
 import { fixed, insufficient, r, signed, withDefaults } from './common';
@@ -193,6 +193,9 @@ interface Alarm {
   readonly direction: 'up' | 'down';
   readonly alarmDay: number | null;
   readonly changeStartDay: number | null;
+  /** 기준 시작 이후 유효일과 그 표준화 잔차율 (근거 CUSUM 경로용) */
+  readonly monitored: readonly ValidDay[];
+  readonly z: readonly number[];
 }
 
 /** 최근 잔차율 중앙값이 기준을 넘고, 기준 구간으로 표준화한 CUSUM(같은 부호 방향)이 경보를 내면 경보 정보. 아니면 null */
@@ -201,9 +204,16 @@ function alarmOf(split: DaySplit, p: H2MassBalanceParams): Alarm | null {
   if (!(Math.abs(currentPct) > p.residualPct)) return null;
   const direction = currentPct > 0 ? 'up' : 'down';
   const monitored = split.valid.filter((d) => d.day >= (split.reference[0]?.day ?? 0));
-  const change = cusum(standardize(monitored.map((d) => d.residual_pct), split.reference.map((d) => d.residual_pct), p.sigmaFloorPct), { k: p.cusumK, h: p.cusumH, direction });
+  const z = standardize(monitored.map((d) => d.residual_pct), split.reference.map((d) => d.residual_pct), p.sigmaFloorPct);
+  const change = cusum(z, { k: p.cusumK, h: p.cusumH, direction });
   if (change.alarmIndex === null) return null;
-  return { currentPct, direction, alarmDay: monitored[change.alarmIndex]?.day ?? null, changeStartDay: change.changeStartIndex === null ? null : (monitored[change.changeStartIndex]?.day ?? null) };
+  return { currentPct, direction, alarmDay: monitored[change.alarmIndex]?.day ?? null, changeStartDay: change.changeStartIndex === null ? null : (monitored[change.changeStartIndex]?.day ?? null), monitored, z };
+}
+
+/** 근거 CUSUM 경로: 기준 시작 이후 유효일마다 경보 방향 누적합 (≤120점) */
+function cusumPoints(alarm: Alarm, p: H2MassBalanceParams): JsonObject[] {
+  const path = cusumPath(alarm.z, { k: p.cusumK, direction: alarm.direction });
+  return downsample(alarm.monitored.map((d, i) => ({ date: kstDateString(d.day), s: r(path[i] ?? 0, 3) })), 120);
 }
 
 function buildFinding(input: H2MassBalanceInput, ctx: DetectorContext<H2MassBalanceParams>, p: H2MassBalanceParams, split: DaySplit, alarm: Alarm): CandidateFinding {
@@ -219,10 +229,10 @@ function buildFinding(input: H2MassBalanceInput, ctx: DetectorContext<H2MassBala
   const evidence: JsonObject = {
     method: 'residual_median_cusum',
     sign_convention: 'residual = produced − fc_consumed − stored_delta − vented_est (양수 = 계량되지 않은 손실 또는 생산 과다 계량)',
-    reference: { days: reference.length, from: reference[0]?.day ?? null, median_pct: r(referencePct, 3) },
+    reference: { days: reference.length, from: reference[0]?.day ?? null, median_pct: r(referencePct, 3), sigma_pct: r(Math.max(MAD_TO_SIGMA * mad(reference.map((d) => d.residual_pct)), p.sigmaFloorPct), 3) },
     recent: { days: recent.length, from: recent[0]?.day ?? null, median_pct: r(currentPct, 3), median_kg: r(residualKgDay, 3) },
-    cusum: { direction: alarm.direction, alarm_day: alarm.alarmDay === null ? null : kstDateString(alarm.alarmDay), change_start_day: alarm.changeStartDay === null ? null : kstDateString(alarm.changeStartDay), k: p.cusumK, h: p.cusumH },
-    days: downsample(split.inRange, 60).map((d) => ({ date: kstDateString(d.day), produced: r(d.produced, 2), residual: r(d.residual, 3), residual_pct: r(d.residual_pct, 2) })),
+    cusum: { direction: alarm.direction, alarm_day: alarm.alarmDay === null ? null : kstDateString(alarm.alarmDay), change_start_day: alarm.changeStartDay === null ? null : kstDateString(alarm.changeStartDay), k: p.cusumK, h: p.cusumH, sigma_floor_pct: p.sigmaFloorPct, points: cusumPoints(alarm, p) },
+    days: downsample(split.inRange, 120).map((d) => ({ date: kstDateString(d.day), produced: r(d.produced, 2), fc_consumed: r(d.fc_consumed, 2), stored_delta: r(d.stored_delta, 2), vented_est: r(d.vented_est, 3), residual: r(d.residual, 3), residual_pct: r(d.residual_pct, 2), completeness: r(d.dq.completeness, 3) })),
     checks,
     note: `청정수소 인증 공식 산정이 아닙니다. ${SAFETY_DISCLAIMER}`,
   };

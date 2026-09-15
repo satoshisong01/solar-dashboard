@@ -49,6 +49,15 @@ export function cusum(residuals: readonly number[], options: CusumOptions = {}):
   return { alarmIndex: null, changeStartIndex: null, direction: null, maxUpper, maxLower };
 }
 
+/**
+ * 한 방향 표 CUSUM 누적합 경로 (근거 차트용): up이면 S⁺ᵢ, down이면 S⁻ᵢ. cusum()과 같은 점화식이지만 경보에서 멈추지 않고 끝까지 계산한다.
+ */
+export function cusumPath(residuals: readonly number[], options: { readonly k?: number; readonly direction: 'up' | 'down' }): number[] {
+  const k = options.k ?? 0.5;
+  const sign = options.direction === 'up' ? 1 : -1;
+  return residuals.reduce<number[]>((path, z) => [...path, Math.max(0, (path.at(-1) ?? 0) + sign * z - k)], []);
+}
+
 /** 기준 구간의 중앙값·σ(1.4826·MAD, 하한 sigmaFloor)로 표준화한 새 배열. σ가 0이면 오류 (sigmaFloor를 지정할 것) */
 export function standardize(values: readonly number[], reference: readonly number[], sigmaFloor = 0): number[] {
   const center = median(reference);

@@ -57,6 +57,14 @@ describe('domainOfFinding', () => {
     expect(domainOfFinding({ category: 'performance', classKey: 'pv.inverter' })).toBe('pv');
     expect(domainOfFinding({ category: 'degradation', classKey: null })).toBeNull();
   });
+
+  it('사이트 단위 발견사항(설비 없음)은 탐지기로 도메인을 정하고, 도메인 필터에 걸린다', () => {
+    expect(domainOfFinding({ category: 'performance', classKey: null, detectorId: 'pv.soiling_rate' })).toBe('pv');
+    expect(domainOfFinding({ category: 'performance', classKey: null, detectorId: 'h2chain.mass_balance_gap' })).toBe('storage');
+    expect(domainOfFinding({ category: 'performance', classKey: null, detectorId: 'unknown.detector' })).toBeNull();
+    const site = row({ id: '9', assetId: null, assetPath: null, assetName: null, classKey: null, detectorId: 'h2chain.mass_balance_gap', category: 'performance' });
+    expect(applyInboxFilter([site, row({ id: '1' })], { ...DEFAULT_INBOX_FILTER, domain: 'storage' }).map((r) => r.id)).toEqual(['9']);
+  });
 });
 
 describe('applyInboxFilter', () => {

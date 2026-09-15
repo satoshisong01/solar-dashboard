@@ -3,11 +3,8 @@
 import { useMemo } from 'react';
 import { useChartTheme, type ChartTheme } from '@/components/charts/chart-theme';
 import { EChart, type EChartOption } from '@/components/charts/echart';
-import { trendBand, type TrendView } from '@/lib/desk/trend';
-import { formatKstDate, formatNumber } from '@/lib/format';
-
-const xLabel = (trend: TrendView, value: number): string => (trend.xKind === 'time' ? formatKstDate(value).slice(5) : formatNumber(value, 0));
-const xText = (trend: TrendView, value: number): string => (trend.xKind === 'time' ? formatKstDate(value) : `${formatNumber(value, 0)} h`);
+import { trendAxisText, trendBand, type TrendView } from '@/lib/desk/trend';
+import { formatNumber } from '@/lib/format';
 
 function changeMarkLine(theme: ChartTheme, trend: TrendView) {
   if (trend.changeStart === null) return {};
@@ -24,6 +21,7 @@ function changeMarkLine(theme: ChartTheme, trend: TrendView) {
 
 function buildTrendOption(theme: ChartTheme, trend: TrendView): EChartOption {
   const band = trendBand(trend);
+  const axis = trendAxisText(trend.xKind);
   const axisStyle = { nameTextStyle: { color: theme.muted }, axisLabel: { color: theme.muted }, axisLine: { lineStyle: { color: theme.rule } } };
   const bandSeries = band
     ? [
@@ -52,12 +50,12 @@ function buildTrendOption(theme: ChartTheme, trend: TrendView): EChartOption {
     tooltip: { trigger: 'item', backgroundColor: theme.surface, borderColor: theme.rule, textStyle: { color: theme.ink, fontSize: 12 } },
     xAxis: {
       type: 'value',
-      name: trend.xKind === 'time' ? '날짜 (KST)' : '누적 운전시간 (h)',
+      name: axis.name,
       nameLocation: 'middle',
       nameGap: 28,
       scale: true,
       ...axisStyle,
-      axisLabel: { color: theme.muted, hideOverlap: true, formatter: (value: number) => xLabel(trend, value) },
+      axisLabel: { color: theme.muted, hideOverlap: true, formatter: (value: number) => axis.tick(value) },
       splitLine: { show: false },
     },
     yAxis: { type: 'value', name: trend.yName, scale: true, ...axisStyle, splitLine: { lineStyle: { color: theme.rule } } },
@@ -71,7 +69,7 @@ function buildTrendOption(theme: ChartTheme, trend: TrendView): EChartOption {
         color: theme.muted,
         tooltip: { formatter: (params: unknown) => {
           const value = (params as { value?: unknown }).value;
-          return Array.isArray(value) ? `${xText(trend, Number(value[0]))}: ${formatNumber(Number(value[1]), 3)}` : '';
+          return Array.isArray(value) ? `${axis.value(Number(value[0]))}: ${formatNumber(Number(value[1]), 3)}` : '';
         } },
         ...changeMarkLine(theme, trend),
       },

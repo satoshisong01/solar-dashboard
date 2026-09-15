@@ -1,7 +1,8 @@
-// 효과 카드의 조건 문장 (탐지기별). 순수 모듈. 용량 감소는 conditions.ts의 같은 조건 문장을 쓴다.
+// 효과 카드의 조건 문장 (탐지기별). 순수 모듈. 용량 감소는 conditions.ts의 같은 조건 문장, P3는 p3-view.ts를 쓴다.
 import { formatNumber } from '@/lib/format';
 import { capacityConditionSentence } from './conditions';
 import type { EvidenceView } from './evidence-types';
+import { p3ConditionText } from './p3-view';
 
 export function evidenceConditionText(evidence: EvidenceView): string | null {
   switch (evidence.kind) {
@@ -22,6 +23,12 @@ export function evidenceConditionText(evidence: EvidenceView): string | null {
     }
     case 'dq':
       return `포인트 ${evidence.points.length}개 요약 (결측 ${evidence.gapPoints ?? 0}개 · 고착 ${evidence.flatlinePoints ?? 0}개)`;
+    case 'rise':
+    case 'tank_leak':
+    case 'mass_balance':
+    case 'soiling':
+    case 'thermal':
+      return p3ConditionText(evidence);
     default:
       return null;
   }

@@ -1,12 +1,13 @@
 // 추세 산점도용 Theil–Sen 선과 기울기 95% CI 밴드. 순수 모듈 (서버·클라이언트 공용).
 // Theil–Sen 절편은 median(y) − slope·median(x)라 추세선은 (median x, median y)를 지난다.
 // 밴드는 그 점을 축으로 기울기 CI 하한·상한 선을 그린 범위다 (나비넥타이 모양: 축에서 폭 0, 양 끝에서 넓어진다).
+import { formatKstDate, formatNumber } from '@/lib/format';
 
 export type XYPoint = readonly [x: number, y: number];
 
 export interface TrendView {
-  /** x축 종류: 시각(epoch ms) 또는 누적 운전시간(h) */
-  readonly xKind: 'time' | 'op_hours';
+  /** x축 종류: 시각(epoch ms) · 누적 운전시간(h) · 첫 표본 이후 경과일 */
+  readonly xKind: 'time' | 'op_hours' | 'elapsed_days';
   readonly yName: string;
   readonly points: readonly XYPoint[];
   /** 추세선 두 끝점 (근거에 없으면 null) */
@@ -53,4 +54,29 @@ export function trendBand(trend: Pick<TrendView, 'points' | 'line' | 'slope' | '
     lower: xs.map((x): XYPoint => [x, Math.min(at(x, ciLow), at(x, ciHigh))]),
     upper: xs.map((x): XYPoint => [x, Math.max(at(x, ciLow), at(x, ciHigh))]),
   };
+}
+
+export interface TrendAxisText {
+  /** 축 이름 */
+  readonly name: string;
+  /** 회색 점 설명 */
+  readonly pointLabel: string;
+  /** 눈금 라벨 (짧게) */
+  readonly tick: (x: number) => string;
+  /** 툴팁·문장용 */
+  readonly value: (x: number) => string;
+}
+
+const whole = (x: number): string => formatNumber(x, 0);
+
+/** x축 종류별 이름·점 설명·눈금 표기 */
+export function trendAxisText(xKind: TrendView['xKind']): TrendAxisText {
+  switch (xKind) {
+    case 'time':
+      return { name: '날짜 (KST)', pointLabel: '일별 중앙값', tick: (x) => formatKstDate(x).slice(5), value: formatKstDate };
+    case 'op_hours':
+      return { name: '누적 운전시간 (h)', pointLabel: '운전시간 구간 중앙값', tick: whole, value: (x) => `누적 ${whole(x)} h` };
+    case 'elapsed_days':
+      return { name: '첫 표본 이후 경과일', pointLabel: '경과일 구간 중앙값', tick: whole, value: (x) => `${whole(x)}일째` };
+  }
 }

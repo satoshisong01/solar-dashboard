@@ -41,3 +41,13 @@ export const ASSET_LEVEL_LABELS: Readonly<Record<string, string>> = {
   asset: '설비',
   component: '부품',
 };
+
+/**
+ * 사이트 단위 발견사항(설비 없음)의 도메인: 탐지기로 정한다.
+ * 태양광 오염 → PV, 수소 물질수지 잔차 → 저장(물질수지는 저장량 증감으로 닫히고 누설 교차 확인도 저장부다). 모르는 탐지기는 null
+ */
+export function domainOfSiteDetector(detectorId: string): EquipmentDomain | null {
+  if (detectorId === 'pv.soiling_rate') return 'pv';
+  if (detectorId === 'h2chain.mass_balance_gap') return 'storage';
+  return null;
+}

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { NUM_CLASS, TABLE_CLASS, TD_CLASS, TH_CLASS, TableScroll } from '@/components/ui/panel';
 import { capacityBinLabel } from '@/lib/desk/conditions';
 import type { CapacityEvidence, CellImbalanceEvidence, DqEvidence, PvPeerEvidence, StackEvidence } from '@/lib/desk/evidence-types';
+import type { MatchedBinView } from '@/lib/desk/p3-evidence-types';
 import { formatSigned } from '@/lib/desk/effect';
 import { formatKstDate, formatNumber } from '@/lib/format';
 
@@ -11,40 +12,56 @@ const Th = ({ children, right = false }: Readonly<{ children: ReactNode; right?:
   </th>
 );
 
-/** 같은 조건 비교표 (용량): bin마다 기준·최근 표본 수와 중앙값, 비율. 비교에 쓰지 않은 bin은 흐리게 */
-export function CapacityBinsTable({ evidence }: Readonly<{ evidence: CapacityEvidence }>) {
+const excludedText = (bin: Pick<MatchedBinView, 'used' | 'excluded'>): string => (bin.used ? '사용' : bin.excluded === 'reference_spread' ? '기준 시점 차이로 제외' : '표본 부족');
+
+type MatchedBinsTableProps = Readonly<{
+  bins: readonly MatchedBinView[];
+  conditionHeader: string;
+  /** 중앙값 단위 (머리글) */
+  unit: string;
+  digits: number;
+}>;
+
+/** 같은 조건 비교표 (용량 감소·P3 상승 탐지기 공용): bin마다 기준·최근 표본 수와 중앙값, 비율. 비교에 쓰지 않은 bin은 흐리게 */
+export function MatchedBinsTable({ bins, conditionHeader, unit, digits }: MatchedBinsTableProps) {
   return (
     <TableScroll label="같은 조건 비교표">
       <table className={TABLE_CLASS}>
         <thead>
           <tr>
-            <Th>{evidence.metric === 'rest_anchored' ? '조건 (방향 · 셀온도)' : '조건 (C-rate · 셀온도)'}</Th>
+            <Th>{conditionHeader}</Th>
             <Th right>기준 n</Th>
-            <Th right>기준 중앙값 (Ah)</Th>
+            <Th right>기준 중앙값 ({unit})</Th>
             <Th right>최근 n</Th>
-            <Th right>최근 중앙값 (Ah)</Th>
+            <Th right>최근 중앙값 ({unit})</Th>
             <Th right>비율</Th>
             <Th>기준 기간</Th>
             <Th>비교</Th>
           </tr>
         </thead>
         <tbody>
-          {evidence.bins.map((bin) => (
+          {bins.map((bin) => (
             <tr key={bin.key} className={bin.used ? undefined : 'text-muted'}>
-              <td className={`${TD_CLASS} whitespace-nowrap`}>{capacityBinLabel(bin.key, evidence.widths)}</td>
+              <td className={`${TD_CLASS} whitespace-nowrap`}>{bin.label}</td>
               <td className={`${TD_CLASS} ${NUM_CLASS}`}>{bin.nRef}</td>
-              <td className={`${TD_CLASS} ${NUM_CLASS}`}>{formatNumber(bin.medRef, 1)}</td>
+              <td className={`${TD_CLASS} ${NUM_CLASS}`}>{formatNumber(bin.medRef, digits)}</td>
               <td className={`${TD_CLASS} ${NUM_CLASS}`}>{bin.nCur}</td>
-              <td className={`${TD_CLASS} ${NUM_CLASS}`}>{formatNumber(bin.medCur, 1)}</td>
+              <td className={`${TD_CLASS} ${NUM_CLASS}`}>{formatNumber(bin.medCur, digits)}</td>
               <td className={`${TD_CLASS} ${NUM_CLASS}`}>{bin.ratio === null ? '—' : `${formatNumber(bin.ratio, 4)} (${formatSigned((bin.ratio - 1) * 100, 1)}%)`}</td>
-              <td className={`${TD_CLASS} whitespace-nowrap text-xs`}>{bin.refFrom != null && bin.refTo != null ? `${formatKstDate(bin.refFrom)} ~ ${formatKstDate(bin.refTo)}` : '—'}</td>
-              <td className={`${TD_CLASS} text-xs`}>{bin.used ? '사용' : bin.excluded === 'reference_spread' ? '기준 시점 차이로 제외' : '표본 부족'}</td>
+              <td className={`${TD_CLASS} whitespace-nowrap text-xs`}>{bin.refFrom !== null && bin.refTo !== null ? `${formatKstDate(bin.refFrom)} ~ ${formatKstDate(bin.refTo)}` : '—'}</td>
+              <td className={`${TD_CLASS} text-xs`}>{excludedText(bin)}</td>
             </tr>
           ))}
         </tbody>
       </table>
     </TableScroll>
   );
+}
+
+/** 같은 조건 비교표 (용량): C-rate·셀온도 bin, Ah */
+export function CapacityBinsTable({ evidence }: Readonly<{ evidence: CapacityEvidence }>) {
+  const bins = evidence.bins.map((bin) => ({ ...bin, label: capacityBinLabel(bin.key, evidence.widths), refFrom: bin.refFrom ?? null, refTo: bin.refTo ?? null, excluded: bin.excluded ?? null }));
+  return <MatchedBinsTable bins={bins} conditionHeader={evidence.metric === 'rest_anchored' ? '조건 (방향 · 셀온도)' : '조건 (C-rate · 셀온도)'} unit="Ah" digits={1} />;
 }
 
 /** 스택 같은 조건 구간: 구간별 정상운전 수·전압 중앙값·운전시간 범위 */

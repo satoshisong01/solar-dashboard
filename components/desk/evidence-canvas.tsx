@@ -3,12 +3,16 @@ import { formatSigned } from '@/lib/desk/effect';
 import { cautionLabel } from '@/lib/desk/labels';
 import { pendingProjectionText } from '@/lib/desk/projection';
 import type { CapacityEvidence, EvidenceView, SohTargetView } from '@/lib/desk/evidence-types';
-import type { TrendView } from '@/lib/desk/trend';
 import { formatKstDate } from '@/lib/format';
 import { CapacityBinsTable, CellImbalanceTables, DqPointsTable, PvPeerTable, StackBinsTable } from './comparison-tables';
 import { OverlayChart } from './overlay-chart';
+import { MassBalanceCanvas } from './p3/mass-balance-canvas';
+import { RiseCanvas } from './p3/rise-canvas';
+import { SoilingCanvas } from './p3/soiling-canvas';
+import { TankLeakCanvas } from './p3/tank-leak-canvas';
+import { ThermalCanvas } from './p3/thermal-canvas';
 import { PeerChart } from './peer-chart';
-import { TrendChart } from './trend-chart';
+import { TrendPanel } from './trend-panel';
 
 function sohTargetText(target: SohTargetView | null): string | null {
   const projection = target?.projection;
@@ -16,26 +20,6 @@ function sohTargetText(target: SohTargetView | null): string | null {
   if (projection.kind === 'pending') return `SOH ${target.pct}% 도달 예상일: ${pendingProjectionText(projection.spanDays)} — 데이터 기간이 짧거나 감소 기울기가 유의하지 않거나 예상 시점이 10년 넘게 떨어져 날짜를 쓰지 않습니다.`;
   const range = projection.early !== null && projection.late !== null ? ` (기울기 95% CI로 ${formatKstDate(projection.early)} ~ ${formatKstDate(projection.late)})` : projection.early !== null ? ` (빠르면 ${formatKstDate(projection.early)})` : '';
   return `SOH ${target.pct}% 도달 예상일 ${formatKstDate(projection.estimate)}${range} — 현재 추세가 이어진다고 가정한 외삽입니다.`;
-}
-
-function TrendPanel({ trend, label, footnote }: Readonly<{ trend: TrendView | null; label: string; footnote?: string | null }>) {
-  return (
-    <Panel title="추세" meta={trend?.slopeText ? `Theil–Sen ${trend.slopeText}` : undefined}>
-      {trend === null ? (
-        <EmptyNote>근거에 추세 점이 없습니다</EmptyNote>
-      ) : (
-        <div className="flex flex-col gap-2">
-          <TrendChart trend={trend} label={label} />
-          <ul className="flex flex-col gap-0.5 text-xs text-ink-2">
-            <li>회색 점: {trend.xKind === 'time' ? '일별 중앙값' : '운전시간 구간 중앙값'} · 선: Theil–Sen 추세 · 음영: 기울기 95% CI 범위</li>
-            {trend.line === null && <li>이 근거 스냅샷에는 추세선 좌표가 없습니다(이전 버전 스냅샷). 분석을 다시 실행하면 추세선이 함께 저장됩니다.</li>}
-            <li>{trend.changeStart === null ? 'CUSUM 변화 시작점은 찾지 못했습니다.' : `CUSUM 변화 시작: ${trend.xKind === 'time' ? formatKstDate(trend.changeStart) : `누적 ${Math.round(trend.changeStart)} h`}`}</li>
-            {footnote && <li className="font-medium text-ink">{footnote}</li>}
-          </ul>
-        </div>
-      )}
-    </Panel>
-  );
 }
 
 function CapacityCanvas({ evidence, chargeTimeText }: Readonly<{ evidence: CapacityEvidence; chargeTimeText: string | null }>) {
@@ -66,11 +50,12 @@ type CanvasProps = Readonly<{
   evidence: EvidenceView;
   chargeTimeText: string | null;
   assetLabel: string;
+  siteCode: string;
   peerCodes: ReadonlyMap<number, string>;
 }>;
 
-/** 증거 캔버스 (설계 §4 분석 데스크): 탐지기 근거 형식별 비교표·오버레이·추세·동종 비교 */
-export function EvidenceCanvas({ evidence, chargeTimeText, assetLabel, peerCodes }: CanvasProps) {
+/** 증거 캔버스 (설계 §4 분석 데스크): 탐지기 근거 형식별 비교표·오버레이·추세·동종 비교 (P3 8종은 p3/ 렌더러) */
+export function EvidenceCanvas({ evidence, chargeTimeText, assetLabel, siteCode, peerCodes }: CanvasProps) {
   switch (evidence.kind) {
     case 'capacity':
       return <CapacityCanvas evidence={evidence} chargeTimeText={chargeTimeText} />;
@@ -109,6 +94,16 @@ export function EvidenceCanvas({ evidence, chargeTimeText, assetLabel, peerCodes
           <DqPointsTable evidence={evidence} />
         </Panel>
       );
+    case 'rise':
+      return <RiseCanvas evidence={evidence} />;
+    case 'tank_leak':
+      return <TankLeakCanvas evidence={evidence} />;
+    case 'mass_balance':
+      return <MassBalanceCanvas evidence={evidence} siteCode={siteCode} />;
+    case 'soiling':
+      return <SoilingCanvas evidence={evidence} />;
+    case 'thermal':
+      return <ThermalCanvas evidence={evidence} />;
     default:
       return (
         <Panel title="근거">

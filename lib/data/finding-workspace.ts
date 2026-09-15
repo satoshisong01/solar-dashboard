@@ -122,7 +122,7 @@ export async function getFindingDetail(findingId: string): Promise<FindingDetail
     detectionCount: row.detection_count,
     previousFindingId: row.previous_finding_id,
     dismissReason: row.dismiss_reason,
-    evidence: parseEvidence(row.snapshot),
+    evidence: parseEvidence(row.snapshot, row.detector_id),
     evidenceAtMs: row.evidence_at ? row.evidence_at.getTime() : null,
     configVersions,
     ...history,

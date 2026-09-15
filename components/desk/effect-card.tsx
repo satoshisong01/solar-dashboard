@@ -8,7 +8,7 @@ import { formatKstDate, formatKstDateTime } from '@/lib/format';
 const windowText = (label: string, w: WindowView): string | null => (w.from === null || w.to === null ? null : `${label} ${formatKstDate(w.from)} ~ ${formatKstDate(w.to)} (${w.n}회)`);
 
 function comparisonWindows(evidence: EvidenceView, finding: FindingDetail): string {
-  if (evidence.kind === 'capacity') {
+  if (evidence.kind === 'capacity' || evidence.kind === 'rise') {
     return [windowText('기준', evidence.reference), windowText('최근', evidence.recent)].filter((part): part is string => part !== null).join(' · ');
   }
   return `탐지 창 ${formatKstDate(finding.windowStartMs)} ~ ${formatKstDate(finding.windowEndMs)}`;
@@ -20,7 +20,16 @@ const LEVEL_LABELS: Readonly<Record<string, string>> = {
   cell_imbalance: '셀 전압 편차 기준 → 최근',
   pv_peer: 'kWh/kWp 동종 중앙값 → 이 인버터',
   dq: '수신 완결성 기대 → 실제',
+  tank_leak: '기준 구간 겉보기 손실 → 결합 누설률',
+  mass_balance: '잔차율 기준 → 최근',
+  soiling: '성능지수 구간 시작 → 마지막 맑은 날',
+  thermal: '저감 손실률 기준 → 최근',
 };
+
+/** 수준 표기 자릿수: 작은 값이 0으로 뭉개지는 단위는 늘린다 */
+const LEVEL_DIGITS: Readonly<Record<string, number>> = { 'kg/일': 3, PI: 3, 'kWh/kg': 3 };
+
+const levelLabel = (evidence: EvidenceView): string => (evidence.kind === 'rise' ? `${evidence.subject} 기준 → 최근` : (LEVEL_LABELS[evidence.kind] ?? '기준 → 최근'));
 
 type EffectCardProps = Readonly<{ finding: FindingDetail; chargeTimeText: string | null }>;
 
@@ -29,9 +38,9 @@ export function EffectCard({ finding, chargeTimeText }: EffectCardProps) {
   const { effect, evidence } = finding;
   const effectText = formatEffectWithCi(effect, 2);
   const ci = effectText.ci;
-  const levels = formatEffectLevels(effect, 2);
+  const levels = formatEffectLevels(effect, LEVEL_DIGITS[effect.levelUnit ?? ''] ?? 2);
   const condition = evidenceConditionText(evidence);
-  const trendText = evidence.kind === 'stack' || evidence.kind === 'cell_imbalance' || evidence.kind === 'capacity' ? (evidence.trend?.slopeText ?? null) : null;
+  const trendText = evidence.kind === 'stack' || evidence.kind === 'cell_imbalance' || evidence.kind === 'capacity' || evidence.kind === 'rise' ? (evidence.trend?.slopeText ?? null) : null;
 
   return (
     <Panel title="효과" meta={finding.evidenceAtMs === null ? undefined : `근거 계산 ${formatKstDateTime(finding.evidenceAtMs)} KST`}>
@@ -43,7 +52,7 @@ export function EffectCard({ finding, chargeTimeText }: EffectCardProps) {
         <dl className="grid gap-2 text-sm sm:grid-cols-2">
           {levels && (
             <div>
-              <dt className="text-xs text-muted">{LEVEL_LABELS[evidence.kind] ?? '기준 → 최근'}</dt>
+              <dt className="text-xs text-muted">{levelLabel(evidence)}</dt>
               <dd className="font-mono text-ink tabular-nums">{levels}</dd>
             </div>
           )}

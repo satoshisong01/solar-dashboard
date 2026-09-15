@@ -22,6 +22,7 @@ export interface PointInfo {
 interface PointFilter {
   readonly assetId?: number;
   readonly pointIds?: readonly number[];
+  readonly siteCode?: string;
 }
 
 /** 포인트와 설비·사이트·메트릭 정보. 사이트 → 설비 코드 → 메트릭 순 */
@@ -52,6 +53,7 @@ export async function getPoints(filter: PointFilter = {}): Promise<readonly Poin
     .orderBy('p.qualifier');
 
   if (filter.assetId !== undefined) query = query.where('p.asset_id', '=', filter.assetId);
+  if (filter.siteCode !== undefined) query = query.where('s.code', '=', filter.siteCode);
   if (filter.pointIds !== undefined) {
     if (filter.pointIds.length === 0) return [];
     query = query.where('p.id', 'in', [...filter.pointIds]);
