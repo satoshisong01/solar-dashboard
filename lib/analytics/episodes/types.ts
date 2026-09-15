@@ -9,11 +9,17 @@ export type EpisodeKind =
   | 'el.steady_run'
   | 'el.start'
   | 'fc.steady_run'
-  | 'fc.start';
+  | 'fc.start'
+  | 'comp.run'
+  | 'tank.hold'
+  | 'fc.blower_run'
+  | 'wx.day'
+  | 'ess.current_step';
 
 /**
  * 에피소드 종류별 추출기 버전. 특징(features)이 바뀐 종류만 올린다 — 이전 버전으로 저장한 에피소드는 조회에서 빠지고 다시 추출하면 교체된다.
  * ess.rest@2: 휴지 끝 SOC(soc_end)·휴지 구간 순 Ah(ah_net) 추가 (ess.capacity_fade 휴지 앵커 방식)
+ * P3 신규(@1): comp.run(압축기 운전) · tank.hold(저장용기 정지 보유) · fc.blower_run(블로워 정상운전) · wx.day(기상 일) · ess.current_step(랙 전류 계단)
  */
 export const EXTRACTOR_VERSIONS: Readonly<Record<EpisodeKind, number>> = {
   'ess.charge': 1,
@@ -24,6 +30,11 @@ export const EXTRACTOR_VERSIONS: Readonly<Record<EpisodeKind, number>> = {
   'el.start': 1,
   'fc.steady_run': 1,
   'fc.start': 1,
+  'comp.run': 1,
+  'tank.hold': 1,
+  'fc.blower_run': 1,
+  'wx.day': 1,
+  'ess.current_step': 1,
 };
 
 /** om.episode.extractor_version 값: 'ess.charge@1' */

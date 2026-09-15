@@ -1,6 +1,7 @@
 // ess.cell_imbalance@1 — 충전 종료(또는 휴지) 셀 전압 편차(max−min)의 기준 대비 증가 + 2개월 증가 추세 + 동종 랙 대비 수정 z.
 import type { EssChargeEpisode, EssRestEpisode } from '../episodes/ess';
 import { downsample } from '../episodes/series';
+import * as z from 'zod';
 import { hashInput } from '../hash';
 import { bootstrapTwoSampleCI } from '../stats/bootstrap';
 import { relativeCiWidth, scoreConfidence } from '../stats/confidence';
@@ -8,6 +9,7 @@ import { median, modifiedZ } from '../stats/robust';
 import { trendValueAt } from '../stats/trend';
 import { DAYS_PER_MONTH, MS_PER_DAY } from '../types';
 import { dailyMedians, fixed, insufficient, r, signed, summarizeTrend, withDefaults } from './common';
+import { choiceParam, completenessParam, intParam, iterationsParam, numParam } from './param-schema';
 import type { CandidateFinding, Detector, DetectorContext, DetectorResult, Severity } from './types';
 
 export type CellDvSource = 'charge_end' | 'rest';
@@ -58,6 +60,24 @@ export const ESS_CELL_IMBALANCE_DEFAULTS: EssCellImbalanceParams = Object.freeze
   madFloorMv: 2,
   iterations: 1000,
   minCompleteness: 0.9,
+});
+
+const D = ESS_CELL_IMBALANCE_DEFAULTS;
+export const ESS_CELL_IMBALANCE_PARAM_SCHEMA = z.object({
+  source: choiceParam(['charge_end', 'rest'] as const, D.source, { label: '편차 측정 시점', description: '충전 종료(charge_end) 또는 휴지(rest) 셀 전압 편차를 씁니다.' }),
+  referenceSessions: intParam(D.referenceSessions, { label: '기준 세션 수', unit: '회', min: 3, max: 200, description: '기준 창이 없을 때 가장 이른 이 수만큼의 세션을 기준으로 씁니다.' }),
+  minReference: intParam(D.minReference, { label: '최소 기준 세션', unit: '회', min: 2, max: 100, description: '기준 세션이 이보다 적으면 판정 불능입니다.' }),
+  recentDays: intParam(D.recentDays, { label: '최근 기간', unit: '일', min: 7, max: 180, description: '최근 편차를 모으는 기간입니다.' }),
+  minRecent: intParam(D.minRecent, { label: '최소 최근 세션', unit: '회', min: 2, max: 100, description: '최근 세션이 이보다 적으면 판정 불능입니다.' }),
+  trendDays: intParam(D.trendDays, { label: '추세 기간', unit: '일', min: 14, max: 365, description: '증가 추세(Theil–Sen)를 보는 기간입니다.' }),
+  minTrendDays: intParam(D.minTrendDays, { label: '추세 최소 일수', unit: '일', min: 3, max: 180, description: '추세를 계산하려면 필요한 일 중앙값 개수입니다.' }),
+  deltaMv: numParam(D.deltaMv, { label: '편차 증가 기준', unit: 'mV', min: 1, max: 200, description: '기준 대비 편차 증가가 이 값 이상이고 증가 추세면 finding입니다.' }),
+  deltaMvSev3: numParam(D.deltaMvSev3, { label: 'severity 3 편차 증가', unit: 'mV', min: 1, max: 500, description: '편차 증가가 이 값 이상이면 severity 3입니다.' }),
+  peerZ: numParam(D.peerZ, { label: '동종 수정 z 기준', unit: '', min: 1, max: 10, description: '동종 랙 대비 수정 z가 이 값을 넘으면 severity 3입니다.' }),
+  minPeers: intParam(D.minPeers, { label: '최소 동종 랙 수', unit: '대', min: 1, max: 50, description: '동종 비교에 필요한 다른 랙 수입니다.' }),
+  madFloorMv: numParam(D.madFloorMv, { label: 'MAD 하한', unit: 'mV', min: 0, max: 50, description: '동종 편차가 거의 같을 때 작은 차이가 큰 z가 되지 않게 하는 하한입니다.' }),
+  iterations: iterationsParam(D.iterations),
+  minCompleteness: completenessParam(D.minCompleteness),
 });
 
 const META = { id: 'ess.cell_imbalance', version: '1', failureMode: 'ess.cell_imbalance', category: 'degradation' } as const;
@@ -136,7 +156,8 @@ function detect(input: EssCellImbalanceInput, ctx: DetectorContext<EssCellImbala
 
 export const essCellImbalance: Detector<EssCellImbalanceInput, EssCellImbalanceParams> = {
   ...META,
-  requires: { assetClass: ['ess.rack'], metrics: ['batt.current', 'cell.voltage.max', 'cell.voltage.min'] },
+  requires: { assetClass: ['ess.rack'], metrics: ['batt.current', 'cell.voltage.max', 'cell.voltage.min'], minPeriodS: 60, minHistoryDays: 60 },
   defaultParams: ESS_CELL_IMBALANCE_DEFAULTS,
+  paramSchema: ESS_CELL_IMBALANCE_PARAM_SCHEMA,
   detect,
 };

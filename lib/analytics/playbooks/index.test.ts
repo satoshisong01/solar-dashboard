@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { P2_DETECTORS } from '../detectors';
+import { DETECTORS, P2_DETECTORS } from '../detectors';
 import { PLAYBOOKS, playbookFor } from './index';
 
 describe('PLAYBOOKS', () => {
-  it('P2 탐지기 6종의 고장모드마다 플레이북이 하나씩 있고 카테고리가 같다', () => {
-    expect(Object.keys(PLAYBOOKS)).toHaveLength(6);
-    for (const detector of P2_DETECTORS) {
+  it('P2 6종 + P3 8종 탐지기의 고장모드마다 플레이북이 하나씩 있고 카테고리가 같다', () => {
+    expect(Object.keys(PLAYBOOKS)).toHaveLength(14);
+    for (const detector of DETECTORS) {
       const playbook = playbookFor(detector.failureMode);
       expect(playbook.failureMode).toBe(detector.failureMode);
       expect(playbook.category).toBe(detector.category);
@@ -20,6 +20,16 @@ describe('PLAYBOOKS', () => {
       expect(playbook.actions.length).toBeGreaterThan(0);
       expect(playbook.falsePositiveTraps.length).toBeGreaterThan(0);
       expect(playbook.sources.every((s) => s.startsWith('research-'))).toBe(true);
+    }
+  });
+
+  it('안전 카테고리 플레이북은 현장 안전책임자 판단과 콘솔이 안전설비를 대체하지 않는다는 원칙을 담는다', () => {
+    const safety = Object.values(PLAYBOOKS).filter((playbook) => playbook.category === 'safety');
+    expect(safety.map((playbook) => playbook.failureMode)).toEqual(['h2.storage_leak']);
+    for (const playbook of safety) {
+      const text = playbook.actions.join(' ');
+      expect(text).toContain('현장 안전책임자');
+      expect(text).toContain('대체하지 않습니다');
     }
   });
 

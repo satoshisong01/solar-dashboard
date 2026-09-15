@@ -1,12 +1,14 @@
 // pv.inverter_peer@1 — 같은 사이트 인버터들의 일 kWh/kWp를 동종 중앙값과 비교 (기상 영향을 사이트 내 동종 비교로 제거, 설계 §5.3).
 // 수정 z < −3.5가 최근 7일 중 5일 이상이면 finding. 출력제한·클리핑·정지일·완결성 미달일은 제외, 동종 3대 이상인 날만 평가.
 import type { PvDayEpisode } from '../episodes/pv';
+import * as z from 'zod';
 import { hashInput } from '../hash';
 import { bootstrapCI } from '../stats/bootstrap';
 import { relativeCiWidth, scoreConfidence } from '../stats/confidence';
 import { median, modifiedZ } from '../stats/robust';
 import { kstDateString, kstDayStart, MS_PER_DAY } from '../types';
 import { fixed, insufficient, r, signed, withDefaults } from './common';
+import { completenessParam, intParam, iterationsParam, numParam } from './param-schema';
 import type { CandidateFinding, Detector, DetectorContext, DetectorResult, Severity } from './types';
 
 export interface PvInverterPeerInput {
@@ -37,6 +39,18 @@ export const PV_INVERTER_PEER_DEFAULTS: PvInverterPeerParams = Object.freeze({
   minCompleteness: 0.9,
   sev3Pct: -10,
   iterations: 1000,
+});
+
+const D = PV_INVERTER_PEER_DEFAULTS;
+export const PV_INVERTER_PEER_PARAM_SCHEMA = z.object({
+  recentDays: intParam(D.recentDays, { label: '최근 기간', unit: '일', min: 3, max: 60, description: '동종 비교를 하는 최근 일수입니다.' }),
+  minFlaggedDays: intParam(D.minFlaggedDays, { label: '최소 저하 일수', unit: '일', min: 1, max: 60, description: '최근 기간 중 동종 대비 낮은 날이 이 수 이상이면 finding입니다.' }),
+  minPeers: intParam(D.minPeers, { label: '최소 동종 인버터 수', unit: '대', min: 3, max: 100, description: '그날 비교할 수 있는 인버터가 이보다 적으면 그날은 평가하지 않습니다.' }),
+  zThreshold: numParam(D.zThreshold, { label: '수정 z 기준', unit: '', min: -10, max: -1, description: '동종 중앙값 대비 수정 z가 이 값보다 작으면 저하일로 봅니다.' }),
+  madFloorRatio: numParam(D.madFloorRatio, { label: 'MAD 하한 비율', unit: '', min: 0, max: 0.1, description: 'MAD 하한 = 동종 중앙값 × 이 비율. 동종이 거의 같을 때 과민 반응을 막습니다.' }),
+  minCompleteness: completenessParam(D.minCompleteness),
+  sev3Pct: numParam(D.sev3Pct, { label: 'severity 3 편차', unit: '%', min: -100, max: 0, description: '동종 대비 편차 중앙값이 이 값 이하이면 severity 3입니다.' }),
+  iterations: iterationsParam(D.iterations),
 });
 
 const META = { id: 'pv.inverter_peer', version: '1', failureMode: 'pv.inverter_underperformance', category: 'performance' } as const;
@@ -136,7 +150,8 @@ function detect(input: PvInverterPeerInput, ctx: DetectorContext<PvInverterPeerP
 
 export const pvInverterPeer: Detector<PvInverterPeerInput, PvInverterPeerParams> = {
   ...META,
-  requires: { assetClass: ['pv.inverter'], metrics: ['ac.power', 'ac.power.limit', 'op.state'] },
+  requires: { assetClass: ['pv.inverter'], metrics: ['ac.power', 'ac.power.limit', 'op.state'], minPeriodS: 300, minHistoryDays: 7 },
   defaultParams: PV_INVERTER_PEER_DEFAULTS,
+  paramSchema: PV_INVERTER_PEER_PARAM_SCHEMA,
   detect,
 };

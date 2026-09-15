@@ -1,8 +1,10 @@
 // dq.gap_flatline@1 — 포인트별 결측 구간·값 고착 구간 요약(다음 단계가 SQL로 준비) → 설비 단위 데이터 품질 finding.
 // 데이터 품질도 코칭 항목이다 (설계 §4.1): 통신 점검·센서 교정을 권고한다. severity 2 고정, category data_quality.
+import * as z from 'zod';
 import { hashInput } from '../hash';
 import { MS_PER_HOUR, type TimeWindow } from '../types';
 import { fixed, insufficient, r, withDefaults } from './common';
+import { intParam, numParam } from './param-schema';
 import type { CandidateFinding, Detector, DetectorContext, DetectorResult } from './types';
 
 export interface DqPointSummary {
@@ -41,6 +43,13 @@ export const DQ_GAP_FLATLINE_DEFAULTS: DqGapFlatlineParams = Object.freeze({
   minGapHours: 2,
   minFlatlineHours: 6,
   maxListed: 10,
+});
+
+export const DQ_GAP_FLATLINE_PARAM_SCHEMA = z.object({
+  minCompleteness: numParam(DQ_GAP_FLATLINE_DEFAULTS.minCompleteness, { label: '최소 수신 완결성', unit: '', min: 0, max: 1, description: '포인트의 기대 샘플 대비 수신 비율이 이 값 미만이면 결측 문제로 봅니다.' }),
+  minGapHours: numParam(DQ_GAP_FLATLINE_DEFAULTS.minGapHours, { label: '결측 합계 기준', unit: 'h', min: 0, max: 168, description: '공칭 주기보다 크게 벌어진 결측 구간 합계가 이 시간 이상이면 결측 문제로 봅니다.' }),
+  minFlatlineHours: numParam(DQ_GAP_FLATLINE_DEFAULTS.minFlatlineHours, { label: '고착 구간 기준', unit: 'h', min: 0, max: 168, description: '값이 그대로인 구간 하나가 이 시간 이상이면 센서 고착으로 봅니다.' }),
+  maxListed: intParam(DQ_GAP_FLATLINE_DEFAULTS.maxListed, { label: '근거 포인트 수 상한', unit: '개', min: 1, max: 100, description: '근거 스냅샷에 적는 문제 포인트 수 상한입니다.' }),
 });
 
 const META = { id: 'dq.gap_flatline', version: '1', failureMode: 'dq.data_gap_flatline', category: 'data_quality' } as const;
@@ -117,7 +126,8 @@ function detect(input: DqGapFlatlineInput, ctx: DetectorContext<DqGapFlatlinePar
 
 export const dqGapFlatline: Detector<DqGapFlatlineInput, DqGapFlatlineParams> = {
   ...META,
-  requires: { assetClass: [], metrics: [] },
+  requires: { assetClass: [], metrics: [], minPeriodS: null, minHistoryDays: 1 },
   defaultParams: DQ_GAP_FLATLINE_DEFAULTS,
+  paramSchema: DQ_GAP_FLATLINE_PARAM_SCHEMA,
   detect,
 };

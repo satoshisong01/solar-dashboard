@@ -1,7 +1,8 @@
-// 고장모드별 원인 후보·점검 항목·권고 조치 (한국어). P2 탐지기 6종의 failure_mode와 1:1.
+// 고장모드별 원인 후보·점검 항목·권고 조치 (한국어). P2 탐지기 6종 + P3 탐지기 8종(p3.ts)의 failure_mode와 1:1.
 // 근거: docs/renewal/research/research-{solar_ess,electrolyzer,fuelcell_storage}.json failureModes
 //       (detectionMethod · recommendedAction_ko · falsePositiveTraps). 리포트 템플릿과 분석 데스크 권고 초안이 이 상수를 쓴다.
 import type { FailureMode, FindingCategory } from '../detectors/types';
+import { P3_PLAYBOOKS } from './p3';
 
 export interface PlaybookCause {
   readonly id: string;
@@ -118,6 +119,7 @@ export const PLAYBOOKS: Readonly<Record<FailureMode, Playbook>> = Object.freeze(
     falsePositiveTraps: ['야간 인버터 슬립으로 인한 정상 결손', '계획 정비'],
     sources: [SOLAR_ESS],
   },
+  ...P3_PLAYBOOKS,
 });
 
 export function playbookFor(failureMode: FailureMode): Playbook {

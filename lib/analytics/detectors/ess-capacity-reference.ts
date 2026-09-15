@@ -32,17 +32,17 @@ export interface BinReference {
   readonly excluded: 'reference_spread' | null;
 }
 
-export interface ReferenceSplit {
+export interface ReferenceSplit<S extends CapacitySample = CapacitySample> {
   readonly mode: 'per_bin' | 'window';
-  readonly reference: readonly CapacitySample[];
-  readonly recent: readonly CapacitySample[];
+  readonly reference: readonly S[];
+  readonly recent: readonly S[];
   readonly bins: readonly BinReference[];
   /** 주 bin (최근 가중치 합이 가장 큰 bin). 최근 표본이 없으면 null */
   readonly leadBin: string | null;
 }
 
-function groupByBin(samples: readonly CapacitySample[]): Map<string, CapacitySample[]> {
-  const groups = new Map<string, CapacitySample[]>();
+function groupByBin<S extends CapacitySample>(samples: readonly S[]): Map<string, S[]> {
+  const groups = new Map<string, S[]>();
   for (const s of samples) {
     const list = groups.get(s.bin);
     if (list) list.push(s); // 이 함수 안에서 만든 배열만 채운다
@@ -65,8 +65,8 @@ function leadOf(groups: ReadonlyMap<string, { cur: readonly CapacitySample[] }>)
   return ranked[0]?.[0] ?? null;
 }
 
-/** samples는 방식 하나의 유효 표본 (기준선 재설정 이후·분석 시각 이전), 시작 시각 오름차순 */
-export function splitReferenceRecent(samples: readonly CapacitySample[], rules: ReferenceRules): ReferenceSplit {
+/** samples는 방식 하나의 유효 표본 (기준선 재설정 이후·분석 시각 이전), 시작 시각 오름차순. 표본 타입은 CapacitySample을 확장해도 된다 (P3 같은 조건 비교) */
+export function splitReferenceRecent<S extends CapacitySample>(samples: readonly S[], rules: ReferenceRules): ReferenceSplit<S> {
   const recentFrom = rules.now - rules.recentDays * MS_PER_DAY;
   const window = rules.referenceWindow;
   if (window) {

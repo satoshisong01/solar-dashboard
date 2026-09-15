@@ -1,4 +1,5 @@
 // el.voltage_rise@1 (전해조 셀 전압 상승률) · fc.voltage_decay@1 (연료전지 기준 전류밀도 셀 전압 감소율). 단위 µV/h/셀.
+import * as z from 'zod';
 import type { ElSteadyEpisode, FcSteadyEpisode } from '../episodes/stack-episodes';
 import { hashInput } from '../hash';
 import { relativeCiWidth, scoreConfidence } from '../stats/confidence';
@@ -6,6 +7,7 @@ import { median } from '../stats/robust';
 import type { JsonObject } from '../types';
 import { fixed, insufficient, r, severityByMagnitude, withDefaults } from './common';
 import { earlyLateMedians, stackTrendEvidence, stackVoltageTrend, type StackPoint, type StackTrendParams, type StackTrendResult } from './stack-voltage';
+import { boolParam, completenessParam, intParam, numParam } from './param-schema';
 import type { CandidateFinding, CheckStatus, Detector, DetectorContext, DetectorResult, DiagnosticCheck, FailureMode } from './types';
 
 export interface StackDetectorParams extends StackTrendParams {
@@ -41,6 +43,30 @@ export const EL_VOLTAGE_RISE_DEFAULTS: StackDetectorParams = Object.freeze({ ...
  * 전류밀도 보정은 추출기의 기준 전류밀도 환산 전압(v_cell_at_jref)에 맡기고 bin 안 회귀는 끈다.
  */
 export const FC_VOLTAGE_DECAY_DEFAULTS: StackDetectorParams = Object.freeze({ ...BASE_DEFAULTS, breakInHours: 500, correctCurrentDensity: false, correctTemperature: false });
+
+const stackParamSchema = (d: StackDetectorParams) =>
+  z.object({
+    breakInHours: numParam(d.breakInHours, { label: 'break-in 제외 운전시간', unit: 'h', min: 0, max: 20_000, description: '누적 운전시간이 이보다 작은 초기 구간은 기준선·추세에서 뺍니다.' }),
+    correctCurrentDensity: boolParam(d.correctCurrentDensity, { label: '전류밀도 보정', description: '전류밀도 bin과 bin 안 전류밀도 회귀 보정을 씁니다. 정출력 운전(연료전지)은 열화 신호를 지우므로 끕니다.' }),
+    correctTemperature: boolParam(d.correctTemperature, { label: 'bin 안 온도 회귀 보정', description: '온도 bin 안에 남은 온도 차이를 회귀로 한 번 더 보정합니다.' }),
+    minPerBin: intParam(d.minPerBin, { label: 'bin당 최소 구간 수', unit: '개', min: 2, max: 100, description: '같은 조건 bin을 쓰려면 필요한 정상운전 구간 수입니다.' }),
+    minTotal: intParam(d.minTotal, { label: '최소 구간 합계', unit: '개', min: 5, max: 1000, description: '사용한 bin의 정상운전 구간 합계 하한입니다.' }),
+    minSpanHours: numParam(d.minSpanHours, { label: '최소 운전시간 범위', unit: 'h', min: 10, max: 20_000, description: '추세를 계산하려면 필요한 누적 운전시간 범위입니다.' }),
+    minCompleteness: completenessParam(d.minCompleteness),
+    maxPoints: intParam(d.maxPoints, { label: '추세 점 수 상한', unit: '개', min: 50, max: 2000, description: '운전시간 축 구간 중앙값으로 줄이는 점 수 상한입니다 (Theil–Sen 계산량).' }),
+    cusumK: numParam(d.cusumK, { label: 'CUSUM k', unit: 'σ', min: 0, max: 3, description: '표 CUSUM 허용 편차입니다.' }),
+    cusumH: numParam(d.cusumH, { label: 'CUSUM h', unit: 'σ', min: 1, max: 20, description: '표 CUSUM 결정 경계입니다.' }),
+    sigmaFloorMv: numParam(d.sigmaFloorMv, { label: 'CUSUM σ 하한', unit: 'mV', min: 0.01, max: 20, description: '기준 구간 σ가 너무 작을 때 쓰는 하한입니다.' }),
+    minHoursAfterChange: numParam(d.minHoursAfterChange, { label: '변화점 이후 최소 운전시간', unit: 'h', min: 0, max: 20_000, description: '변화점 이후 운전시간이 이 값 이상이고 기울기가 실제로 바뀌었으면 변화점 이후 기울기를 효과로 씁니다.' }),
+    sev2UvPerH: numParam(d.sev2UvPerH, { label: 'severity 2 변화율', unit: 'µV/h', min: 0.1, max: 1000, description: '셀 전압 변화율이 이 값을 넘고 CI 하한이 0보다 크면 finding(severity 2)입니다.' }),
+    sev3UvPerH: numParam(d.sev3UvPerH, { label: 'severity 3 변화율', unit: 'µV/h', min: 0.1, max: 1000, description: '이 값 이상이면 severity 3입니다.' }),
+    sev4UvPerH: numParam(d.sev4UvPerH, { label: 'severity 4 변화율', unit: 'µV/h', min: 0.1, max: 1000, description: '이 값 이상이면 severity 4입니다.' }),
+    tempShiftC: numParam(d.tempShiftC, { label: '운전 온도 변화 기준', unit: '°C', min: 0.1, max: 30, description: '앞·뒤 구간 스택 온도 중앙값 차이가 이 값 이상이면 온도 영향 체크를 지지로 봅니다.' }),
+    blowerRisePct: numParam(d.blowerRisePct, { label: '블로워 전력 증가 기준', unit: '%', min: 0.1, max: 200, description: '블로워 전력이 이 비율 이상 늘면 블로워 체크를 지지로 봅니다 (연료전지).' }),
+  });
+
+export const EL_VOLTAGE_RISE_PARAM_SCHEMA = stackParamSchema(EL_VOLTAGE_RISE_DEFAULTS);
+export const FC_VOLTAGE_DECAY_PARAM_SCHEMA = stackParamSchema(FC_VOLTAGE_DECAY_DEFAULTS);
 
 export interface StackVoltageInput<E> {
   readonly assetId: number;
@@ -145,8 +171,9 @@ export const elVoltageRise: Detector<StackVoltageInput<ElSteadyEpisode>, StackDe
   version: '1',
   failureMode: EL_SPEC.failureMode,
   category: 'degradation',
-  requires: { assetClass: ['h2.elz.stack'], metrics: ['stack.current', 'stack.voltage', 'stack.temp', 'run.hours'] },
+  requires: { assetClass: ['h2.elz.stack'], metrics: ['stack.current', 'stack.voltage', 'stack.temp', 'run.hours'], minPeriodS: 60, minHistoryDays: 30 },
   defaultParams: EL_VOLTAGE_RISE_DEFAULTS,
+  paramSchema: EL_VOLTAGE_RISE_PARAM_SCHEMA,
   detect: runStack<ElSteadyEpisode>(EL_SPEC, EL_VOLTAGE_RISE_DEFAULTS, (e) => e.features.v_cell_mean, () => []),
 };
 
@@ -155,7 +182,8 @@ export const fcVoltageDecay: Detector<StackVoltageInput<FcSteadyEpisode>, StackD
   version: '1',
   failureMode: FC_SPEC.failureMode,
   category: 'degradation',
-  requires: { assetClass: ['fc.stack'], metrics: ['stack.current', 'stack.voltage', 'stack.temp', 'run.hours', 'blower.power'] },
+  requires: { assetClass: ['fc.stack'], metrics: ['stack.current', 'stack.voltage', 'stack.temp', 'run.hours', 'blower.power'], minPeriodS: 60, minHistoryDays: 30 },
   defaultParams: FC_VOLTAGE_DECAY_DEFAULTS,
+  paramSchema: FC_VOLTAGE_DECAY_PARAM_SCHEMA,
   detect: runStack<FcSteadyEpisode>(FC_SPEC, FC_VOLTAGE_DECAY_DEFAULTS, (e) => e.features.v_cell_at_jref, (episodes, result, p) => [blowerCheck(episodes, result, p)]),
 };
