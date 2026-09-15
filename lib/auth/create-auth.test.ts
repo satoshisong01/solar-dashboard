@@ -25,7 +25,11 @@ afterEach(async () => {
   vi.unstubAllEnvs();
 });
 
-describe('createAuth', () => {
+// 매 테스트가 모듈을 초기화하고 better-auth를 새로 불러온다. 전체 unit 실행에서 무거운 시뮬레이션 테스트와 CPU를 나눠 쓰면
+// 이 첫 import가 기본 제한 5초를 넘은 적이 있어(6.1초) 검사 대상이 아닌 import 시간 때문에 실패하지 않도록 제한을 늘린다.
+const IMPORT_TIMEOUT_MS = 30_000;
+
+describe('createAuth', { timeout: IMPORT_TIMEOUT_MS }, () => {
   it('BETTER_AUTH_TRUSTED_ORIGINS 목록을 trustedOrigins로 넘긴다', async () => {
     const auth = await createAuthWith('https://desk.example.com, https://preview.example.com');
 

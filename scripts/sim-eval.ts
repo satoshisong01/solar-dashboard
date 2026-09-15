@@ -4,7 +4,7 @@
 //   게이트 미달이면 종료 코드 1. 전체 프리셋이면 lib/analytics/scorecard.json을 갱신하고, 로컬 DB가 떠 있으면 sim.eval_result에 기록한다.
 //
 //   npm run sim:eval                                  전체 (시드 3 × 스윕 5)
-//   npm run sim:eval -- --runs 3,4,5                  CI 축소: 스윕 3~5번(용량 5·7·10%, 전해조 20·40 µV/h)만 — 게이트 주입은 전체와 같다
+//   npm run sim:eval -- --runs 3,4,5                  CI 축소: 스윕 3~5번(용량 5·7·10%, 전해조 20·40 µV/h)만 — 용량·스택 게이트 주입은 전체와 같고 셀 불균형·데이터 품질은 가장 큰 크기만
 //   npm run sim:eval -- --cache .data/sim-eval        시뮬레이션·추출 결과를 저장해 탐지기 파라미터만 바꿔 다시 평가
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { availableParallelism } from 'node:os';
