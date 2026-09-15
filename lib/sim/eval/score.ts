@@ -1,7 +1,7 @@
 // 사이트 잡 결과 → 탐지기별 스코어카드 (순수): 재현율·정밀도·자산월당 오탐·탐지 지연·크기 오차·최소 탐지 크기 곡선.
 // 판정 규칙
 //   TP  = 주입 설비에서 기대 고장모드 finding이 주입 시작 ~ 종료 + toleranceDays 사이에 한 번이라도 나옴
-//   FP  = 점검 시각의 finding 중 TP 조건이 아닌 것. 연속 점검에서 이어지면 한 건(열린 finding 하나)으로 센다
+//   FP  = 점검 시각의 finding 중 TP 조건이 아니고 주입 고장의 부수 탐지기 구간(related)도 아닌 것. 연속 점검에서 이어지면 한 건(열린 finding 하나)으로 센다
 //   자산월 = 적용 설비 수 × (마지막 점검 − 첫 점검) / 30.44일
 //   지연 = 첫 탐지(하루 단위) − 주입 시작, 크기 오차 = |마지막 탐지 효과 − 같은 창의 참 효과|
 import { median } from '@/lib/analytics/stats/robust';
@@ -63,12 +63,16 @@ function explainedBy(detection: DetectionRecord, injections: readonly InjectionR
   );
 }
 
+/** 다른 탐지기 대상 주입 고장이 함께 일으킨 finding인지 (예: 냉각팬 고장 인버터의 동종 비교 저성능) */
+const relatedTo = (detection: DetectionRecord, job: SiteJobResult, toleranceDays: number): boolean =>
+  job.related.some((r) => r.detectorId === detection.detectorId && r.assetIds.includes(detection.assetId) && detection.ts >= r.startTs && detection.ts <= (r.endTs ?? r.startTs) + toleranceDays * MS_PER_DAY);
+
 /** 잡 하나의 오탐: 설비별로 연속 점검에서 이어진 거짓 finding을 한 건으로 묶는다 */
 function falsePositivesOf(job: SiteJobResult, detectorId: EvalDetectorId, toleranceDays: number): DetectorScore['falsePositives'] {
   const own = job.injections.filter((i) => i.detectorId === detectorId);
   const falseByAsset = new Map<number, Set<number>>();
   for (const d of job.detections) {
-    if (d.detectorId !== detectorId || explainedBy(d, own, toleranceDays)) continue;
+    if (d.detectorId !== detectorId || explainedBy(d, own, toleranceDays) || relatedTo(d, job, toleranceDays)) continue;
     falseByAsset.set(d.assetId, new Set([...(falseByAsset.get(d.assetId) ?? []), d.ts]));
   }
   return [...falseByAsset.entries()].flatMap(([assetId, times]) => {

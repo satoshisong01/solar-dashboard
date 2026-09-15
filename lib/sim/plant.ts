@@ -2,6 +2,7 @@
 import { METRIC_DEF_BY_KEY } from '@/db/seed/catalog';
 import type { MetricDef, PointDef, SiteDef } from '@/db/seed/types';
 import { controlsAt, weatherWindowsOf, type StepControls } from './control-scenarios';
+import { p3ControlsAt, p3WeatherWindows } from './control-scenarios-p3';
 import { dispatch, INITIAL_EMS_MEMORY, type EmsMemory, type HydrogenView, type SiteLayout } from './ems';
 import { EVENT_CODE, safetyAlarm, type SimEvent } from './events';
 import { kstDateToMs, kstHourOfDay, MS_PER_DAY, MS_PER_HOUR, MS_PER_MINUTE, MS_PER_SECOND, SECONDS_PER_DAY } from './math';
@@ -183,6 +184,7 @@ function advancePlant(state: PlantState, ctx: StepContext, deps: AdvanceDeps, co
       safetyLockout: lockout,
       socMax: controls.socMax,
       fcCycling: controls.fcCycling,
+      elzTopoff: ctx.p3.elzTopoff,
     },
     state.ems,
   );
@@ -255,7 +257,7 @@ export function createPlant(options: PlantOptions): Plant {
   const points = sampledPoints(site, stepS);
   const degradation = createDegradationResolver(plan.faults);
   const tiltDeg = assetsOfClass(site, 'pv.plant')[0]?.nameplate.tilt_deg;
-  const weather = createWeather(site, seed, typeof tiltDeg === 'number' ? tiltDeg : undefined, weatherWindowsOf(plan));
+  const weather = createWeather(site, seed, typeof tiltDeg === 'number' ? tiltDeg : undefined, [...weatherWindowsOf(plan), ...p3WeatherWindows(plan)]);
   const deps: AdvanceDeps = { layout: siteLayout(site), eventsRng: deriveRng(seed, site.code, 'events') };
   const sensor = createSensor(seed, site, plan);
   let state = initialState(site, seed, startMs);
@@ -266,7 +268,7 @@ export function createPlant(options: PlantOptions): Plant {
     step(tMs: number): PlantStep {
       if (tMs !== state.tMs + stepMs) throw new Error(`${site.code} 스텝 순서 오류: ${state.tMs} 다음은 ${state.tMs + stepMs}인데 ${tMs}`);
       const controls = controlsAt(plan, tMs);
-      const ctx: StepContext = { tMs, dtS: stepS, weather: weather.sample(tMs), degradation, ...gridConditions(tMs), pvLimitPct: controls.pvLimitPct };
+      const ctx: StepContext = { tMs, dtS: stepS, weather: weather.sample(tMs), degradation, ...gridConditions(tMs), pvLimitPct: controls.pvLimitPct, p3: p3ControlsAt(plan, tMs) };
       const lockout = plan.leakAlarms.some((a) => tMs >= a.atMs && tMs < a.atMs + SAFETY_LOCKOUT_MS);
       const room = roomClimate(ctx, controls);
       const { next, events } = advancePlant(state, ctx, deps, { lockout, controls, room });

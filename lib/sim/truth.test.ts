@@ -69,12 +69,14 @@ describe('buildTruth — 데이터 품질·원시 hook·검증', () => {
     expect(truth.controls).toEqual([]);
   });
 
-  it('원시 hook(fault)은 대상 설비마다 한 행, 파라미터로 고장모드를 정한다', () => {
-    const truth = buildTruth({ siteCodes: ['SIM-B'], from: FROM, to: TO, scenarios: [{ kind: 'fault', site: 'SIM-B', param: 'storage.leakKgPerDay', value: () => 0.5 }] });
+  it('원시 hook(fault)은 대상 설비마다 한 행, 파라미터로 고장모드를 정한다 (P3 파라미터는 P3 고장모드·탐지기)', () => {
+    const one = buildTruth({ siteCodes: ['SIM-B'], from: FROM, to: TO, scenarios: [{ kind: 'fault', site: 'SIM-B', param: 'storage.leakKgPerDay', asset: 'H2BANK1/TANK2', value: () => 0.5 }] });
+    const all = buildTruth({ siteCodes: ['SIM-B'], from: FROM, to: TO, scenarios: [{ kind: 'fault', site: 'SIM-B', param: 'storage.leakKgPerDay', value: () => 0.5 }] });
 
-    expect(truth.injections).toEqual([
-      { siteCode: 'SIM-B', assetPath: 'SIM-B/H2BANK1', kind: 'fault', startTs: FROM, endTs: TO, params: { param: 'storage.leakKgPerDay' }, expectedFailureModes: ['storage_leak'], expectedDetectors: [] },
+    expect(one.injections).toEqual([
+      { siteCode: 'SIM-B', assetPath: 'SIM-B/H2BANK1/TANK2', kind: 'fault', startTs: FROM, endTs: TO, params: { param: 'storage.leakKgPerDay' }, expectedFailureModes: ['h2.storage_leak'], expectedDetectors: ['tank.static_leak'] },
     ]);
+    expect(all.injections.map((i) => i.assetPath)).toEqual(['SIM-B/H2BANK1/TANK1', 'SIM-B/H2BANK1/TANK2', 'SIM-B/H2BANK1/TANK3', 'SIM-B/H2BANK1/TANK4']);
   });
 
   it('실행이 끝난 뒤 시작하는 고장·대조군은 거부한다', () => {

@@ -1,10 +1,12 @@
 // 시나리오 프리셋.
-// - 적재 스크립트(sim:backfill)용: healthy · dq(적재 구간에 비례한 날짜의 KST 시각) · demo120(일수 기반 고장·대조군 데모)
-// - 평가(sim:eval)용: EVAL_PRESET 크기 스윕과 evalRunPlans
+// - 적재 스크립트(sim:backfill)용: healthy · dq(적재 구간에 비례한 날짜의 KST 시각) · demo120(P2 고장·대조군 데모) · demo(demo120 + P3, presets-demo.ts)
+// - 평가(sim:eval)용: EVAL_PRESET 크기 스윕과 evalRunPlans (P2 순번 뒤에 P3 순번, presets-eval-p3.ts)
 import { KST_OFFSET_MS, MS_PER_DAY, MS_PER_HOUR, MS_PER_MINUTE } from './math';
+import { demoP3Scenarios } from './presets-demo';
+import { EVAL_P3_PRESET, p3RunScenarios, type P3EvalMagnitudes } from './presets-eval-p3';
 import type { Scenario } from './scenarios';
 
-export const SCENARIO_PRESETS = ['healthy', 'dq', 'demo120'] as const;
+export const SCENARIO_PRESETS = ['healthy', 'dq', 'demo120', 'demo'] as const;
 export type ScenarioPreset = (typeof SCENARIO_PRESETS)[number];
 
 /** dq 프리셋의 구간 배치가 서로 겹치지 않고 적재 구간 안에 들어가는 최소 일수 */
@@ -51,6 +53,7 @@ function dqScenarios(siteCodes: readonly string[], window: PresetWindow): readon
 }
 
 export const DEMO120_DAYS = 120;
+export const DEMO_DAYS = DEMO120_DAYS;
 const ALL_SIM_SITES = ['SIM-A', 'SIM-B', 'SIM-C'] as const;
 
 /**
@@ -59,10 +62,14 @@ const ALL_SIM_SITES = ['SIM-A', 'SIM-B', 'SIM-C'] as const;
  * - SIM-B: 전해조 스택 30일째부터 25 µV/h, 연료전지 30일째부터 30 µV/h, 90일째 SOC 상한 90% → 80% (대조군)
  * - SIM-C: 고장 없음 + 한파 주간(20일째)·흐린 주(50일째)·출력제어 3회(70·77·84일째)
  */
-function demo120Scenarios(siteCodes: readonly string[], window: PresetWindow): readonly Scenario[] {
+function requireDemoWindow(name: string, siteCodes: readonly string[], window: PresetWindow): void {
   const missing = ALL_SIM_SITES.filter((code) => !siteCodes.includes(code));
-  if (missing.length > 0) throw new Error(`demo120 시나리오에는 ${ALL_SIM_SITES.join('·')}가 필요합니다 (빠진 사이트: ${missing.join(', ')})`);
-  if (window.toMs - window.fromMs < DEMO120_DAYS * MS_PER_DAY) throw new Error(`demo120 시나리오는 ${DEMO120_DAYS}일 이상 적재할 때만 쓸 수 있습니다`);
+  if (missing.length > 0) throw new Error(`${name} 시나리오에는 ${ALL_SIM_SITES.join('·')}가 필요합니다 (빠진 사이트: ${missing.join(', ')})`);
+  if (window.toMs - window.fromMs < DEMO120_DAYS * MS_PER_DAY) throw new Error(`${name} 시나리오는 ${DEMO120_DAYS}일 이상 적재할 때만 쓸 수 있습니다`);
+}
+
+function demo120Scenarios(siteCodes: readonly string[], window: PresetWindow): readonly Scenario[] {
+  requireDemoWindow('demo120', siteCodes, window);
 
   return [
     { kind: 'fault.battery_capacity_fade', site: 'SIM-A', asset: 'ESS1/RACK01', startDay: 45, totalPct: 7, days: 30 },
@@ -85,6 +92,9 @@ export function presetScenarios(preset: ScenarioPreset, siteCodes: readonly stri
       return dqScenarios(siteCodes, window);
     case 'demo120':
       return demo120Scenarios(siteCodes, window);
+    case 'demo':
+      requireDemoWindow('demo', siteCodes, window);
+      return [...demo120Scenarios(siteCodes, window), ...demoP3Scenarios()];
   }
 }
 
@@ -119,6 +129,8 @@ export const EVAL_PRESET = Object.freeze({
     { kind: 'control.fc_frequent_start_stop', site: 'SIM-C', startDay: 260 },
     { kind: 'control.soc_upper_limit_change', site: 'SIM-C', asset: 'ESS1', day: 300, newLimit: 0.8 },
   ] satisfies readonly Scenario[],
+  /** P3 고장 스윕·대조군 (P2 순번 뒤에 붙는다) */
+  p3: EVAL_P3_PRESET,
 });
 
 export type EvalPreset = typeof EVAL_PRESET;
@@ -131,6 +143,8 @@ export interface EvalMagnitudes {
   readonly elzUvPerH: number | null;
   readonly fcUvPerH: number | null;
   readonly inverterDropPctPoints: number | null;
+  /** P3 실행이면 P3 크기 (P2 크기는 모두 null) */
+  readonly p3: P3EvalMagnitudes | null;
 }
 
 export interface EvalRunPlan {
@@ -158,34 +172,55 @@ function dqEvalScenarios(from: string, hours: number, i: number): Scenario[] {
   ];
 }
 
+const NO_P2_MAGNITUDES: Omit<EvalMagnitudes, 'p3'> = {
+  capacityFadePct: null,
+  integratedCapacityFadePct: null,
+  cellSpreadMvPerMonth: null,
+  dqHours: null,
+  elzUvPerH: null,
+  fcUvPerH: null,
+  inverterDropPctPoints: null,
+};
+
+/** 시드마다 P3 순번 실행 (id eval-s{시드}-p3-{순번}) */
+function p3RunPlans(preset: EvalPreset, seed: number): EvalRunPlan[] {
+  return Array.from({ length: preset.p3.runs }, (_, i): EvalRunPlan => {
+    const run = p3RunScenarios(preset.p3, i);
+    return { id: `eval-s${seed}-p3-${i + 1}`, seed, from: preset.from, days: preset.days, siteCodes: run.siteCodes, magnitudes: { ...NO_P2_MAGNITUDES, p3: run.magnitudes }, scenarios: run.scenarios };
+  });
+}
+
 /**
- * 시드 × 스윕 순번마다 실행 하나. 순번 i에서 각 스윕의 i번째 크기를 설비 하나에만 넣는다
+ * 시드마다 P2 순번(스윕 길이 중 가장 긴 것) 뒤에 P3 순번(presets-eval-p3.ts). P2 순번 i에서 각 스윕의 i번째 크기를 설비 하나에만 넣는다
  * (동종 비교 기준이 남도록 랙·인버터는 1대씩 — SIM-A 랙 1 용량·랙 3 셀 불균형, SIM-B 랙 1 용량 — 목록이 짧은 스윕은 그 순번에 고장 없음).
  */
 export function evalRunPlans(preset: EvalPreset = EVAL_PRESET): readonly EvalRunPlan[] {
+  return preset.seeds.flatMap((seed) => [...p2RunPlans(preset, seed), ...p3RunPlans(preset, seed)]);
+}
+
+function p2RunPlans(preset: EvalPreset, seed: number): EvalRunPlan[] {
   const { sweeps, faultStartDay: startDay } = preset;
   const runs = Math.max(...Object.values(sweeps).map((values) => values.length));
-  return preset.seeds.flatMap((seed) =>
-    Array.from({ length: runs }, (_, i): EvalRunPlan => {
-      const magnitudes: EvalMagnitudes = {
-        capacityFadePct: sweeps.capacityFadePct[i] ?? null,
-        integratedCapacityFadePct: sweeps.integratedCapacityFadePct[i] ?? null,
-        cellSpreadMvPerMonth: sweeps.cellSpreadMvPerMonth[i] ?? null,
-        dqHours: sweeps.dqHours[i] ?? null,
-        elzUvPerH: sweeps.elzUvPerH[i] ?? null,
-        fcUvPerH: sweeps.fcUvPerH[i] ?? null,
-        inverterDropPctPoints: sweeps.inverterDropPctPoints[i] ?? null,
-      };
-      const faults: Scenario[] = [
-        ...(magnitudes.capacityFadePct === null ? [] : [{ kind: 'fault.battery_capacity_fade', site: 'SIM-A', asset: 'ESS1/RACK01', startDay, totalPct: magnitudes.capacityFadePct, days: preset.capacityFadeDays } as const]),
-        ...(magnitudes.inverterDropPctPoints === null ? [] : [{ kind: 'fault.inverter_efficiency_drop', site: 'SIM-A', asset: 'PV1/INV01', pctPoints: magnitudes.inverterDropPctPoints, startDay } as const]),
-        ...(magnitudes.cellSpreadMvPerMonth === null ? [] : [{ kind: 'fault.cell_imbalance', site: 'SIM-A', asset: 'ESS1/RACK03', mVPerMonth: magnitudes.cellSpreadMvPerMonth, startDay } as const]),
-        ...(magnitudes.integratedCapacityFadePct === null ? [] : [{ kind: 'fault.battery_capacity_fade', site: 'SIM-B', asset: 'ESS1/RACK01', startDay, totalPct: magnitudes.integratedCapacityFadePct, days: preset.capacityFadeDays } as const]),
-        ...(magnitudes.elzUvPerH === null ? [] : [{ kind: 'fault.elz_stack_degradation', site: 'SIM-B', uvPerH: magnitudes.elzUvPerH, startDay } as const]),
-        ...(magnitudes.fcUvPerH === null ? [] : [{ kind: 'fault.fc_voltage_decay', site: 'SIM-B', uvPerH: magnitudes.fcUvPerH, startDay } as const]),
-      ];
-      const dq = magnitudes.dqHours === null ? [] : dqEvalScenarios(preset.from, magnitudes.dqHours, i);
-      return { id: `eval-s${seed}-${i + 1}`, seed, from: preset.from, days: preset.days, siteCodes: ALL_SIM_SITES, magnitudes, scenarios: [...faults, ...dq, ...preset.controls] };
-    }),
-  );
+  return Array.from({ length: runs }, (_, i): EvalRunPlan => {
+    const magnitudes: EvalMagnitudes = {
+      capacityFadePct: sweeps.capacityFadePct[i] ?? null,
+      integratedCapacityFadePct: sweeps.integratedCapacityFadePct[i] ?? null,
+      cellSpreadMvPerMonth: sweeps.cellSpreadMvPerMonth[i] ?? null,
+      dqHours: sweeps.dqHours[i] ?? null,
+      elzUvPerH: sweeps.elzUvPerH[i] ?? null,
+      fcUvPerH: sweeps.fcUvPerH[i] ?? null,
+      inverterDropPctPoints: sweeps.inverterDropPctPoints[i] ?? null,
+      p3: null,
+    };
+    const faults: Scenario[] = [
+      ...(magnitudes.capacityFadePct === null ? [] : [{ kind: 'fault.battery_capacity_fade', site: 'SIM-A', asset: 'ESS1/RACK01', startDay, totalPct: magnitudes.capacityFadePct, days: preset.capacityFadeDays } as const]),
+      ...(magnitudes.inverterDropPctPoints === null ? [] : [{ kind: 'fault.inverter_efficiency_drop', site: 'SIM-A', asset: 'PV1/INV01', pctPoints: magnitudes.inverterDropPctPoints, startDay } as const]),
+      ...(magnitudes.cellSpreadMvPerMonth === null ? [] : [{ kind: 'fault.cell_imbalance', site: 'SIM-A', asset: 'ESS1/RACK03', mVPerMonth: magnitudes.cellSpreadMvPerMonth, startDay } as const]),
+      ...(magnitudes.integratedCapacityFadePct === null ? [] : [{ kind: 'fault.battery_capacity_fade', site: 'SIM-B', asset: 'ESS1/RACK01', startDay, totalPct: magnitudes.integratedCapacityFadePct, days: preset.capacityFadeDays } as const]),
+      ...(magnitudes.elzUvPerH === null ? [] : [{ kind: 'fault.elz_stack_degradation', site: 'SIM-B', uvPerH: magnitudes.elzUvPerH, startDay } as const]),
+      ...(magnitudes.fcUvPerH === null ? [] : [{ kind: 'fault.fc_voltage_decay', site: 'SIM-B', uvPerH: magnitudes.fcUvPerH, startDay } as const]),
+    ];
+    const dq = magnitudes.dqHours === null ? [] : dqEvalScenarios(preset.from, magnitudes.dqHours, i);
+    return { id: `eval-s${seed}-${i + 1}`, seed, from: preset.from, days: preset.days, siteCodes: ALL_SIM_SITES, magnitudes, scenarios: [...faults, ...dq, ...preset.controls] };
+  });
 }

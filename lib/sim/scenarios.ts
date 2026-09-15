@@ -1,8 +1,11 @@
 // 시뮬레이션 시나리오 타입과 적용기.
 // P1: healthy · 데이터 품질(dq.*) · 안전 경보 · 열화 파라미터 hook(fault).
 // P2: 고장(fault.*, fault-scenarios.ts) · 음성 대조군(control.*, control-scenarios.ts). 일수 기반이라 실행 기준일이 필요하다.
+// P3: 수소 저장·압축기·BoP·태양광 오염 고장(fault-scenarios-p3.ts) · 대조군(control-scenarios-p3.ts).
 import type { AssetDef, SiteDef } from '@/db/seed/types';
 import { applyControl, EMPTY_CONTROL_PLAN, isControl, type ControlPlan, type ControlScenario } from './control-scenarios';
+import { applyP3Control, EMPTY_P3_CONTROL_PLAN, EMPTY_P3_EVENT_PLAN, isP3Control, type P3ControlPlan, type P3ControlScenario, type P3EventPlan } from './control-scenarios-p3';
+import { isP3Fault, resolveP3Fault, type P3FaultScenario } from './fault-scenarios-p3';
 import { DEGRADATION_PARAMS, type FaultScenario } from './degradation';
 import { isTypedFault, resolveFault, type TypedFaultScenario } from './fault-scenarios';
 import { kstDayStartMs, MS_PER_SECOND, toEpochMs, type TimeInput, type TimeWindow } from './math';
@@ -77,9 +80,11 @@ export type Scenario =
   | H2LeakAlarmScenario
   | FaultScenario
   | TypedFaultScenario
-  | ControlScenario;
+  | ControlScenario
+  | P3FaultScenario
+  | P3ControlScenario;
 
-export interface SiteScenarioPlan extends ControlPlan {
+export interface SiteScenarioPlan extends ControlPlan, P3ControlPlan, P3EventPlan {
   readonly outages: readonly TimeWindow[];
   readonly duplicateRatio: number;
   readonly clockSkewMs: number;
@@ -103,6 +108,8 @@ export const EMPTY_PLAN: SiteScenarioPlan = Object.freeze({
   leakAlarms: [],
   faults: [],
   ...EMPTY_CONTROL_PLAN,
+  ...EMPTY_P3_CONTROL_PLAN,
+  ...EMPTY_P3_EVENT_PLAN,
 });
 
 const DEFAULT_SPIKE_MAGNITUDE = 3;
@@ -152,6 +159,8 @@ function applyScenario(plan: SiteScenarioPlan, site: SiteDef, scenario: Exclude<
     return { ...plan, faults: [...plan.faults, validateFault(site, hook)] };
   }
   if (isControl(scenario)) return applyControl(plan, site, scenario, requireOrigin(originMs, label));
+  if (isP3Fault(scenario)) return applyP3Fault(plan, site, scenario, requireOrigin(originMs, label));
+  if (isP3Control(scenario)) return applyP3Control(plan, site, scenario, requireOrigin(originMs, label));
   switch (scenario.kind) {
     case 'dq.gateway_outage':
       return { ...plan, outages: [...plan.outages, windowOf(scenario.start, scenario.durationS, label)] };
@@ -178,6 +187,22 @@ function applyScenario(plan: SiteScenarioPlan, site: SiteDef, scenario: Exclude<
     case 'fault':
       return { ...plan, faults: [...plan.faults, validateFault(site, scenario)] };
   }
+}
+
+function applyP3Fault(plan: SiteScenarioPlan, site: SiteDef, fault: P3FaultScenario, originMs: number): SiteScenarioPlan {
+  const resolved = resolveP3Fault(site, fault, originMs);
+  return {
+    ...plan,
+    faults: [...plan.faults, ...resolved.hooks.map((hook) => validateFault(site, hook))],
+    rainWindows: [...plan.rainWindows, ...resolved.events.rainWindows],
+    pvCleanings: [...plan.pvCleanings, ...resolved.events.pvCleanings],
+    filterReplacements: [...plan.filterReplacements, ...resolved.events.filterReplacements],
+  };
+}
+
+/** 건강한 물질수지 확인 구간은 고장이 없는 사이트에만 둘 수 있다 */
+function assertHealthyBalance(site: SiteDef, plan: SiteScenarioPlan): void {
+  if (plan.healthyBalances.length > 0 && plan.faults.length > 0) throw new Error(`control.healthy_mass_balance(${site.code}): 고장이 주입된 사이트에는 쓸 수 없습니다`);
 }
 
 /** 이 태그의 이 시각 샘플이 결측 주입 구간이면 true (보내지도 저장하지도 않는다) */
@@ -210,5 +235,6 @@ export function planScenarios(sites: readonly SiteDef[], scenarios: readonly Sce
     if (!site || !current) throw new Error(`시뮬레이션 대상이 아닌 사이트의 시나리오: ${scenario.kind} → ${scenario.site}`);
     plans.set(site.code, applyScenario(current, site, scenario, options.originMs));
   }
+  for (const site of sites) assertHealthyBalance(site, plans.get(site.code) ?? EMPTY_PLAN);
   return plans;
 }

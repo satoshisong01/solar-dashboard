@@ -1,36 +1,39 @@
-// 수소 압축기 + 고압 저장뱅크 근사 모델 (순수 함수).
-// 질량수지 dm/dt = in − out − leak, 압력 P = Z·m·R·T/(M·V) (Z는 제2 비리얼 계수 간이식),
-// 압축기 전력 ∝ 질량유량 × ln(압력비), 토출온도, 탱크 온도.
-import { clamp, lagToward, SECONDS_PER_DAY, SECONDS_PER_HOUR } from '../math';
-import { GAS_CONSTANT_J_PER_MOL_K, H2_MOLAR_MASS_KG_PER_MOL, KELVIN_OFFSET } from './common';
-
-/** 수소 제2 비리얼 계수 B [m³/mol] (상온 약 14~15 cm³/mol) */
-const H2_SECOND_VIRIAL_M3_PER_MOL = 14.5e-6;
-const PA_PER_BAR = 1e5;
+// 고압 수소 저장뱅크(용기 N개) + 압축기 근사 모델 (순수 함수).
+// 질량수지: 용기마다 dm/dt = 유입 − 유출 − 누설. 유입 = 압축기가 받은 전해조 제품 수소 − 씰 누설, 유출 = 연료전지 공급.
+//   충전·인출 중에는 용기 차단밸브가 모두 열려 압력(= 질량, 용기·온도가 같으므로)이 같아지고,
+//   정지 보유 중에는 용기별 차단밸브를 닫아 용기마다 따로 줄어든다(누설 용기만 압력이 떨어진다).
+// 압력: 실기체 상태식(h2-eos.ts 참값). 온도: 2절점 열모델
+//   벽(강재 열용량) ← 주변 온도(외기 + 일사 가열 + 일교차 확대 대조군), 시정수 6 h
+//   가스 ← 벽 온도 + 충전 압축열(유입 kg/h 비례) − 인출 팽창 냉각, 시정수 45 min
+import { lagToward, SECONDS_PER_DAY, SECONDS_PER_HOUR } from '../math';
+import { compressorParams, sealLossFraction, stepCompressor, type CompressorParams, type CompressorState } from './compressor';
+import { h2MassKg, h2PressureBar } from './h2-eos';
 
 export interface StorageParams {
-  readonly volumeM3: number;
+  readonly tankCount: number;
+  readonly tankVolumeM3: number;
   readonly maxBar: number;
   /** 이 압력 아래로는 인출하지 않는다 (용기 최소 잔압) */
   readonly minBar: number;
-  readonly compressorRatedKw: number;
-  readonly compressorCapacityKgH: number;
-  readonly compressorEfficiency: number;
-  readonly compressorFixedKw: number;
-  readonly compressorIdleKw: number;
-  readonly dischargeMarginBar: number;
-  readonly thermalTauS: number;
-  /** 순유입 1 kg/h당 가스 평형 온도 상승 [K] */
+  readonly compressor: CompressorParams;
+  readonly gasTauS: number;
+  readonly wallTauS: number;
+  /** 벽 목표 온도에 섞이는 가스 온도 비율 (가스 → 벽 열전달) */
+  readonly wallGasCoupling: number;
+  /** 유입 1 kg/h당 가스 평형 온도 상승 [K] (용기 안 압축열) */
   readonly fillHeatingKPerKgH: number;
+  /** 인출 1 kg/h당 가스 평형 온도 하강 [K] (팽창 냉각) */
+  readonly drawCoolingKPerKgH: number;
 }
 
 export interface StorageState {
-  readonly massKg: number;
+  /** 용기별 수소 질량 [kg] */
+  readonly tankMassKg: readonly number[];
   readonly gasTempC: number;
+  readonly wallTempC: number;
+  readonly valvesOpen: boolean;
   readonly compressorOn: boolean;
-  readonly compressorRunHours: number;
-  readonly compressorEnergyKwh: number;
-  readonly dischargeTempC: number;
+  readonly compressor: CompressorState;
 }
 
 export interface StorageInput {
@@ -40,106 +43,137 @@ export interface StorageInput {
   readonly outflowKgH: number;
   readonly suctionBar: number;
   readonly ambientC: number;
-  readonly leakKgPerDay: number;
+  /** 용기 주변 온도 [°C] (외기 + 일사 가열 + 일교차 확대) */
+  readonly envTempC: number;
+  /** 용기별 누설 [kg/일] (길이 = tankCount) */
+  readonly tankLeakKgPerDay: readonly number[];
+  readonly valveWear: number;
+  readonly sealLeakBar: number;
   readonly dtS: number;
 }
 
 export interface StorageStep {
   readonly state: StorageState;
+  /** 용기 압력 평균 [bar] (밸브가 열려 있으면 모든 용기가 같다) */
   readonly pressureBar: number;
+  readonly tankPressureBar: readonly number[];
+  /** 용기에 들어간 양 (씰 누설 제외) */
   readonly inKg: number;
   readonly outKg: number;
   readonly leakKg: number;
+  readonly tankLeakKg: readonly number[];
   /** 저장 불가(만충·압축기 용량 초과)로 배출한 양 */
   readonly ventedKg: number;
+  /** 압축기 씰로 샌 양 */
+  readonly sealLossKg: number;
   readonly outflowLimited: boolean;
   readonly compressorKw: number;
   readonly compressorFlowKgH: number;
   readonly dischargeBar: number;
 }
 
-export function storageParams(bank: { waterVolumeL: number; maxBar: number }, compressor: { ratedKw: number; capacityKgH: number }): StorageParams {
+export function storageParams(bank: { tankCount: number; tankWaterVolumeL: number; maxBar: number }, compressor: { ratedKw: number; capacityKgH: number }): StorageParams {
+  if (!Number.isInteger(bank.tankCount) || bank.tankCount < 1) throw new Error(`저장용기 수는 1 이상의 정수여야 합니다: ${bank.tankCount}`);
   return {
-    volumeM3: bank.waterVolumeL / 1000,
+    tankCount: bank.tankCount,
+    tankVolumeM3: bank.tankWaterVolumeL / 1000,
     maxBar: bank.maxBar,
     minBar: 30,
-    compressorRatedKw: compressor.ratedKw,
-    compressorCapacityKgH: compressor.capacityKgH,
-    compressorEfficiency: 0.55,
-    compressorFixedKw: 2.5,
-    compressorIdleKw: 0.3,
-    dischargeMarginBar: 3,
-    thermalTauS: 7_200,
+    compressor: compressorParams(compressor),
+    gasTauS: 2_700,
+    wallTauS: 21_600,
+    wallGasCoupling: 0.2,
     fillHeatingKPerKgH: 0.8,
+    drawCoolingKPerKgH: 0.5,
   };
 }
 
-/** Z = 1/(1 − B·c), c = 몰 밀도 [mol/m³] */
-export const h2Compressibility = (molarDensity: number): number => 1 / (1 - H2_SECOND_VIRIAL_M3_PER_MOL * molarDensity);
-
-/** P = Z·c·R·T = Z·m·R·T/(M·V) [bar] */
-export function h2PressureBar(massKg: number, volumeM3: number, tempC: number): number {
-  const molarDensity = massKg / H2_MOLAR_MASS_KG_PER_MOL / volumeM3;
-  const pressurePa = h2Compressibility(molarDensity) * molarDensity * GAS_CONSTANT_J_PER_MOL_K * (tempC + KELVIN_OFFSET);
-  return pressurePa / PA_PER_BAR;
+/** 모든 용기가 같은 압력·온도인 초기 상태 */
+export function initialStorageState(params: StorageParams, pressureBar: number, tempC: number, compressor: Pick<CompressorState, 'runHours' | 'energyKwh'>): StorageState {
+  const massKg = h2MassKg(pressureBar, params.tankVolumeM3, tempC);
+  return {
+    tankMassKg: Array.from({ length: params.tankCount }, () => massKg),
+    gasTempC: tempC,
+    wallTempC: tempC,
+    valvesOpen: false,
+    compressorOn: false,
+    compressor: { ...compressor, dischargeTempC: tempC, leakDetectBar: params.compressor.leakDetectBaseBar },
+  };
 }
 
-/** 압력·온도 → 질량 [kg]: P(1 − B·c) = c·R·T → c = P/(R·T + P·B) */
-export function h2MassKg(pressureBar: number, volumeM3: number, tempC: number): number {
-  const pressurePa = pressureBar * PA_PER_BAR;
-  const molarDensity = pressurePa / (GAS_CONSTANT_J_PER_MOL_K * (tempC + KELVIN_OFFSET) + pressurePa * H2_SECOND_VIRIAL_M3_PER_MOL);
-  return molarDensity * volumeM3 * H2_MOLAR_MASS_KG_PER_MOL;
+const sum = (values: readonly number[]): number => values.reduce((acc, v) => acc + v, 0);
+export const totalMassKg = (state: Pick<StorageState, 'tankMassKg'>): number => sum(state.tankMassKg);
+
+interface Transfer {
+  readonly compressorOn: boolean;
+  readonly inKg: number;
+  readonly outKg: number;
+  readonly ventedKg: number;
+  readonly sealLossKg: number;
+  readonly outflowLimited: boolean;
 }
 
-/** 다단 압축 등온 등가 비일 [J/kg] = (R·T/M)·ln(P2/P1) */
-export function compressionWorkJPerKg(suctionBar: number, dischargeBar: number, suctionTempC: number): number {
-  const ratio = Math.max(dischargeBar / Math.max(suctionBar, 1), 1);
-  return ((GAS_CONSTANT_J_PER_MOL_K * (suctionTempC + KELVIN_OFFSET)) / H2_MOLAR_MASS_KG_PER_MOL) * Math.log(ratio);
+function transfer(params: StorageParams, state: StorageState, input: StorageInput, bankBar: number): Transfer {
+  const dtH = input.dtS / SECONDS_PER_HOUR;
+  const compressorOn = input.inflowKgH > 1e-6 && bankBar < params.maxBar;
+  const requestedInKg = Math.max(0, input.inflowKgH) * dtH;
+  const compressedKg = compressorOn ? Math.min(requestedInKg, params.compressor.capacityKgH * dtH) : 0;
+  const sealLossKg = compressedKg * sealLossFraction(params.compressor, compressorOn, input.sealLeakBar);
+  const minMassKg = h2MassKg(params.minBar, params.tankVolumeM3, state.gasTempC);
+  const availableKg = sum(state.tankMassKg.map((m) => Math.max(0, m - minMassKg)));
+  const requestedOutKg = Math.max(0, input.outflowKgH) * dtH;
+  const outKg = Math.min(requestedOutKg, availableKg);
+  return { compressorOn, inKg: compressedKg - sealLossKg, outKg, ventedKg: requestedInKg - compressedKg, sealLossKg, outflowLimited: outKg < requestedOutKg };
+}
+
+/** 누설을 뺀 뒤, 밸브가 열려 있으면 유입·유출을 더해 용기끼리 고르게 나누고, 닫혀 있으면 용기마다 따로 둔다 */
+function nextMasses(masses: readonly number[], leaks: readonly number[], flow: Transfer, valvesOpen: boolean): number[] {
+  const leaked = masses.map((m, i) => m - (leaks[i] ?? 0));
+  if (!valvesOpen) return leaked;
+  const each = (sum(leaked) + flow.inKg - flow.outKg) / leaked.length;
+  return leaked.map(() => each);
 }
 
 export function stepStorage(params: StorageParams, state: StorageState, input: StorageInput): StorageStep {
+  if (input.tankLeakKgPerDay.length !== params.tankCount) throw new Error(`용기별 누설 길이(${input.tankLeakKgPerDay.length})가 용기 수(${params.tankCount})와 다릅니다`);
   const dtH = input.dtS / SECONDS_PER_HOUR;
-  const pressureBar = h2PressureBar(state.massKg, params.volumeM3, state.gasTempC);
-  const compressorOn = input.inflowKgH > 1e-6 && pressureBar < params.maxBar;
-  const requestedInKg = Math.max(0, input.inflowKgH) * dtH;
-  const inKg = compressorOn ? Math.min(requestedInKg, params.compressorCapacityKgH * dtH) : 0;
-  const availableKg = Math.max(0, state.massKg - h2MassKg(params.minBar, params.volumeM3, state.gasTempC));
-  const requestedOutKg = Math.max(0, input.outflowKgH) * dtH;
-  const outKg = Math.min(requestedOutKg, availableKg);
-  const leakKg = Math.min((Math.max(0, input.leakKgPerDay) * input.dtS) / SECONDS_PER_DAY, state.massKg - outKg);
-  const massKg = state.massKg + inKg - outKg - leakKg;
+  const pressuresBefore = state.tankMassKg.map((m) => h2PressureBar(m, params.tankVolumeM3, state.gasTempC));
+  const bankBar = sum(pressuresBefore) / params.tankCount;
+  const flow = transfer(params, state, input, bankBar);
+  const dischargeBar = bankBar + (flow.compressorOn ? params.compressor.dischargeMarginBar : 0);
+  const compressor = stepCompressor(params.compressor, state.compressor, {
+    running: flow.compressorOn,
+    flowKgH: (flow.inKg + flow.sealLossKg) / Math.max(dtH, 1e-9),
+    suctionBar: input.suctionBar,
+    dischargeBar,
+    ambientC: input.ambientC,
+    valveWear: input.valveWear,
+    sealLeakBar: input.sealLeakBar,
+    dtS: input.dtS,
+  });
+  const valvesOpen = flow.compressorOn || flow.outKg > 0;
+  const tankLeakKg = state.tankMassKg.map((m, i) => Math.min((Math.max(0, input.tankLeakKgPerDay[i] ?? 0) * input.dtS) / SECONDS_PER_DAY, m));
+  const tankMassKg = nextMasses(state.tankMassKg, tankLeakKg, flow, valvesOpen);
 
-  const netFlowKgH = (inKg - outKg) / Math.max(dtH, 1e-9);
-  const gasTargetC = input.ambientC + params.fillHeatingKPerKgH * netFlowKgH;
-  const gasTempC = lagToward(state.gasTempC, gasTargetC, input.dtS, params.thermalTauS);
-  const dischargeBar = pressureBar + (compressorOn ? params.dischargeMarginBar : 0);
-  const flowKgH = inKg / Math.max(dtH, 1e-9);
-  const workJPerKg = compressionWorkJPerKg(input.suctionBar, dischargeBar, input.ambientC);
-  const compressorKw = compressorOn
-    ? Math.min(params.compressorRatedKw, params.compressorFixedKw + ((flowKgH / SECONDS_PER_HOUR) * workJPerKg) / params.compressorEfficiency / 1000)
-    : params.compressorIdleKw;
-  const ratio = clamp(dischargeBar / Math.max(input.suctionBar, 1), 1, 100);
-  const dischargeTargetC = compressorOn
-    ? input.ambientC + 20 + 25 * (flowKgH / params.compressorCapacityKgH) + 12 * Math.log(ratio)
-    : input.ambientC;
+  const netHeatingK = (params.fillHeatingKPerKgH * flow.inKg - params.drawCoolingKPerKgH * flow.outKg) / Math.max(dtH, 1e-9);
+  const gasTempC = lagToward(state.gasTempC, state.wallTempC + netHeatingK, input.dtS, params.gasTauS);
+  const wallTarget = input.envTempC + params.wallGasCoupling * (state.gasTempC - input.envTempC);
+  const wallTempC = lagToward(state.wallTempC, wallTarget, input.dtS, params.wallTauS);
+  const tankPressureBar = tankMassKg.map((m) => h2PressureBar(m, params.tankVolumeM3, gasTempC));
 
   return {
-    state: {
-      massKg,
-      gasTempC,
-      compressorOn,
-      compressorRunHours: state.compressorRunHours + (compressorOn ? dtH : 0),
-      compressorEnergyKwh: state.compressorEnergyKwh + compressorKw * dtH,
-      dischargeTempC: lagToward(state.dischargeTempC, dischargeTargetC, input.dtS, compressorOn ? 600 : 1_800),
-    },
-    pressureBar: h2PressureBar(massKg, params.volumeM3, gasTempC),
-    inKg,
-    outKg,
-    leakKg,
-    ventedKg: requestedInKg - inKg,
-    outflowLimited: outKg < requestedOutKg,
-    compressorKw,
-    compressorFlowKgH: flowKgH,
+    state: { tankMassKg, gasTempC, wallTempC, valvesOpen, compressorOn: flow.compressorOn, compressor: compressor.state },
+    pressureBar: sum(tankPressureBar) / params.tankCount,
+    tankPressureBar,
+    inKg: flow.inKg,
+    outKg: flow.outKg,
+    leakKg: sum(tankLeakKg),
+    tankLeakKg,
+    ventedKg: flow.ventedKg,
+    sealLossKg: flow.sealLossKg,
+    outflowLimited: flow.outflowLimited,
+    compressorKw: compressor.powerKw,
+    compressorFlowKgH: (flow.inKg + flow.sealLossKg) / Math.max(dtH, 1e-9),
     dischargeBar,
   };
 }

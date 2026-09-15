@@ -1,6 +1,7 @@
 // PEM 수전해 근사 모델 (순수 함수).
 // V_cell = E_rev(T, p) + b·ln(j/j0) + r(T)·j + δ·운전시간, 패러데이 수소, 정류기 부하 의존 효율,
 // 최소부하 20%, 기동(냉간·온간)·운전·정지(퍼지)·온간 대기 상태.
+// 비에너지(SEC) 상승 고장 경로(P3): 정류기 추가 손실 · 패러데이 효율 추가 손실 · 셀 전압 추가 상승 (ElectrolyzerFaults).
 import { clamp, lagToward, SECONDS_PER_HOUR } from '../math';
 import {
   converterLossKw,
@@ -61,12 +62,26 @@ export interface ElectrolyzerCommand {
   readonly acKw: number;
 }
 
+/** 비에너지 상승 고장 (모두 0이면 건강) */
+export interface ElectrolyzerFaults {
+  /** 정류기 AC 입력 추가 손실 [비율] */
+  readonly rectifierLossExtra: number;
+  /** 패러데이 효율 추가 손실 [비율] */
+  readonly faradaicLoss: number;
+  /** 셀당 전압 추가 상승 [V] */
+  readonly extraCellVoltageV: number;
+}
+
+export const NO_ELZ_FAULTS: ElectrolyzerFaults = Object.freeze({ rectifierLossExtra: 0, faradaicLoss: 0, extraCellVoltageV: 0 });
+
 export interface ElectrolyzerInput {
   readonly command: ElectrolyzerCommand;
   readonly ambientC: number;
   /** 셀당 전압 열화율 [µV/h] */
   readonly degradationUvPerH: number;
   readonly dtS: number;
+  /** 생략하면 고장 없음 */
+  readonly faults?: ElectrolyzerFaults;
 }
 
 export interface ElectrolyzerOperatingPoint {
@@ -77,6 +92,8 @@ export interface ElectrolyzerOperatingPoint {
   readonly dcKw: number;
   readonly rectifierAcKw: number;
   readonly rectifierEfficiency: number;
+  /** 정류기 추가 손실 [kW] (고장 없으면 0) */
+  readonly rectifierExtraLossKw: number;
   readonly auxKw: number;
   readonly totalAcKw: number;
 }
@@ -131,21 +148,22 @@ export function cellVoltageV(params: ElectrolyzerParams, currentDensityAcm2: num
   return reversibleVoltageV(tempC, params.outletBar) + activation + ohmic + degradationV;
 }
 
-/** 크로스오버 손실만 반영한 패러데이 효율 (저전류일수록 낮다) */
-export function faradayEfficiency(params: ElectrolyzerParams, currentDensityAcm2: number): number {
+/** 크로스오버 손실(저전류일수록 낮다)과 추가 손실을 반영한 패러데이 효율 */
+export function faradayEfficiency(params: ElectrolyzerParams, currentDensityAcm2: number, extraLoss = 0): number {
   if (currentDensityAcm2 <= 0) return 0;
-  return clamp(1 - params.crossoverAcm2 / currentDensityAcm2, 0, 1);
+  return clamp(1 - params.crossoverAcm2 / currentDensityAcm2, 0, 1) * (1 - clamp(extraLoss, 0, 1));
 }
 
-export function operatingPoint(params: ElectrolyzerParams, currentA: number, tempC: number, degradationV: number): ElectrolyzerOperatingPoint {
+export function operatingPoint(params: ElectrolyzerParams, currentA: number, tempC: number, degradationV: number, faults: ElectrolyzerFaults = NO_ELZ_FAULTS): ElectrolyzerOperatingPoint {
   const currentDensityAcm2 = currentA / params.activeAreaCm2;
   if (currentA <= 0) {
-    return { currentA: 0, currentDensityAcm2: 0, cellVoltageV: 0, stackVoltageV: 0, dcKw: 0, rectifierAcKw: 0, rectifierEfficiency: 0, auxKw: params.auxBaseKw, totalAcKw: params.auxBaseKw };
+    return { currentA: 0, currentDensityAcm2: 0, cellVoltageV: 0, stackVoltageV: 0, dcKw: 0, rectifierAcKw: 0, rectifierEfficiency: 0, rectifierExtraLossKw: 0, auxKw: params.auxBaseKw, totalAcKw: params.auxBaseKw };
   }
-  const cell = cellVoltageV(params, currentDensityAcm2, tempC, degradationV);
+  const cell = cellVoltageV(params, currentDensityAcm2, tempC, degradationV + faults.extraCellVoltageV);
   const stackVoltageV = cell * params.cellCount;
   const dcKw = (stackVoltageV * currentA) / 1000;
-  const rectifierAcKw = dcKw + converterLossKw(RECTIFIER_LOSS, params.rectifierRatedDcKw, dcKw);
+  const healthyAcKw = dcKw + converterLossKw(RECTIFIER_LOSS, params.rectifierRatedDcKw, dcKw);
+  const rectifierAcKw = healthyAcKw * (1 + Math.max(0, faults.rectifierLossExtra));
   const auxKw = params.auxBaseKw + params.auxLoadKw * (currentA / params.ratedCurrentA);
   return {
     currentA,
@@ -155,14 +173,15 @@ export function operatingPoint(params: ElectrolyzerParams, currentA: number, tem
     dcKw,
     rectifierAcKw,
     rectifierEfficiency: dcKw / rectifierAcKw,
+    rectifierExtraLossKw: rectifierAcKw - healthyAcKw,
     auxKw,
     totalAcKw: rectifierAcKw + auxKw,
   };
 }
 
 /** 설비 AC 목표 → 스택 전류 (정격 전류 상한) */
-export function currentForAcPower(params: ElectrolyzerParams, acKw: number, tempC: number, degradationV: number): number {
-  return solveIncreasing((currentA) => operatingPoint(params, currentA, tempC, degradationV).totalAcKw, acKw, 0, params.ratedCurrentA);
+export function currentForAcPower(params: ElectrolyzerParams, acKw: number, tempC: number, degradationV: number, faults: ElectrolyzerFaults = NO_ELZ_FAULTS): number {
+  return solveIncreasing((currentA) => operatingPoint(params, currentA, tempC, degradationV, faults).totalAcKw, acKw, 0, params.ratedCurrentA);
 }
 
 export const electrolyzerMinKw = (params: ElectrolyzerParams): number => params.minLoadFraction * params.ratedAcKw;
@@ -185,15 +204,15 @@ function nextMode(params: ElectrolyzerParams, state: ElectrolyzerState, command:
   }
 }
 
-function modeCurrentA(params: ElectrolyzerParams, state: ElectrolyzerState, command: ElectrolyzerCommand): number {
+function modeCurrentA(params: ElectrolyzerParams, state: ElectrolyzerState, command: ElectrolyzerCommand, faults: ElectrolyzerFaults): number {
   const minKw = electrolyzerMinKw(params);
   if (state.mode === 'running') {
     const targetKw = clamp(command.acKw, minKw, params.ratedAcKw);
-    return currentForAcPower(params, targetKw, state.stackTempC, state.degradationV);
+    return currentForAcPower(params, targetKw, state.stackTempC, state.degradationV, faults);
   }
   if (state.mode === 'starting') {
     const ramp = clamp((state.modeElapsedS + 1) / Math.max(state.startDurationS, 1), 0.1, 1);
-    return currentForAcPower(params, minKw, state.stackTempC, state.degradationV) * ramp;
+    return currentForAcPower(params, minKw, state.stackTempC, state.degradationV, faults) * ramp;
   }
   return 0;
 }
@@ -211,13 +230,14 @@ function auxForMode(params: ElectrolyzerParams, mode: ElectrolyzerMode, point: E
 }
 
 export function stepElectrolyzer(params: ElectrolyzerParams, state: ElectrolyzerState, input: ElectrolyzerInput): ElectrolyzerStep {
+  const faults = input.faults ?? NO_ELZ_FAULTS;
   const moded = nextMode(params, state, input.command);
-  const currentA = modeCurrentA(params, moded, input.command);
-  const point = operatingPoint(params, currentA, moded.stackTempC, moded.degradationV);
+  const currentA = modeCurrentA(params, moded, input.command, faults);
+  const point = operatingPoint(params, currentA, moded.stackTempC, moded.degradationV, faults);
   const auxKw = auxForMode(params, moded.mode, point);
   const totalAcKw = point.rectifierAcKw + auxKw;
   const loadFraction = currentA / params.ratedCurrentA;
-  const etaF = faradayEfficiency(params, point.currentDensityAcm2);
+  const etaF = faradayEfficiency(params, point.currentDensityAcm2, faults.faradaicLoss);
   const h2KgPerH = faradayH2KgPerH(params.cellCount, currentA, etaF);
   const dtH = input.dtS / SECONDS_PER_HOUR;
   const { targetC, tauS } = targetTempC(moded.mode, loadFraction, input.ambientC);

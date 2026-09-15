@@ -1,12 +1,15 @@
 // 정답 기록: 실행에 넣은 고장·데이터 품질 주입, 오탐 판정용 대조군 이벤트, asset_event로 넣을 운영 이벤트.
-// 시나리오 → 계획(planScenarios)과 같은 해석을 거치므로 시뮬레이션 출력과 어긋나지 않는다.
+// 시나리오 → 계획(planScenarios)과 같은 해석을 거치므로 시뮬레이션 출력과 어긋나지 않는다. P3 고장·대조군은 truth-p3.ts.
 import { SIM_SITES } from '@/db/seed/sites';
 import type { SiteDef } from '@/db/seed/types';
 import { socMaxAt, type ControlKind, type ControlPlan } from './control-scenarios';
+import type { P3ControlKind } from './control-scenarios-p3';
+import { isP3Fault } from './fault-scenarios-p3';
 import { DEGRADATION_PARAMS, type DegradationParam, type FaultScenario } from './degradation';
 import { isTypedFault, resolveFault, type TypedFaultKind } from './fault-scenarios';
 import { toEpochMs, type TimeInput } from './math';
 import { planScenarios, scenarioOriginMs, type Scenario, type SiteScenarioPlan } from './scenarios';
+import { p3AssetEventTruths, p3ControlTruths, p3FaultTruths, P3_PARAM_EXPECTATION } from './truth-p3';
 
 export type TruthParams = Readonly<Record<string, number | string>>;
 
@@ -23,13 +26,15 @@ export interface InjectionTruth {
   readonly expectedFailureModes: readonly string[];
   /** 이 주입을 잡아야 하는 탐지기 (설계 §5.3 탐지기 id). 없으면 탐지기 평가 대상 아님 */
   readonly expectedDetectors: readonly string[];
+  /** 이 고장이 함께 일으킬 수 있는 다른 탐지기 (그 설비·하위 설비 finding을 오탐으로 세지 않는다. 재현율에는 넣지 않는다) */
+  readonly relatedDetectors?: readonly string[];
 }
 
 /** 고장이 아닌 조건. 이 구간·설비에서 나온 해당 탐지기 finding은 오탐으로 본다. */
 export interface ControlEventTruth {
   readonly siteCode: string;
   readonly assetPath: string | null;
-  readonly kind: ControlKind;
+  readonly kind: ControlKind | P3ControlKind;
   readonly startTs: number;
   readonly endTs: number;
   readonly params: TruthParams;
@@ -42,7 +47,7 @@ export interface AssetEventTruth {
   readonly siteCode: string;
   readonly assetPath: string;
   readonly ts: number;
-  readonly kind: 'setpoint_change' | 'replacement';
+  readonly kind: 'setpoint_change' | 'replacement' | 'maintenance';
   readonly resetsBaseline: boolean;
   readonly note: string;
 }
@@ -77,24 +82,27 @@ const TYPED_FAULT_EXPECTATION: Readonly<Record<TypedFaultKind, Expectation>> = {
   'fault.fc_voltage_decay': { failureModes: ['fc.stack_voltage_decay'], detectors: ['fc.voltage_decay'] },
 };
 
-/** 원시 hook(kind 'fault')은 파라미터로 고장모드를 정한다. P3 탐지기 대상은 탐지기 목록을 비워 둔다. */
-const PARAM_EXPECTATION: Readonly<Record<DegradationParam, Expectation>> = {
+/** 원시 hook(kind 'fault')은 파라미터로 고장모드를 정한다 (P3 파라미터는 truth-p3.ts) */
+const P2_PARAM_EXPECTATION: Readonly<Partial<Record<DegradationParam, Expectation>>> = {
   'battery.capacityFadePerDay': TYPED_FAULT_EXPECTATION['fault.battery_capacity_fade'],
   'battery.cellImbalance': TYPED_FAULT_EXPECTATION['fault.cell_imbalance'],
   'battery.cellSpreadMv': TYPED_FAULT_EXPECTATION['fault.cell_imbalance'],
   'inverter.efficiencyDrop': TYPED_FAULT_EXPECTATION['fault.inverter_efficiency_drop'],
   'elz.degradationUvPerH': TYPED_FAULT_EXPECTATION['fault.elz_stack_degradation'],
   'fc.voltageDecayUvPerH': TYPED_FAULT_EXPECTATION['fault.fc_voltage_decay'],
-  'storage.leakKgPerDay': { failureModes: ['storage_leak'], detectors: [] },
-  'pv.soilingPerDay': { failureModes: ['soiling'], detectors: [] },
-  'blower.wear': { failureModes: ['blower_wear'], detectors: [] },
 };
+
+function paramExpectation(param: DegradationParam): Expectation {
+  const expectation = P2_PARAM_EXPECTATION[param] ?? P3_PARAM_EXPECTATION[param];
+  if (!expectation) throw new Error(`정답 고장모드가 정해지지 않은 열화 파라미터: ${param}`);
+  return expectation;
+}
 
 const CONFOUNDED: Readonly<Record<ControlKind, readonly string[]>> = {
   'control.cold_week': ['ess.capacity_fade', 'el.voltage_rise'],
   'control.cloudy_week': ['pv.inverter_peer', 'ess.capacity_fade', 'el.voltage_rise'],
   'control.curtailment': ['pv.inverter_peer'],
-  'control.elz_part_load_week': ['el.voltage_rise'],
+  'control.elz_part_load_week': ['el.voltage_rise', 'el.sec_rise'],
   'control.fc_frequent_start_stop': ['fc.voltage_decay'],
   'control.soc_upper_limit_change': ['ess.capacity_fade'],
 };
@@ -118,7 +126,7 @@ interface RunWindow {
 
 function rawFaultTruth(site: SiteDef, fault: FaultScenario, { fromMs, toMs }: RunWindow): InjectionTruth[] {
   const classKey = DEGRADATION_PARAMS[fault.param].classKey;
-  const expectation = PARAM_EXPECTATION[fault.param];
+  const expectation = paramExpectation(fault.param);
   return site.assets
     .filter((a) => a.classKey === classKey && (fault.asset === undefined || a.code === fault.asset))
     .map((asset) => ({
@@ -133,11 +141,13 @@ function rawFaultTruth(site: SiteDef, fault: FaultScenario, { fromMs, toMs }: Ru
     }));
 }
 
-function faultTruths(sites: readonly SiteDef[], scenarios: readonly Scenario[], run: RunWindow): InjectionTruth[] {
+function faultTruths(sites: readonly SiteDef[], plans: ReadonlyMap<string, SiteScenarioPlan>, scenarios: readonly Scenario[], run: RunWindow): InjectionTruth[] {
   return scenarios.flatMap((scenario): InjectionTruth[] => {
     const site = 'site' in scenario ? sites.find((s) => s.code === scenario.site) : undefined;
-    if (!site) return [];
+    const plan = site ? plans.get(site.code) : undefined;
+    if (!site || !plan) return [];
     if (scenario.kind === 'fault') return rawFaultTruth(site, scenario, run);
+    if (isP3Fault(scenario)) return p3FaultTruths(site, plan, scenario, run);
     if (!isTypedFault(scenario)) return [];
     const resolved = resolveFault(site, scenario, run.originMs);
     const expectation = TYPED_FAULT_EXPECTATION[scenario.kind];
@@ -247,8 +257,9 @@ export function buildTruth(options: TruthOptions): SimulationTruth {
     const plan = plans.get(site.code);
     return plan ? [{ site, plan }] : [];
   });
-  const injections = [...faultTruths(sites, options.scenarios, run), ...perSite.flatMap(({ site, plan }) => dqTruths(site, plan, run))];
-  const controls = perSite.flatMap(({ site, plan }) => controlTruths(site, plan, toMs));
+  const injections = [...faultTruths(sites, plans, options.scenarios, run), ...perSite.flatMap(({ site, plan }) => dqTruths(site, plan, run))];
+  const controls = perSite.flatMap(({ site, plan }) => [...controlTruths(site, plan, toMs), ...p3ControlTruths(site, plan, toMs)]);
   assertStartsInRun([...injections, ...controls], toMs);
-  return { ...run, injections, controls, assetEvents: perSite.flatMap(({ site, plan }) => assetEventTruths(site, plan)) };
+  const assetEvents = perSite.flatMap(({ site, plan }) => [...assetEventTruths(site, plan), ...p3AssetEventTruths(site, plan)]);
+  return { ...run, injections, controls, assetEvents };
 }

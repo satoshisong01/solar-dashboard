@@ -1,26 +1,31 @@
-// 플랜트 조립: PEM 전해조 → 압축기 → 저장뱅크 → PEM 연료전지, 수소 검지기.
+// 플랜트 조립: PEM 전해조 → (건조기) → 압축기·저장뱅크(plant-storage) → PEM 연료전지, 수소 검지기.
+// 수소 흐름: 저장 유입 = 전해조 제품(운전 중) × (1 − 건조기 재생 손실). 기동 중 순도 미달 수소는 배출한다.
+// 전해조 유량계(h2.flow.mass·h2.mass.total)는 건조기 뒤 제품 배관에 있다(유량계 드리프트 고장은 계량값만 바꾼다).
 import type { SiteDef } from '@/db/seed/types';
+import { DEGRADATION_PARAMS } from './degradation';
 import type { HydrogenView, UnitCommand } from './ems';
-import { EVENT_CODE, OP_STATE, opStateCode, operationEvent, type SimEvent } from './events';
+import { EVENT_CODE, opStateCode, operationEvent, type SimEvent } from './events';
 import {
   electrolyzerMinKw,
-  electrolyzerParams,
+  NO_ELZ_FAULTS,
   stepElectrolyzer,
+  type ElectrolyzerFaults,
   type ElectrolyzerMode,
   type ElectrolyzerParams,
   type ElectrolyzerState,
   type ElectrolyzerStep,
 } from './models/electrolyzer';
 import { fuelCellParams, stepFuelCell, type FuelCellMode, type FuelCellParams, type FuelCellState, type FuelCellStep } from './models/fuelcell';
-import { h2MassKg, stepStorage, storageParams, type StorageParams, type StorageState, type StorageStep } from './models/storage';
+import { createStorage, stepStorageUnit, storageReadings, type StorageUnit } from './plant-storage';
 import { assetsOfClass, nameplateNumber, singleAsset, type InitContext, type ReadingEntry, type StepContext } from './plant-types';
-import { DEGRADATION_PARAMS } from './scenarios';
+import { electrolyzerParamsOf } from './site-params';
 
-const INITIAL_STORAGE_BAR = 220;
 const INITIAL_TEMP_C = 20;
 /** 준공 후 누적값 추정: 하루 평균 운전시간 */
 const ELZ_HOURS_PER_DAY = 5;
 const FC_HOURS_PER_DAY = 4;
+/** TSA 건조기 재생 손실: 운전 중 제품 수소의 3% (재생 퍼지 2~5% 범위의 추정값) */
+export const DRYER_LOSS_FRACTION = 0.03;
 
 export interface HydrogenCodes {
   readonly elz: string;
@@ -29,24 +34,29 @@ export interface HydrogenCodes {
   readonly water: string;
   readonly separator: string;
   readonly dryer: string;
-  readonly compressor: string;
-  readonly bank: string;
   readonly fc: string;
   readonly fcStack: string;
   readonly blower: string;
   readonly cooling: string;
 }
 
+export interface HydrogenMeter {
+  /** 유량계 적산값 [kg] */
+  readonly totalKg: number;
+  /** 이번 스텝 유량계 이득 */
+  readonly gain: number;
+}
+
 export interface HydrogenUnit {
   readonly codes: HydrogenCodes;
   readonly elzParams: ElectrolyzerParams;
   readonly elz: ElectrolyzerStep;
-  readonly storageParams: StorageParams;
-  readonly storage: StorageStep;
+  /** 이번 스텝에 적용한 전해조 비에너지 고장 (측정값 계산용) */
+  readonly elzFaults: ElectrolyzerFaults;
+  readonly meter: HydrogenMeter;
+  readonly storage: StorageUnit;
   readonly fcParams: FuelCellParams;
   readonly fc: FuelCellStep;
-  readonly tanks: readonly { readonly code: string; readonly pressureOffsetBar: number; readonly tempOffsetC: number }[];
-  readonly detectors: readonly { readonly code: string; readonly baselinePpm: number }[];
 }
 
 export interface HydrogenStepResult {
@@ -66,8 +76,6 @@ function resolveCodes(site: SiteDef): HydrogenCodes {
     water: code('h2.elz.water'),
     separator: code('h2.elz.gls'),
     dryer: code('h2.elz.dryer'),
-    compressor: code('h2.compressor'),
-    bank: code('h2.storage.bank'),
     fc: code('fc.plant'),
     fcStack: code('fc.stack'),
     blower: code('fc.blower'),
@@ -75,34 +83,16 @@ function resolveCodes(site: SiteDef): HydrogenCodes {
   };
 }
 
-function buildParams(site: SiteDef): Pick<HydrogenUnit, 'elzParams' | 'storageParams' | 'fcParams'> {
-  const stack = singleAsset(site, 'h2.elz.stack');
-  const elz = singleAsset(site, 'h2.elz');
-  const bank = singleAsset(site, 'h2.storage.bank');
-  const compressor = singleAsset(site, 'h2.compressor');
+function fuelCellParamsOf(site: SiteDef): FuelCellParams {
   const fcStack = singleAsset(site, 'fc.stack');
-  return {
-    elzParams: electrolyzerParams({
-      cellCount: nameplateNumber(stack, 'cell_count'),
-      activeAreaCm2: nameplateNumber(stack, 'active_area_cm2'),
-      ratedCurrentA: nameplateNumber(stack, 'rated_current_a'),
-      ratedAcKw: nameplateNumber(elz, 'rated_kw'),
-      rectifierRatedDcKw: nameplateNumber(singleAsset(site, 'h2.elz.rectifier'), 'rated_dc_kw'),
-      outletBar: nameplateNumber(elz, 'outlet_bar'),
-    }),
-    storageParams: storageParams(
-      { waterVolumeL: nameplateNumber(bank, 'water_volume_l'), maxBar: nameplateNumber(bank, 'max_bar') },
-      { ratedKw: nameplateNumber(compressor, 'rated_kw'), capacityKgH: nameplateNumber(compressor, 'capacity_kg_h') },
-    ),
-    fcParams: fuelCellParams({
-      cellCount: nameplateNumber(fcStack, 'cell_count'),
-      activeAreaCm2: nameplateNumber(fcStack, 'active_area_cm2'),
-      ratedCurrentA: nameplateNumber(fcStack, 'rated_current_a'),
-      ratedAcKw: nameplateNumber(singleAsset(site, 'fc.plant'), 'rated_kw'),
-      blowerRatedKw: nameplateNumber(singleAsset(site, 'fc.blower'), 'rated_kw'),
-      coolantRatedLpm: nameplateNumber(singleAsset(site, 'fc.cooling'), 'rated_flow_l_min'),
-    }),
-  };
+  return fuelCellParams({
+    cellCount: nameplateNumber(fcStack, 'cell_count'),
+    activeAreaCm2: nameplateNumber(fcStack, 'active_area_cm2'),
+    ratedCurrentA: nameplateNumber(fcStack, 'rated_current_a'),
+    ratedAcKw: nameplateNumber(singleAsset(site, 'fc.plant'), 'rated_kw'),
+    blowerRatedKw: nameplateNumber(singleAsset(site, 'fc.blower'), 'rated_kw'),
+    coolantRatedLpm: nameplateNumber(singleAsset(site, 'fc.cooling'), 'rated_flow_l_min'),
+  });
 }
 
 const STOP: UnitCommand = { run: false, acKw: 0 };
@@ -110,7 +100,8 @@ const STOP: UnitCommand = { run: false, acKw: 0 };
 export function createHydrogen(init: InitContext): HydrogenUnit | null {
   if (assetsOfClass(init.site, 'h2.elz').length === 0) return null;
   const codes = resolveCodes(init.site);
-  const { elzParams, storageParams: sParams, fcParams } = buildParams(init.site);
+  const elzParams = electrolyzerParamsOf(init.site);
+  const fcParams = fuelCellParamsOf(init.site);
   const elzHours = init.daysInService * ELZ_HOURS_PER_DAY;
   const fcHours = init.daysInService * FC_HOURS_PER_DAY;
   const elzState: ElectrolyzerState = {
@@ -123,14 +114,6 @@ export function createHydrogen(init: InitContext): HydrogenUnit | null {
     degradationV: DEGRADATION_PARAMS['elz.degradationUvPerH'].baseline * 1e-6 * elzHours, // 시작 전 이력은 기본값으로 추정
     h2TotalKg: elzHours * 7.5,
     energyKwh: elzHours * 420,
-  };
-  const storageState: StorageState = {
-    massKg: h2MassKg(INITIAL_STORAGE_BAR, sParams.volumeM3, INITIAL_TEMP_C),
-    gasTempC: INITIAL_TEMP_C,
-    compressorOn: false,
-    compressorRunHours: elzHours,
-    compressorEnergyKwh: elzHours * 16,
-    dischargeTempC: INITIAL_TEMP_C,
   };
   const fcState: FuelCellState = {
     mode: 'off',
@@ -147,12 +130,11 @@ export function createHydrogen(init: InitContext): HydrogenUnit | null {
     codes,
     elzParams,
     elz: stepElectrolyzer(elzParams, elzState, { command: STOP, ambientC: INITIAL_TEMP_C, degradationUvPerH: 0, dtS: 0 }),
-    storageParams: sParams,
-    storage: stepStorage(sParams, storageState, { inflowKgH: 0, outflowKgH: 0, suctionBar: elzParams.outletBar, ambientC: INITIAL_TEMP_C, leakKgPerDay: 0, dtS: 0 }),
+    elzFaults: NO_ELZ_FAULTS,
+    meter: { totalKg: elzState.h2TotalKg * (1 - DRYER_LOSS_FRACTION), gain: 1 },
+    storage: createStorage(init, elzHours, elzParams.outletBar),
     fcParams,
     fc: stepFuelCell(fcParams, fcState, { command: STOP, hydrogenAvailable: true, ambientC: INITIAL_TEMP_C, voltageDecayUvPerH: 0, blowerWear: 0, dtS: 0 }),
-    tanks: assetsOfClass(init.site, 'h2.storage.tank').map((a) => ({ code: a.code, pressureOffsetBar: 0.4 * init.rng.gaussian(), tempOffsetC: 0.3 * init.rng.gaussian() })),
-    detectors: assetsOfClass(init.site, 'h2.detector').map((a) => ({ code: a.code, baselinePpm: 6 + 6 * init.rng.next() })),
   };
 }
 
@@ -161,8 +143,8 @@ export function hydrogenView(unit: HydrogenUnit): HydrogenView {
     elzMode: unit.elz.state.mode,
     elzRatedKw: unit.elzParams.ratedAcKw,
     elzMinKw: electrolyzerMinKw(unit.elzParams),
-    storagePressureBar: unit.storage.pressureBar,
-    compressorKw: unit.storage.compressorKw,
+    storagePressureBar: unit.storage.step.pressureBar,
+    compressorKw: unit.storage.step.compressorKw,
   };
 }
 
@@ -176,9 +158,9 @@ function transitionEvents(unit: HydrogenUnit, next: HydrogenUnit, tMs: number, l
   const elzAfter = next.elz.state.mode;
   if (elzAfter === 'starting' && !ELZ_ACTIVE.includes(elzBefore)) events.push(operationEvent(unit.codes.elz, tMs, EVENT_CODE.START, 'info', '수전해 기동'));
   if (elzAfter === 'stopping' && ELZ_ACTIVE.includes(elzBefore)) events.push(operationEvent(unit.codes.elz, tMs, EVENT_CODE.STOP, 'info', stopText('수전해')));
-  if (next.storage.state.compressorOn !== unit.storage.state.compressorOn) {
-    const starting = next.storage.state.compressorOn;
-    events.push(operationEvent(unit.codes.compressor, tMs, starting ? EVENT_CODE.START : EVENT_CODE.STOP, 'info', starting ? '압축기 기동' : stopText('압축기')));
+  const compressorOn = next.storage.step.state.compressorOn;
+  if (compressorOn !== unit.storage.step.state.compressorOn) {
+    events.push(operationEvent(next.storage.compressorCode, tMs, compressorOn ? EVENT_CODE.START : EVENT_CODE.STOP, 'info', compressorOn ? '압축기 기동' : stopText('압축기')));
   }
   const fcBefore = unit.fc.state.mode;
   const fcAfter = next.fc.state.mode;
@@ -187,42 +169,57 @@ function transitionEvents(unit: HydrogenUnit, next: HydrogenUnit, tMs: number, l
   return events;
 }
 
+function electrolyzerFaultsAt(unit: HydrogenUnit, ctx: StepContext): ElectrolyzerFaults {
+  const { degradation, tMs } = ctx;
+  return {
+    rectifierLossExtra: degradation.value('elz.rectifierLossExtra', unit.codes.rectifier, tMs),
+    faradaicLoss: degradation.value('elz.faradaicLoss', unit.codes.stack, tMs),
+    extraCellVoltageV: degradation.value('elz.extraCellVoltageV', unit.codes.stack, tMs),
+  };
+}
+
+/** 압축기 흡입 압력: 대조군(높은 압력비 운전)이 낮추지 않으면 전해조 출구 압력 */
+const suctionBarOf = (unit: HydrogenUnit, ctx: StepContext): number => ctx.p3.suctionBar ?? unit.elzParams.outletBar;
+
 export function stepHydrogen(unit: HydrogenUnit, commands: { readonly elz: UnitCommand; readonly fc: UnitCommand }, ctx: StepContext, lockout: boolean): HydrogenStepResult {
   const { weather, degradation, tMs, dtS } = ctx;
+  const elzFaults = electrolyzerFaultsAt(unit, ctx);
   const elz = stepElectrolyzer(unit.elzParams, unit.elz.state, {
     command: commands.elz,
     ambientC: weather.ambientC,
     degradationUvPerH: degradation.value('elz.degradationUvPerH', unit.codes.stack, tMs),
     dtS,
+    faults: elzFaults,
   });
   const fc = stepFuelCell(unit.fcParams, unit.fc.state, {
     command: commands.fc,
-    hydrogenAvailable: unit.storage.pressureBar > unit.storageParams.minBar + 5,
+    hydrogenAvailable: unit.storage.step.pressureBar > unit.storage.params.minBar + 5,
     ambientC: weather.ambientC,
     voltageDecayUvPerH: degradation.value('fc.voltageDecayUvPerH', unit.codes.fcStack, tMs),
     blowerWear: degradation.value('blower.wear', unit.codes.blower, tMs),
+    blowerFilterClog: degradation.value('blower.filterClog', unit.codes.blower, tMs),
     dtS,
   });
-  const storage = stepStorage(unit.storageParams, unit.storage.state, {
-    inflowKgH: elz.h2ProductKg > 0 ? elz.h2KgPerH : 0,
-    outflowKgH: fc.h2KgPerH,
-    suctionBar: unit.elzParams.outletBar,
-    ambientC: weather.ambientC,
-    leakKgPerDay: degradation.value('storage.leakKgPerDay', unit.codes.bank, tMs),
-    dtS,
-  });
-  const next: HydrogenUnit = { ...unit, elz, fc, storage };
+  const productKgH = elz.h2ProductKg > 0 ? elz.h2KgPerH * (1 - DRYER_LOSS_FRACTION) : 0;
+  const storage = stepStorageUnit(unit.storage, { inflowKgH: productKgH, outflowKgH: fc.h2KgPerH, suctionBar: suctionBarOf(unit, ctx) }, ctx);
+  const gain = degradation.value('meter.h2FlowGain', unit.codes.elz, tMs);
+  const meter: HydrogenMeter = { totalKg: unit.meter.totalKg + elz.h2ProductKg * (1 - DRYER_LOSS_FRACTION) * gain, gain };
+  const next: HydrogenUnit = { ...unit, elz, elzFaults, meter, fc, storage };
   return {
     unit: next,
     events: transitionEvents(unit, next, tMs, lockout),
     elzAcKw: elz.totalAcKw,
     fcAcKw: fc.acKw,
-    compressorKw: storage.compressorKw,
+    compressorKw: storage.step.compressorKw,
   };
 }
 
 const sawtooth = (value: number, period: number): number => (value % period) / period;
 const wave = (tMs: number, periodS: number, phase = 0): number => Math.sin((2 * Math.PI * tMs) / (periodS * 1000) + phase);
+/** 정류기 추가 손실 1 kW당 방열판 온도 상승 [°C] */
+const RECTIFIER_EXTRA_LOSS_C_PER_KW = 0.4;
+/** 패러데이 효율 추가 손실(크로스오버 증가)에 따른 수소 중 산소 농도 배율 계수 */
+const HTO_PER_FARADAIC_LOSS = 8;
 
 function electrolyzerReadings(unit: HydrogenUnit, ctx: StepContext): ReadingEntry[] {
   const { elz, codes, elzParams } = unit;
@@ -235,10 +232,10 @@ function electrolyzerReadings(unit: HydrogenUnit, ctx: StepContext): ReadingEntr
     [codes.elz, {
       'ac.power': elz.totalAcKw,
       'ac.energy.total': elz.state.energyKwh,
-      'h2.flow.mass': mode === 'running' ? elz.h2KgPerH : 0,
-      'h2.mass.total': elz.state.h2TotalKg,
+      'h2.flow.mass': mode === 'running' ? elz.h2KgPerH * (1 - DRYER_LOSS_FRACTION) * unit.meter.gain : 0,
+      'h2.mass.total': unit.meter.totalKg,
       'h2.pressure': pressurized ? elzParams.outletBar : 1.2,
-      'h2.in.o2': active ? 0.12 + 0.1 / Math.max(load, 0.1) : 0,
+      'h2.in.o2': active ? (0.12 + 0.1 / Math.max(load, 0.1)) * (1 + HTO_PER_FARADAIC_LOSS * unit.elzFaults.faradaicLoss) : 0,
       'o2.in.h2': active ? 40 + 60 / Math.max(load, 0.1) : 0,
       'op.state': opStateCode(mode),
       'start.count': elz.state.starts,
@@ -259,7 +256,7 @@ function electrolyzerReadings(unit: HydrogenUnit, ctx: StepContext): ReadingEntr
       'dc.power': elz.dcKw,
       'ac.pf': elz.dcKw > 0 ? 0.9 + 0.08 * load : 0,
       'rectifier.efficiency': elz.rectifierEfficiency * 100,
-      'heatsink.temp': ctx.weather.ambientC + 6 + 30 * load,
+      'heatsink.temp': ctx.weather.ambientC + 6 + 30 * load + RECTIFIER_EXTRA_LOSS_C_PER_KW * elz.rectifierExtraLossKw,
     }],
     [codes.water, {
       'water.conductivity#product': 0.07,
@@ -277,34 +274,6 @@ function electrolyzerReadings(unit: HydrogenUnit, ctx: StepContext): ReadingEntr
   ];
 }
 
-function storageReadings(unit: HydrogenUnit, extraPpm: (detectorCode: string) => number): ReadingEntry[] {
-  const { storage, codes } = unit;
-  const on = storage.state.compressorOn;
-  return [
-    [codes.compressor, {
-      'compressor.power': storage.compressorKw,
-      'compressor.suction.pressure': unit.elz.state.mode !== 'off' ? unit.elzParams.outletBar : 1.2,
-      'compressor.discharge.pressure': storage.dischargeBar,
-      'compressor.discharge.temp': storage.state.dischargeTempC,
-      'compressor.leak.pressure': 0.05,
-      'ac.energy.total': storage.state.compressorEnergyKwh,
-      'run.hours': storage.state.compressorRunHours,
-      'op.state': on ? OP_STATE.RUNNING : OP_STATE.STANDBY,
-      'vibration.rms': on ? 1.8 : 0.2,
-    }],
-    [codes.bank, {
-      'h2.inventory': storage.state.massKg,
-      'valve.open#inlet': on ? 1 : 0,
-      'valve.open#outlet': unit.fc.currentA > 0 ? 1 : 0,
-    }],
-    ...unit.tanks.map((tank): ReadingEntry => [tank.code, {
-      'tank.pressure': Math.max(0, storage.pressureBar + tank.pressureOffsetBar),
-      'tank.temp': storage.state.gasTempC + tank.tempOffsetC,
-    }]),
-    ...unit.detectors.map((d): ReadingEntry => [d.code, { 'gas.detector.ppm': d.baselinePpm + extraPpm(d.code) }]),
-  ];
-}
-
 function fuelCellReadings(unit: HydrogenUnit): ReadingEntry[] {
   const { fc, codes } = unit;
   const load = fc.loadFraction;
@@ -313,7 +282,7 @@ function fuelCellReadings(unit: HydrogenUnit): ReadingEntry[] {
     [codes.fc, {
       'fc.ac.power': fc.acKw,
       'fc.h2.consumption': fc.h2KgPerH,
-      'h2.pressure': fc.currentA > 0 ? Math.min(8, unit.storage.pressureBar) : 0.5,
+      'h2.pressure': fc.currentA > 0 ? Math.min(8, unit.storage.step.pressureBar) : 0.5,
       'purge.count': fc.state.purges,
       'start.count': fc.state.starts,
       'op.state': opStateCode(fc.state.mode),
@@ -337,5 +306,6 @@ function fuelCellReadings(unit: HydrogenUnit): ReadingEntry[] {
 }
 
 export function hydrogenReadings(unit: HydrogenUnit, ctx: StepContext, extraPpm: (detectorCode: string) => number): readonly ReadingEntry[] {
-  return [...electrolyzerReadings(unit, ctx), ...storageReadings(unit, extraPpm), ...fuelCellReadings(unit)];
+  const storageView = { elzPressurized: unit.elz.state.mode !== 'off', suctionBar: suctionBarOf(unit, ctx), fcDrawing: unit.fc.currentA > 0 };
+  return [...electrolyzerReadings(unit, ctx), ...storageReadings(unit.storage, storageView, extraPpm), ...fuelCellReadings(unit)];
 }

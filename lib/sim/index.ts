@@ -220,9 +220,11 @@ export { DEGRADATION_PARAMS, planScenarios, scenarioOriginMs } from './scenarios
 export type { DegradationHook, DegradationParam, FaultScenario, PlanOptions, Scenario, SiteScenarioPlan } from './scenarios';
 export type { TypedFaultScenario } from './fault-scenarios';
 export type { ControlScenario } from './control-scenarios';
+export type { P3FaultScenario } from './fault-scenarios-p3';
+export type { P3ControlScenario } from './control-scenarios-p3';
 export { buildTruth } from './truth';
 export type { AssetEventTruth, ControlEventTruth, InjectionTruth, SimulationTruth } from './truth';
-export { detectorPointFilter, DETECTOR_METRICS, pointKey, simulateMemory } from './memory';
+export { detectorPointFilter, DETECTOR_METRICS, P3_DETECTOR_METRICS, p3DetectorPointFilter, pointKey, simulateMemory } from './memory';
 export type { MemoryPoint, MemorySeries, MemorySimulationOptions, MemorySimulationResult } from './memory';
 export { INGEST_SCHEMA } from './envelope';
 export type { IngestEnvelope, IngestEvent, IngestSeries } from './envelope';

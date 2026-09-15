@@ -1,5 +1,6 @@
 // LFP 배터리 랙 근사 모델 (순수 함수).
-// SOC 적분 · OCV(SOC) · 내부저항(Arrhenius) · CC-CV · 저온 용량 감소 · 셀 통계(편차) · SOH(용량 감소율).
+// SOC 적분 · OCV(SOC) · 내부저항(Arrhenius, 증가 고장) · CC-CV · 저온 용량 감소 · 셀 통계(편차) · SOH(용량 감소율).
+// 전압은 스텝마다 OCV + I·R로 즉시 응답한다 (RC 분극 없음): 전류 계단 앞뒤 60초 샘플의 ΔV/ΔI가 곧 랙 저항이다.
 // 셀 편차는 두 가지: SOC 차이(cellImbalance, OCV 곡선을 따라 SOC에 따라 달라짐)와 전압 산포 추가분(extraCellSpreadV, SOC와 무관).
 import { clamp, interpolate, lagToward, SECONDS_PER_DAY, SECONDS_PER_HOUR, type Table } from '../math';
 import { KELVIN_OFFSET } from './common';
@@ -58,6 +59,8 @@ export interface RackInput {
   readonly cellImbalance: number;
   /** 최고·최저 셀 전압 산포 추가분 [V] — 밸런싱 불량 고장 주입용. 최고 셀 +절반, 최저 셀 −절반 (생략 0) */
   readonly extraCellSpreadV?: number;
+  /** 내부저항 증가 [비율] (0.45 = +45%). 생략 0 */
+  readonly resistanceGrowth?: number;
   readonly dtS: number;
 }
 
@@ -154,7 +157,7 @@ function limitCurrent(
 
 export function stepRack(params: RackParams, state: RackState, input: RackInput): RackStep {
   const limits = currentLimitsA(params, state);
-  const resistance = cellResistanceOhm(params, state.tempC);
+  const resistance = cellResistanceOhm(params, state.tempC) * (1 + Math.max(0, input.resistanceGrowth ?? 0));
   const bundleResistance = resistance / params.cellsParallel; // 셀 전압 = OCV + I × R/Np
   const spread = clamp(input.cellImbalance, 0, 0.5);
   const halfVoltageSpreadV = (CELL_BASE_SPREAD_V + Math.max(0, input.extraCellSpreadV ?? 0)) / 2;

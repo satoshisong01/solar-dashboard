@@ -19,12 +19,33 @@ export const DEGRADATION_PARAMS = Object.freeze({
   'elz.degradationUvPerH': { classKey: 'h2.elz.stack', baseline: 4 },
   /** 연료전지 셀당 전압 감쇠율 [µV/h] */
   'fc.voltageDecayUvPerH': { classKey: 'fc.stack', baseline: 6 },
-  /** 저장뱅크 누설 [kg/일] */
-  'storage.leakKgPerDay': { classKey: 'h2.storage.bank', baseline: 0 },
+  /** 저장용기 누설 [kg/일] (용기별) */
+  'storage.leakKgPerDay': { classKey: 'h2.storage.tank', baseline: 0 },
   /** 인버터 어레이 오염 누적률 [비율/일] (강우 시 초기화) */
   'pv.soilingPerDay': { classKey: 'pv.inverter', baseline: 0.001 },
   /** 블로워 마모 [0~0.9] — 같은 유량에 전력 1/(1−wear)배 */
   'blower.wear': { classKey: 'fc.blower', baseline: 0 },
+  // P3
+  /** 끈적한 오염층 누적률 [비율/일] — 약한 비로는 씻기지 않고 강한 비·세척에서만 초기화 */
+  'pv.stickySoilingPerDay': { classKey: 'pv.inverter', baseline: 0 },
+  /** 인버터 냉각 성능 저하 [비율] — 방열판 온도 상승폭 × (1 + 값) (냉각팬 고장 1) */
+  'inverter.coolingLoss': { classKey: 'pv.inverter', baseline: 0 },
+  /** 랙 내부저항 증가 [비율] (0.45 = +45%) */
+  'battery.resistanceGrowth': { classKey: 'ess.rack', baseline: 0 },
+  /** 정류기 AC 입력 추가 손실 [비율] — 같은 DC 출력에 AC 입력 × (1 + 값) */
+  'elz.rectifierLossExtra': { classKey: 'h2.elz.rectifier', baseline: 0 },
+  /** 패러데이 효율 추가 손실 [비율] — 같은 전류에 수소 × (1 − 값) */
+  'elz.faradaicLoss': { classKey: 'h2.elz.stack', baseline: 0 },
+  /** 셀당 전압 추가 상승 [V] (수준, 운전시간 열화와 별도) */
+  'elz.extraCellVoltageV': { classKey: 'h2.elz.stack', baseline: 0 },
+  /** 전해조 수소 유량계 이득 [배] (1 = 정확, 1.02 = 2% 과대 계량) */
+  'meter.h2FlowGain': { classKey: 'h2.elz', baseline: 1 },
+  /** 압축기 밸브 마모 [비율] — 같은 압력비에서 비일(kJ/kg) × (1 + 값), 토출 온도 상승 */
+  'compressor.valveWear': { classKey: 'h2.compressor', baseline: 0 },
+  /** 다이어프램·씰 누설 [bar] — 운전 중 누설 감지 포트 압력 상승분 */
+  'compressor.sealLeakBar': { classKey: 'h2.compressor', baseline: 0 },
+  /** 공기 필터 막힘 [비율] — 같은 유량에 블로워 전력 × (1 + 값) */
+  'blower.filterClog': { classKey: 'fc.blower', baseline: 0 },
 });
 
 export type DegradationParam = keyof typeof DEGRADATION_PARAMS;
@@ -86,6 +107,12 @@ export const extraRateHook =
   (startMs: number, endMs: number, extraRate: number): DegradationHook =>
   (tMs, baseline) =>
     tMs >= startMs && tMs < endMs ? baseline + extraRate : baseline;
+
+/** 수준 hook: [startMs, endMs) 동안 rampMs에 걸쳐 기본값 + magnitude까지 오르고, endMs부터 기본값으로 돌아간다 (부품 교체로 회복). */
+export const levelRampUntilHook =
+  (startMs: number, rampMs: number, magnitude: number, endMs: number): DegradationHook =>
+  (tMs, baseline) =>
+    tMs >= endMs ? baseline : baseline + magnitude * rampFraction(tMs, startMs, rampMs);
 
 /** 율 hook: 시작일부터 기본값 대신 rate를 쓴다 (운전시간 열화율처럼 전체 기울기를 지정할 때). */
 export const rateFromHook =

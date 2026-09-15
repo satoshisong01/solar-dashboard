@@ -15,7 +15,7 @@ import { dqAssetCount, dqFindingsAt, prepareDq, type PreparedDq } from './dq';
 import { assetSeriesFor } from './memory-series';
 import { detectionOf, injectionMagnitude, isEvalDetector, tallyOutcomes } from './records';
 import type { DetectorOutcome } from '@/lib/analytics/pipeline/types';
-import { EVAL_DETECTOR_CLASS, EVAL_DETECTOR_IDS, type CheckpointStatus, type DetectionRecord, type EvalDetectorId, type EvidenceWindows, type InjectionResult, type SiteJobResult } from './types';
+import { EVAL_DETECTOR_CLASS, EVAL_DETECTOR_IDS, type CheckpointStatus, type DetectionRecord, type EvalDetectorId, type EvidenceWindows, type InjectionResult, type RelatedWindow, type SiteJobResult } from './types';
 
 /** 랙 경로 → 시간 평균 참 SOH [ts, soh] (용량 탐지 크기 참값용. 탐지기에는 넘기지 않는다) */
 export type HourlySoh = Readonly<Record<string, readonly (readonly [ts: number, soh: number])[]>>;
@@ -173,6 +173,17 @@ function injectionResults(ctx: InjectionContext, injection: InjectionTruth): Inj
   });
 }
 
+/** 정답의 부수 탐지기 → 주입 설비와 하위 설비 id 구간 */
+export function relatedWindowsOf(site: EvalSite, injections: readonly InjectionTruth[]): RelatedWindow[] {
+  return injections.flatMap((injection) => {
+    const path = injection.assetPath;
+    const detectors = injection.relatedDetectors ?? [];
+    if (path === null || detectors.length === 0) return [];
+    const assetIds = [...site.byPath.entries()].filter(([p]) => p === path || p.startsWith(`${path}/`)).map(([, a]) => a.id);
+    return detectors.map((detectorId) => ({ detectorId, assetIds, startTs: injection.startTs, endTs: injection.endTs }));
+  });
+}
+
 export function evaluatePreparedJob(prepared: PreparedJob, options: EvaluateOptions = {}): SiteJobResult {
   const clock = options.now ?? (() => performance.now());
   const { job } = prepared;
@@ -196,6 +207,7 @@ export function evaluatePreparedJob(prepared: PreparedJob, options: EvaluateOpti
     applicableAssets: Object.fromEntries(EVAL_DETECTOR_IDS.map((id) => [id, id === 'dq.gap_flatline' ? dqAssetCount(prepared.dq) : index.assetsOfClass(EVAL_DETECTOR_CLASS[id]).length])),
     detections,
     injections,
+    related: relatedWindowsOf(site, prepared.truth.injections),
     controls: prepared.truth.controls,
     tallies: tallyOutcomes(runs.flatMap((r) => r.outcomes)),
     capacityStatuses: capacityStatusesOf(runs),

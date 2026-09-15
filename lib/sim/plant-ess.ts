@@ -98,6 +98,7 @@ export function stepEss(ess: EssUnit, commandAcKw: number, room: RoomClimate, ct
       capacityFadePerDay: ctx.degradation.value('battery.capacityFadePerDay', rack.code, ctx.tMs),
       cellImbalance: ctx.degradation.value('battery.cellImbalance', rack.code, ctx.tMs),
       extraCellSpreadV: ctx.degradation.value('battery.cellSpreadMv', rack.code, ctx.tMs) / 1000,
+      resistanceGrowth: ctx.degradation.value('battery.resistanceGrowth', rack.code, ctx.tMs),
       dtS: ctx.dtS,
     });
     return { ...rack, state: step.state, last: step };

@@ -5,7 +5,7 @@ import type { InjectionTruth } from '../truth';
 import { evalSite } from './assets';
 import { selectPlans, siteJobs, type SiteJob } from './jobs';
 import { detectionOf, evidenceWindows, injectionMagnitude, tallyOutcomes } from './records';
-import { evaluatePreparedJob, prepareSiteJob } from './replay';
+import { evaluatePreparedJob, prepareSiteJob, relatedWindowsOf } from './replay';
 import { capacityAvailability, socLimitControlScore } from './availability';
 import { evaluateGates } from './scorecard';
 import { scoreAll, scoreAtLeast, scoreDetector } from './score';
@@ -15,12 +15,16 @@ const DAY = 86_400_000;
 const T0 = Date.parse('2026-01-01T00:00:00+09:00');
 
 describe('평가 잡 분해', () => {
-  it('사이트마다 같은 시드·시나리오는 한 잡: 시드 3 × (SIM-A 5 + SIM-B 5 + SIM-C 1) = 33', () => {
+  it('사이트마다 같은 시드·시나리오는 한 잡: 시드 3 × P2(SIM-A 5 + SIM-B 5 + SIM-C 1) + 시드 3 × P3(SIM-A 4 + SIM-B 10 + SIM-C 1) = 78', () => {
     const jobs = siteJobs(evalRunPlans());
-    expect(jobs).toHaveLength(33);
-    const control = jobs.filter((j) => j.siteCode === 'SIM-C');
+    expect(jobs).toHaveLength(78);
+    const p2Jobs = jobs.filter((j) => j.runIds.every((id) => !id.includes('-p3-')));
+    expect(p2Jobs).toHaveLength(33);
+    const control = p2Jobs.filter((j) => j.siteCode === 'SIM-C');
     expect(control.map((j) => j.runIds.length)).toEqual([5, 5, 5]);
     expect(control.every((j) => j.scenarios.length === EVAL_PRESET.controls.length)).toBe(true);
+    const p3Control = jobs.filter((j) => j.siteCode === 'SIM-C' && j.runIds.some((id) => id.includes('-p3-')));
+    expect(p3Control.map((j) => j.runIds.length)).toEqual([EVAL_PRESET.p3.runs, EVAL_PRESET.p3.runs, EVAL_PRESET.p3.runs]);
     expect(jobs.find((j) => j.id === 's101-SIM-A-3')?.scenarios.map((s) => s.kind)).toEqual(['fault.battery_capacity_fade', 'fault.inverter_efficiency_drop', 'fault.cell_imbalance', 'dq.stuck_sensor', 'dq.sample_loss']);
     expect(jobs.find((j) => j.id === 's101-SIM-B-5')?.scenarios.map((s) => s.kind)).toEqual(['fault.battery_capacity_fade']);
   });
@@ -69,6 +73,7 @@ function job(overrides: Partial<SiteJobResult> = {}): SiteJobResult {
     // 설비 1: 주입 전 오탐 1건(21일째 점검) + 주입 후 탐지 / 설비 2: 연속 두 점검 오탐 1건 + 떨어진 오탐 1건
     detections: [detection(28, 1), detection(56, 1), detection(63, 1), detection(35, 2), detection(42, 2), detection(84, 2)],
     injections: [hit, { ...hit, injection: injection({ params: { totalPct: 3, days: 30 } }), magnitude: 3, firstDetectionTs: null, finalEffect: null, trueEffect: null }],
+    related: [],
     controls: [],
     tallies: [],
     capacityStatuses: [],
@@ -93,6 +98,18 @@ describe('스코어', () => {
       [5, 1, 1],
     ]);
     expect(scoreAtLeast([job()], 'ess.capacity_fade', 5)).toMatchObject({ injections: 1, recall: 1, medianDelayDays: 18 });
+  });
+
+  it('다른 탐지기 대상 주입의 부수 탐지 구간(related)에 든 finding은 오탐으로 세지 않는다', () => {
+    const base = job();
+    const excused = job({ related: [{ detectorId: 'ess.capacity_fade', assetIds: [2], startTs: T0 + 30 * DAY, endTs: T0 + 80 * DAY }] });
+    // 설비 2의 35·42일 연속 오탐은 구간 안, 84일 오탐은 끝 + 허용 7일 안 → 모두 빠진다. 설비 1의 28일 오탐은 설비가 달라 남는다
+    expect(scoreDetector([base], 'ess.capacity_fade').fp).toBe(3);
+    expect(scoreDetector([excused], 'ess.capacity_fade').fp).toBe(1);
+    const site = evalSite('SIM-A');
+    const windows = relatedWindowsOf(site, [injection({ assetPath: 'SIM-A/PV1/INV02', relatedDetectors: ['pv.inverter_peer'] }), injection()]);
+    const subtree = ['SIM-A/PV1/INV02', 'SIM-A/PV1/INV02/MPPT1', 'SIM-A/PV1/INV02/MPPT2'].map((path) => site.byPath.get(path)?.id);
+    expect(windows).toEqual([{ detectorId: 'pv.inverter_peer', assetIds: subtree, startTs: T0 + 30 * DAY, endTs: T0 + 100 * DAY }]);
   });
 
   it('게이트: 평가할 주입이 없으면 실패로 본다', () => {
@@ -153,6 +170,8 @@ describe('평가 기록', () => {
     expect(evidenceWindows({ reference: { from: 1 } })).toBeNull();
     expect(injectionMagnitude(injection({ kind: 'fault.elz_stack_degradation', params: { uvPerH: 20 } }))).toEqual({ magnitude: 20, unit: 'µV/h' });
     expect(injectionMagnitude(injection({ kind: 'fault.inverter_efficiency_drop', params: { pctPoints: 2 } }))).toEqual({ magnitude: 2, unit: '%p' });
+    expect(injectionMagnitude(injection({ kind: 'fault.tank_leak', params: { kgPerDay: 0.05 } }))).toEqual({ magnitude: 0.05, unit: 'kg/일' });
+    expect(injectionMagnitude(injection({ kind: 'fault.elz_sec_rise', params: { pct: 6, mode: 'stack' } }))).toEqual({ magnitude: 6, unit: '%' });
     const base: DetectorOutcome = { detectorId: 'el.voltage_rise', detectorVersion: '1', siteId: 1, assetId: 5, status: 'insufficient', findings: [], reason: '누적 운전시간 범위 부족: 12 h (100 h 필요)', configVersions: [] };
     const tally = tallyOutcomes([base, { ...base, reason: '누적 운전시간 범위 부족: 40 h (100 h 필요)' }, { ...base, status: 'ok', reason: null }]).find((t) => t.detectorId === 'el.voltage_rise');
     expect(tally).toMatchObject({ ok: 1, insufficient: 2, error: 0, topReasons: [['누적 운전시간 범위 부족: # h (# h 필요)', 2]] });

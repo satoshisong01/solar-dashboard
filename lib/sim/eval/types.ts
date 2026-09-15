@@ -70,6 +70,14 @@ export interface InjectionResult {
   readonly trueEffect: number | null;
 }
 
+/** 주입 고장이 함께 일으킬 수 있는 다른 탐지기의 finding 구간 (주입 설비와 하위 설비, 오탐으로 세지 않는다) */
+export interface RelatedWindow {
+  readonly detectorId: string;
+  readonly assetIds: readonly number[];
+  readonly startTs: number;
+  readonly endTs: number | null;
+}
+
 /** 점검 시각 하나에서 설비 단위 탐지기 한 대의 판정 상태 (ess.capacity_fade 판정 가능 기간 집계용) */
 export interface CheckpointStatus {
   readonly ts: number;
@@ -97,6 +105,7 @@ export interface SiteJobResult {
   readonly applicableAssets: Readonly<Record<string, number>>;
   readonly detections: readonly DetectionRecord[];
   readonly injections: readonly InjectionResult[];
+  readonly related: readonly RelatedWindow[];
   readonly controls: readonly ControlEventTruth[];
   readonly tallies: readonly OutcomeTally[];
   /** ess.capacity_fade 점검 시각별 설비 판정 상태 */

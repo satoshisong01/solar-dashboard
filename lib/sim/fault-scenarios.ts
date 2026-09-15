@@ -82,25 +82,25 @@ export interface ResolvedFault {
   readonly params: Readonly<Record<string, number>>;
 }
 
-function requireRange(value: number, label: string, min: number, max: number): number {
+export function requireRange(value: number, label: string, min: number, max: number): number {
   if (!Number.isFinite(value) || value <= min || value > max) throw new Error(`${label}은(는) ${min} 초과 ${max} 이하여야 합니다: ${value}`);
   return value;
 }
 
-function startMsOf(originMs: number, startDay: number | undefined, label: string): number {
+export function startMsOf(originMs: number, startDay: number | undefined, label: string): number {
   const day = startDay ?? 0;
   if (!Number.isFinite(day) || day < 0) throw new Error(`${label} startDay는 0 이상이어야 합니다: ${day}`);
   return originMs + day * MS_PER_DAY;
 }
 
-function assetOfClass(site: SiteDef, code: string, param: DegradationParam, label: string): AssetDef {
+export function assetOfClass(site: SiteDef, code: string, param: DegradationParam, label: string): AssetDef {
   const classKey = DEGRADATION_PARAMS[param].classKey;
   const asset = site.assets.find((a) => a.code === code && a.classKey === classKey);
   if (!asset) throw new Error(`${label}: ${site.code}에 ${classKey} 설비 ${code}이(가) 없습니다`);
   return asset;
 }
 
-const hookFor = (site: SiteDef, param: DegradationParam, asset: string, value: DegradationHook): FaultScenario => ({ kind: 'fault', site: site.code, param, asset, value });
+export const hookFor = (site: SiteDef, param: DegradationParam, asset: string, value: DegradationHook): FaultScenario => ({ kind: 'fault', site: site.code, param, asset, value });
 
 function resolveCapacityFade(site: SiteDef, fault: BatteryCapacityFadeFault, originMs: number): ResolvedFault {
   const param = 'battery.capacityFadePerDay';

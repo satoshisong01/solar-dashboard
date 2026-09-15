@@ -117,17 +117,17 @@ export const CONTROL_KINDS: readonly ControlKind[] = [
 export const isControl = (scenario: { readonly kind: string }): scenario is ControlScenario =>
   (CONTROL_KINDS as readonly string[]).includes(scenario.kind);
 
-function dayMs(originMs: number, day: number, label: string): number {
+export function dayMs(originMs: number, day: number, label: string): number {
   if (!Number.isInteger(day) || day < 0) throw new Error(`${label} 일수는 0 이상의 정수여야 합니다: ${day}`);
   return originMs + day * MS_PER_DAY;
 }
 
-const weekOf = (originMs: number, startDay: number, days: number, label: string): TimeWindow => {
+export const weekOf = (originMs: number, startDay: number, days: number, label: string): TimeWindow => {
   const startMs = dayMs(originMs, startDay, label);
   return { startMs, endMs: startMs + days * MS_PER_DAY };
 };
 
-function requireClass(site: SiteDef, classKey: string, label: string): void {
+export function requireClass(site: SiteDef, classKey: string, label: string): void {
   if (!site.assets.some((a) => a.classKey === classKey)) throw new Error(`${label}: ${site.code}에 ${classKey} 설비가 없습니다`);
 }
 

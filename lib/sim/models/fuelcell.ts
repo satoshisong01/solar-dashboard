@@ -1,10 +1,12 @@
 // PEM 연료전지(순수소) 근사 모델 (순수 함수).
-// 분극곡선 V = OCV − 활성화 − 저항 − 농도손실 − 운전시간 감쇠, 패러데이 수소 소비, 블로워 P ∝ Q³/효율(마모),
+// 분극곡선 V = OCV − 활성화 − 저항 − 농도손실 − 운전시간 감쇠, 패러데이 수소 소비,
+// 블로워 P ∝ Q³ × (흡입 공기 온도/20 °C)² × (1 + 필터 막힘) / (1 − 마모) (같은 질량유량이면 더운 공기일수록 체적유량이 커진다),
 // 냉각수 입출구 온도, 애노드 퍼지 카운트, 기동·정지.
 import { clamp, lagToward, SECONDS_PER_HOUR } from '../math';
 import {
   FARADAY_C_PER_MOL,
   faradayH2KgPerH,
+  KELVIN_OFFSET,
   O2_MASS_FRACTION_IN_AIR,
   O2_MOLAR_MASS_KG_PER_MOL,
   solveIncreasing,
@@ -16,6 +18,8 @@ const COOLANT_CP_KJ_PER_KG_K = 3.6; // 글리콜 혼합 냉각수
 const COOLANT_DENSITY_KG_PER_L = 1.03;
 /** 발열 중 냉각수로 빠지는 비율 (나머지는 배기·복사) */
 const COOLANT_HEAT_SHARE = 0.7;
+/** 블로워 정격 전력의 기준 흡입 공기 온도 */
+const BLOWER_REFERENCE_C = 20;
 
 export type FuelCellMode = 'off' | 'starting' | 'running' | 'stopping';
 
@@ -74,7 +78,16 @@ export interface FuelCellInput {
   readonly voltageDecayUvPerH: number;
   /** 블로워 마모 (0 = 신품, 0.2 = 같은 유량에 전력 1/(1−0.2)배) */
   readonly blowerWear: number;
+  /** 공기 필터 막힘 (0 = 깨끗함, 0.25 = 같은 유량에 전력 1.25배). 생략 0 */
+  readonly blowerFilterClog?: number;
   readonly dtS: number;
+}
+
+/** 블로워 전력에 영향을 주는 조건 */
+export interface BlowerCondition {
+  readonly wear: number;
+  readonly filterClog: number;
+  readonly ambientC: number;
 }
 
 export interface FuelCellStep {
@@ -135,12 +148,13 @@ export function airFlowKgH(params: FuelCellParams, currentA: number): number {
   return Math.max(stoichFlow(currentA), params.minAirFraction * stoichFlow(params.ratedCurrentA));
 }
 
-/** 블로워 전력 [kW] = 기저 + 정격 × (Q/Q_rated)³ / (1 − 마모) */
-export function blowerPowerKw(params: FuelCellParams, flowKgH: number, wear: number): number {
+/** 블로워 전력 [kW] = 기저 + 정격 × (Q/Q_rated)³ × (T_흡입/T_기준)² × (1 + 필터 막힘) / (1 − 마모) */
+export function blowerPowerKw(params: FuelCellParams, flowKgH: number, wear: number, filterClog = 0, ambientC = BLOWER_REFERENCE_C): number {
   if (flowKgH <= 0) return 0;
   const ratedFlow = airFlowKgH(params, params.ratedCurrentA);
   const efficiencyFactor = 1 - clamp(wear, 0, 0.9);
-  return params.blowerBaseKw + ((params.blowerRatedKw * 0.7 * (flowKgH / ratedFlow) ** 3) / efficiencyFactor);
+  const densityFactor = ((ambientC + KELVIN_OFFSET) / (BLOWER_REFERENCE_C + KELVIN_OFFSET)) ** 2;
+  return params.blowerBaseKw + (params.blowerRatedKw * 0.7 * (flowKgH / ratedFlow) ** 3 * densityFactor * (1 + Math.max(0, filterClog))) / efficiencyFactor;
 }
 
 interface FuelCellPoint {
@@ -152,12 +166,12 @@ interface FuelCellPoint {
   readonly acKw: number;
 }
 
-function pointAt(params: FuelCellParams, currentA: number, decayV: number, wear: number): FuelCellPoint {
+function pointAt(params: FuelCellParams, currentA: number, decayV: number, blower: BlowerCondition): FuelCellPoint {
   const cell = polarizationCellVoltageV(params, currentA / params.activeAreaCm2, decayV);
   const stackVoltageV = cell * params.cellCount;
   const dcKw = (stackVoltageV * Math.max(0, currentA)) / 1000;
   const flow = airFlowKgH(params, currentA);
-  const blowerKw = blowerPowerKw(params, flow, wear);
+  const blowerKw = blowerPowerKw(params, flow, blower.wear, blower.filterClog, blower.ambientC);
   const acKw = currentA > 0 ? dcKw * params.inverterEfficiency - blowerKw - params.bopKw : 0;
   return { cellVoltageV: cell, stackVoltageV, dcKw, airFlowKgH: flow, blowerKw, acKw };
 }
@@ -178,9 +192,12 @@ function nextMode(params: FuelCellParams, state: FuelCellState, input: FuelCellI
   }
 }
 
+const blowerOf = (input: FuelCellInput): BlowerCondition => ({ wear: input.blowerWear, filterClog: input.blowerFilterClog ?? 0, ambientC: input.ambientC });
+
 function modeCurrentA(params: FuelCellParams, state: FuelCellState, input: FuelCellInput): number {
+  const blower = blowerOf(input);
   const solveFor = (acKw: number) =>
-    solveIncreasing((I) => pointAt(params, I, state.decayV, input.blowerWear).acKw, acKw, 1, params.ratedCurrentA);
+    solveIncreasing((I) => pointAt(params, I, state.decayV, blower).acKw, acKw, 1, params.ratedCurrentA);
   const minKw = params.minLoadFraction * params.ratedAcKw;
   if (state.mode === 'running') return solveFor(clamp(input.command.acKw, minKw, params.ratedAcKw));
   if (state.mode === 'starting') return solveFor(minKw) * clamp((state.modeElapsedS + 1) / params.startS, 0.1, 1);
@@ -190,7 +207,7 @@ function modeCurrentA(params: FuelCellParams, state: FuelCellState, input: FuelC
 export function stepFuelCell(params: FuelCellParams, state: FuelCellState, input: FuelCellInput): FuelCellStep {
   const moded = nextMode(params, state, input);
   const currentA = modeCurrentA(params, moded, input);
-  const point = pointAt(params, currentA, moded.decayV, input.blowerWear);
+  const point = pointAt(params, currentA, moded.decayV, blowerOf(input));
   const dtH = input.dtS / SECONDS_PER_HOUR;
   const loadFraction = currentA / params.ratedCurrentA;
   const h2KgPerH = faradayH2KgPerH(params.cellCount, currentA) / params.hydrogenUtilization;

@@ -1,4 +1,7 @@
 // 플랜트 조립: 태양광 인버터·MPPT, 기상관측, 계통 계량기.
+// 오염 두 층: 가벼운 먼지(기본 누적, 비가 오면 씻김)와 끈적한 오염층(P3 고장, 강한 비·세척에서만 씻김).
+// 방열판 온도 = 외기 + 5 + 30 × 부하율 × (1 + 냉각 성능 저하). 70 °C를 넘으면 90 °C에서 0이 되도록 출력을 선형으로 줄인다(온도 저감).
+// 건강한 인버터는 평년 기상에서 방열판 최고 약 63 °C라 저감이 일어나지 않는다(1년·시드 2개 실측).
 import type { SiteDef } from '@/db/seed/types';
 import { EVENT_CODE, opStateCode, operationEvent, type SimEvent } from './events';
 import { clamp, MS_PER_MINUTE, SECONDS_PER_DAY, SECONDS_PER_HOUR } from './math';
@@ -13,6 +16,13 @@ const GRID_VOLTAGE_V = 22_900;
 const TRIPS_PER_INVERTER_YEAR = 4;
 const DAYLIGHT_SECONDS_PER_YEAR = 365 * 12 * SECONDS_PER_HOUR;
 const SOILING_MAX = 0.15;
+const STICKY_SOILING_MAX = 0.5;
+const HEATSINK_OFFSET_C = 5;
+const HEATSINK_RISE_C = 30;
+/** 온도 저감 시작 방열판 온도 [°C] (제조사 70~85 °C 범위의 하단, 추정) */
+const DERATE_START_C = 70;
+/** 저감 시작부터 출력 0까지의 온도 폭 [°C] */
+const DERATE_SPAN_C = 20;
 /** 준공 후 누적 발전량 추정용 일평균 발전시간 [kWh/kWp/일] */
 const SPECIFIC_YIELD_KWH_PER_KWP_DAY = 3.4;
 
@@ -24,6 +34,10 @@ export interface InverterUnit {
   readonly mpptShares: readonly number[];
   readonly energyKwh: number;
   readonly soiling: number;
+  /** 끈적한 오염층 손실 비율 */
+  readonly stickySoiling: number;
+  /** 이번 스텝 방열판 온도 상승 계수 [°C/부하율] */
+  readonly heatsinkRiseC: number;
   readonly trippedUntilMs: number | null;
   readonly op: InverterOperatingPoint;
 }
@@ -55,10 +69,23 @@ export function createInverters(init: InitContext): readonly InverterUnit[] {
       mpptShares: weights.map((w) => w / total),
       energyKwh: init.daysInService * SPECIFIC_YIELD_KWH_PER_KWP_DAY * rating.dcKwp * (1 + 0.01 * init.rng.gaussian()),
       soiling: Math.min(SOILING_MAX, soilingRate * 5),
+      stickySoiling: 0,
+      heatsinkRiseC: HEATSINK_RISE_C,
       trippedUntilMs: null,
       op: simulateInverter(rating, { poa: 0, ambientC: 20, soiling: 0, efficiencyDrop: 0, limitPct: 100, tripped: false }),
     };
   });
+}
+
+/** 두 오염층을 곱으로 합친 손실 비율 (끈적한 층이 없으면 가벼운 층 값을 그대로 쓴다) */
+const combinedSoiling = (light: number, sticky: number): number => (sticky > 0 ? 1 - (1 - light) * (1 - sticky) : light);
+
+/** 방열판이 저감 시작 온도를 넘는 부하면, 방열판 온도와 저감 곡선이 만나는 평형 부하율로 출력 제한 [%] */
+function thermalLimitPct(ambientC: number, riseC: number, loadFraction: number): number {
+  const base = ambientC + HEATSINK_OFFSET_C;
+  if (base + riseC * loadFraction <= DERATE_START_C) return 100;
+  const load = (1 - (base - DERATE_START_C) / DERATE_SPAN_C) / (1 + riseC / DERATE_SPAN_C);
+  return 100 * clamp(load, 0, 1);
 }
 
 function stepInverter(unit: InverterUnit, ctx: StepContext, rng: Rng, events: SimEvent[]): InverterUnit {
@@ -69,12 +96,16 @@ function stepInverter(unit: InverterUnit, ctx: StepContext, rng: Rng, events: Si
   if (recovered) events.push(operationEvent(unit.code, tMs, EVENT_CODE.INVERTER_RESTART, 'info', '인버터 재기동'));
   const stillTripped = unit.trippedUntilMs !== null && !recovered;
 
+  const cleaned = ctx.p3.pvCleaning;
   const soilingRate = degradation.value('pv.soilingPerDay', unit.code, tMs);
-  const soiling = weather.raining ? 0 : Math.min(SOILING_MAX, unit.soiling + (soilingRate * dtS) / SECONDS_PER_DAY);
+  const soiling = weather.raining || cleaned ? 0 : Math.min(SOILING_MAX, unit.soiling + (soilingRate * dtS) / SECONDS_PER_DAY);
+  const stickyRate = degradation.value('pv.stickySoilingPerDay', unit.code, tMs);
+  const stickySoiling = weather.heavyRain || cleaned ? 0 : Math.min(STICKY_SOILING_MAX, unit.stickySoiling + (stickyRate * dtS) / SECONDS_PER_DAY);
+  const heatsinkRiseC = HEATSINK_RISE_C * (1 + degradation.value('inverter.coolingLoss', unit.code, tMs));
   const conditions: InverterConditions = {
     poa: weather.poa,
     ambientC: weather.ambientC,
-    soiling,
+    soiling: combinedSoiling(soiling, stickySoiling),
     efficiencyDrop: degradation.value('inverter.efficiencyDrop', unit.code, tMs),
     limitPct: ctx.pvLimitPct,
     tripped: stillTripped,
@@ -84,9 +115,11 @@ function stepInverter(unit: InverterUnit, ctx: StepContext, rng: Rng, events: Si
   const tripsNow = !stillTripped && normal.mode === 'running' && tripDraw < tripProbability;
   if (tripsNow) events.push(operationEvent(unit.code, tMs, EVENT_CODE.INVERTER_TRIP, 'major', '계통 이상 감지로 인버터 트립'));
 
-  const op = tripsNow ? simulateInverter(unit.rating, { ...conditions, tripped: true }) : normal;
+  const limitPct = thermalLimitPct(weather.ambientC, heatsinkRiseC, normal.acKw / unit.rating.acKw);
+  const running = limitPct < conditions.limitPct ? simulateInverter(unit.rating, { ...conditions, limitPct }) : normal;
+  const op = tripsNow ? simulateInverter(unit.rating, { ...conditions, tripped: true }) : running;
   const trippedUntilMs = tripsNow ? tMs + (20 + 20 * durationDraw) * MS_PER_MINUTE : stillTripped ? unit.trippedUntilMs : null;
-  return { ...unit, soiling, trippedUntilMs, op, energyKwh: unit.energyKwh + (op.acKw * dtS) / SECONDS_PER_HOUR };
+  return { ...unit, soiling, stickySoiling, heatsinkRiseC, trippedUntilMs, op, energyKwh: unit.energyKwh + (op.acKw * dtS) / SECONDS_PER_HOUR };
 }
 
 export function stepInverters(units: readonly InverterUnit[], ctx: StepContext, rng: Rng): InverterStepResult {
@@ -112,7 +145,7 @@ export function inverterReadings(units: readonly InverterUnit[], ctx: StepContex
         'ac.voltage': acVoltageV,
         'ac.current': (op.acKw * 1000) / (Math.sqrt(3) * acVoltageV),
         'ac.frequency': ctx.gridFrequencyHz,
-        'heatsink.temp': weather.ambientC + 5 + 30 * load,
+        'heatsink.temp': weather.ambientC + HEATSINK_OFFSET_C + unit.heatsinkRiseC * load,
         'insulation.resistance': insulationKohm,
         'ac.power.limit': ctx.pvLimitPct,
         'op.state': opStateCode(op.mode),

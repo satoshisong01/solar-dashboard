@@ -1,5 +1,6 @@
 // 사이트 플랜트 조립에 쓰는 공용 타입과 도우미.
 import type { AssetDef, SiteDef } from '@/db/seed/types';
+import type { P3StepControls } from './control-scenarios-p3';
 import type { Rng } from './rng';
 import type { DegradationResolver } from './scenarios';
 import type { WeatherSample } from './weather';
@@ -23,6 +24,8 @@ export interface StepContext {
   readonly gridVoltageFactor: number;
   /** 인버터 출력 제한 설정값 [%] (출력제어 중이 아니면 100) */
   readonly pvLimitPct: number;
+  /** P3 대조군·이벤트 조건 (용기 일교차 확대·압축기 흡입 압력·모듈 세척 등) */
+  readonly p3: P3StepControls;
 }
 
 export interface InitContext {

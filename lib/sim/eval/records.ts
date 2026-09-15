@@ -58,6 +58,23 @@ export function injectionMagnitude(injection: InjectionTruth): { magnitude: numb
     case 'dq.stuck_sensor':
     case 'dq.sample_loss':
       return { magnitude: num('durationHours'), unit: 'h' };
+    case 'fault.tank_leak':
+      return { magnitude: num('kgPerDay'), unit: 'kg/일' };
+    case 'fault.flowmeter_drift':
+      return { magnitude: num('pctPerMonth'), unit: '%/월' };
+    case 'fault.elz_sec_rise':
+    case 'fault.compressor_valve_wear':
+    case 'fault.fc_air_filter_clog':
+    case 'fault.rack_resistance_growth':
+      return { magnitude: num('pct'), unit: '%' };
+    case 'fault.compressor_leak_seal':
+      return { magnitude: num('rateBarPerDay'), unit: 'bar/일' };
+    case 'fault.fc_blower_wear':
+      return { magnitude: num('pctPerMonth'), unit: '%/월' };
+    case 'fault.pv_soiling':
+      return { magnitude: num('pctPerDay'), unit: '%/일' };
+    case 'fault.inverter_fan_failure':
+      return { magnitude: num('coolingLoss'), unit: '냉각 저하 배율' };
     default:
       return { magnitude: Number.NaN, unit: '' };
   }

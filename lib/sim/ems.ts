@@ -2,7 +2,9 @@
 // SIM-A(pv_ess): PV → 보조부하 → 여유분 ESS 충전(SOC 90% 상한) → 계통 수출, 18~22시 ESS 방전.
 // SIM-B/C(integrated): PV → 보조부하 → 전해조(최소부하 이상일 때, 여유 부족 시 ESS 보조 후 정지)
 //   → ESS 충전 → 수출. 저장 압력 상한이면 전해조 정지, 17~22시 연료전지 150 kW(저장 하한 이상), 야간 ESS 방전.
-// 대조군 조건: 충전 SOC 상한 변경(socMax), 연료전지 잦은 기동·정지(fcCycling).
+// 대조군 조건: 충전 SOC 상한 변경(socMax), 연료전지 잦은 기동·정지(fcCycling),
+//   보유 중 짧은 충전(elzTopoff: 여유전력과 무관하게 전해조 최소부하 운전 — 심야 계통 전력).
+// 저장뱅크 정지 보유: 연료전지(17~22시)가 끝나고 다음 날 전해조가 기동할 때까지 압축기·연료전지가 모두 멈춘다.
 import type { ElectrolyzerMode } from './models/electrolyzer';
 
 export type SiteLayout = 'pv_ess' | 'integrated';
@@ -62,6 +64,8 @@ export interface EmsInput {
   readonly socMax?: number;
   /** 연료전지 잦은 기동·정지 일정으로 운전 */
   readonly fcCycling?: boolean;
+  /** 보유 중 짧은 충전: 전해조를 최소부하로 운전 (저장 만충·인터록이면 무시) */
+  readonly elzTopoff?: boolean;
 }
 
 export interface EmsMemory {
@@ -157,7 +161,11 @@ function dispatchIntegrated(input: EmsInput, memory: EmsMemory, h2: HydrogenView
   const storageFull = memory.storageFull ? h2.storagePressureBar > s.storageResumeBar : h2.storagePressureBar >= s.storageStopBar;
   const fcBlocked = memory.fcBlocked ? h2.storagePressureBar < s.fcStartBar : h2.storagePressureBar < s.fcStopBar;
   const surplus = input.pvAcKw - input.auxKw - h2.compressorKw;
-  const elzPlan = planElectrolyzer(input, h2, memory, surplus, !storageFull && !input.safetyLockout);
+  const allowed = !storageFull && !input.safetyLockout;
+  const elzPlan: ElectrolyzerPlan =
+    input.elzTopoff === true && allowed
+      ? { command: { run: true, acKw: h2.elzMinKw }, supportKw: 0, startTimerS: 0, supportS: 0 }
+      : planElectrolyzer(input, h2, memory, surplus, allowed);
 
   const fcScheduled = input.fcCycling
     ? inWindow(input.localHour, s.fcCycling.startH, s.fcCycling.endH) && input.localHour % 1 < s.fcCycling.onFractionOfHour

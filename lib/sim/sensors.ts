@@ -39,6 +39,16 @@ const DEFAULT_NOISE: NoiseSpec = { relative: 0.002, absolute: 0 };
 /** 셀 전압 통계(max/min/avg)는 서로 순서가 뒤집히지 않도록 0.2 mV 수준으로 작게 둔다 */
 const CELL_VOLTAGE_NOISE: NoiseSpec = { relative: 0.000_05, absolute: 0 };
 
+/**
+ * 저장용기 압력·온도 센서 잡음 (1σ): 압력 전송기 ±0.1% FS(FS 500 bar → 0.5 bar), 온도 ±0.3 °C.
+ * 용기별 고정 교정 오프셋은 plant-hydrogen이 따로 더한다.
+ */
+export const TANK_SENSOR_NOISE = Object.freeze({ pressureFullScaleBar: 500, pressurePctFs: 0.1, tempC: 0.3 });
+const TANK_NOISE: Readonly<Record<string, NoiseSpec>> = {
+  'tank.pressure': { relative: 0, absolute: (TANK_SENSOR_NOISE.pressureFullScaleBar * TANK_SENSOR_NOISE.pressurePctFs) / 100 },
+  'tank.temp': { relative: 0, absolute: TANK_SENSOR_NOISE.tempC },
+};
+
 /** 원본 단위별 소수 자릿수 (정규 단위와 다를 때) */
 const SOURCE_UNIT_DECIMALS: Readonly<Record<string, number>> = { mV: 1, 'MΩ': 3, MPa: 3, K: 2 };
 const QUANTITY_DECIMALS: Readonly<Record<string, number>> = {
@@ -80,6 +90,8 @@ export function toRawValue(point: Pick<PointDef, 'scale' | 'valueOffset'>, canon
 function noiseSpecFor(metric: MetricDef): NoiseSpec {
   if (metric.valueKind !== 'gauge') return NO_NOISE;
   if (metric.key.startsWith('cell.voltage.')) return CELL_VOLTAGE_NOISE;
+  const tank = TANK_NOISE[metric.key];
+  if (tank) return tank;
   return QUANTITY_NOISE[metric.quantity] ?? (metric.quantity === 'ratio' || metric.quantity === 'state_of_health' ? NO_NOISE : DEFAULT_NOISE);
 }
 

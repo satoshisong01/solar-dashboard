@@ -5,7 +5,7 @@ import { QUALITY } from '@/lib/ingest/quality';
 import type { IngestSeries } from './envelope';
 import { simulate } from './index';
 import { MS_PER_DAY, MS_PER_HOUR } from './math';
-import { DETECTOR_METRICS, detectorPointFilter, pointKey, simulateMemory, type MemorySimulationResult } from './memory';
+import { DETECTOR_METRICS, detectorPointFilter, P3_DETECTOR_METRICS, pointKey, simulateMemory, type MemorySimulationResult } from './memory';
 import type { Scenario } from './scenarios';
 
 const FROM = Date.parse('2026-06-01T00:00:00+09:00');
@@ -107,8 +107,8 @@ describe('simulateMemory — 옵션', () => {
     expect(sent).toBe(24);
   }, 60_000);
 
-  it('탐지기 메트릭 목록은 모두 실제 포인트를 가리킨다', () => {
-    for (const [classKey, metrics] of Object.entries(DETECTOR_METRICS)) {
+  it('탐지기 메트릭 목록(P2·P3)은 모두 실제 포인트를 가리킨다', () => {
+    for (const [classKey, metrics] of [...Object.entries(DETECTOR_METRICS), ...Object.entries(P3_DETECTOR_METRICS)]) {
       for (const metric of metrics) {
         const exists = SIM_SITES.some((s) => s.assets.some((a) => a.classKey === classKey && a.points.some((p) => p.metricKey === metric)));
         expect(exists, `${classKey} ${metric}`).toBe(true);

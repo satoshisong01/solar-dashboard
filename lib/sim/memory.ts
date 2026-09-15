@@ -98,6 +98,26 @@ export const DETECTOR_METRICS: Readonly<Record<string, readonly string[]>> = {
 
 export const detectorPointFilter = (point: MemoryPoint): boolean => DETECTOR_METRICS[point.classKey]?.includes(point.metricKey) ?? false;
 
+/**
+ * 설계 §5.3 P3 탐지기 8종과 체인 원장이 읽는 설비 종류별 메트릭 (메모리 모드 평가용 후보, P2 목록과 합쳐 쓴다).
+ * h2.inventory는 PLC 단순 상태식 추정값이라 참 질량이 아니다(정답 누출 아님).
+ */
+export const P3_DETECTOR_METRICS: Readonly<Record<string, readonly string[]>> = {
+  'h2.storage.tank': ['tank.pressure', 'tank.temp'],
+  'h2.storage.bank': ['valve.open', 'h2.inventory'],
+  'h2.compressor': ['compressor.power', 'compressor.suction.pressure', 'compressor.discharge.pressure', 'compressor.discharge.temp', 'compressor.leak.pressure', 'op.state', 'run.hours'],
+  'h2.elz': ['ac.power', 'h2.flow.mass', 'h2.in.o2', 'op.state'],
+  'h2.elz.rectifier': ['ac.power', 'dc.power', 'rectifier.efficiency'],
+  'h2.elz.stack': ['stack.voltage', 'stack.current', 'stack.temp', 'run.hours'],
+  'fc.plant': ['fc.ac.power', 'fc.h2.consumption', 'h2.pressure', 'purge.count', 'op.state'],
+  'fc.blower': ['blower.power', 'blower.flow'],
+  'pv.inverter': ['ac.power', 'dc.power', 'ac.power.limit', 'heatsink.temp', 'op.state'],
+  'wx.station': ['poa.irradiance', 'ghi.irradiance', 'module.temp', 'ambient.temp'],
+  'ess.rack': ['batt.current', 'batt.voltage', 'batt.soc', 'cell.voltage.max', 'cell.voltage.min', 'cell.temp.avg'],
+};
+
+export const p3DetectorPointFilter = (point: MemoryPoint): boolean => P3_DETECTOR_METRICS[point.classKey]?.includes(point.metricKey) ?? false;
+
 interface SeriesWriter {
   readonly series: MemorySeries;
   readonly scale: number;

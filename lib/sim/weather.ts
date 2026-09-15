@@ -1,6 +1,7 @@
 // 합성 기상: 간이 천문식 태양고도 → Haurwitz 청천 일사 × 운량 AR(1), 계절·일변화 기온, 강우일.
 // 하루(KST) 단위로 시드를 파생하므로 시작 시각이 달라도 같은 날의 날씨는 같다.
-// 대조군 시나리오(한파·흐린 주)는 편차 구간(WeatherWindow)으로 기온·운량을 덮어쓴다.
+// 대조군 시나리오(한파·흐린 주·고온 주·비 오는 주)와 오염 고장의 강우일은 편차 구간(WeatherWindow)으로 기온·운량·강우를 덮어쓴다.
+// 편차 구간의 강우는 '강한 비'(heavyRain)다: 무작위 강우와 달리 끈적한 오염층까지 씻어낸다(plant-pv).
 import {
   clamp,
   edgeRampFraction,
@@ -67,6 +68,8 @@ export interface WeatherSample extends Irradiance {
   readonly cosZenith: number;
   readonly cloud: number;
   readonly raining: boolean;
+  /** 편차 구간이 넣은 강한 비 (결정적 강우 이벤트) */
+  readonly heavyRain: boolean;
   readonly ambientC: number;
   readonly humidityPct: number;
   readonly windMs: number;
@@ -76,11 +79,13 @@ export interface Weather {
   sample(tMs: number): WeatherSample;
 }
 
-/** 기상 편차 구간: 운량 하한과 기온 편차(양끝 rampMs 램프). 겹치면 운량은 최대, 기온 편차는 합. */
+/** 기상 편차 구간: 운량 하한과 기온 편차(양끝 rampMs 램프), 강한 비. 겹치면 운량은 최대, 기온 편차는 합. */
 export interface WeatherWindow extends TimeWindow {
   readonly cloudMin: number;
   readonly ambientDeltaC: number;
   readonly rampMs: number;
+  /** true면 구간 내내 강한 비 (생략하면 비를 넣지 않는다) */
+  readonly rain?: boolean;
 }
 
 /** 간이 천문식: 적위(Cooper), 균시차, 시간각 → 천정각 코사인 */
@@ -226,9 +231,10 @@ export function createWeather(location: SiteLocation, seed: number, tiltDeg = DE
     sample(tMs: number): WeatherSample {
       const day = profileFor(kstDayIndex(tMs));
       const minute = Math.floor((tMs + KST_OFFSET_MS - day.dayIndex * MS_PER_DAY) / MS_PER_MINUTE);
-      const raining = minute >= day.rainStartMin && minute < day.rainEndMin;
-      const baseCloud = raining ? Math.max(day.cloud[minute] ?? 1, 0.92) : (day.cloud[minute] ?? day.cloudMean);
       const active = windows.filter((w) => tMs >= w.startMs && tMs < w.endMs);
+      const heavyRain = active.some((w) => w.rain === true);
+      const raining = heavyRain || (minute >= day.rainStartMin && minute < day.rainEndMin);
+      const baseCloud = raining ? Math.max(day.cloud[minute] ?? 1, 0.92) : (day.cloud[minute] ?? day.cloudMean);
       const cloud = active.reduce((c, w) => Math.max(c, w.cloudMin), baseCloud);
       const deltaC = active.reduce((sum, w) => sum + w.ambientDeltaC * edgeRampFraction(w, tMs, w.rampMs), 0);
 
@@ -249,6 +255,7 @@ export function createWeather(location: SiteLocation, seed: number, tiltDeg = DE
         cosZenith: position.cosZenith,
         cloud,
         raining,
+        heavyRain,
         ambientC,
         humidityPct,
         windMs: day.wind[minute] ?? 2,
