@@ -14,6 +14,8 @@ export interface ChartTheme {
   readonly warn: string;
   readonly crit: string;
   readonly accent: string;
+  /** 범주형 계열 6색 (고정 순서, app/globals.css --chart-series-1..6). 인접 쌍 색각 이상 분리를 검증한 순서라 바꾸지 않는다 */
+  readonly series: readonly string[];
 }
 
 const DARK_QUERY = '(prefers-color-scheme: dark)';
@@ -50,6 +52,7 @@ export function useChartTheme(): ChartTheme | null {
       warn: token('warn'),
       crit: token('crit'),
       accent: token('accent'),
+      series: [1, 2, 3, 4, 5, 6].map((i) => token(`chart-series-${i}`)),
     };
   }, [scheme]);
 }

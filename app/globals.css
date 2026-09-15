@@ -35,6 +35,15 @@
   --crit: #a8321e;
   --crit-fill: #f8ded7;
 
+  /* 차트 범주형 계열 (고정 순서). 인접 쌍 색각 이상 ΔE ≥ 8·정상 시각 ΔE ≥ 15를 흰 표면·다크 표면에서 검증한 순서.
+     흰 표면 대비 3:1 미만 색(3·4·5번)이 있어 이 색을 쓰는 차트는 범례와 표를 함께 둔다. 상태색(ok·warn·crit)과 따로 쓴다. */
+  --chart-series-1: #2a78d6;
+  --chart-series-2: #eb6834;
+  --chart-series-3: #1baf7a;
+  --chart-series-4: #eda100;
+  --chart-series-5: #e87ba4;
+  --chart-series-6: #008300;
+
   --font-body: var(--font-plex-sans), "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   --font-code: var(--font-plex-mono), ui-monospace, "SFMono-Regular", Consolas, monospace;
 }
@@ -66,6 +75,13 @@
     --warn-fill: #322a0e;
     --crit: #f08a74;
     --crit-fill: #3b1b15;
+
+    --chart-series-1: #3987e5;
+    --chart-series-2: #d95926;
+    --chart-series-3: #199e70;
+    --chart-series-4: #c98500;
+    --chart-series-5: #d55181;
+    --chart-series-6: #008300;
   }
 }
 

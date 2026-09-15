@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart, LineChart, ScatterChart, type BarSeriesOption, type LineSeriesOption, type ScatterSeriesOption } from 'echarts/charts';
+import { BarChart, LineChart, ScatterChart, type BarSeriesOption, type LineSeriesOption, type SankeySeriesOption, type ScatterSeriesOption } from 'echarts/charts';
 import {
   DataZoomComponent,
   GridComponent,
@@ -19,13 +19,14 @@ import { init, use as registerChartParts, type ComposeOption, type ECharts } fro
 import { CanvasRenderer } from 'echarts/renderers';
 import { useEffect, useRef } from 'react';
 
-// 쓰는 구성요소만 등록한다 (트리셰이킹).
+// 쓰는 구성요소만 등록한다 (트리셰이킹). Sankey 시리즈는 쓰는 화면의 sankey-chart.tsx가 따로 등록한다 (여기서는 옵션 타입만).
 registerChartParts([LineChart, BarChart, ScatterChart, GridComponent, TooltipComponent, DataZoomComponent, MarkAreaComponent, MarkLineComponent, LegendComponent, CanvasRenderer]);
 
 export type EChartOption = ComposeOption<
   | LineSeriesOption
   | BarSeriesOption
   | ScatterSeriesOption
+  | SankeySeriesOption
   | GridComponentOption
   | TooltipComponentOption
   | DataZoomComponentOption
