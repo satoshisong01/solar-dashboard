@@ -1,5 +1,5 @@
 // ess.resistance_growth@1 — 배터리 랙 직류 내부저항(전류 계단 R_step) 증가.
-// ess.current_step 에피소드(|ΔI| ≥ minStepC, SOC 30~70%)의 R = ΔV/ΔI를 SOC bin × 셀온도 bin으로 나눠 기준 vs 최근 30일 matchedRatio + 경과일 추세.
+// ess.current_step 에피소드(|ΔI| ≥ minStepC, SOC 10~90%)의 R = ΔV/ΔI를 SOC bin × 셀온도 bin으로 나눠 기준 vs 최근 30일 matchedRatio + 경과일 추세.
 // R_step은 샘플 주기 동안의 분극을 포함해 주기에 따라 값이 달라진다 → 가장 최근 주기(period_s)와 같은 계단만 비교하고 'R_{period_s}s'로 표기한다.
 // 판별 체크: ① 저온 편중 ② 접속부 저항(셀 전압 편차는 그대로인데 랙 R만 증가 → 버스바·커넥터 체결) ③ 용량 감소 동반 ④ 샘플 주기 변경.
 import * as z from 'zod';
@@ -44,8 +44,8 @@ export const ESS_RESISTANCE_DEFAULTS: EssResistanceParams = Object.freeze({
   sev3Pct: 40,
   sev4Pct: 60,
   minStepC: 0.1,
-  socMinPct: 30,
-  socMaxPct: 70,
+  socMinPct: 10,
+  socMaxPct: 90,
   socBinWidth: 10,
   tempBinWidthC: 5,
   coldShiftC: 3,

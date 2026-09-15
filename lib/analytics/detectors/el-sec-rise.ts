@@ -1,5 +1,7 @@
 // el.sec_rise@1 — 전해조 시스템 비에너지(계통측 kWh / 생산 kg) 상승.
-// el.steady_run 에피소드의 SEC를 전류밀도 bin × 스택온도 bin으로 나눠 기준(bin별 가장 이른 표본) vs 최근 30일 matchedRatio + 누적 운전시간 추세.
+// el.steady_run 에피소드의 SEC를 운전 조건 bin × 스택온도 bin으로 나눠 기준(bin별 가장 이른 표본) vs 최근 30일 matchedRatio + 누적 운전시간 추세.
+// 운전 조건 bin 기본값은 설비 AC 전력(binBy ac_power): 재생전력 연계 전해조는 전력 설정값으로 운전하므로, 정류기·스택 열화가 생기면 같은 전력에서
+// 전류(전류밀도)가 줄어 전류밀도 bin으로 나누면 고장 뒤 표본이 새 bin의 '기준'이 되어 상승이 가려진다. 전류 설정값으로 운전하는 설비는 current_density로 바꾼다.
 // 판별 체크: ① 스택 셀 전압 상승 동반(→ 스택 열화, category degradation) ② 정류기 효율 저하 ③ 패러데이 효율 저하
 //           ④ 부분부하 운전 비중 증가(BoP 고정부하) ⑤ 퍼지 횟수 증가.
 // 입력 rectifierEfficiency·purgeCounts(일 단위)는 load 계층이 m_1h·kpi_daily에서 만든다. 없으면 해당 체크는 데이터없음.
@@ -14,7 +16,7 @@ import { levelCheck, medianChangePct, medianOrNull, medianShift } from './check-
 import { H2_KG_PER_AMP_HOUR_PER_CELL } from './hydrogen-eos';
 import { fixed, insufficient, r, signed, withDefaults, type TimedNumber } from './common';
 import { binWeightedShift, compareRise, riseEvidence, riseParamShape, riseWindow, trendAgrees, type RiseParams, type RiseResult, type RiseSample } from './matched-rise';
-import { completenessParam, numParam } from './param-schema';
+import { choiceParam, completenessParam, numParam } from './param-schema';
 import type { CandidateFinding, Detector, DetectorContext, DetectorResult, DiagnosticCheck } from './types';
 
 
@@ -31,6 +33,8 @@ export interface ElSecRiseInput {
 
 export interface ElSecRiseParams extends RiseParams {
   readonly breakInHours: number;
+  readonly binBy: 'ac_power' | 'current_density';
+  readonly powerBinWidthKw: number;
   readonly jBinWidth: number;
   readonly tempBinWidthC: number;
   readonly minH2Kg: number;
@@ -54,6 +58,8 @@ export const EL_SEC_RISE_DEFAULTS: ElSecRiseParams = Object.freeze({
   sev3Pct: 5,
   sev4Pct: 10,
   breakInHours: 1000,
+  binBy: 'ac_power',
+  powerBinWidthKw: 50,
   jBinWidth: 0.1,
   tempBinWidthC: 5,
   minH2Kg: 0.5,
@@ -70,7 +76,9 @@ const D = EL_SEC_RISE_DEFAULTS;
 export const EL_SEC_RISE_PARAM_SCHEMA = z.object({
   ...riseParamShape(D, '비에너지'),
   breakInHours: numParam(D.breakInHours, { label: 'break-in 제외 운전시간', unit: 'h', min: 0, max: 20_000, description: '누적 운전시간이 이보다 작은 초기 구간은 비교에서 뺍니다.' }),
-  jBinWidth: numParam(D.jBinWidth, { label: '전류밀도 bin 폭', unit: 'A/cm²', min: 0.01, max: 1, description: '같은 조건 비교에 쓰는 전류밀도 구간 폭입니다.' }),
+  binBy: choiceParam(['ac_power', 'current_density'], D.binBy, { label: '운전 조건 기준', description: 'ac_power = 설비 AC 전력 구간(전력 설정값 운전, 기본), current_density = 전류밀도 구간(전류 설정값 운전)으로 같은 조건을 나눕니다.' }),
+  powerBinWidthKw: numParam(D.powerBinWidthKw, { label: 'AC 전력 bin 폭', unit: 'kW', min: 1, max: 5000, description: '운전 조건 기준이 ac_power일 때 쓰는 설비 AC 전력 구간 폭입니다.' }),
+  jBinWidth: numParam(D.jBinWidth, { label: '전류밀도 bin 폭', unit: 'A/cm²', min: 0.01, max: 1, description: '운전 조건 기준이 current_density일 때 쓰는 전류밀도 구간 폭입니다.' }),
   tempBinWidthC: numParam(D.tempBinWidthC, { label: '스택 온도 bin 폭', unit: '°C', min: 1, max: 20, description: '같은 조건 비교에 쓰는 스택 온도 구간 폭입니다.' }),
   minH2Kg: numParam(D.minH2Kg, { label: '구간 최소 생산량', unit: 'kg', min: 0, max: 100, description: '생산량이 이보다 적은 정상운전 구간은 비에너지 잡음이 커서 뺍니다.' }),
   minCompleteness: completenessParam(D.minCompleteness),
@@ -91,7 +99,8 @@ function samplesOf(input: ElSecRiseInput, ctx: DetectorContext<ElSecRiseParams>,
     const ok = e.valid && f.sec_kwh_per_kg !== null && f.sec_kwh_per_kg > 0 && (f.h2_kg ?? 0) >= p.minH2Kg && e.dq.completeness >= p.minCompleteness;
     if (!ok || f.op_hours_cum === null || f.op_hours_cum < p.breakInHours || e.start < from || e.end > ctx.now) return [];
     const tKey = f.t_stack_mean === null ? 'na' : String(binFloor(f.t_stack_mean, p.tempBinWidthC));
-    return [{ start: e.start, end: e.end, value: f.sec_kwh_per_kg as number, weight: 1, bin: `${binFloor(f.j_mean, p.jBinWidth)}|${tKey}`, completeness: e.dq.completeness, axis: f.op_hours_cum }];
+    const loadKey = p.binBy === 'ac_power' ? (f.energy_kwh === null || !(f.duration_s > 0) ? null : `P${binFloor(f.energy_kwh / (f.duration_s / 3_600), p.powerBinWidthKw)}`) : `j${binFloor(f.j_mean, p.jBinWidth)}`;
+    return loadKey === null ? [] : [{ start: e.start, end: e.end, value: f.sec_kwh_per_kg as number, weight: 1, bin: `${loadKey}|${tKey}`, completeness: e.dq.completeness, axis: f.op_hours_cum }];
   });
 }
 
@@ -187,12 +196,12 @@ function buildFinding(input: ElSecRiseInput, ctx: DetectorContext<ElSecRiseParam
     confidence: scoreConfidence({ n: result.matched.nCur, ciWidth: relativeCiWidth(result.risePct, result.ciLowPct, result.ciHighPct), dqCompleteness: median(result.recent.map((s) => s.completeness)), methodsAgree: trendAgrees(result.trend) }),
     title: `전해조 시스템 비에너지 ${fixed(result.risePct, 1)}% 상승`,
     summary:
-      `같은 전류밀도·스택온도 조건 정상운전 ${result.matched.nCur}구간 비교: 계통측 비에너지 ${fixed(result.baselineLevel, 2)} kWh/kg → ${fixed(result.currentLevel, 2)} kWh/kg(${signed(result.risePct, 1)}%, 95% CI ${signed(result.ciLowPct, 1)} ~ ${signed(result.ciHighPct, 1)}%).${trendText}` +
+      `같은 ${p.binBy === 'ac_power' ? 'AC 전력' : '전류밀도'}·스택온도 조건 정상운전 ${result.matched.nCur}구간 비교: 계통측 비에너지 ${fixed(result.baselineLevel, 2)} kWh/kg → ${fixed(result.currentLevel, 2)} kWh/kg(${signed(result.risePct, 1)}%, 95% CI ${signed(result.ciLowPct, 1)} ~ ${signed(result.ciHighPct, 1)}%).${trendText}` +
       (supported.length > 0 ? ` 함께 확인된 신호: ${supported.join(', ')}.` : ''),
     effect: { metric: 'sec_kwh_per_kg', value: r(result.risePct, 3) ?? 0, unit: '%', ciLow: r(result.ciLowPct, 3), ciHigh: r(result.ciHighPct, 3), baseline: r(result.baselineLevel, 3), current: r(result.currentLevel, 3), levelUnit: 'kWh/kg' },
     windowStart,
     windowEnd,
-    evidence: { ...riseEvidence(result, 3), metric: 'sec_kwh_per_kg', bin_widths: { j_acm2: p.jBinWidth, temp_c: p.tempBinWidthC }, break_in_hours: p.breakInHours, checks },
+    evidence: { ...riseEvidence(result, 3), metric: 'sec_kwh_per_kg', bin_by: p.binBy, bin_widths: p.binBy === 'ac_power' ? { ac_kw: p.powerBinWidthKw, temp_c: p.tempBinWidthC } : { j_acm2: p.jBinWidth, temp_c: p.tempBinWidthC }, break_in_hours: p.breakInHours, checks },
     inputHash: hashInput({ detector: `${META.id}@${META.version}`, params: p, reference: result.reference.map((s) => [s.start, s.value, s.bin]), recent: result.recent.map((s) => [s.start, s.value, s.bin]), rectifier: input.rectifierEfficiency ?? null, purge: input.purgeCounts ?? null }),
   };
 }

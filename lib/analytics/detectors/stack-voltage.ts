@@ -3,6 +3,9 @@
 // 2) bin 안에 남은 전류밀도·온도 차이를 Theil–Sen 기울기로 한 번 더 보정한다.
 //    정출력 운전(연료전지)처럼 열화 때문에 전류밀도·온도가 함께 움직이면 이 회귀가 열화 신호를 지우므로 끌 수 있다
 //    (correctCurrentDensity·correctTemperature = false → 전류밀도 bin도 쓰지 않고, 기준 전류밀도 환산 전압과 온도 bin만 쓴다).
+//    currentDensityMode = reference_slope: 전류밀도 bin 없이 앞쪽 기준 구간(break-in 이후 점의 앞 25%)에서 잰 전압–전류밀도 기울기 하나로
+//    모든 점을 보정한다. 전력 설정값 운전에서 정류기·BoP 효율이 바뀌어 같은 전력의 전류밀도가 시간에 따라 옮겨 가면
+//    bin 중앙값 빼기와 전체 점 회귀가 옮겨 간 만큼의 열화를 함께 지우기 때문이다.
 // 3) 보정한 전압 잔차 vs 누적 운전시간 Theil–Sen(µV/h) + CI, Mann–Kendall, CUSUM.
 // 4) 효과 기울기: CUSUM 변화 시작점이 있고 그 뒤 누적 운전시간이 minHoursAfterChange 이상이면 변화점 이후 점들의 Theil–Sen 기울기,
 //    아니면 전체 기울기. 열화율이 도중에 바뀐 스택에서 전체 기울기가 앞 구간의 낮은 기울기에 끌려 크기를 낮게 잡는 편향을 줄인다.
@@ -27,8 +30,10 @@ export interface StackPoint {
 
 export interface StackTrendParams {
   readonly breakInHours: number;
-  /** 전류밀도 bin과 bin 안 전류밀도 회귀 보정 */
+  /** 전류밀도 보정 (방식은 currentDensityMode) */
   readonly correctCurrentDensity: boolean;
+  /** bins = 전류밀도 bin + bin 안 전체 점 회귀, reference_slope = bin 없이 기준 구간 기울기 하나로 보정 */
+  readonly currentDensityMode: 'bins' | 'reference_slope';
   /** bin 안 온도 회귀 보정 (온도 bin은 항상 쓴다) */
   readonly correctTemperature: boolean;
   readonly minPerBin: number;
@@ -74,7 +79,16 @@ export interface StackTrendResult {
 
 export type StackTrendOutcome = { readonly ok: true; readonly result: StackTrendResult } | { readonly ok: false; readonly reason: string };
 
-const binKeyOf = (p: Pick<StackTrendParams, 'correctCurrentDensity'>) => (pt: StackPoint): string => `${p.correctCurrentDensity ? pt.jBin : 'na'}|${pt.tBin ?? 'na'}`;
+const binKeyOf = (p: Pick<StackTrendParams, 'correctCurrentDensity' | 'currentDensityMode'>) => (pt: StackPoint): string => `${p.correctCurrentDensity && p.currentDensityMode === 'bins' ? pt.jBin : 'na'}|${pt.tBin ?? 'na'}`;
+
+/** reference_slope 기준 구간: 운전시간 순 앞 25% (최소 minTotal개) */
+const REFERENCE_SLOPE_FRACTION = 0.25;
+
+/** 운전시간 순 앞쪽 기준 점들의 기울기 (points는 운전시간 오름차순) */
+function referenceSlope(dj: readonly number[], dv: readonly number[], p: Pick<StackTrendParams, 'minTotal' | 'maxPoints'>): number {
+  const n = Math.min(dj.length, Math.max(p.minTotal, Math.ceil(dj.length * REFERENCE_SLOPE_FRACTION)));
+  return partialSlope(dj.slice(0, n), dv.slice(0, n), p.maxPoints);
+}
 
 /** 분산이 있는 성분만 Theil–Sen 기울기 (x가 서로 다른 값 3개 미만이면 0). 쌍 수를 줄이려고 일정 간격으로 표본을 뽑는다 */
 function partialSlope(xs: readonly number[], ys: readonly number[], maxPoints: number): number {
@@ -121,7 +135,7 @@ export function stackVoltageTrend(input: readonly StackPoint[], p: StackTrendPar
   const center = (pt: StackPoint) => centers.get(binKey(pt)) ?? { v: pt.voltage, j: pt.jMean, t: pt.tMean ?? 0 };
   const dv = points.map((pt) => pt.voltage - center(pt).v);
   const dj = points.map((pt) => pt.jMean - center(pt).j);
-  const slopeJ = p.correctCurrentDensity ? partialSlope(dj, dv, p.maxPoints) : 0;
+  const slopeJ = !p.correctCurrentDensity ? 0 : p.currentDensityMode === 'bins' ? partialSlope(dj, dv, p.maxPoints) : referenceSlope(dj, dv, p);
   const afterJ = dv.map((v, i) => v - slopeJ * (dj[i] as number));
   const dt = points.map((pt) => (pt.tMean ?? center(pt).t) - center(pt).t);
   const slopeT = p.correctTemperature ? partialSlope(dt, afterJ, p.maxPoints) : 0;

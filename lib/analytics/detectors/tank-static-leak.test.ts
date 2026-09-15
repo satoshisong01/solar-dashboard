@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createRng } from '@/lib/sim/rng';
 import type { TankHoldPoint } from '../episodes/tank-hold';
 import { MS_PER_DAY, MS_PER_HOUR, MS_PER_MINUTE } from '../types';
-import { ABEL_NOBLE_DEFAULTS, h2DensityKgM3, h2DensityPerBar, h2MassKg } from './hydrogen-eos';
+import { ABEL_NOBLE_DEFAULTS, h2DensityKgM3, h2DensityPerBar, h2Eos, h2MassKg, LEMMON_EOS } from './hydrogen-eos';
 import { fitHold, TANK_STATIC_LEAK_DEFAULTS, tankStaticLeak, type PressureCrossCheck, type TankHoldInput } from './tank-static-leak';
 import { DAY0 } from './test-fixtures';
 
@@ -11,12 +11,8 @@ const DAYS = 60;
 const NOW = DAY0 + DAYS * MS_PER_DAY;
 const ctx = (params = {}, seed = 1) => ({ now: NOW, rng: createRng(seed), params });
 
-/** 질량·온도 → 절대압 [bar] (Abel–Noble 역산) */
-function pressureOf(massKg: number, tempC: number): number {
-  const rho = massKg / VOLUME_M3;
-  const { specificGasConstant: rs, coVolume: b } = ABEL_NOBLE_DEFAULTS;
-  return (rho * rs * (tempC + 273.15)) / (1 - b * rho) / 1e5;
-}
+/** 질량·온도 → 절대압 [bar] (탐지기 기본 상태식 NIST Lemmon 2008 역산) */
+const pressureOf = (massKg: number, tempC: number): number => LEMMON_EOS.pressure(massKg, tempC, VOLUME_M3);
 
 interface HoldOptions {
   readonly leakKgPerDay: (day: number) => number;
@@ -114,6 +110,8 @@ describe('tank.static_leak@1', () => {
     const input = { ...base, holds: holds({ leakKgPerDay: leakFrom(40, 0.4), seed: 8 }) };
     expect(tankStaticLeak.detect(input, ctx())).toEqual(tankStaticLeak.detect(input, ctx()));
     expect(tankStaticLeak.paramSchema.parse({})).toEqual(TANK_STATIC_LEAK_DEFAULTS);
-    expect(fitHold({ start: 0, end: 5 * MS_PER_HOUR, completeness: 1, points: [], downstreamRiseBar: null }, VOLUME_M3, ABEL_NOBLE_DEFAULTS, TANK_STATIC_LEAK_DEFAULTS)).toBeNull();
+    expect(fitHold({ start: 0, end: 5 * MS_PER_HOUR, completeness: 1, points: [], downstreamRiseBar: null }, VOLUME_M3, LEMMON_EOS, TANK_STATIC_LEAK_DEFAULTS)).toBeNull();
+    expect(h2Eos('abel_noble').mass(300, 20, 1)).toBeCloseTo(h2MassKg(300, 20, 1), 12);
+    expect(h2Eos('abel_noble').densityPerBar(300, 20)).toBeCloseTo(h2DensityPerBar(300, 20), 12);
   });
 });

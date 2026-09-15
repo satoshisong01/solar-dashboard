@@ -77,7 +77,10 @@ describe('parseEvidence', () => {
     expect(view.trend?.slope).toBeCloseTo((finding.effect.value ?? 0) / 1000, 3);
     expect(view.trend?.slopeText).toMatch(/µV\/h \(95% CI/);
     expect(view.breakInHours).toBe(1000);
-    expect(view.bins[0]?.label).toMatch(/A\/cm² · \d+~\d+ °C$/);
+    // 기본 전류밀도 보정 방식(reference_slope)은 전류밀도 bin을 쓰지 않아 온도 구간만 라벨에 남는다
+    expect(view.bins[0]?.label).toMatch(/^\d+~\d+ °C$/);
+    const binned = parseEvidence(firstFinding(elVoltageRise.detect({ assetId: 31, episodes: elRuns({ count: 400, startHours: 1200, endHours: 2400, rateUvPerH: 25, seed: 2 }) }, { now: DAY0 + 400 * MS_PER_DAY, rng: createRng(1), params: { currentDensityMode: 'bins' } })).evidence);
+    expect(binned.kind === 'stack' && binned.bins[0]?.label).toMatch(/A\/cm² · \d+~\d+ °C$/);
     expect(view.checks.map((c) => c.id)).toContain('stack_temperature_shift');
   });
 

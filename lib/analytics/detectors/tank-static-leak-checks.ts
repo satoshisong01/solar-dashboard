@@ -6,7 +6,7 @@ import { theilSen } from '../stats/trend';
 import { MS_PER_DAY, type JsonObject } from '../types';
 import { levelCheck, makeCheck, pearson, SAFETY_DISCLAIMER } from './check-helpers';
 import { r } from './common';
-import { h2DensityPerBar, h2MassKg, type AbelNobleConstants } from './hydrogen-eos';
+import type { H2Eos } from './hydrogen-eos';
 import type { PressureCrossCheck, TankHoldInput, TankStaticLeakParams } from './tank-static-leak';
 import type { CheckStatus, DiagnosticCheck } from './types';
 
@@ -30,7 +30,7 @@ export interface TankCheckInput {
   readonly recent: readonly HoldFit[];
   readonly leak: number;
   readonly volumeM3: number;
-  readonly constants: AbelNobleConstants;
+  readonly eos: H2Eos;
   readonly crossChecks?: readonly PressureCrossCheck[];
   readonly p: TankStaticLeakParams;
 }
@@ -45,14 +45,14 @@ function temperatureCheck({ fits, p }: TankCheckInput): DiagnosticCheck {
   });
 }
 
-function driftCheck({ crossChecks, recent, leak, volumeM3, constants }: TankCheckInput): DiagnosticCheck {
+function driftCheck({ crossChecks, recent, leak, volumeM3, eos }: TankCheckInput): DiagnosticCheck {
   const label = '압력 센서 드리프트 (같은 뱅크 용기·압축기 토출 압력 비교)';
   const points = [...(crossChecks ?? [])].sort((a, b) => a.ts - b.ts);
   const spanDays = points.length < 2 ? 0 : ((points.at(-1)?.ts ?? 0) - (points[0]?.ts ?? 0)) / MS_PER_DAY;
   if (points.length < 3 || spanDays < 1) return makeCheck('pressure_drift', label, 'no_data', { n: points.length }, '비교할 다른 압력 계측값이 부족합니다 (3회 이상, 1일 이상 필요).');
   const t0 = points[0]?.ts ?? 0;
   const fit = theilSen(points.map((pt) => (pt.ts - t0) / MS_PER_DAY), points.map((pt) => pt.offsetBar));
-  const perBar = h2DensityPerBar(median(recent.map((f) => f.pressureMeanBar)), median(recent.map((f) => f.tempMeanC)), constants) * volumeM3;
+  const perBar = eos.densityPerBar(median(recent.map((f) => f.pressureMeanBar)), median(recent.map((f) => f.tempMeanC))) * volumeM3;
   const apparentLoss = -fit.slope * perBar;
   const share = leak > 0 ? apparentLoss / leak : null;
   return levelCheck('pressure_drift', label, share, [0.5, 0.2], { n: points.length, offset_slope_bar_per_day: r(fit.slope, 5), apparent_loss_kg_per_day: r(apparentLoss, 4), share_of_leak: r(share, 3), sources: [...new Set(points.map((pt) => pt.source))] }, {
@@ -103,7 +103,7 @@ export interface HoldEvidenceInput {
   readonly pctPerDay: number | null;
   readonly safety: boolean;
   readonly checks: readonly DiagnosticCheck[];
-  readonly constants: AbelNobleConstants;
+  readonly eos: H2Eos;
   readonly volumeM3: number;
   readonly p: TankStaticLeakParams;
 }
@@ -123,10 +123,10 @@ const holdRow = (role: 'reference' | 'recent') => (f: HoldFit): JsonObject => ({
 /** 근거: 구간 표, 대표 구간(누설률이 결합값에 가장 가까운 최근 구간) P·T·보정 질량 곡선(≤120점) */
 export function holdEvidence(e: HoldEvidenceInput): JsonObject {
   const representative = [...e.recent].sort((a, b) => Math.abs(a.lossKgPerDay - e.leak) - Math.abs(b.lossKgPerDay - e.leak))[0];
-  const curve = representative ? downsample(representative.hold.points, 120).map((pt) => ({ ts: pt.ts, p_bar: r(pt.pressureBar, 3), t_c: r(pt.tempC, 2), mass_kg: r(h2MassKg(pt.pressureBar, pt.tempC, e.volumeM3, e.constants), 4) })) : [];
+  const curve = representative ? downsample(representative.hold.points, 120).map((pt) => ({ ts: pt.ts, p_bar: r(pt.pressureBar, 3), t_c: r(pt.tempC, 2), mass_kg: r(e.eos.mass(pt.pressureBar, pt.tempC, e.volumeM3), 4) })) : [];
   return {
     method: 'static_hold_theil_sen_weighted_median',
-    eos: { model: 'abel_noble', specific_gas_constant: e.constants.specificGasConstant, co_volume_m3_per_kg: e.constants.coVolume, volume_m3: r(e.volumeM3, 4) },
+    eos: e.eos.model === 'abel_noble' ? { model: 'abel_noble', specific_gas_constant: e.p.specificGasConstant, co_volume_m3_per_kg: e.p.coVolume, volume_m3: r(e.volumeM3, 4) } : { model: e.eos.model, volume_m3: r(e.volumeM3, 4) },
     combined: { leak_kg_per_day: r(e.leak, 4), ci_low: r(e.ci.ciLow, 4), ci_high: r(e.ci.ciHigh, 4), pct_per_day: r(e.pctPerDay, 3) },
     significance: { noise_sigma_kg_per_day: r(e.noise, 4), z_sigma: e.p.zSigma, threshold_kg_per_day: r(e.threshold, 4) },
     safety: { category_safety: e.safety, safety_kg_per_day: e.p.safetyKgPerDay, rule: '누설률 95% CI 하한 > 안전 기준일 때만 safety(severity 4)' },

@@ -35,6 +35,7 @@ export interface PvSoilingParams {
   readonly gammaPerC: number;
   readonly clearDayRatio: number;
   readonly maxVariability: number;
+  readonly clearVariabilityQuantile: number;
   readonly envelopeHalfDays: number;
   readonly minCompleteness: number;
   readonly peerZ: number;
@@ -54,6 +55,7 @@ export const PV_SOILING_DEFAULTS: PvSoilingParams = Object.freeze({
   gammaPerC: -0.0035,
   clearDayRatio: 0.8,
   maxVariability: 1.3,
+  clearVariabilityQuantile: 0.2,
   envelopeHalfDays: 15,
   minCompleteness: 0.9,
   peerZ: 3.5,
@@ -73,7 +75,8 @@ const D = PV_SOILING_DEFAULTS;
 export const PV_SOILING_PARAM_SCHEMA = z.object({
   gammaPerC: numParam(D.gammaPerC, { label: '모듈 온도계수 γ', unit: '1/°C', min: -0.01, max: 0, description: '명판 값이 없을 때 쓰는 최대출력 온도계수입니다 (결정질 실리콘 약 −0.0035).' }),
   clearDayRatio: numParam(D.clearDayRatio, { label: '맑은 날 일사 비율', unit: '', min: 0.3, max: 1, description: 'POA 일적산이 계절 청천 상한(앞뒤 기간 최대)의 이 비율 이상인 날만 맑은 날로 봅니다.' }),
-  maxVariability: numParam(D.maxVariability, { label: '일중 변동 상한', unit: '', min: 1, max: 5, description: 'Σ|ΔPOA| ÷ (2 × 최대 POA)가 이 값 이하인 날만 맑은 날로 봅니다 (맑은 날 ≈ 1).' }),
+  maxVariability: numParam(D.maxVariability, { label: '일중 변동 상한', unit: '', min: 1, max: 5, description: 'Σ|ΔPOA| ÷ (2 × 최대 POA)가 이 값 이하인 날은 맑은 날 후보입니다 (맑은 날 ≈ 1).' }),
+  clearVariabilityQuantile: numParam(D.clearVariabilityQuantile, { label: '맑은 날 변동 분위', unit: '', min: 0, max: 1, description: '앞뒤 기간 일중 변동 지표의 이 분위 이하인 날도 맑은 날 후보로 봅니다 (운량 변동이 늘 있는 기후 대응, 0이면 고정 상한만).' }),
   envelopeHalfDays: intParam(D.envelopeHalfDays, { label: '청천 상한 기간(앞뒤)', unit: '일', min: 3, max: 60, description: '계절 청천 상한을 잡는 앞뒤 일수입니다.' }),
   minCompleteness: numParam(D.minCompleteness, { label: '인버터 최소 완결성', unit: '', min: 0, max: 1, description: '그날 인버터 데이터 완결성이 이 값 미만이면 합계에서 뺍니다.' }),
   peerZ: numParam(D.peerZ, { label: '동종 이상 인버터 수정 z', unit: '', min: 1, max: 10, description: '그날 동종 대비 수정 z가 −이 값보다 작은 인버터는 합계에서 뺍니다 (고장은 pv.inverter_peer 몫).' }),

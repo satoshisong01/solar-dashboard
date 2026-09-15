@@ -3,7 +3,8 @@
 // 청정수소 인증 공식 산정이 아니다 (설계 §9 체인 원장 리스크).
 
 export const ALLOC_VERSION = 'pool_hourly@1';
-export const LEDGER_CALC_VERSION = 'ledger@1';
+/** @2: 수소 상태식 Lemmon 2008, 저장량 경계가 정지 시간이면 P·T 시간 평균, 생산량은 적산계 증가량 우선 */
+export const LEDGER_CALC_VERSION = 'ledger@2';
 
 /** 원장 계산에 필요한 설비 (om.asset 한 행) */
 export interface LedgerAsset {
@@ -73,7 +74,8 @@ export interface EnergyTotals {
   readonly unmetered_demand: number;
 }
 
-export type H2ProducedMethod = 'meter' | 'faraday_estimate';
+/** meter_total = 적산계 증가량, meter = 순시 유량 시간 평균 적산, faraday_estimate = 스택 전류 이론값 */
+export type H2ProducedMethod = 'meter_total' | 'meter' | 'faraday_estimate';
 export type VentedMethod = 'params' | 'not_estimated';
 
 export interface H2Ledger {

@@ -50,6 +50,20 @@ describe('el.voltage_rise@1', () => {
     expect(shortTrend.basis).toBe('full');
   });
 
+  it('전력 설정값 운전: 정류기 효율 저하로 같은 전력의 전류밀도가 5% 옮겨 가도 기준 구간 기울기 보정(기본)은 +25 µV/h를 찾고, 전류밀도 bin 방식은 놓친다', () => {
+    // 전류밀도 1.905~1.995 A/cm² 좁은 운전점 → 30~70% 구간에서 5% 낮아져 1.9 bin에서 1.8 bin으로 옮겨 감 (분극 기울기 250 mV/(A/cm²))
+    const base = elRuns({ count: 400, startHours: 1200, endHours: 2400, rateUvPerH: 25, seed: 2 });
+    const episodes = base.map((e, i) => {
+      const shrink = 1 - 0.05 * Math.min(1, Math.max(0, (i / base.length - 0.3) / 0.4));
+      const j = (1.905 + (0.09 * (e.features.j_mean - 0.6)) / 0.8) * shrink;
+      return { ...e, features: { ...e.features, j_mean: j, v_cell_mean: (e.features.v_cell_mean ?? 0) - 0.25 * (e.features.j_mean - j) }, conditions: { ...e.conditions, j_bin: Math.floor(j * 10) / 10 } };
+    });
+    const reference = elVoltageRise.detect({ assetId: 31, episodes }, ctx());
+    expect(reference.status === 'ok' && reference.findings[0]?.effect.value).toBeGreaterThan(21);
+    expect(reference.status === 'ok' && reference.findings[0]?.effect.value).toBeLessThan(29);
+    expect(elVoltageRise.detect({ assetId: 31, episodes }, ctx(1, { params: { currentDensityMode: 'bins' } }))).toEqual({ status: 'ok', findings: [] });
+  });
+
   it('대조군(기본 열화 4 µV/h)은 0건, break-in 이전뿐이면 insufficient', () => {
     expect(elVoltageRise.detect({ assetId: 31, episodes: elRuns({ count: 300, startHours: 1200, endHours: 2400, rateUvPerH: 4, seed: 3 }) }, ctx())).toEqual({ status: 'ok', findings: [] });
     const early = elVoltageRise.detect({ assetId: 31, episodes: elRuns({ count: 100, startHours: 10, endHours: 900, rateUvPerH: 50, seed: 4 }) }, ctx());

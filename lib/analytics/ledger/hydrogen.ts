@@ -1,16 +1,19 @@
 // 수소 원장 (순수): 생산 − 연료전지 소비 − 저장량 변화 − 배출 추정 = 잔차 (설계 §3 체인 원장, research-system H1~H6 수지식).
 //
 // 계량점
-//   produced     = 전해조 h2.flow.mass 적산. 유량계가 없으면 패러데이 추정 N_cell × I × η_F × 3.7608e-5 kg/(A·h) (method=faraday_estimate)
+//   produced     = 전해조 적산계 h2.mass.total 하루 증가량(method=meter_total). 적산계가 없거나 경계 행이 없거나 그날 값이 줄면(리셋·교체)
+//                  h2.flow.mass 시간 평균 적산(method=meter), 유량계도 없으면 패러데이 추정 N_cell × I × η_F × 3.7608e-5 kg/(A·h) (method=faraday_estimate)
+//                  적산계를 먼저 쓰는 이유: 5분 순시 유량 표본의 시간 평균은 기동·정지가 표본 사이에 걸리면 한 번에 최대 (유량 × 표본 간격)만큼 틀린다.
 //   fc_consumed  = 연료전지 fc.h2.consumption 적산
-//   stored_delta = 저장용기마다 (끝 P·T → 실기체 질량) − (시작 P·T → 질량) 의 합. 상태식 Abel–Noble (아래)
+//   stored_delta = 저장용기마다 (끝 P·T → 실기체 질량) − (시작 P·T → 질량) 의 합. 상태식 NIST Lemmon 2008 (tank.static_leak 기본과 같다)
 //   vented_est   = purge.count 증가 × params.kgPerPurge + params.dryerLossFraction × produced (기본 0 = 추정 안 함)
 //   residual     = produced − fc_consumed − stored_delta − vented_est
 //   residual_pct = residual / max(produced, fc_consumed, params.residualFloorKg) × 100
 // 한계: 시간 평균 × 1 h 적산이다. 유량계 행이 빠진 시간은 0으로 더해지므로 잔차를 보기 전에 dq.h2.completeness를 확인한다. 탱크 압력은 절대압으로 본다(게이지압이면 약 1 bar 해당 질량이 일정하게 편향되지만 차분에서는 대부분 상쇄).
 //       충전·방출 직후 가스 온도와 센서 온도 차이는 재고를 흔든다(하루 끝·시작이 정지 구간일 때 가장 정확하다).
-import { h2MassKg, H2_EOS_VERSION, H2_KG_PER_AMP_HOUR_PER_CELL } from '../detectors/hydrogen-eos';
-import { assetsOf, dayBoundary, dayCompleteness, goodAvg, hasDayData, hourIntegral, meanOrNull, nameplateNumber, round, roundOrNull, type LedgerContext } from './hourly';
+import { H2_EOS_VERSION, H2_KG_PER_AMP_HOUR_PER_CELL, LEMMON_EOS } from '../detectors/hydrogen-eos';
+import { MS_PER_HOUR } from '../types';
+import { assetsOf, dayBoundary, dayCompleteness, goodAvg, hasDayData, hourIntegral, hourMax, hourMin, meanOrNull, nameplateNumber, round, roundOrNull, type LedgerContext } from './hourly';
 import type { LedgerParams } from './params';
 import type { H2Ledger, H2ProducedMethod, SiteEnergyDq } from './types';
 
@@ -40,7 +43,40 @@ function faradayKg(ctx: LedgerContext, efficiency: number): number | null {
   }, 0), 0);
 }
 
+/**
+ * 적산계 하루 증가량 [kg]: 앞 1시간 행 last(없으면 0시 행 first) → 23시 행 last.
+ * 0시·23시 경계 행이 없거나, 시간 안(최솟값 < 직전 값 · 최댓값 > 끝값)이나 시간 사이에서 값이 줄면(리셋·교체) null.
+ */
+export function counterDayDelta(ctx: LedgerContext, assetId: number, metricKey: string): number | null {
+  const good = (hourStart: number) => {
+    const r = ctx.row(assetId, metricKey, hourStart);
+    return r !== undefined && r.nGood > 0 ? r : undefined;
+  };
+  const rows = ctx.hours.map(good);
+  const start = good(ctx.dayStart - MS_PER_HOUR)?.last ?? rows[0]?.first ?? null;
+  const end = rows[rows.length - 1]?.last ?? null;
+  if (start === null || end === null) return null;
+  let previous = start;
+  for (const r of rows) {
+    if (r === undefined || r.last === null) continue;
+    const tolerance = 1e-9 * Math.abs(previous) + 1e-6;
+    if ((hourMin(r) ?? r.last) < previous - tolerance || (hourMax(r) ?? r.last) > r.last + tolerance) return null;
+    previous = r.last;
+  }
+  return end - start;
+}
+
+function counterProduced(ctx: LedgerContext): Produced | null {
+  const units = assetsOf(ctx, 'h2.elz');
+  if (units.length === 0 || !hasDayData(ctx, 'h2.elz', 'h2.mass.total')) return null;
+  const deltas = units.map((unit) => counterDayDelta(ctx, unit.id, 'h2.mass.total'));
+  if (deltas.some((d) => d === null)) return null;
+  return { kg: deltas.reduce<number>((sum, d) => sum + (d ?? 0), 0), method: 'meter_total', completeness: dayCompleteness(ctx, 'h2.elz', 'h2.mass.total') };
+}
+
 function produced(ctx: LedgerContext, params: LedgerParams): Produced {
+  const counter = counterProduced(ctx);
+  if (counter !== null) return counter;
   if (hasDayData(ctx, 'h2.elz', 'h2.flow.mass')) {
     return { kg: sumHours(ctx, 'h2.elz', 'h2.flow.mass', (v) => Math.max(0, v)), method: 'meter', completeness: dayCompleteness(ctx, 'h2.elz', 'h2.flow.mass') };
   }
@@ -48,17 +84,39 @@ function produced(ctx: LedgerContext, params: LedgerParams): Produced {
   return kg === null ? { kg: null, method: null, completeness: null } : { kg, method: 'faraday_estimate', completeness: dayCompleteness(ctx, 'h2.elz.stack', 'stack.current') };
 }
 
-/** 저장용기별 끝·시작 질량 차의 합. 용기가 없거나 한 용기라도 P·T 경계값·내용적이 없으면 null */
+/** 저장부 유입·유출 신호 (tank.hold 정지 판정과 같은 기준: 유량 0.05 kg/h 이하·압축기 1 kW 이하) */
+const STORAGE_FLOW_SIGNALS: readonly (readonly [classKey: string, metricKey: string, idleMax: number])[] = [
+  ['h2.elz', 'h2.flow.mass', 0.05],
+  ['fc.plant', 'fc.h2.consumption', 0.05],
+  ['h2.compressor', 'compressor.power', 1],
+];
+
+/**
+ * 경계 시간이 정지 시간인지: 사이트에 있는 유입·유출 신호가 모두 그 시간 내내 멈춰 있음(시간 최댓값 기준).
+ * 신호 설비는 있는데 그 시간 행이 없으면 정지로 보지 않는다. 신호가 하나도 없으면 판단할 수 없어 false.
+ */
+export function storageStaticHour(ctx: LedgerContext): (hourStart: number) => boolean {
+  const signals = STORAGE_FLOW_SIGNALS.flatMap(([classKey, metricKey, idleMax]) => assetsOf(ctx, classKey).map((asset) => ({ assetId: asset.id, metricKey, idleMax })));
+  return (hourStart) =>
+    signals.length > 0 &&
+    signals.every(({ assetId, metricKey, idleMax }) => {
+      const max = hourMax(ctx.row(assetId, metricKey, hourStart));
+      return max !== null && Math.abs(max) <= idleMax && Math.abs(hourMin(ctx.row(assetId, metricKey, hourStart)) ?? Infinity) <= idleMax;
+    });
+}
+
+/** 저장용기별 끝·시작 질량 차의 합. 용기가 없거나 한 용기라도 P·T 경계값·내용적이 없으면 null. 경계 시간이 정지 시간이면 P·T 시간 평균을 쓴다 */
 export function storedDeltaKg(ctx: LedgerContext): number | null {
   const tanks = assetsOf(ctx, 'h2.storage.tank');
   if (tanks.length === 0) return null;
+  const isStatic = storageStaticHour(ctx);
   const deltas = tanks.map((tank) => {
     const volumeL = nameplateNumber(tank, 'water_volume_l');
-    const p = dayBoundary(ctx, tank.id, 'tank.pressure');
-    const t = dayBoundary(ctx, tank.id, 'tank.temp');
+    const p = dayBoundary(ctx, tank.id, 'tank.pressure', isStatic);
+    const t = dayBoundary(ctx, tank.id, 'tank.temp', isStatic);
     if (volumeL === null || p.start === null || p.end === null || t.start === null || t.end === null) return null;
     const volumeM3 = volumeL / 1000;
-    return h2MassKg(p.end, t.end, volumeM3) - h2MassKg(p.start, t.start, volumeM3);
+    return LEMMON_EOS.mass(p.end, t.end, volumeM3) - LEMMON_EOS.mass(p.start, t.start, volumeM3);
   });
   return deltas.some((d) => d === null) ? null : deltas.reduce<number>((sum, d) => sum + (d ?? 0), 0);
 }

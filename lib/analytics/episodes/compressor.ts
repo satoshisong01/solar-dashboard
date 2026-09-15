@@ -84,14 +84,22 @@ function runsOf(power: readonly TimedValue[], window: TimeWindow, thresholdKw: n
 const meanIn = (points: readonly TimedValue[], range: TimeWindow): number | null => meanValue(pointsIn(points, range));
 
 /** 메트릭별 good 샘플 (운전마다 전체 시계열을 다시 거르지 않도록 한 번만 만든다) */
-type Signals = Readonly<Record<'power' | 'flow' | 'inventory' | 'suction' | 'discharge' | 'dischargeTemp' | 'leak' | 'vibration' | 'ambient' | 'runHours', readonly TimedValue[]>>;
+type Signals = Readonly<Record<'power' | 'flow' | 'inventory' | 'suction' | 'discharge' | 'dischargeTemp' | 'leak' | 'vibration' | 'ambient' | 'runHours', readonly TimedValue[]>> & {
+  /** 이송 질량 신호 공칭 주기 (운전마다 다시 계산하지 않는다) */
+  readonly flowPeriodMs: number;
+  readonly inventoryPeriodMs: number;
+};
 
 function signalsOf(series: ExtractInput<CompressorNameplate>['series']): Signals {
   const good = (metric: string) => goodPoints(series, metric);
+  const flow = good('h2.flow.mass');
+  const inventory = good('h2.inventory');
   return {
     power: good('compressor.power'),
-    flow: good('h2.flow.mass'),
-    inventory: good('h2.inventory'),
+    flow,
+    inventory,
+    flowPeriodMs: nominalPeriodMs(flow, 5 * MS_PER_MINUTE),
+    inventoryPeriodMs: nominalPeriodMs(inventory, 5 * MS_PER_MINUTE),
     suction: good('compressor.suction.pressure'),
     discharge: good('compressor.discharge.pressure'),
     dischargeTemp: good('compressor.discharge.temp'),
@@ -105,10 +113,10 @@ function signalsOf(series: ExtractInput<CompressorNameplate>['series']): Signals
 function massOf(signals: Signals, run: Run): Pick<CompRunFeatures, 'mass_kg' | 'mass_source'> {
   const { flow, inventory } = signals;
   if (flow.length > 0) {
-    const kg = rangeIntegral(flow, run, nominalPeriodMs(flow, 5 * MS_PER_MINUTE));
+    const kg = rangeIntegral(flow, run, signals.flowPeriodMs);
     if (kg !== null) return { mass_kg: round(kg, 4), mass_source: 'flow' };
   }
-  const tolerance = 2 * nominalPeriodMs(inventory, 5 * MS_PER_MINUTE);
+  const tolerance = 2 * signals.inventoryPeriodMs;
   const before = valueNear(inventory, run.start, tolerance);
   const after = valueNear(inventory, run.end, tolerance);
   return before === null || after === null ? { mass_kg: null, mass_source: null } : { mass_kg: round(after - before, 4), mass_source: 'inventory' };

@@ -1,6 +1,7 @@
 // inv.thermal_derating@1 — 인버터 열 출력저감.
 // 버킷(기본 5분)마다 동종 인버터 kW/kWp 중앙값과 비교해, 이 인버터가 derateGapPct 이상 낮고 방열판 온도 ≥ 저감 시작 온도 − marginC이며
 // 출력제한(ac.power.limit < 99.5%)이 아니면 저감 버킷 → 일별 저감 시간·손실 kWh. 최근 recentDays일 손실률(손실 ÷ (발전 + 손실)) ≥ sev2LossPct면 finding.
+// 손실률이 그 미만이어도 동종 대비 저감이 sustainedDerateHours 이상 반복되면(냉각팬 고장은 더운 날에만 저감이 보여 월 손실률이 작다) severity 2 finding.
 // 외기온도 bin별 일 저감 시간 기준 vs 최근 비교(같은 외기에서 저감 시간이 늘면 냉각팬·필터·방열판 오염)를 근거·신뢰도에 쓴다.
 // 판별 체크: ① 외기 고온 편중 ② 냉각팬 고장 코드(event_log) ③ 설치 환경(동종 전체가 함께 고온 → 설치실 환기) ④ 출력제한 혼동 배제.
 // severity: 손실 1% → 2, 3% → 3 (성능 카테고리, 3 상한).
@@ -46,6 +47,7 @@ export interface InvThermalDeratingParams {
   readonly minPeerKwPerKwp: number;
   readonly minDerateHours: number;
   readonly minDerateDays: number;
+  readonly sustainedDerateHours: number;
   readonly sev2LossPct: number;
   readonly sev3LossPct: number;
   readonly ambientBinWidthC: number;
@@ -65,6 +67,7 @@ export const INV_THERMAL_DERATING_DEFAULTS: InvThermalDeratingParams = Object.fr
   minPeerKwPerKwp: 0.3,
   minDerateHours: 3,
   minDerateDays: 3,
+  sustainedDerateHours: 6,
   sev2LossPct: 1,
   sev3LossPct: 3,
   ambientBinWidthC: 5,
@@ -85,6 +88,7 @@ export const INV_THERMAL_DERATING_PARAM_SCHEMA = z.object({
   minPeerKwPerKwp: numParam(D.minPeerKwPerKwp, { label: '비교 최소 출력', unit: 'kW/kWp', min: 0.05, max: 1.2, description: '동종 중앙값이 이보다 낮은 시각(저출력)은 비교하지 않습니다.' }),
   minDerateHours: numParam(D.minDerateHours, { label: '최소 저감 시간', unit: 'h', min: 0.1, max: 500, description: '최근 기간 저감 시간 합계가 이보다 적으면 finding을 내지 않습니다.' }),
   minDerateDays: intParam(D.minDerateDays, { label: '최소 저감 일수', unit: '일', min: 1, max: 60, description: '저감이 있었던 날이 이보다 적으면 finding을 내지 않습니다.' }),
+  sustainedDerateHours: numParam(D.sustainedDerateHours, { label: '반복 저감 시간', unit: 'h', min: 0.5, max: 500, description: '손실률이 severity 2 기준 미만이어도 최근 기간 동종 대비 저감 시간이 이 값 이상이면 finding(severity 2)입니다 (냉각 계통 점검 권고).' }),
   sev2LossPct: numParam(D.sev2LossPct, { label: 'severity 2 손실률', unit: '%', min: 0.1, max: 50, description: '최근 기간 저감 손실 ÷ (발전 + 손실)이 이 값 이상이면 finding(severity 2)입니다.' }),
   sev3LossPct: numParam(D.sev3LossPct, { label: 'severity 3 손실률', unit: '%', min: 0.1, max: 50, description: '이 값 이상이면 severity 3입니다 (성능 카테고리라 3이 상한).' }),
   ambientBinWidthC: numParam(D.ambientBinWidthC, { label: '외기 온도 bin 폭', unit: '°C', min: 1, max: 20, description: '일 최고 외기 온도로 나누는 구간 폭입니다 (같은 외기에서 저감 시간 비교).' }),
@@ -111,7 +115,8 @@ function findingFor(inverter: ThermalInverter, input: InvThermalDeratingInput, s
   const lossPct = lossPctOf(recent);
   const derateHours = recent.reduce((sum, row) => sum + row.derateHours, 0);
   const derateDays = recent.filter((row) => row.derateHours > 0).length;
-  if (recent.length === 0 || lossPct < p.sev2LossPct || derateHours < p.minDerateHours || derateDays < p.minDerateDays) return null;
+  const sustained = derateHours >= p.sustainedDerateHours;
+  if (recent.length === 0 || !(lossPct >= p.sev2LossPct || sustained) || derateHours < p.minDerateHours || derateDays < p.minDerateDays) return null;
 
   const ci = bootstrapCI(recent, lossPctOf, { iterations: p.iterations, rng: ctx.rng });
   const severity: Severity = lossPct >= p.sev3LossPct ? 3 : 2;
@@ -132,6 +137,7 @@ function findingFor(inverter: ThermalInverter, input: InvThermalDeratingInput, s
     summary:
       `최근 ${p.recentDays}일 중 ${derateDays}일, 방열판 온도가 저감 시작 온도 부근일 때 동종 대비 출력이 ${fixed(p.derateGapPct, 0)}% 이상 낮은 시간이 ${fixed(derateHours, 1)}시간이었습니다. ` +
       `손실 약 ${fixed(lossKwh, 0)} kWh(발전량 대비 ${fixed(lossPct, 2)}%, 95% CI ${fixed(ci.ciLow, 2)} ~ ${fixed(ci.ciHigh, 2)}%). 출력제한 시각은 뺐습니다.${binText}` +
+      (lossPct < p.sev2LossPct ? ` 손실률은 ${fixed(p.sev2LossPct, 1)}% 미만이지만 동종 대비 저감이 반복되어 냉각팬·필터·방열판 점검을 권고합니다.` : '') +
       (supported.length > 0 ? ` 함께 확인된 신호: ${supported.join(', ')}.` : ''),
     effect: { metric: 'thermal_derate_loss_pct', value: r(lossPct, 3) ?? 0, unit: '%', ciLow: r(ci.ciLow, 3), ciHigh: r(ci.ciHigh, 3), baseline: reference.length === 0 ? null : r(lossPctOf(reference), 3), current: r(lossPct, 3), levelUnit: '%' },
     windowStart: rows[0]?.day ?? recentFrom,

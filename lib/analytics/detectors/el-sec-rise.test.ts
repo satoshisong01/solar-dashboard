@@ -56,6 +56,20 @@ function episodes(o: Options): ElSteadyEpisode[] {
 
 const input = (o: Options, extra: Partial<ElSecRiseInput> = {}): ElSecRiseInput => ({ assetId: 31, nameplate: NAMEPLATE, episodes: episodes(o), ...extra });
 
+/** 전력 설정값 운전(210·310·410 kW): 비에너지가 40~100일 +10% 오르면 같은 전력에서 수소·전류(전류밀도)가 함께 줄어 전류밀도 bin이 한 칸 내려간다 */
+function constantPowerEpisodes(seed: number): ElSteadyEpisode[] {
+  const rng = createRng(seed);
+  const kgPerAmpHour = NAMEPLATE.cellCount * H2_KG_PER_AMP_HOUR_PER_CELL * 0.97;
+  return episodes({ risePct: 0, seed }).map((e, i) => {
+    const progress = Math.min(1, Math.max(0, (i / 3 - 40) / 60));
+    const powerKw = [210, 310, 410][i % 3] as number;
+    const sec = (50 + 0.01 * (powerKw - 300)) * (1 + 0.1 * progress) * (1 + 0.004 * rng.gaussian());
+    const h2 = powerKw / sec;
+    const current = h2 / kgPerAmpHour;
+    return { ...e, features: { ...e.features, j_mean: current / NAMEPLATE.activeAreaCm2, i_mean: current, h2_kg: h2, energy_kwh: powerKw, dc_kwh: powerKw * 0.95, sec_kwh_per_kg: sec } };
+  });
+}
+
 describe('el.sec_rise@1', () => {
   it('비에너지 +6% 주입을 같은 조건 비교로 6% ± 15% 이내로 복원하고 severity 3, 셀 전압이 그대로면 스택 체크 반박', () => {
     const daily = (fn: (day: number) => number) => Array.from({ length: DAYS }, (_, day) => ({ ts: DAY0 + day * MS_PER_DAY, value: fn(day) }));
@@ -87,6 +101,17 @@ describe('el.sec_rise@1', () => {
     expect(elSecRise.detect(input({ risePct: 0, seed: 5, recentPartialShare: 0.6 }), ctx())).toEqual({ status: 'ok', findings: [] });
     const small = elSecRise.detect(input({ risePct: 2, seed: 6 }), ctx());
     expect(small).toEqual({ status: 'ok', findings: [] });
+  });
+
+  it('전력 설정값 운전: 같은 전력의 전류밀도가 내려가도 AC 전력 bin(기본)은 +10%를 복원하고, 전류밀도 bin은 고장 뒤 표본이 새 bin 기준이 되어 절반가량으로 과소 추정한다', () => {
+    const byPower = elSecRise.detect({ assetId: 31, nameplate: NAMEPLATE, episodes: constantPowerEpisodes(11) }, ctx());
+    const byCurrent = elSecRise.detect({ assetId: 31, nameplate: NAMEPLATE, episodes: constantPowerEpisodes(11) }, ctx({ binBy: 'current_density' }));
+    const power = byPower.status === 'ok' ? byPower.findings[0] : undefined;
+    expect(power?.effect.value).toBeGreaterThan(10 * 0.85);
+    expect(power?.effect.value).toBeLessThan(10 * 1.15);
+    expect(power?.evidence).toMatchObject({ bin_by: 'ac_power', bin_widths: { ac_kw: 50 } });
+    const current = byCurrent.status === 'ok' ? byCurrent.findings[0] : undefined;
+    expect(current?.effect.value ?? 0).toBeLessThan(10 * 0.6); // 램프 중 표본이 새 bin 기준이 되어 약 절반만 보인다
   });
 
   it('insufficient: 명판 없음 · break-in 이전뿐 · 표본 부족', () => {

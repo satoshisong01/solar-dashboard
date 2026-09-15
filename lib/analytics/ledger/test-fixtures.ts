@@ -1,6 +1,6 @@
 // 원장 테스트용 합성 입력 도우미 (테스트 전용).
 import { kstDayStart, MS_PER_HOUR } from '../types';
-import { h2PressureBar } from '../detectors/hydrogen-eos';
+import { LEMMON_EOS } from '../detectors/hydrogen-eos';
 import type { LedgerAsset, LedgerHourRow } from './types';
 
 /** 2026-06-15 KST 0시 */
@@ -55,12 +55,14 @@ export function hydrogenScenario(scenario: H2DayScenario, firstId = 100): { read
   const mass = [scenario.startMassKg];
   for (let h = 0; h < 24; h += 1) mass.push((mass[h] as number) + (scenario.producedKgH[h] ?? 0) - (scenario.fcKgH[h] ?? 0) - leakPerHour);
   const volumeM3 = (TANK_COUNT * TANK_VOLUME_L) / 1000;
-  const pressure = (index: number, tank: number) => h2PressureBar(mass[index] as number, gasTempC(index), volumeM3) + TANK_OFFSETS[tank].bar;
+  // 번호 −1 = 전날 23시 시작 상태 (그 시간에는 유입·유출 없이 누설만 있다고 본다)
+  const massAt = (index: number): number => (index < 0 ? (mass[0] as number) + leakPerHour : (mass[index] as number));
+  const pressure = (index: number, tank: number) => LEMMON_EOS.pressure(massAt(index), gasTempC(index), volumeM3) + TANK_OFFSETS[tank].bar;
   const temp = (index: number, tank: number) => gasTempC(index) + TANK_OFFSETS[tank].c;
 
   const tankRows = tankIds.flatMap((id, tank) =>
     hoursOf(-1, 24).flatMap((h) => {
-      const start = Math.max(0, h);
+      const start = h;
       const end = h + 1;
       return [
         row(id, 'tank.pressure', h, (pressure(start, tank) + pressure(end, tank)) / 2, { periodS: 300, n: 12, nGood: 12, first: pressure(start, tank), last: pressure(end, tank) }),
@@ -68,7 +70,7 @@ export function hydrogenScenario(scenario: H2DayScenario, firstId = 100): { read
       ];
     }),
   );
-  const flowRows = hoursOf(0, 24).flatMap((h) => [row(elzId, 'h2.flow.mass', h, scenario.producedKgH[h] ?? 0), row(fcId, 'fc.h2.consumption', h, scenario.fcKgH[h] ?? 0)]);
+  const flowRows = hoursOf(-1, 24).flatMap((h) => [row(elzId, 'h2.flow.mass', h, scenario.producedKgH[h] ?? 0), row(fcId, 'fc.h2.consumption', h, scenario.fcKgH[h] ?? 0)]);
   return { assets, rows: [...tankRows, ...flowRows] };
 }
 

@@ -7,7 +7,7 @@ import { median } from '../stats/robust';
 import type { JsonObject } from '../types';
 import { fixed, insufficient, r, severityByMagnitude, withDefaults } from './common';
 import { earlyLateMedians, stackTrendEvidence, stackVoltageTrend, type StackPoint, type StackTrendParams, type StackTrendResult } from './stack-voltage';
-import { boolParam, completenessParam, intParam, numParam } from './param-schema';
+import { boolParam, choiceParam, completenessParam, intParam, numParam } from './param-schema';
 import type { CandidateFinding, CheckStatus, Detector, DetectorContext, DetectorResult, DiagnosticCheck, FailureMode } from './types';
 
 export interface StackDetectorParams extends StackTrendParams {
@@ -37,17 +37,22 @@ const BASE_DEFAULTS = {
   blowerRisePct: 10,
 } as const;
 
-export const EL_VOLTAGE_RISE_DEFAULTS: StackDetectorParams = Object.freeze({ ...BASE_DEFAULTS, breakInHours: 1000, correctCurrentDensity: true, correctTemperature: true });
+/**
+ * 전해조는 재생전력에 맞춘 전력 설정값으로 운전해, 정류기·BoP 효율이 바뀌면 같은 전력의 전류밀도가 시간에 따라 옮겨 간다.
+ * 전류밀도 bin으로 나누면 옮겨 간 bin의 중앙값이 열화를 함께 지우므로 기준 구간 기울기 하나로 보정한다(reference_slope).
+ */
+export const EL_VOLTAGE_RISE_DEFAULTS: StackDetectorParams = Object.freeze({ ...BASE_DEFAULTS, breakInHours: 1000, correctCurrentDensity: true, currentDensityMode: 'reference_slope', correctTemperature: true });
 /**
  * 연료전지는 정출력 지령으로 운전해 셀 전압이 떨어지면 전류밀도·발열(온도)이 함께 오른다. bin 안 회귀 보정이 이 공선성으로 열화를 지우므로
  * 전류밀도 보정은 추출기의 기준 전류밀도 환산 전압(v_cell_at_jref)에 맡기고 bin 안 회귀는 끈다.
  */
-export const FC_VOLTAGE_DECAY_DEFAULTS: StackDetectorParams = Object.freeze({ ...BASE_DEFAULTS, breakInHours: 500, correctCurrentDensity: false, correctTemperature: false });
+export const FC_VOLTAGE_DECAY_DEFAULTS: StackDetectorParams = Object.freeze({ ...BASE_DEFAULTS, breakInHours: 500, correctCurrentDensity: false, currentDensityMode: 'bins', correctTemperature: false });
 
 const stackParamSchema = (d: StackDetectorParams) =>
   z.object({
     breakInHours: numParam(d.breakInHours, { label: 'break-in 제외 운전시간', unit: 'h', min: 0, max: 20_000, description: '누적 운전시간이 이보다 작은 초기 구간은 기준선·추세에서 뺍니다.' }),
-    correctCurrentDensity: boolParam(d.correctCurrentDensity, { label: '전류밀도 보정', description: '전류밀도 bin과 bin 안 전류밀도 회귀 보정을 씁니다. 정출력 운전(연료전지)은 열화 신호를 지우므로 끕니다.' }),
+    correctCurrentDensity: boolParam(d.correctCurrentDensity, { label: '전류밀도 보정', description: '전류밀도 차이를 보정합니다(방식은 전류밀도 보정 방식). 정출력 운전(연료전지)은 열화 신호를 지우므로 끄고 기준 전류밀도 환산 전압을 씁니다.' }),
+    currentDensityMode: choiceParam(['bins', 'reference_slope'], d.currentDensityMode, { label: '전류밀도 보정 방식', description: 'bins = 전류밀도 bin과 bin 안 전체 점 회귀, reference_slope = bin 없이 앞쪽 기준 구간(25%)의 전압–전류밀도 기울기 하나로 보정(전력 설정값 운전에서 전류밀도가 옮겨 가도 열화를 지우지 않음).' }),
     correctTemperature: boolParam(d.correctTemperature, { label: 'bin 안 온도 회귀 보정', description: '온도 bin 안에 남은 온도 차이를 회귀로 한 번 더 보정합니다.' }),
     minPerBin: intParam(d.minPerBin, { label: 'bin당 최소 구간 수', unit: '개', min: 2, max: 100, description: '같은 조건 bin을 쓰려면 필요한 정상운전 구간 수입니다.' }),
     minTotal: intParam(d.minTotal, { label: '최소 구간 합계', unit: '개', min: 5, max: 1000, description: '사용한 bin의 정상운전 구간 합계 하한입니다.' }),

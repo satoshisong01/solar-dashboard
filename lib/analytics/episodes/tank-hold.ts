@@ -107,17 +107,27 @@ function runsOf(pressure: readonly TimedValue[], isStatic: (ts: number) => boole
   return runs;
 }
 
-function pairPoints(pressure: readonly TimedValue[], temps: readonly TimedValue[], hold: TimeWindow): TankHoldPoint[] {
-  const tolerance = 1.5 * nominalPeriodMs(temps, 300_000);
+/** 온도 짝 허용 시차 = 온도 공칭 주기 × 1.5 (구간마다 다시 계산하지 않도록 한 번만 구한다) */
+const tempTolerance = (temps: readonly TimedValue[]): number => 1.5 * nominalPeriodMs(temps, 300_000);
+
+function pairPoints(pressure: readonly TimedValue[], temps: readonly TimedValue[], toleranceMs: number, hold: TimeWindow): TankHoldPoint[] {
   return pointsIn(pressure, hold).flatMap((pt) => {
-    const tempC = valueNear(temps, pt.ts, tolerance);
+    const tempC = valueNear(temps, pt.ts, toleranceMs);
     return tempC === null ? [] : [{ ts: pt.ts, pressureBar: pt.value, tempC }];
   });
 }
 
 /** 정지 구간 안 압력 샘플마다 가장 가까운 온도를 짝지은 점 (온도가 없는 점은 뺀다) */
 export function tankHoldPoints(series: AssetSeries, hold: TimeWindow): TankHoldPoint[] {
-  return pairPoints(goodPoints(series, 'tank.pressure'), goodPoints(series, 'tank.temp'), hold);
+  return tankHoldPointsMany(series, [hold])[0] ?? [];
+}
+
+/** 여러 구간을 한 번에: good 필터·온도 주기는 한 번만 계산한다 */
+export function tankHoldPointsMany(series: AssetSeries, holds: readonly TimeWindow[]): TankHoldPoint[][] {
+  const pressure = goodPoints(series, 'tank.pressure');
+  const temps = goodPoints(series, 'tank.temp');
+  const tolerance = tempTolerance(temps);
+  return holds.map((hold) => pairPoints(pressure, temps, tolerance, hold));
 }
 
 /** 원시 샘플 → tank.hold 에피소드. 유입·유출 신호가 한쪽이라도 없으면 빈 결과 */
@@ -134,11 +144,12 @@ export function extractTankHolds(input: ExtractInput<TankNameplate>, overrides: 
     });
   const allPressure = goodPoints(input.series, 'tank.pressure');
   const temperature = goodPoints(input.series, 'tank.temp');
+  const temperatureTolerance = tempTolerance(temperature);
   const pressure = pointsIn(allPressure, input.window);
   const periodMs = nominalPeriodMs(pressure, p.fallbackPeriodS * MS_PER_SECOND);
   const downstream = goodPoints(input.series, 'h2.pressure');
   return runsOf(pressure, isStatic, input.window, periodMs, p).map((run): TankHoldEpisode => {
-    const points = pairPoints(allPressure, temperature, run);
+    const points = pairPoints(allPressure, temperature, temperatureTolerance, run);
     const temps = points.map((pt) => pt.tempC);
     const downStart = valueNear(downstream, run.start, toleranceMs);
     const downEnd = valueNear(downstream, run.end, toleranceMs);

@@ -53,7 +53,7 @@ const run = (input: Partial<EssResistanceInput> & { steps: readonly EssStepEpiso
 const checksOf = (result: ReturnType<typeof run>) => (result.status === 'ok' ? Object.fromEntries(((result.findings[0]?.evidence.checks ?? []) as { id: string; status: string }[]).map((c) => [c.id, c.status])) : {});
 
 describe('ess.resistance_growth@1', () => {
-  it('R_60s +30% 주입을 SOC 30~70%·온도 bin 비교로 30% ± 15% 복원, severity 2, 접속부 체크 지지', () => {
+  it('R_60s +30% 주입을 SOC 10~90%·온도 bin 비교로 30% ± 15% 복원, severity 2, 접속부 체크 지지', () => {
     const result = run({ steps: steps({ growthPct: 30, seed: 2 }), capacityFade: { effectPct: -0.2, ciHighPct: 0.5 } });
     expect(result.status).toBe('ok');
     if (result.status !== 'ok') return;

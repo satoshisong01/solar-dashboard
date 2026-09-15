@@ -12,7 +12,7 @@ import type { PiDay, Segment } from './pv-soiling-days';
 import { PV_SOILING_DEFAULTS } from './pv-soiling-rate';
 import { tankChecks, type HoldFit, type TankCheckInput } from './tank-static-leak-checks';
 import { TANK_STATIC_LEAK_DEFAULTS } from './tank-static-leak';
-import { ABEL_NOBLE_DEFAULTS } from './hydrogen-eos';
+import { LEMMON_EOS } from './hydrogen-eos';
 import { DAY0 } from './test-fixtures';
 
 const statusOf = (checks: readonly { id: string; status: string }[]) => Object.fromEntries(checks.map((c) => [c.id, c.status]));
@@ -93,7 +93,7 @@ describe('tankChecks 경계', () => {
     pressureMeanBar: 300,
     massMeanKg: 40,
   });
-  const input = (fits: HoldFit[], extra: Partial<TankCheckInput> = {}): TankCheckInput => ({ fits, recent: fits.slice(-6), leak: 0.3, volumeM3: 1.85, constants: ABEL_NOBLE_DEFAULTS, p: TANK_STATIC_LEAK_DEFAULTS, ...extra });
+  const input = (fits: HoldFit[], extra: Partial<TankCheckInput> = {}): TankCheckInput => ({ fits, recent: fits.slice(-6), leak: 0.3, volumeM3: 1.85, eos: LEMMON_EOS, p: TANK_STATIC_LEAK_DEFAULTS, ...extra });
 
   it('손실률이 온도 변화율을 따라가면 온도 보정 지지, 하류 상승 일부 → 불명, 짧은 구간 → 충분성 지지', () => {
     const fits = Array.from({ length: 8 }, (_, i) => fit(i, 0.3 + 0.05 * (i % 4), -2 - 5 * (i % 4), 5, i % 3 === 0 ? 2 : 0));

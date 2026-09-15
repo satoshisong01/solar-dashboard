@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { H2_KG_PER_AMP_HOUR_PER_CELL as SIM_H2_KG_PER_AMP_HOUR_PER_CELL } from '@/lib/sim/models/common';
-import { ABEL_NOBLE_DEFAULTS, H2_COVOLUME_DEFAULT, h2DensityKgM3 as h2DensityAbelNoble, h2MassKg as h2MassAbelNobleKg, h2PressureBar as h2PressureAbelNobleBar, H2_SPECIFIC_GAS_CONSTANT_DEFAULT as H2_SPECIFIC_GAS_CONSTANT } from '../detectors/hydrogen-eos';
+import { ABEL_NOBLE_DEFAULTS, H2_COVOLUME_DEFAULT, lemmonCompressibility, LEMMON_EOS, h2DensityKgM3 as h2DensityAbelNoble, h2MassKg as h2MassAbelNobleKg, h2PressureBar as h2PressureAbelNobleBar, H2_SPECIFIC_GAS_CONSTANT_DEFAULT as H2_SPECIFIC_GAS_CONSTANT } from '../detectors/hydrogen-eos';
 import { TANK_STATIC_LEAK_DEFAULTS } from '../detectors/tank-static-leak';
 import { createLedgerContext } from './hourly';
 import { H2_EOS_VERSION, H2_KG_PER_AMP_HOUR_PER_CELL, hydrogenLedger } from './hydrogen';
@@ -19,13 +19,15 @@ const runScenario = (scenario: H2DayScenario) => {
 };
 
 describe('Abel–Noble 상태식 (tank.static_leak 탐지기와 같은 수식·상수)', () => {
-  it('원장 저장량 변화와 누설 탐지기가 같은 상수·함수를 쓴다', () => {
+  it('원장 저장량 변화와 누설 탐지기가 같은 상태식(NIST Lemmon 2008)을 쓴다', () => {
+    expect(TANK_STATIC_LEAK_DEFAULTS.eosModel).toBe('lemmon2008');
+    expect(H2_EOS_VERSION).toBe('lemmon2008@1');
     expect(TANK_STATIC_LEAK_DEFAULTS.specificGasConstant).toBe(ABEL_NOBLE_DEFAULTS.specificGasConstant);
     expect(TANK_STATIC_LEAK_DEFAULTS.coVolume).toBe(ABEL_NOBLE_DEFAULTS.coVolume);
     const { assets, rows } = hydrogenScenario(HEALTHY_H2);
     const tankIds = assets.filter((a) => a.classKey === 'h2.storage.tank').map((a) => a.id);
     const lastOf = (id: number, metric: string, hour: number) => rows.find((r) => r.assetId === id && r.metricKey === metric && r.hourStart === DAY + hour * 3_600_000)?.last ?? 0;
-    const massAt = (id: number, hour: number) => h2MassAbelNobleKg(lastOf(id, 'tank.pressure', hour), lastOf(id, 'tank.temp', hour), 1.85);
+    const massAt = (id: number, hour: number) => LEMMON_EOS.mass(lastOf(id, 'tank.pressure', hour), lastOf(id, 'tank.temp', hour), 1.85);
     const detectorDelta = tankIds.reduce((sum, id) => sum + massAt(id, 23) - massAt(id, -1), 0);
     expect(ledgerOf(assets, rows).ledger.stored_delta).toBeCloseTo(detectorDelta, 3);
   });
@@ -33,7 +35,6 @@ describe('Abel–Noble 상태식 (tank.static_leak 탐지기와 같은 수식·�
   it('상수와 기준값을 고정한다 — 바꾸면 탐지기 쪽도 함께 바꿔야 한다', () => {
     expect(H2_COVOLUME_DEFAULT).toBe(7.691e-3);
     expect(H2_SPECIFIC_GAS_CONSTANT).toBeCloseTo(4124.4829, 3);
-    expect(H2_EOS_VERSION).toBe('abel_noble@1');
     // ρ = P / (R_s·T + b·P)
     expect(h2DensityAbelNoble(350, 15)).toBeCloseTo(24.01117, 4);
     expect(h2DensityAbelNoble(700, 15)).toBeCloseTo(40.53648, 4);
@@ -45,6 +46,15 @@ describe('Abel–Noble 상태식 (tank.static_leak 탐지기와 같은 수식·�
     expect(Math.abs(h2DensityAbelNoble(700, 15) / 40.2 - 1)).toBeLessThan(0.03);
     const ideal = 1e5 / (H2_SPECIFIC_GAS_CONSTANT * 273.15);
     expect(Math.abs(h2DensityAbelNoble(1, 0) / ideal - 1)).toBeLessThan(1e-3);
+  });
+
+  it('NIST Lemmon 2008: 검증점 300 K·10 MPa Z = 1.05985282, 15 °C 350·700 bar 밀도 약 24.0·40.2 kg/m³(1% 안), 질량 ↔ 압력 역함수', () => {
+    expect(lemmonCompressibility(100, 26.85)).toBeCloseTo(1.05985282, 7);
+    expect(Math.abs(LEMMON_EOS.density(350, 15) / 24.0 - 1)).toBeLessThan(0.01);
+    expect(Math.abs(LEMMON_EOS.density(700, 15) / 40.2 - 1)).toBeLessThan(0.01);
+    for (const bar of [1, 30, 220, 450, 700]) expect(LEMMON_EOS.pressure(LEMMON_EOS.mass(bar, 18, 1.85), 18, 1.85)).toBeCloseTo(bar, 6);
+    const numeric = (LEMMON_EOS.density(300.5, 20) - LEMMON_EOS.density(299.5, 20)) / 1;
+    expect(LEMMON_EOS.densityPerBar(300, 20)).toBeCloseTo(numeric, 5);
   });
 
   it('질량 ↔ 압력 역함수, 음수 압력은 0, 절대 0도 이하는 오류', () => {
@@ -69,7 +79,7 @@ describe('hydrogenLedger', () => {
     expect(ledger.stored_delta).toBeCloseTo(18, 1);
     expect(ledger.vented_est).toBe(0);
     expect(Math.abs(ledger.residual_pct ?? 99)).toBeLessThan(0.5);
-    expect(ledger.method).toEqual({ produced: 'meter', fc_consumed: 'meter', stored_delta: 'abel_noble@1', vented: 'not_estimated' });
+    expect(ledger.method).toEqual({ produced: 'meter', fc_consumed: 'meter', stored_delta: 'lemmon2008@1', vented: 'not_estimated' });
     expect(dq.completeness).toBe(1);
     expect(dq.purge_count_missing).toBe(false);
     // 판별 체크 보조값: 스택이 없으면 이론 생산량 없음, 탱크 온도 끝 − 시작 평균 (fixture 온도 오프셋 평균 0.025 °C는 상쇄)
@@ -99,6 +109,25 @@ describe('hydrogenLedger', () => {
     expect(ledgerOf(assets, rows, { kgPerPurge: 0.002 }).dq.purge_count_missing).toBe(true);
   });
 
+  it('적산계가 있으면 하루 증가량을 생산량으로 쓰고, 그날 값이 줄거나(리셋) 경계 행이 없으면 유량 적산으로 돌아간다', () => {
+    const { assets, rows } = hydrogenScenario(HEALTHY_H2);
+    const totalAt = (h: number) => 5000 + HEALTHY_H2.producedKgH.slice(0, Math.max(0, h)).reduce((a, b) => a + b, 0);
+    const counterRows = hoursOf(-1, 24).map((h) => row(100, 'h2.mass.total', h, totalAt(h + 1), { first: totalAt(h), last: totalAt(h + 1), min: totalAt(h), max: totalAt(h + 1) }));
+    // 유량 행은 기동 표본 오차로 1 kg 많게, 적산계는 참값
+    const biasedFlow = rows.map((r) => (r.metricKey === 'h2.flow.mass' && r.hourStart === DAY + 9 * 3_600_000 ? { ...r, avg: 10, first: 10, last: 10 } : r));
+    const counter = ledgerOf(assets, [...biasedFlow, ...counterRows]).ledger;
+    expect(counter.method.produced).toBe('meter_total');
+    expect(counter.produced).toBeCloseTo(63, 6);
+    expect(ledgerOf(assets, biasedFlow).ledger).toMatchObject({ produced: 64, method: { produced: 'meter' } });
+
+    const reset = counterRows.map((r) => (r.hourStart === DAY + 12 * 3_600_000 ? { ...r, min: 0, first: 0, avg: 5 } : r));
+    expect(ledgerOf(assets, [...biasedFlow, ...reset]).ledger.method.produced).toBe('meter');
+    const noEnd = counterRows.filter((r) => r.hourStart !== DAY + 23 * 3_600_000);
+    expect(ledgerOf(assets, [...biasedFlow, ...noEnd]).ledger.method.produced).toBe('meter');
+    const noBefore = counterRows.filter((r) => r.hourStart !== DAY - 3_600_000);
+    expect(ledgerOf(assets, [...biasedFlow, ...noBefore]).ledger).toMatchObject({ produced: 63, method: { produced: 'meter_total' } });
+  });
+
   it('유량계가 없으면 패러데이 추정(셀 수 × 전류), 소비·저장 데이터가 없으면 잔차 null', () => {
     const stack = asset(5, 'ELZ1/STACK1', 'h2.elz.stack', { cell_count: 210 });
     const rows = hoursOf(9, 12).map((h) => row(5, 'stack.current', h, 1000));
@@ -120,6 +149,17 @@ describe('hydrogenLedger', () => {
     const pvOnly = ledgerOf([asset(1, 'PV1/INV01', 'pv.inverter')], []);
     expect(pvOnly.ledger).toEqual({ produced: null, fc_consumed: null, stored_delta: null, vented_est: null, residual: null, residual_pct: null, method: { produced: null, fc_consumed: null, stored_delta: null, vented: 'not_estimated' }, aux: { faraday_expected: null, purge_count: null, tank_temp_delta_c: null } });
     expect(pvOnly.dq.completeness).toBeNull();
+  });
+
+  it('경계 시간이 정지(유입·유출 없음)면 마지막 샘플 대신 시간 평균 P·T, 흐름이 있으면 마지막 샘플', () => {
+    const { assets, rows } = hydrogenScenario(HEALTHY_H2);
+    // 23시 행 마지막 압력에만 +3 bar 잡음 → 정지 시간이면 평균을 써서 영향이 없다
+    const noisy = rows.map((r) => (r.metricKey === 'tank.pressure' && r.hourStart === DAY + 23 * 3_600_000 ? { ...r, last: (r.last ?? 0) + 3 } : r));
+    const base = ledgerOf(assets, rows).ledger.stored_delta ?? 0;
+    expect(ledgerOf(assets, noisy).ledger.stored_delta).toBeCloseTo(base, 6);
+    // 23시에 연료전지가 돌면 정지가 아니므로 마지막 샘플(+3 bar)이 저장량 변화에 들어간다
+    const running = noisy.map((r) => (r.metricKey === 'fc.h2.consumption' && r.hourStart === DAY + 23 * 3_600_000 ? { ...r, avg: 1, first: 1, last: 1 } : r));
+    expect((ledgerOf(assets, running).ledger.stored_delta ?? 0) - base).toBeGreaterThan(0.5);
   });
 
   it('생산·소비가 거의 없는 날은 분모 하한(residualFloorKg)을 쓴다', () => {

@@ -11,6 +11,7 @@ export const LEDGER_METRICS: ReadonlySet<string> = new Set([
   'fc.ac.power',
   'compressor.power',
   'h2.flow.mass',
+  'h2.mass.total',
   'stack.current',
   'fc.h2.consumption',
   'tank.pressure',
@@ -145,14 +146,17 @@ export interface DayBoundary {
 /**
  * 하루 경계값: 시작 = 앞 1시간 행의 last(있으면), 없으면 그날 첫 good 행의 first / 끝 = 그날 마지막 good 행의 last.
  * 연속한 두 날의 끝·시작이 같은 샘플이 되어 재고·카운터 차분이 날 사이에서 비거나 겹치지 않는다.
+ * preferHourMean(경계 시간)이 true면 그 시간은 값이 변하지 않은(정지) 시간으로 보고 last 대신 시간 평균을 쓴다 (단일 샘플 잡음 1/√n).
+ * 끝(그날 23시 행)과 다음 날 시작(같은 행)이 같은 규칙을 쓰므로 날 사이 연속성은 그대로다.
  */
-export function dayBoundary(ctx: LedgerContext, assetId: number, metricKey: string): DayBoundary {
+export function dayBoundary(ctx: LedgerContext, assetId: number, metricKey: string, preferHourMean: (hourStart: number) => boolean = () => false): DayBoundary {
   const before = ctx.row(assetId, metricKey, ctx.dayStart - MS_PER_HOUR);
   const inDay = ctx.hours.map((h) => ctx.row(assetId, metricKey, h)).filter((r): r is LedgerHourRow => r !== undefined && r.nGood > 0);
-  const previousLast = before && before.nGood > 0 ? before.last : null;
+  const lastOf = (row: LedgerHourRow): number | null => (preferHourMean(row.hourStart) && row.avg !== null ? row.avg : row.last);
+  const last = inDay[inDay.length - 1];
   return {
-    start: previousLast ?? inDay[0]?.first ?? null,
-    end: inDay[inDay.length - 1]?.last ?? null,
+    start: (before && before.nGood > 0 ? lastOf(before) : null) ?? inDay[0]?.first ?? null,
+    end: last ? lastOf(last) : null,
   };
 }
 

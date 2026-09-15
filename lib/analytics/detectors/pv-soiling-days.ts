@@ -1,10 +1,12 @@
 // pv.soiling_rate 일 성능지수·맑은 날·복원 이벤트·구간 기울기 (순수).
 // PI = Σ AC 에너지 / (Σ kWp × POA 일적산 × (1 + γ·(T_일사가중 − 25)))  — 출력제한·클리핑·정지·완결성 미달·동종 이상 인버터는 그날 합계에서 뺀다.
-// 맑은 날 = POA 일적산 ≥ 계절 청천 상한(±envelopeHalfDays일 최대) × clearDayRatio 이고 일중 변동 지표 ≤ maxVariability.
+// 맑은 날 = POA 일적산 ≥ 계절 청천 상한(±envelopeHalfDays일 최대) × clearDayRatio 이고 일중 변동 지표 ≤ max(maxVariability, 같은 ±envelopeHalfDays일 변동 지표의 clearVariabilityQuantile 분위).
+//   고정 상한만 쓰면 운량 변동이 늘 있는 기후·일사계 샘플링에서는 맑은 날이 하나도 없어 판정할 수 없다. 분위 상한은 그 기간 가장 덜 흔들린 날들을 고른다
+//   (진짜 맑은 날이 있는 현장에서는 분위 값이 고정 상한 아래라 고정 상한이 그대로 쓰인다). 흔들린 날 PI 잡음은 기울기 CI를 넓혀 오탐 대신 판정 보류 쪽으로 간다.
 // 복원 = 세척 이벤트 또는 맑은 날 PI 중앙값의 급상승(앞·뒤 stepWindowDays개 비교, recoveryStepPct 이상 — 강수량 메트릭이 없어 강우 대신 쓴다).
 import type { PvDayEpisode } from '../episodes/pv';
 import type { WxDayEpisode } from '../episodes/wx-day';
-import { median, modifiedZ } from '../stats/robust';
+import { median, modifiedZ, quantile } from '../stats/robust';
 import { theilSen } from '../stats/trend';
 import { kstDayStart, MS_PER_DAY } from '../types';
 
@@ -15,6 +17,7 @@ export interface SoilingDayRules {
   readonly minEligibleShare: number;
   readonly clearDayRatio: number;
   readonly maxVariability: number;
+  readonly clearVariabilityQuantile: number;
   readonly envelopeHalfDays: number;
 }
 
@@ -78,9 +81,12 @@ export function piDays(inverterDays: readonly PvDayEpisode[], wxDays: readonly W
     const kwp = eligible.reduce((sum, d) => sum + (kwpOf(d) ?? 0), 0);
     const acKwh = eligible.reduce((sum, d) => sum + d.features.energy_kwh, 0);
     if (!(kwp > 0 && perKwp > 0)) return [];
-    const envelope = Math.max(...wx.filter((x) => Math.abs(x.start - w.start) <= rules.envelopeHalfDays * MS_PER_DAY).map((x) => x.features.poa_kwh_m2));
+    const neighbours = wx.filter((x) => Math.abs(x.start - w.start) <= rules.envelopeHalfDays * MS_PER_DAY);
+    const envelope = Math.max(...neighbours.map((x) => x.features.poa_kwh_m2));
+    const neighbourVariability = neighbours.flatMap((x) => x.features.variability ?? []);
+    const variabilityLimit = Math.max(rules.maxVariability, neighbourVariability.length === 0 ? 0 : quantile(neighbourVariability, rules.clearVariabilityQuantile));
     const variability = w.features.variability;
-    const clear = w.features.poa_kwh_m2 >= rules.clearDayRatio * envelope && variability !== null && variability <= rules.maxVariability;
+    const clear = w.features.poa_kwh_m2 >= rules.clearDayRatio * envelope && variability !== null && variability <= variabilityLimit;
     return [{ day: kstDayStart(w.start), pi: acKwh / (kwp * perKwp), acKwh, expectedKwh: kwp * perKwp, clear, poaKwhM2: w.features.poa_kwh_m2, ghiKwhM2: w.features.ghi_kwh_m2, inverters: eligible.map((d) => ({ assetId: d.assetId, pi: d.features.kwh_per_kwp / perKwp })) }];
   });
   return { days, exclusions: counts };
