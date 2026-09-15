@@ -6,6 +6,7 @@
 //   RACK03  15일째부터 셀 전압 편차가 월 60 mV씩 커지다가 45일째 밸런싱으로 해소 → 셀 불균형 발견사항 → 조치 → 효과 확인
 //   INV01   30일째부터 효율 −2%p (계속)                    → 인버터 발견사항 → '운영 조건 변경' 기각 + 기준선 재설정
 import type { Scenario } from '../../lib/sim/scenarios';
+import type { MemoryFixturePlan } from './memory-fixture';
 
 const DAY_MS = 86_400_000;
 const KST_OFFSET_MS = 9 * 3_600_000;
@@ -59,3 +60,6 @@ export function loopScenarios(): readonly Scenario[] {
     { kind: 'fault', site: LOOP_SITE, asset: LOOP_ASSETS.cellImbalance, param: 'battery.cellSpreadMv', value: cellSpreadHook },
   ];
 }
+
+/** globalSetup 적재 계획 (memory-fixture.ts) */
+export const LOOP_FIXTURE: MemoryFixturePlan = Object.freeze({ label: '폐루프 픽스처', site: LOOP_SITE, seed: LOOP_SEED, days: LOOP_DAYS, windowMs: loopWindowMs, scenarios: loopScenarios });

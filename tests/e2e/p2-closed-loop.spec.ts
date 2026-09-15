@@ -1,6 +1,7 @@
-import { expect, test, type APIRequestContext, type Locator, type Page, type Request } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { LOOP_ASSETS, LOOP_INPUTS, LOOP_SITE } from './closed-loop-plan';
 import { E2E_BASE_URL, SIGNED_OUT } from './e2e-env';
+import { captureServerAction, expectBlocked, FORGED_SESSION_COOKIE } from './server-action';
 
 // 폐루프 E2E (설계 §8 P2 완료 기준): 분석 실행 → 발견사항 → 근거 확인 → 분류·조치 → 재분석 효과 검증 → 기각·기준선 재설정 → 리포트 승인·인쇄.
 // 데이터: globalSetup이 SIM-A 과거 80일(closed-loop-plan.ts)을 적재했다. 테스트는 앞 단계가 만든 상태를 이어 쓴다 (serial).
@@ -239,48 +240,6 @@ test('(8) 조치 CSV 가져오기: 오류 행마다 행 번호와 사유를 안�
   await expect(list).toHaveCount(before);
 });
 
-interface CapturedAction {
-  readonly path: string;
-  readonly headers: Readonly<Record<string, string>>;
-  readonly body: Buffer;
-}
-
-/** 로그인한 화면에서 Server Action 요청을 서버에 보내지 않고 가로챈다 (헤더·본문을 비로그인 재전송에 쓴다) */
-async function captureServerAction(page: Page, path: string, trigger: () => Promise<void>): Promise<CapturedAction> {
-  let captured: Request | null = null;
-  const matches = (url: URL): boolean => url.pathname === path;
-  await page.route(matches, async (route) => {
-    if (route.request().method() !== 'POST' || !route.request().headers()['next-action']) return route.continue();
-    captured = route.request();
-    await route.abort();
-  });
-  await trigger();
-  await expect.poll(() => captured !== null).toBe(true);
-  await page.unroute(matches);
-  const request = captured as Request | null;
-  if (!request) throw new Error(`${path} Server Action 요청을 가로채지 못했습니다`);
-  const url = new URL(request.url());
-  const headers = Object.fromEntries(Object.entries(request.headers()).filter(([name]) => name !== 'cookie'));
-  return { path: `${url.pathname}${url.search}`, headers, body: request.postDataBuffer() ?? Buffer.alloc(0) };
-}
-
-/**
- * 쿠키 없음: proxy가 307로 로그인에 보낸다.
- * 위조 쿠키: proxy는 지나가지만 Server Action 첫 줄 requireAdmin()이 redirect — Next Server Action 규약대로 x-action-redirect: /login.
- * 어느 쪽이든 부작용이 없어야 하므로 호출한 쪽에서 실행 이력·리포트 수를 다시 확인한다.
- */
-async function expectBlocked(request: APIRequestContext, action: CapturedAction, cookie?: string): Promise<void> {
-  const response = await request.post(action.path, { headers: { ...action.headers, ...(cookie ? { cookie } : {}) }, data: action.body, maxRedirects: 0 });
-  const headers = response.headers();
-  const detail = `${action.path}${cookie ? ' (위조 쿠키)' : ''} 응답 ${response.status()} location=${headers['location'] ?? ''} x-action-redirect=${headers['x-action-redirect'] ?? ''}`;
-  if (cookie) {
-    expect(headers['x-action-redirect'], detail).toMatch(/^\/login(;|$)/);
-  } else {
-    expect(response.status(), detail).toBe(307);
-    expect(headers['location'], detail).toMatch(/\/login$/);
-  }
-}
-
 test('(9) 비로그인: /desk·/reports·/actions 화면은 로그인으로 보내고, 가로챈 실제 Server Action 재전송도 아무것도 바꾸지 못한다', async ({ page, playwright }) => {
   // 가로챈 요청은 중단되므로 화면이 오류 상태가 된다. 비교 기준은 가로채기 전에 읽는다.
   await page.goto('/desk');
@@ -309,7 +268,7 @@ test('(9) 비로그인: /desk·/reports·/actions 화면은 로그인으로 보�
     }
     for (const action of [runAction, reportAction, importAction]) {
       await expectBlocked(anonymous, action);
-      await expectBlocked(anonymous, action, 'better-auth.session_token=forged-token.forged-signature');
+      await expectBlocked(anonymous, action, FORGED_SESSION_COOKIE);
     }
   } finally {
     await anonymous.dispose();

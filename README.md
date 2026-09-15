@@ -243,12 +243,14 @@ integration·e2e는 `npm run db:up`이 떠 있어야 합니다. 꺼져 있으면
 | 명령 | 내용 |
 |---|---|
 | `npm test` / `npm run test:unit` | Vitest unit (`lib/**`, `components/**`의 `*.test.ts`). DB 불필요 |
-| `npm run test:integration` | Vitest integration (`tests/integration`). 테스트 DB를 최신으로 migrate한 뒤 스키마·마이그레이션 왕복·수집·분석 실행(재실행 멱등·동시 실행 잠금·partial/failed)·리포트·조치·탐지기 설정 버전(활성 하나·동시 저장)을 검사 |
-| `npm run test:e2e` | Playwright (`tests/e2e`, chromium). `next build` 후 `next start -p 3100`을 띄우고, 테스트 DB 초기화(마이그레이션 down → up)·시드·테스트 관리자(`e2e-admin@hysol.local`) 생성, SIM-B 최근 2일을 실제 수집 API로 적재, 폐루프 시나리오용 SIM-A 과거 80일(고장 주입, `tests/e2e/closed-loop-plan.ts`)을 원시에 직접 적재한 뒤 실행(적재 약 30초). 끝나면 테스트 DB를 migrate·seed 직후 상태로 되돌린다 |
+| `npm run test:integration` | Vitest integration (`tests/integration`). 테스트 DB를 최신으로 migrate한 뒤 스키마·마이그레이션 왕복·수집·분석 실행(재실행 멱등·동시 실행 잠금·partial/failed)·리포트·조치·탐지기 설정 버전(활성 하나·동시 저장)·P3 체인 원장 경계(부분 기간·설비 실행)·설정 병합 경계(설비 > 설비 종류 > 기본)·탐지 준비도 DB 입력을 검사 |
+| `npm run test:e2e` | Playwright (`tests/e2e`, chromium). `next build` 후 `next start -p 3100`을 띄우고, 테스트 DB 초기화(마이그레이션 down → up)·시드·테스트 관리자(`e2e-admin@hysol.local`) 생성, SIM-B 최근 2일을 실제 수집 API로 적재, 고정 과거 기간을 메모리 모드로 만들어 원시에 직접 적재(`tests/e2e/memory-fixture.ts`)한 뒤 실행: 폐루프 시나리오용 SIM-A 80일(고장 주입, `closed-loop-plan.ts`, 약 35초)·P3 수소 체인 시나리오용 SIM-B 21일(저장용기 누설·압축기 밸브 교체, `p3-chain-plan.ts`, 약 10초). 끝나면 테스트 DB를 migrate·seed 직후 상태로 되돌린다 |
 | `npm run test:all` | unit → integration → e2e 순서로 모두 실행 |
 | `npx vitest run --project unit --coverage` | `lib/**` 커버리지 (`coverage/`). `lib/analytics/**`는 구문·분기·함수·라인 중 하나라도 80% 미만이면 실패 |
 
 `tests/e2e/p2-closed-loop.spec.ts`는 한 흐름을 순서대로 이어 갑니다(serial): SIM-A 1차 기간 분석 → 용량 감소 워크스페이스(효과·CI·비교표·오버레이·판별 체크) → 셀 불균형 분류·조치 → 조치 뒤 비교 창이 지난 기간까지 재분석해 `improved` → `verified` → 인버터 발견사항 '운영 조건 변경' 기각·기준선 재설정 → 재분석에서 같은 발견사항 없음 → 리포트 만들기·숫자 잠금·승인(`in_report`)·인쇄 화면 → 분석이 리포트를 만들지 않음 → 조치 CSV 행 오류 → 비로그인 차단(가로챈 실제 Server Action 재전송 포함) → `/sim` 404.
+
+`tests/e2e/p3-chain.spec.ts`도 한 흐름입니다(serial): SIM-B 2026-03-01부터 21일 분석 → 저장용기 누설 안전 발견사항(심각도 4)·사이트 단위 물질수지 발견사항 → 오늘 화면 안전 발견사항 배너 → 누설 워크스페이스(안전 배너·정지 보유 구간 표·곡선) → 사이트 체인 원장 섹션(Sankey 2개·잔차 막대·PV 미활용 막대) → 탐지 준비도 매트릭스·CSV 내려받기 → 탐지기 설정 새 버전·범위 밖 값 거부·재분석 근거의 설정 버전·이전 버전 재활성 → 리포트(요약 맨 앞 안전 블록·방향 단어 편집 검증 문제·승인·인쇄 원장 절) → 압축기 밸브 교체 조치 등록·검증만 실행으로 개선 확인 → 비로그인 차단 → 분석이 리포트를 만들지 않음. 적재 기간 21일은 물질수지 탐지기 기본 기준 14일 + 최근 7일이고, 누설은 14일째(기준·최근 경계)부터 넣습니다.
 
 integration과 e2e는 둘 다 테스트 DB의 마이그레이션을 모두 되돌렸다가 다시 적용하므로 동시에 실행하지 마세요. e2e가 끝난 테스트 DB에는 수집 데이터·테스트 계정이 남지 않습니다.
 
