@@ -1,6 +1,7 @@
 // 탐지 결과 → om.finding upsert + finding_evidence append (설계 §5.2 분석 그룹).
 //   dedup_key = 탐지기|설비(또는 site:<id>)|고장모드 (탐지 창 제외)
-//   열린 건이 있으면 갱신: last_detected_at·detection_count·severity·confidence·effect·제목·요약·창, 조치 뒤 악화면 system이 reopened로
+//   열린 건이 있으면 갱신: last_detected_at·detection_count·category·severity·confidence·effect·제목·요약·창, 조치 뒤 악화면 system이 reopened로
+//   (category도 갱신한다: 누설처럼 심각도에 따라 안전·성능이 갈리는 탐지기는 DB CHECK(safety ⇒ severity ≥ 4)와 안전 발견사항 판정이 어긋나지 않게)
 //   열린 건이 없으면: 억제 기간 안의 기각 건이면 건너뛰고, 아니면 새 finding (닫힌 이전 건은 previous_finding_id로 잇는다 = 재발)
 //   근거는 탐지할 때마다 한 행씩 추가하고 latest_evidence_id가 가리킨다. 스냅샷에는 적용 설정 {scope, version, params_hash}를 함께 남긴다.
 import type { Kysely, Transaction } from 'kysely';
@@ -46,6 +47,7 @@ async function appendEvidence(trx: Transaction<DB>, findingId: string, candidate
 
 const findingFields = (candidate: CandidateFinding) => ({
   detector_version: candidate.detectorVersion,
+  category: candidate.category,
   severity: candidate.severity,
   confidence: candidate.confidence,
   title: candidate.title,
@@ -91,7 +93,6 @@ async function persistOne(db: Kysely<DB>, candidate: CandidateFinding, ctx: Pers
         asset_id: candidate.assetId,
         detector_id: candidate.detectorId,
         failure_mode: candidate.failureMode,
-        category: candidate.category,
         dedup_key: dedupKey,
         status: 'new',
         first_detected_at: ctx.now,

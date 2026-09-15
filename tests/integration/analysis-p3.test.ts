@@ -1,10 +1,10 @@
-// P3 분석 실행 (hysol_test): 체인 원장 site_energy_daily 멱등 · 사이트 단위 finding dedup · 설정 검증 실패(invalid_config) ·
+// P3 분석 실행 (hysol_test): 체인 원장 site_energy_daily 멱등 · 사이트 단위 finding dedup · 부분 기간·설비 실행 원장 경계 · 설정 검증 실패(invalid_config) · 설정 병합 경계(설비 > 설비 종류 > 기본) ·
 // 저장용기 정지 구간 원시 부분 로드 · 조치 효과 검증 신규 지표(압축기 비에너지) · 리포트 팩 에너지·수소 원장과 안전 발견사항 '즉시 확인 필요'.
 // 픽스처: 시드된 SIM-B의 수소 체인 포인트 21일(10일째부터 저장용기 2 누설 2 kg/일, tests/support/p3-fixture.ts).
 import { sql } from 'kysely';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { loadSiteAssets, loadSitePoints } from '@/lib/analysis/catalog';
-import { runAnalysis, type AnalysisRequest } from '@/lib/analysis/run';
+import { DEFAULT_OVERLAP_HOURS, runAnalysis, type AnalysisRequest } from '@/lib/analysis/run';
 import { loadAssetSeries } from '@/lib/analysis/series';
 import { extractTankHoldsWindowed, loadTankHoldPoints } from '@/lib/analysis/tank-holds';
 import { loadEpisodes } from '@/lib/analysis/episodes';
@@ -17,10 +17,11 @@ import { parseReviewDraft } from '@/lib/report/review';
 import { createReport } from '@/lib/report/service';
 import { TANK_STATIC_LEAK_DEFAULTS } from '@/lib/analytics/detectors/tank-static-leak';
 import { tankHoldPoints } from '@/lib/analytics/episodes/tank-hold';
+import { hashInput } from '@/lib/analytics/hash';
 import { extractAssetEpisodes } from '@/lib/analytics/pipeline/extract';
 import { indexSnapshot } from '@/lib/analytics/pipeline/snapshot';
 import { seriesRequests } from '@/lib/analytics/pipeline/sources';
-import { createP3Fixture, dropP3Fixture, P3_DAYS, P3_LEAK_TANK, p3At, p3Window, type P3Fixture } from '../support/p3-fixture';
+import { createP3Fixture, dropP3Fixture, P3_DAY_MS, P3_DAYS, P3_LEAK_TANK, p3At, p3Window, type P3Fixture } from '../support/p3-fixture';
 import { createTestDb } from '../support/ingest-fixture';
 import { assertTestDatabaseUrl } from '../support/test-env';
 
@@ -87,6 +88,27 @@ describe('P3 분석 실행 (hysol_test)', () => {
     expect(result.stats.sites[0]?.findings.created).toBe(0);
   }, 240_000);
 
+  it('경계: 하루 중간에 끝나는 설비 하나 실행은 겹침 6시간이 걸친 날부터 끝난 날까지만 원장을 덮어쓰고, 사이트 단위 물질수지 finding은 여전히 하나로 갱신', async () => {
+    const before = await ledgerRows();
+    const from = p3At(14);
+    const to = new Date(p3At(20).getTime() + 12 * 3_600_000); // 20일째 12:00 KST — 이 날은 끝나지 않았다
+    const result = await runAnalysis(db, request({ assetIds: [fixture.assetIdOf(P3_LEAK_TANK)], from, to }), { now: () => p3At(P3_DAYS + 0.15) });
+    expect(result.stats.errors).toEqual([]);
+    const after = await ledgerRows();
+    expect(after).toHaveLength(P3_DAYS);
+    const firstRecomputed = Math.floor((from.getTime() - DEFAULT_OVERLAP_HOURS * 3_600_000 - p3At(0).getTime()) / P3_DAY_MS);
+    const recomputed = after.flatMap((row, day) => (row.run_id === result.runId ? [day] : []));
+    expect(recomputed).toEqual(Array.from({ length: 20 - firstRecomputed }, (_, i) => firstRecomputed + i));
+    expect(new Set(before.map((row) => row.run_id)).size).toBe(1);
+    expect(after.filter((row) => row.run_id !== result.runId).every((row) => row.run_id === before[0]?.run_id)).toBe(true);
+    const withoutRun = (rows: typeof before) => rows.map((row) => Object.fromEntries(Object.entries(row).filter(([key]) => key !== 'run_id')));
+    expect(withoutRun(after)).toEqual(withoutRun(before));
+
+    const chain = await db.selectFrom('om.finding as f').innerJoin('om.finding_evidence as e', 'e.id', 'f.latest_evidence_id').select(['f.detection_count', 'e.run_id']).where('f.site_id', '=', fixture.siteId).where('f.detector_id', '=', 'h2chain.mass_balance_gap').execute();
+    expect(chain).toEqual([{ detection_count: 3, run_id: result.runId }]);
+    expect(result.stats.sites[0]?.findings.created).toBe(0);
+  }, 240_000);
+
   it('리포트 팩: 기간 안 끝난 날의 체인 원장 합(원시·일 행 없음)과 원장 절, 안전 발견사항은 요약 맨 앞 즉시 확인 필요로 검증 통과', async () => {
     const period = resolveReportPeriod({ kind: 'custom', from: '2026-02-01', to: '2026-02-21' });
     if (!period.ok) throw new Error('기간');
@@ -118,6 +140,53 @@ describe('P3 분석 실행 (hysol_test)', () => {
       await db.deleteFrom('om.detector_config').where('created_by', '=', 'it-p3').execute();
     }
   }, 240_000);
+
+  it('설정 병합 경계: 설비 > 설비 종류 > 기본, 다른 설비 설정은 섞이지 않고 사이트 단위 탐지기는 기본만 — 안전 기준이 바뀌면 누설 finding 카테고리도 함께 바뀐다', async () => {
+    const leakTank = fixture.assetIdOf(P3_LEAK_TANK);
+    const otherTank = fixture.assetIdOf('H2BANK1/TANK1');
+    const tankClass = 'class:h2.storage.tank';
+    const insertConfig = (detectorId: string, scope: string, params: Record<string, number>) =>
+      db.insertInto('om.detector_config').values({ detector_id: detectorId, scope, version: 1, params: JSON.stringify(params), active: true, created_by: 'it-p3' }).execute();
+    const latest = (detectorId: string, assetId: number | null) =>
+      db
+        .selectFrom('om.finding as f')
+        .innerJoin('om.finding_evidence as e', 'e.id', 'f.latest_evidence_id')
+        .select(['f.category', 'f.severity', 'e.snapshot'])
+        .where('f.site_id', '=', fixture.siteId)
+        .where('f.detector_id', '=', detectorId)
+        .where('f.asset_id', assetId === null ? 'is' : '=', assetId)
+        .executeTakeFirstOrThrow();
+    try {
+      await insertConfig('tank.static_leak', 'default', { safetyKgPerDay: 100, tempCorrelationR: 0.9 });
+      await insertConfig('tank.static_leak', tankClass, { safetyKgPerDay: 50 });
+      await insertConfig('tank.static_leak', `asset:${otherTank}`, { safetyKgPerDay: 0.001 });
+      await insertConfig('h2chain.mass_balance_gap', 'default', { residualPct: 2.5 });
+      await insertConfig('h2chain.mass_balance_gap', tankClass, { residualPct: 40 });
+      await insertConfig('h2chain.mass_balance_gap', `asset:${leakTank}`, { residualPct: 40 });
+
+      // 설비 종류 50 kg/일이 기본 100을 이기고, 다른 용기 설정(0.001)은 섞이지 않는다 → CI 하한 < 50 → 안전에서 성능(심각도 3)으로
+      const classRun = await runAnalysis(db, request(), { now: () => p3At(P3_DAYS + 0.25) });
+      expect(classRun.stats.errors).toEqual([]);
+      const byClass = await latest('tank.static_leak', leakTank);
+      expect(byClass).toMatchObject({ category: 'performance', severity: 3 });
+      expect(byClass.snapshot).toMatchObject({ config: { scope: tankClass, version: 1 }, config_versions: ['default@1', `${tankClass}@1`], safety: { category_safety: false, safety_kg_per_day: 50 } });
+      // 기본 범위의 다른 키(tempCorrelationR)는 설비 종류 범위 아래에 그대로 남는다
+      expect((byClass.snapshot as { config: { params_hash: string } }).config.params_hash).toBe(hashInput({ ...TANK_STATIC_LEAK_DEFAULTS, tempCorrelationR: 0.9, safetyKgPerDay: 50 }).slice(0, 16));
+      // 사이트 단위 물질수지는 기본 범위만 적용한다 (설비 종류·설비 행 residualPct 40이면 finding이 사라진다)
+      const massBalance = await latest('h2chain.mass_balance_gap', null);
+      expect(massBalance.snapshot).toMatchObject({ config: { scope: 'default', version: 1 }, config_versions: ['default@1'] });
+
+      // 설비 범위 0.5 kg/일이 가장 좁아 이긴다 → 다시 안전 발견사항(심각도 4)
+      await insertConfig('tank.static_leak', `asset:${leakTank}`, { safetyKgPerDay: 0.5 });
+      const assetRun = await runAnalysis(db, request(), { now: () => p3At(P3_DAYS + 0.27) });
+      expect(assetRun.stats.errors).toEqual([]);
+      const byAsset = await latest('tank.static_leak', leakTank);
+      expect(byAsset).toMatchObject({ category: 'safety', severity: 4 });
+      expect(byAsset.snapshot).toMatchObject({ config: { scope: `asset:${leakTank}`, version: 1 }, config_versions: ['default@1', `${tankClass}@1`, `asset:${leakTank}@1`], safety: { category_safety: true, safety_kg_per_day: 0.5 } });
+    } finally {
+      await db.deleteFrom('om.detector_config').where('created_by', '=', 'it-p3').execute();
+    }
+  }, 480_000);
 
   it('정지 구간: 롤업 후보 창만 원시를 읽어도 전체 원시 추출과 같은 tank.hold, 탐지 입력은 선택한 기준·최근 구간 원시만', async () => {
     const [assets, points] = await Promise.all([loadSiteAssets(db, fixture.siteId), loadSitePoints(db, fixture.siteId)]);
