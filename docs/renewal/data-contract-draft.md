@@ -493,3 +493,134 @@
 - 비상정지 버튼, 지진 감지, 화재수신반 연동 신호, 제어전원/UPS 이상 → ESD.
 - 검지기·화염감지기 고장 또는 통신 두절(워치독) → 페일세이프: 해당 구역 경보 + 설정에 따라 수소 공급 차단. 콘솔에는 '안전감시 공백' 최고 우선 표시.
 
+## 부록 A. 탐지 준비도 기준 필수·권장 포인트 (P3 구현 반영)
+
+> 2026-09-15, 커밋 `0b96129` 기준. 위 본문(리서치 추출 표)은 고치지 않았다.
+> 이 부록은 구현된 탐지기 14종의 입력 요건(`requires`)을 코드에서 그대로 옮긴 것이다. 벤더·게이트웨이와 "어떤 포인트를 어떤 주기로 받을지" 협의할 때 본문의 must·should보다 먼저 본다.
+> 메트릭 키는 콘솔 카탈로그 키다(`db/seed/catalog.ts`, 예: `poa.irradiance`). 본문 표의 키(예: `poa_irradiance`)와 이름이 달라서 A.3에 대응 관계를 적었다.
+> 근거 코드: `lib/analytics/detectors/*.ts`(`requires`), `lib/analytics/readiness/`, `lib/analytics/pipeline/sources.ts`·`targets.ts`, `lib/analysis/aux-inputs.ts`, `lib/analytics/ledger/`. 판정 규칙 전체는 [설계 README §13.6](README.md)에 있다.
+
+### A.1 판정 규칙 요약
+
+- **셀:** 설비(행) × 탐지기(열)이다. 상태는 준비 / 부분 / 없음 / 해당 없음(n/a) 네 가지다.
+- **없음:** 필수 메트릭 포인트가 하나라도 없다.
+- **부분:** 메트릭은 모두 있지만 아래 중 하나 이상에 걸린다.
+  - 최근 30일 완결성이 0.9 미만이다(샘플이 없으면 0으로 본다).
+  - 포인트 주기(`period_s`)가 주기 상한보다 길다. 주기 상한은 그 탐지기의 필수 메트릭 **전부**에 같이 적용한다.
+  - 이력이 최소 이력보다 짧다. 요건 정의는 기준선 재설정 이후 기간이지만, 준비도 화면은 첫 샘플부터 센다.
+- **여러 포인트:** 같은 메트릭 포인트가 여럿(한정자)이면 완결성 → 주기 → 이력 순으로 가장 좋은 포인트 하나로 판정한다. 한정자는 무시하고 메트릭 키만으로 맞춘다.
+- **사이트 단위 탐지기(물질수지·오염):** 첫 행 '(사이트 전체)'에서, 요구 설비 종류에 해당하는 설비들의 포인트를 합쳐 판정한다.
+- **설비 단위 탐지기:** 대상 설비 행에서, 자기 포인트와 분석이 합쳐 쓰는 상위·형제·사이트 설비 포인트로 판정한다. 아래 표의 "출처 설비"가 그 설비다.
+
+### A.2 탐지기별 필수 메트릭·주기 상한·최소 이력
+
+| 탐지기 | 고장모드 | 준비도 행 | 요구 설비 종류 (`assetClass`) | 필수 메트릭 (출처 설비) | 주기 상한 (`minPeriodS`) | 최소 이력 (`minHistoryDays`) |
+|---|---|---|---|---|---|---|
+| `dq.gap_flatline` | `dq.data_gap_flatline` | 포인트가 있는 모든 설비 | (전체) | 없음 — 매핑된 모든 포인트가 대상 | 없음 | 1일 |
+| `ess.capacity_fade` | `ess.capacity_fade` | `ess.rack` | `ess.rack` | `batt.current`, `batt.voltage`, `batt.soc`, `cell.temp.avg`, `cell.voltage.max`, `cell.voltage.min` (랙) | 60 s | 30일 |
+| `ess.cell_imbalance` | `ess.cell_imbalance` | `ess.rack` | `ess.rack` | `batt.current`, `cell.voltage.max`, `cell.voltage.min` (랙) | 60 s | 60일 |
+| `ess.resistance_growth` | `ess.resistance_growth` | `ess.rack` | `ess.rack` | `batt.current`, `batt.voltage`, `batt.soc`, `cell.temp.avg` (랙) | 60 s | 45일 |
+| `pv.inverter_peer` | `pv.inverter_underperformance` | `pv.inverter` | `pv.inverter` | `ac.power`, `ac.power.limit`, `op.state` (인버터) | 300 s | 7일 |
+| `inv.thermal_derating` | `pv.inverter_thermal_derating` | `pv.inverter` | `pv.inverter`, `wx.station` | `ac.power`, `heatsink.temp`, `ac.power.limit` (인버터) · `ambient.temp` (`wx.station`) | 300 s | 30일 |
+| `pv.soiling_rate` | `pv.soiling` | (사이트 전체) | `pv.plant`, `pv.inverter`, `wx.station` | `ac.power`, `ac.power.limit`, `op.state` (`pv.inverter`) · `poa.irradiance`, `module.temp` (`wx.station`) | 300 s | 30일 |
+| `el.voltage_rise` | `el.stack_voltage_degradation` | `h2.elz.stack` | `h2.elz.stack` | `stack.current`, `stack.voltage`, `stack.temp`, `run.hours` (스택) | 60 s | 30일 |
+| `el.sec_rise` | `el.system_efficiency_loss` | `h2.elz.stack` | `h2.elz.stack` | `stack.current`, `stack.voltage`, `stack.temp`, `run.hours` (스택) · `h2.flow.mass`, `ac.power` (상위 `h2.elz`) | 60 s | 45일 |
+| `h2chain.mass_balance_gap` | `h2chain.mass_balance_gap` | (사이트 전체) | `h2.elz`, `h2.storage.tank`, `fc.plant` | `h2.flow.mass` (`h2.elz`) · `fc.h2.consumption` (`fc.plant`) · `tank.pressure`, `tank.temp` (`h2.storage.tank`) | 300 s | 21일 |
+| `tank.static_leak` | `h2.storage_leak` | `h2.storage.tank` | `h2.storage.tank` | `tank.pressure`, `tank.temp` (용기) · `valve.open` (상위 `h2.storage.bank`, 한정자 `inlet`·`outlet`) · `compressor.power` (`h2.compressor`) · `fc.h2.consumption` (`fc.plant`) | 300 s | 14일 |
+| `comp.sec_rise` | `comp.efficiency_loss` | `h2.compressor` | `h2.compressor` | `compressor.power`, `compressor.suction.pressure`, `compressor.discharge.pressure` (압축기) · `h2.flow.mass` (`h2.elz`) · `ambient.temp` (`wx.station`) | 300 s | 45일 |
+| `fc.voltage_decay` | `fc.stack_voltage_decay` | `fc.stack` | `fc.stack` | `stack.current`, `stack.voltage`, `stack.temp`, `run.hours` (스택) · `blower.power` (형제 `fc.blower`) | 60 s | 30일 |
+| `fc.blower_wear` | `fc.blower_wear` | `fc.blower` | `fc.blower` | `blower.power`, `blower.flow` (블로워) · `ambient.temp` (`wx.station`) · `run.hours` (형제 `fc.stack`) | 300 s | 45일 |
+
+### A.3 필수 포인트 합계 (설비 종류별)와 본문 표 대응
+
+필수 메트릭 키는 27개이고, 설비 종류와 묶으면 32개다. 주기 상한과 최소 이력은 그 포인트를 요구하는 탐지기 중 가장 엄격한 값이다.
+
+| 설비 종류 | 메트릭 키 | 이름 · 정규 단위 | 요구 탐지기 | 주기 상한 | 최소 이력 | 본문 표 대응 키 (우선순위) |
+|---|---|---|---|---|---|---|
+| `ess.rack` | `batt.current` | 배터리 전류(충전 +) · A | `ess.capacity_fade`, `ess.cell_imbalance`, `ess.resistance_growth` | 60 s | 60일 | `battery_rack.rack_current` (must) |
+| `ess.rack` | `batt.voltage` | 배터리 전압 · V | `ess.capacity_fade`, `ess.resistance_growth` | 60 s | 45일 | `battery_rack.rack_voltage` (must) |
+| `ess.rack` | `batt.soc` | 충전상태(SOC) · % | `ess.capacity_fade`, `ess.resistance_growth` | 60 s | 45일 | `battery_bank.soc` (must) — 본문은 뱅크 단위, 탐지는 **랙 단위** 필요 |
+| `ess.rack` | `cell.temp.avg` | 평균 셀 온도 · °C | `ess.capacity_fade`, `ess.resistance_growth` | 60 s | 45일 | `battery_rack.cell_temperature_avg` (must) |
+| `ess.rack` | `cell.voltage.max` | 최고 셀 전압 · V | `ess.capacity_fade`, `ess.cell_imbalance` | 60 s | 60일 | `battery_rack.cell_voltage_max` (must) |
+| `ess.rack` | `cell.voltage.min` | 최저 셀 전압 · V | `ess.capacity_fade`, `ess.cell_imbalance` | 60 s | 60일 | `battery_rack.cell_voltage_min` (must) |
+| `pv.inverter` | `ac.power` | 교류 유효전력 · kW | `pv.inverter_peer`, `pv.soiling_rate`, `inv.thermal_derating` | 300 s | 30일 | `inverter.ac_active_power` (must) |
+| `pv.inverter` | `ac.power.limit` | 출력 제한 설정값 · % | `pv.inverter_peer`, `pv.soiling_rate`, `inv.thermal_derating` | 300 s | 30일 | `inverter.active_power_limit_setpoint` (must) |
+| `pv.inverter` | `op.state` | 운전 상태 코드 | `pv.inverter_peer`, `pv.soiling_rate` | 300 s | 30일 | `inverter.operating_state` (must) |
+| `pv.inverter` | `heatsink.temp` | 방열판 온도 · °C | `inv.thermal_derating` | 300 s | 30일 | `inverter.heatsink_temperature` (must) |
+| `wx.station` | `poa.irradiance` | 경사면 일사량(POA) · W/m² | `pv.soiling_rate` | 300 s | 30일 | `weather_station.poa_irradiance` (must) |
+| `wx.station` | `module.temp` | 모듈 후면 온도 · °C | `pv.soiling_rate` | 300 s | 30일 | `weather_station.module_temperature` (must) |
+| `wx.station` | `ambient.temp` | 외기 온도 · °C | `comp.sec_rise`, `fc.blower_wear`, `inv.thermal_derating` | 300 s | 45일 | `weather_station.ambient_temperature` (must) |
+| `h2.elz` | `h2.flow.mass` | 수소 질량유량 · kg/h | `el.sec_rise`, `h2chain.mass_balance_gap`, `comp.sec_rise` | 60 s | 45일 | `electrolyzer_system.h2_mass_flow` (must) |
+| `h2.elz` | `ac.power` | 교류 유효전력(설비 전체, BoP 포함) · kW | `el.sec_rise` | 60 s | 45일 | `electrolyzer_system.ac_power_total` (must) |
+| `h2.elz.stack` | `stack.current` | 스택 전류 · A | `el.voltage_rise`, `el.sec_rise` | 60 s | 45일 | `electrolyzer_stack.stack_current` (must) |
+| `h2.elz.stack` | `stack.voltage` | 스택 전압 · V | `el.voltage_rise`, `el.sec_rise` | 60 s | 45일 | `electrolyzer_stack.stack_voltage` (must) |
+| `h2.elz.stack` | `stack.temp` | 스택 온도(출구) · °C | `el.voltage_rise`, `el.sec_rise` | 60 s | 45일 | `electrolyzer_stack.stack_temp_outlet` (must) |
+| `h2.elz.stack` | `run.hours` | 누적 운전시간 · h | `el.voltage_rise`, `el.sec_rise` | 60 s | 45일 | `electrolyzer_stack.stack_run_hours` (must) |
+| `h2.compressor` | `compressor.power` | 압축기 소비전력 · kW | `tank.static_leak`, `comp.sec_rise` | 300 s | 45일 | `h2_compressor.motor_power` (must) |
+| `h2.compressor` | `compressor.suction.pressure` | 압축기 흡입 압력 · bar | `comp.sec_rise` | 300 s | 45일 | `h2_compressor.suction_pressure` (must) |
+| `h2.compressor` | `compressor.discharge.pressure` | 압축기 최종 토출 압력 · bar | `comp.sec_rise` | 300 s | 45일 | `h2_compressor.discharge_pressure` (must) |
+| `h2.storage.bank` | `valve.open` (한정자 `inlet`·`outlet`) | 차단밸브 열림 · bool | `tank.static_leak` | 300 s | 14일 | `h2_storage_bank.inlet_valve_state`·`outlet_valve_state` (must) |
+| `h2.storage.tank` | `tank.pressure` | 저장용기 압력 · bar (절대압으로 봄) | `h2chain.mass_balance_gap`, `tank.static_leak` | 300 s | 21일 | `h2_storage_bank.tank_pressure` (must) — 본문은 용기군 단위, 탐지는 **용기별** 필요 |
+| `h2.storage.tank` | `tank.temp` | 저장용기 온도 · °C | `h2chain.mass_balance_gap`, `tank.static_leak` | 300 s | 21일 | `h2_storage_bank.tank_wall_temperature` (must) 또는 `tank_gas_temperature` (should) |
+| `fc.plant` | `fc.h2.consumption` | 연료전지 수소 소비 유량 · kg/h | `h2chain.mass_balance_gap`, `tank.static_leak` | 300 s | 21일 | `h2_valve_train.h2_supply_flow` (must) |
+| `fc.stack` | `stack.current` | 스택 전류 · A | `fc.voltage_decay` | 60 s | 30일 | `fc_stack.stack_current` (must) |
+| `fc.stack` | `stack.voltage` | 스택 전압 · V | `fc.voltage_decay` | 60 s | 30일 | `fc_stack.stack_voltage` (must) |
+| `fc.stack` | `stack.temp` | 스택 온도(출구) · °C | `fc.voltage_decay` | 60 s | 30일 | `fc_stack.stack_temperature` (must) |
+| `fc.stack` | `run.hours` | 누적 운전시간 · h | `fc.voltage_decay`, `fc.blower_wear` | 60 s | 45일 | **본문 연료전지 표에 없음** |
+| `fc.blower` | `blower.power` | 공기 블로워 소비전력 · kW | `fc.voltage_decay`, `fc.blower_wear` | 60 s | 45일 | `fc_cathode_subsystem.blower_power` (**should** — 탐지 2종에서 필수) |
+| `fc.blower` | `blower.flow` | 공기 질량유량 · kg/h | `fc.blower_wear` | 300 s | 45일 | `fc_cathode_subsystem.air_mass_flow` (must) |
+
+### A.4 권장 포인트 (필수는 아니지만 분석이 읽는 것)
+
+준비도 판정에는 들어가지 않는다. 없으면 아래처럼 판별 체크가 '데이터없음'이 되거나 다른 방식으로 대체된다.
+
+| 설비 종류 | 메트릭 키 · 입력 | 쓰는 곳 | 없을 때 | 본문 표 대응 |
+|---|---|---|---|---|
+| `h2.elz` | `h2.mass.total` (누적 수소 생산량, kg) | 체인 원장 생산량 1순위(적산계 하루 증가량) | `h2.flow.mass` 시간 평균 적산으로 대체. 시뮬레이터 건강 사이트 일 잔차율 p95 2.083% → 적산계 사용 0.297% | `electrolyzer_system.h2_total_produced` (must) |
+| `h2.elz` | `start.count` | 전해조 기동 에피소드(`el.start`) 기동 횟수 증가량 | 해당 특징값이 비어 있음 | `electrolyzer_system.start_count` (should) |
+| `h2.elz.rectifier` | `rectifier.efficiency` (%) | `el.sec_rise` 판별 체크 ② 정류기 효율 저하(1시간 롤업 → 일 중앙값) | 체크 '데이터없음' | 본문에 없음 (`rectifier.rectifier_ac_power`·`rectifier_dc_power`로 산출 가능) |
+| `h2.elz.rectifier` | `ac.power` (kW) | 체인 원장 전해조 흐름(정류기 AC 입력) | 전해조 설비 전체 `ac.power`로 대체 | `rectifier.rectifier_ac_power` (must) |
+| `ess.pcs` | `ac.power` (kW, 방전 +, 충전 −) | 체인 원장 ESS 충방전 흐름 | 원장 흐름에서 빠짐 | `ess_pcs.pcs_ac_active_power` (must) |
+| `grid.meter` | `ac.power` (kW, 송전 +, 수전 −) | 체인 원장 계통 수전·송전, 전해조 계통전력 비율 | 원장 흐름에서 빠짐 | 본문은 15분 적산량(`grid_interconnection.export_energy` must, `aux_import_energy` should)만 있고 순시 전력 행 없음 |
+| `fc.plant` | `fc.ac.power` (kW) | 체인 원장 연료전지 공급·kg/MWh·P2P, 연료전지 정상운전 에피소드 | 연료전지 KPI 없음 | `fuel_cell_system.net_ac_power` (must) |
+| `fc.plant` | `purge.count` (누적) | 체인 원장 배출 추정(`kgPerPurge` > 0일 때만), 물질수지 판별 체크 ③ | 배출 추정 0, 체크 '데이터없음' | `fc_anode_subsystem.purge_valve_state` (should, 이벤트) |
+| `fc.plant` | `h2.pressure` (bar, 연료전지 공급 압력) | `tank.static_leak` 판별 체크 ③ 밸브 통과 누설(하류 압력 상승) | 체크 '데이터없음' | `fuel_cell_system.h2_inlet_pressure` (must) |
+| `fc.plant` | `start.count` | 연료전지 기동 에피소드(`fc.start`) 기동 횟수 증가량 | 해당 특징값이 비어 있음 | `fuel_cell_system.start_count` (must) |
+| `h2.compressor` | `compressor.discharge.temp` (°C) | `comp.sec_rise` 판별 체크 ① 토출 온도 상승 | 체크 '데이터없음' | `h2_compressor.discharge_temperature` (must) |
+| `h2.compressor` | `compressor.leak.pressure` (bar) | `comp.sec_rise` 판별 체크 ② 누설 감지 압력 상승 (safety finding은 내지 않음) | 체크 '데이터없음' | `h2_compressor.diaphragm_leak_detect_pressure` (must) |
+| `h2.compressor` | `vibration.rms` (mm/s) | `comp.sec_rise` 판별 체크 ③ 진동 증가 | 체크 '데이터없음' | `h2_compressor.vibration_velocity_rms` (should) |
+| `h2.compressor` | `run.hours` (h) | `comp.sec_rise` 누적 운전시간 축 추세 | 추세를 계산하지 못함(같은 조건 비교는 동작) | `h2_compressor.operating_hours` (must) |
+| `h2.storage.bank` | `h2.inventory` (kg) | `comp.run` 이송 질량 대체값(전해조 유량이 없을 때, 운전 중 인출이 섞이면 과소) | 전해조 유량이 없으면 이송 질량 없음 | 본문에 없음 (PLC 재고 추정) |
+| `wx.station` | `ghi.irradiance` (W/m²) | `pv.soiling_rate` 판별 체크 ② 일사계 오염·드리프트(GHI/POA 비율) | 체크 '데이터없음' | `weather_station.ghi_irradiance` (should) |
+| `ess.rack` | `batt.soc` 시간 최대 | PV 미활용 분해 `ess_full` 버킷(SOC ≥ 90%) | 해당 버킷 판정 불가 | (A.3 필수와 같은 포인트) |
+| `om.event_log` | 인버터 이벤트 코드 | `inv.thermal_derating` 판별 체크 ② 냉각팬 고장 코드 | 체크 '데이터없음' | `inverter.operating_state` (must, 고장 코드) |
+| `om.market_daily` | `smp_land` | `pv.soiling_rate` 권고 문장의 손실 금액 | "가격 데이터 없음" | 본문 밖 (수기·CSV 입력) |
+| 조치·설비 이벤트 | 세척 조치, `asset_event`(필터 교체·세척 note) | `pv.soiling_rate` 복원 시점, `fc.blower_wear` 판별 체크 ① 필터 막힘 | 복원은 PI 급상승으로만, 필터 체크 '데이터없음' | 본문 밖 (정비 이력 직접 기록·CSV) |
+
+현재 분석 실행기는 퍼지 횟수를 `el.sec_rise`에, 같은 뱅크 다른 용기 압력 교차값을 `tank.static_leak`에 넣지 않는다. 그래서 두 판별 체크(퍼지 횟수 증가, 압력 센서 드리프트)는 포인트가 있어도 '데이터없음'이다.
+
+### A.5 탐지에 쓰는 명판 값
+
+| 설비 종류 | 명판 필드 | 쓰는 곳 |
+|---|---|---|
+| `ess.rack` | `capacity_ah`, `energy_kwh` | 충방전·전류 계단 에피소드(C-rate), ESS KPI |
+| `pv.inverter` | `dc_kwp`, `ac_kw`, `derate_start_c` | 일 발전 에피소드·동종 비교·PV 미활용 분해, 열 저감 시작 온도(없으면 70 °C) |
+| `pv.plant` | `gamma_per_c` | 오염 온도 보정(없으면 −0.0035 /°C) |
+| `h2.elz.stack`, `fc.stack` | `cell_count`, `active_area_cm2`, `rated_current_a` | 셀 전압·전류밀도, 패러데이 이론 생산량 |
+| `h2.compressor`, `fc.blower` | `rated_kw` | 운전 구간 판정 |
+| `h2.storage.tank` | `water_volume_l` | 용기 질량(누설 탐지·원장 저장량 변화) |
+
+### A.6 본문 표와 다른 점 (협의 때 확인)
+
+- **연료전지 스택 누적 운전시간:** `run.hours`는 `fc.voltage_decay`·`fc.blower_wear`의 필수 메트릭인데 본문 연료전지 표에 없다.
+- **블로워 전력:** 본문은 should이지만 탐지기 2종에서 필수다.
+- **SOC 단위:** 본문은 뱅크 SOC만 있다. 용량·내부저항 탐지는 랙 SOC가 필요하다.
+- **저장용기 압력·온도:** 본문은 저장뱅크(용기군) 단위다. 누설 탐지는 용기별 포인트와 용기 내용적 명판이 필요하다. 압력은 절대압으로 보므로, 게이지압이면 매핑 `offset`으로 바꾼다.
+- **차단밸브:** `valve.open`은 한정자 `inlet`·`outlet`로 매핑해야 정지 보유 추출에 들어간다. 준비도는 메트릭 키만 보므로 둘 중 하나만 있어도 '준비'로 보일 수 있다. 추출기는 유입 쪽(입구 밸브·압축기 전력·전해조 유량)과 유출 쪽(출구 밸브·연료전지 소비) 신호가 하나씩은 있어야 정지로 확정한다.
+- **샘플 주기:** 본문 권장 주기(ESS DCIR용 2초 이하, 스택 1초 등)보다 탐지기 상한(60초·300초)이 느슨하다. 내부저항 R_step = ΔV/ΔI는 샘플 주기에 따라 값이 달라져 같은 주기끼리만 비교하므로, 랙 전류·전압 주기는 정한 뒤 바꾸지 않는다.
+- **카탈로그에 없는 메트릭:**
+  - 일 강수량(본문 should `rainfall_daily`): 오염 복원은 맑은 날 PI 1.5% 급상승으로 대신한다.
+  - 압축기 흡입 가스 온도(본문 should `suction_temperature`): 외기 온도로 대신한다.
+- **계량점 위치:** 체인 원장 기본값은 수소 유량계가 건조기 뒤(제품)에 있고(`dryerLossFraction` 0), 연료전지 소비 계량이 퍼지를 포함하는 공급 측에 있다고(`kgPerPurge` 0) 본다. 위치가 다르면 원장 파라미터를 바꾼다.
+- **시뮬레이터 시드 참고(SIM-B):** 스택 전압·전류는 60초지만 스택 온도·운전시간, 전해조 유량·AC 전력, 블로워 전력은 300초다. 그래서 주기 상한 60초인 스택 탐지기 셀이 '부분'으로 나온다. 현장 계약에서는 이 포인트들을 60초 이하로 받거나, 주기 상한을 메트릭별로 나누는 규칙 변경을 먼저 정한다.
+

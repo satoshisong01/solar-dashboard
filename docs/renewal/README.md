@@ -354,3 +354,203 @@ P0~P3는 아래 답 없이 기본값으로 진행할 수 있다.
 | CoachDesk (코치데스크) | 발전소 유지보수 코칭이라는 목적 강조 |
 
 코드 내부 명칭은 제품명과 분리한다: DB 스키마 `om`, API `/api/ingest/v1`, 표시명은 `lib/brand.ts` 한 곳.
+
+## 13. 구현 반영 (P1~P3 실제 구현과 설계의 차이)
+
+- 기준: 2026-09-15, 브랜치 `renewal/om-console` 커밋 `0b96129`.
+- 이 절은 §0~§12 본문을 고치지 않고, 구현이 본문과 **달라진 곳만** 적는다. 본문과 이 절이 다르면 이 절이 현재 코드의 동작이다. §0 확정 결정은 모두 지켰다.
+- 근거는 코드, 마이그레이션, `lib/analytics/scorecard.json`, 커밋 메시지다. 수치는 코드 기본값과 스코어카드에서 그대로 옮겼다. 평가 수치는 모두 시뮬레이터 결과이고 실데이터로 검증한 값이 아니다.
+- 이 콘솔은 법정 안전설비·가스 검지기·현장 PLC 인터록 판단을 대체하지 않는다. 아래의 안전 관련 기준값은 모두 분석을 돕는 값이다.
+
+### 13.1 수집·저장 (P1)
+
+| 항목 | 설계 원문 요지 | 실제 구현 | 이유 | 관련 파일 · 커밋 |
+|---|---|---|---|---|
+| 품질 비트 | §5.2 `quality` 비트 6종 (DEVICE_BAD·HARD_RANGE·SPIKE·FLATLINE·CLOCK_SUSPECT·LATE) | 비트는 7종이다(REPROCESSED=64 추가). `BAD_MASK`(DEVICE_BAD·HARD_RANGE·SPIKE·FLATLINE)와 `INFO_MASK`(CLOCK_SUSPECT·LATE·REPROCESSED)로 나눴다. `m_1h.n_good`은 값이 NULL이 아니고 BAD 비트가 없는 샘플 수다. NULL 값은 n에는 넣고 min·max·avg·sum·first·last에서는 뺀다. 시각이 판정에 들어가는 분석은 `isGoodWithTrustedClock`으로 CLOCK_SUSPECT 샘플도 뺀다. `npm run db:rollup:rebuild`로 로컬 m_1h를 다시 계산한다 | 과거 적재분에 LATE 비트가 붙어 `n_good`이 거의 0이 되던 문제 | `lib/ingest/quality.ts`, `scripts/db-rollup-rebuild.ts` · `81af045` |
+| 시계 오차 측정 | §5.1 규칙 6: NTP 미동기이거나 skew가 120초를 넘으면 CLOCK_SUSPECT. 무엇을 기준으로 skew를 재는지는 정하지 않음(봉투에 `sent_at`이 있음) | skew = 서명 시각(`X-OM-Timestamp`, 초 해상도) − 서버 수신 시각이다. 한계 120초는 그대로다. 재처리(replay)는 수신 때 저장한 `ingest_batch.skew_ms`를 쓴다. 원시 ts는 보정하지 않는다 | 재전송 본문의 `sent_at`은 오래된 값일 수 있다(시뮬레이터 재실행을 duplicate로 멱등화하면서 `sent_at`을 전송 시각으로 다시 찍지 않게 함) | `lib/ingest/normalize.ts`(`clockSkewFromSignature`, `CLOCK_SKEW_LIMIT_MS`) · `bce1243` |
+| 원시·원본 보존 | §5.2 `measurement` 원시 6개월, `ingest_batch` 60일 보존. §5.3 daily 잡에서 파티션 생성·보존. §9 원시 6개월 파티션 DROP | §0 결정대로 **영구 보관**한다. 원시 파티션이나 bronze 원본을 지우는 함수·잡이 없다. `measurement`는 UTC 월 파티션 + DEFAULT이고, 마이그레이션이 −3~+3개월 파티션을 미리 만든다(`om.ensure_measurement_partitions`). 수집은 저장 직전의 별도 트랜잭션에서 필요한 파티션을 준비한다. `m_1h`는 UTC 연 파티션이다 | §0 확정 결정(원시 영구 보관) | `db/migrations/20260914090759273_om-ingest-measurement.sql`, `db/migrations/20260914090800923_om-rollup-market.sql`, `lib/ingest/store.ts` · `20d4c80`, `0991222` |
+| 롤업 시점 | §5.3 tick(10분) 크론이 dirty 롤업 | 수집 응답 뒤 `after()`에서 그 배치 포인트의 dirty 시간을 처리한다. 분석 실행을 시작하면 남은 dirty를 먼저 처리한다 | §0 확정 결정(크론 없음) | `app/api/ingest/v1/route.ts`, `lib/ingest/rollup.ts`, `lib/analysis/run.ts` · `0991222`, `4165ab0` |
+| 시뮬레이터 스키마 | §5.2 `sim.run`·`sim.injection`·`sim.eval_result`는 로컬·CI 전용(RDS에는 생성 안 함) | 일반 마이그레이션 폴더 `db/migrations`에 별도 파일로 들어 있다. 그래서 RDS에 `db:migrate`를 적용하면 `sim` 스키마와 **빈 테이블 3개**가 생긴다. 콘솔·수집 코드는 `sim`을 참조하지 않는다. `/sim` 화면은 `HYSOL_SHOW_SIM=1`일 때만 열린다 | node-pg-migrate가 적용 순서를 검사하므로 운영에서도 이 파일을 건너뛰지 않고 함께 적용한다(마이그레이션 주석). om 행과 FK로 묶지 않아 운영 데이터와 연결되지 않는다 | `db/migrations/20260914150343350_sim-eval-schema.sql`, `lib/data/sim-console.ts` · `2a4e8f5` |
+
+### 13.2 분석 실행·리포트·설정 (P2~P3)
+
+| 항목 | 설계 원문 요지 | 실제 구현 | 이유 | 관련 파일 · 커밋 |
+|---|---|---|---|---|
+| 분석 실행 | §5.3 tick/daily 크론, `job_lease`·`watermark`·`job_run`, `CRON_SECRET`, `npm run jobs:tick`·`jobs:daily`. §6 Vercel 크론 2개 | **수동 실행만 있다.** 크론 라우트, 잡 스크립트, 잡 테이블은 만들지 않았다. 설계의 파이프라인 함수를 관리자가 `/desk`의 "분석 실행"이나 `npm run analyze`로 돌린다.<br>· 실행 기록: `om.analysis_run`(running·succeeded·failed·partial)<br>· 동시 실행 방지: 사이트별 `pg_try_advisory_xact_lock`<br>· 시간 예산: 실행기 기본 15분, `/desk` 버튼 실행은 10분. 넘으면 partial<br>· 에피소드 재처리 겹침: 6시간<br>· 중단 실행 정리: 잠금을 잡은 뒤 자기 사이트의 running 행 중 `started_at < now − 예산×2`인 것만 failed로 바꾼다<br>· 단계 순서: dirty 롤업 → 추출 → 일 KPI → 보조 입력 → 탐지 → 체인 원장 → finding → 조치 효과 검증. `pv.soiling_rate`는 원장보다 먼저, 물질수지는 원장 뒤에 실행한다 | §0 확정 결정(분석은 수동 실행만) | `lib/analysis/run.ts`, `lib/analysis/site-run.ts`, `lib/analysis/lock.ts`, `scripts/analyze.ts`, `db/migrations/20260914150340633_om-analysis-coaching.sql` · `4165ab0`, `7510d02`, `4f4a0b7`, `500caab`, `8a5c4d4` |
+| 리포트 상태·전달 | §5.2 `report.status`(draft·reviewed·published·superseded)와 `report_delivery`(채널·수신자·일시). §4 "전달 기록". §5.3 월요일 자동 초안 | 상태는 **draft·approved·superseded** 세 가지다.<br>· 사이트·기간당 approved는 1개(부분 유니크)다.<br>· 승인하면 포함된 finding이 `in_report`가 되고, 같은 기간의 이전 리포트는 superseded가 된다.<br>· `report_delivery` 테이블과 메일 발송은 없다. 출력은 인쇄 화면(`/reports/[id]/print`)에서 브라우저 PDF로 저장한다.<br>· 초안은 "리포트 만들기" 버튼으로만 만든다. 팩이 같으면 기존 행을 쓴다.<br>· 엔진 `report-planner@2`, 문장 템플릿 `report-messages@2`, composer `templateComposer@1` | §0 확정 결정(분석과 출력 분리, 메일 없음) | `db/migrations/20260914150340633_om-analysis-coaching.sql`, `lib/report/`, `app/(console)/reports/` · `2a4e8f5`, `889728a`, `5076ccc`, `c4ae998` |
+| 사이트 단위 finding | §5.2 dedup_key(탐지기·자산·고장모드) | `h2chain.mass_balance_gap`과 `pv.soiling_rate`는 finding을 사이트 단위로 남긴다. `asset_id`는 NULL이고 dedup_key의 설비 자리에 `site:<id>`가 들어간다. 워크스페이스에서는 사이트 단위 finding의 조치를 직접 기록하지 않고 안내만 한다(세척은 조치 추적에서 설비로 기록) | 두 탐지기는 사이트 전체의 일 원장·인버터 전체를 한 번에 판정한다 | `lib/analysis/findings.ts`, `lib/analytics/pipeline/targets.ts` · `8a5c4d4`, `1eb6292` |
+| 안전 카테고리 | §5.3 안전 카테고리는 severity ≥ 4 고정 | DB CHECK로 category safety면 severity ≥ 4다.<br>· `tank.static_leak`만 두 가지를 낸다: 누설률 CI 하한이 `safetyKgPerDay`(0.5 kg/일)를 넘으면 safety·4, 유의하지만 그 미만이면 performance·3.<br>· 열린 finding을 갱신할 때 심각도와 함께 카테고리도 바꾼다.<br>· "안전 발견사항"(오늘 배너, 리포트 즉시 확인 블록)은 category safety이면서 severity ≥ 4인 열린 finding이다 | 갱신 때 카테고리를 그대로 두면 4→3에서 CHECK 위반으로 findings 단계가 실패하고, 3→4에서 안전 배너·즉시 확인 블록에서 빠졌다 | `lib/analysis/findings.ts`, `lib/desk/safety.ts`, `lib/analytics/detectors/tank-static-leak.ts` · `73282b6`, `3626588` |
+| 탐지기 설정 | §5.2 `detector_config`(detector, scope, version) → params, reference_window. §4 설정 화면 | · 병합 순서는 asset > class > default다. 병합 뒤 `paramSchema`(zod)로 검증하고, 실패하면 그 탐지기는 `insufficient`(invalid_config)다.<br>· 근거 스냅샷에 적용 설정 `{scope, version, params_hash}`를 남긴다.<br>· 설정 화면은 실행에 적용되는 범위만 고르게 한다: 물질수지·데이터 품질은 default만, 인버터 동종 비교·열 저감은 default·class, 나머지는 asset까지.<br>· 빈 칸은 저장하지 않고 넓은 범위의 값을 물려받는다 | 적용되지 않는 범위에 저장한 설정은 분석에서 조용히 무시되기 때문이다 | `lib/analytics/pipeline/config.ts`, `lib/analytics/pipeline/targets.ts`, `lib/detector-config/`, `app/(console)/settings/detectors/` · `8a5c4d4`, `b7e974e` |
+
+### 13.3 탐지 방법 변경
+
+| 항목 | 설계 원문 요지 | 실제 구현 | 이유 (전/후 수치는 sim:eval) | 관련 파일 · 커밋 |
+|---|---|---|---|---|
+| `ess.capacity_fade` 비교 창·기준 | §3.1 기준 창(준공 후 30~120일, 첫 유효 20세션) vs 최근 30일. C-rate 0.05C × 셀온도 5 °C bin. bin당 5개·전체 15개 미만이면 insufficient | · 최근 기간 21일, bin당 최소 3개, 최근 합계 15개. bin 폭 두 값은 탐지기 설정으로 옮겼다(값은 그대로).<br>· 기준은 bin마다 가장 이른 5개다(`referencePerBin`). 최근 가중치가 가장 큰 bin(주 bin)의 기준 시점과 120일 넘게 떨어진 bin은 결합에서 뺀다. 근거에 bin별 기준 기간과 제외 이유를 남긴다.<br>· `detector_config.reference_window`가 있으면 그 창을 우선한다.<br>· bin 안에서는 가중 중앙값, bin끼리는 최근 가중치 합으로 결합한다. CI는 부트스트랩 | · 5% 이상 탐지 지연 중앙값 23일 → 19일 (`f36ef2b`)<br>· 연계형 SIM-B 판정 불능 약 95% → 0%, 여름 연속 판정 불능 약 5개월 → 0일 (`64cefa4`) | `lib/analytics/detectors/ess-capacity-{fade,reference}.ts` · `f36ef2b`, `64cefa4` |
+| `ess.capacity_fade` 용량 추정 방식 | §3.1 유효 앵커 세션(휴지 후 시작 SOC ≤ 20%, CV 종료)의 `capacity_ah = ah_in / (1 − soc_start)`. §9 CV 종료 상단 앵커·CC 구간 Ah 보조 | 네 방식을 **CV 종료 앵커(`capacity_ah_anchored`) > 휴지 앵커(`rest_anchored`) > CC 구간 Ah(`capacity_ah_cc`) > 부분 충전 SOC 변화(`capacity_ah_soc`)** 순으로 쓴다. 앞 방식이 판정 불능이면 다음 방식으로 넘어간다.<br>· 휴지 앵커: 30분 이상 휴지 끝 SOC 두 점 사이 순 Ah ÷ ΔSOC. ΔSOC 25%p 이상, 쌍 길이 36시간 이하, 사이 에피소드 덮음 98% 이상. 가중치는 추정 상대분산의 역수(SOC 1σ 1%p, 전류 적분 0.5%). bin은 충전·방전 방향 × 셀온도.<br>· SOC 변화 방식: 충전 Ah ÷ SOC 변화(SOC 변화 40% 이상).<br>· SOC를 쓰는 방식은 근거에 "BMS SOC 재보정 품질에 의존" 주의 코드를 남기고 화면·리포트에 문구로 보인다.<br>· 휴지 에피소드 추출기는 `ess.rest@2`(휴지 끝 SOC, 휴지 중 순 Ah 추가) | · 시뮬레이터 EMS가 SOC 90%에서 충전을 멈춰 앵커·CC 세션이 생기지 않는다<br>· 휴지 끝 SOC는 BMS가 휴지 OCV로 재보정했을 가능성이 높아, 충전 중 순간 SOC보다 순환 논리가 약하다<br>· CC 방식도 순간 SOC에 의존해 휴지 앵커 뒤에 둔다<br>· 방향마다 쿨롱 효율과 LFP OCV 히스테리시스가 달라 방향으로 bin을 나눈다 | `lib/analytics/detectors/ess-capacity-samples.ts`, `lib/analytics/episodes/ess.ts` · `f36ef2b`, `64cefa4` |
+| 스택 전압: 변화점 이후 기울기 | §4.1·§5.3 누적 운전시간 축 Theil–Sen µV/h + CUSUM 변화시점 | `el.voltage_rise`·`fc.voltage_decay` 공통. CUSUM 변화 시작점 뒤 누적 운전시간이 300 h(`minHoursAfterChange`) 이상이고 변화 전·후 기울기 95% CI가 겹치지 않으면, 변화점 이후 Theil–Sen 기울기를 효과로 쓴다. 조건이 안 맞으면 전체 기울기를 쓴다. 전체·변화 전 기울기는 근거에 남긴다 | · 열화율이 도중에 바뀐 스택에서 전체 기울기가 낮게 잡혔다(unit 재현: 4 → 25 µV/h 주입에서 전체 기울기 22.5 µV/h 미만, 변경 뒤 효과 25 ± 2.5 µV/h 안)<br>· CI 분리 조건은 기울기가 일정한 열화에서도 CUSUM이 변화점을 내 45 µV/h가 39.2 µV/h로 잡히던 문제를 막는다 | `lib/analytics/detectors/stack-voltage.ts` · `8152a95` |
+| `fc.voltage_decay` 보정 방식 | §3 같은 조건 비교 일반형(전류밀도·온도 bin + bin 안 보정) | · `correctCurrentDensity`·`correctTemperature` = false: 전류밀도 bin과 bin 안 회귀를 끄고 온도 bin만 쓴다.<br>· 전압은 기준 전류밀도 환산값 `v_cell_at_jref`만 쓴다.<br>· 추출기 기준 전류밀도 0.5 → 0.6 A/cm², 분극 기울기 0.25 → 0.2 V/(A/cm²), 환산 허용 거리 0.25 → 0.3 | · 정출력 운전에서 전압이 떨어지면 전류밀도·온도가 함께 올라 bin 안 회귀가 열화를 지웠다(20·40 µV/h 주입 0/6 탐지)<br>· 변경 뒤 20·40 µV/h 각 3/3, 20 µV/h 이상 크기 상대오차 중앙값 0.034 | `lib/analytics/detectors/stack-detectors.ts`, `lib/analytics/episodes/stack-episodes.ts` · `f36ef2b` |
+| `el.voltage_rise` 전류밀도 보정 | §3 전류밀도·온도 bin 비교 | `currentDensityMode` 기본값은 `reference_slope`다. 전류밀도 bin 없이 기준 구간(break-in 이후 점의 앞 25%)에서 잰 전압–전류밀도 기울기 하나로 모든 점을 보정한다. `bins` 방식은 설정으로 고를 수 있다 | · 전력 설정값 운전에서 정류기 효율이 떨어지면 같은 전력의 전류밀도가 3~5% 옮겨 가, bin 중앙값 빼기가 열화를 지웠다(데모 정류기 고장이 겹치면 finding 없음)<br>· 10 µV/h 탐지 지연 72 → 40일, 20 µV/h 이상 상대오차 중앙값 0.038 → 0.003, 오탐 0 유지 | `lib/analytics/detectors/stack-voltage.ts` · `038cfd1` |
+| `pv.inverter_peer` MAD 하한 | §5.3 수정 z-score(절댓값 3.5 초과, MAD 하한) | MAD 하한 = 동종 중앙값 × `madFloorRatio`, 0.005 → **0.003**. z 기준 −3.5, 최근 7일 중 5일 조건은 그대로다 | · 동종 4대에서는 MAD가 거의 항상 하한이라 하한이 곧 임계다<br>· 유효 탐지 편차 약 2.6% → 1.6%, 인버터 2%p 저하 0/3 → 3/3, 1%p 0/3 그대로, 대조군 포함 오탐 0 | `lib/analytics/detectors/pv-inverter-peer.ts` · `4f4a0b7` |
+| `dq.gap_flatline` 고착 규칙 | §5.2 `metric_def` 고착 파라미터, §4.1 데이터 품질도 코칭 항목 | · 고착 구간 끝 = 마지막 샘플 + 주기, 길이 기준은 "이상(≥)".<br>· 일사량(POA·GHI) 고착 기준 2시간, 절댓값 5 W/m² 이하 구간(야간)은 뺀다.<br>· DB 경로와 메모리 평가가 같은 순수 요약 함수를 쓴다 | · 시뮬레이터 6시간 고착이 5시간 55분으로 재져 6시간 기준에서 빠졌다<br>· 운영 DB 탐지 결과도 이 규칙으로 바뀐다 | `lib/analytics/dq/summary.ts`, `db/seed/catalog.ts` · `8152a95` |
+| `el.sec_rise` 운전 조건 bin | §5.3 P3 로드맵에 이름만 | 운전 조건 bin 기본값은 설비 AC 전력 50 kW(`binBy ac_power`)다. 전류 설정값으로 운전하는 설비는 `current_density`로 되돌린다. 판별 체크 5종: 스택 전압 상승 동반, 정류기 효율 저하, 패러데이 효율 저하, 부분부하 비중 증가, 퍼지 횟수 증가 | · 전력 설정값 운전에서 정류기·스택이 열화하면 전류밀도 bin 기준이 고장 뒤 표본으로 새로 생겨 상승이 가려졌다(정류기 10% 주입: 월 중앙 SEC 57.7 → 63.2 kWh/kg인데 finding 0)<br>· 5% 이상 재현율 0.5 → 1.0, 오탐 0 | `lib/analytics/detectors/el-sec-rise.ts` · `61060df`, `038cfd1` |
+| `comp.sec_rise` 운전 필터 | §5.3 이름만 | · 운전 최소 이송량 1 → 5 kg(`minMassKg`).<br>· bin: 압력비 2 × 흡입 온도 5 °C. 흡입 가스 온도 메트릭이 카탈로그에 없어 외기 온도(`ambient.temp`)로 대신한다.<br>· 누설 감지 압력 상승은 판별 체크로만 쓰고 별도 safety finding은 내지 않는다 | · 1~2 kg 보충 운전은 비에너지가 약 3.0 kWh/kg(정상 약 1.9)이라 기준 bin에 섞이면 CI가 0을 넘었다<br>· 밸브 마모 5% 3/3 → 2/3, 10%·20%와 오탐 0은 그대로 | `lib/analytics/detectors/comp-sec-rise.ts`, `lib/analytics/episodes/compressor.ts` · `61060df`, `038cfd1` |
+| `tank.static_leak` 판정 | §5.5 탱크 질량수지(Z 보정). §5.3 이름만 | · 정지 보유 구간(유입·유출 없음, 4 h 이상)마다 온도 보정 질량의 Theil–Sen 기울기를 구하고, 최근 6개 구간을 가중 중앙값으로 결합해 누설률과 부트스트랩 CI를 낸다.<br>· 상태식 기본값은 NIST Lemmon–Huber–Leachman 2008이다(Abel–Noble은 설정으로 선택).<br>· 기준 구간(가장 이른 12개, 최소 6개)의 손실 중앙값을 편향으로 빼되 ±3σ/√n까지만 뺀다.<br>· 잡음 σ = max(MAD σ, 기준 구간 CI 반폭 중앙값 ÷ 1.96, 0.02 kg/일).<br>· 유의 = (누설률 − 편향) > 3σ/√n 이고 (CI 하한 − 편향) > 0. safety·4는 CI 하한 > 0.5 kg/일일 때만 | · Abel–Noble의 온도 편향이 일교차 정지 보유에서 약 0.03 kg/일의 가짜 손실을 만들었다<br>· MAD만 쓰면 보유 구간이 적을 때 σ가 작게 잡혔다<br>· `safetyKgPerDay` 0.5는 근거 문헌이 없는 추정 기본값이다 | `lib/analytics/detectors/tank-static-leak{,-checks}.ts`, `lib/analytics/episodes/tank-hold.ts` · `61060df`, `038cfd1` |
+| `pv.soiling_rate` 맑은 날·복원 | §5.3 이름만. 데이터 계약 초안 `rainfall_daily`(오염 리셋 판정 1 mm/일 이상) | · 맑은 날 판정: 일사 비율 0.8, 일중 변동 상한 1.3에 이웃 날 변동성 분위수 0.2를 더했다.<br>· 복원 시점: 세척 기록(조치, 또는 asset_event note의 '세척'·'clean')이나 맑은 날 PI 1.5% 이상 급상승.<br>· finding은 사이트 단위이고, 심각도는 누적 손실 2% → 2, 4% → 3(성능 카테고리, 3 상한) | · 고정 변동 상한만으로는 시뮬레이터 기상에서 맑은 날이 거의 없어 1년 내내 판정 불능이었다 → 0.05%/일 3/3<br>· 강수량 메트릭이 카탈로그에 없어 강우 대신 PI 급상승을 쓴다 | `lib/analytics/detectors/pv-soiling-{rate,days,checks}.ts` · `61060df`, `038cfd1` |
+| `ess.resistance_growth` 계단·SOC 범위 | §5.3 이름만 | · `ess.current_step@1`: 이웃 두 샘플의 전류 차가 minStepC 이상인 깨끗한 계단에서 R_step = ΔV/ΔI.<br>· SOC 범위 30~70% → **10~90%**. bin: SOC 10% × 셀온도 5 °C.<br>· 가장 최근 샘플 주기와 같은 주기의 계단끼리만 비교하고 `R_{주기}s`로 표기한다 | · SIM-A 충방전 계단이 SOC 끝단에서 생겨 30~70%에서는 판정 불능이었다<br>· R_step에는 샘플 간격 동안의 분극이 섞여 주기에 따라 값이 달라진다 | `lib/analytics/detectors/ess-resistance-growth.ts`, `lib/analytics/episodes/ess-steps.ts` · `61060df`, `038cfd1` |
+| `inv.thermal_derating` 반복 저감 | §5.3 이름만 | · 5분 버킷마다 동종 kW/kWp 중앙값보다 5% 이상 낮고, 방열판 ≥ 저감 시작 온도(명판, 없으면 70 °C) − 5 °C이며, 출력제한(99.5% 미만)이 아니면 저감 버킷이다.<br>· 최근 30일 손실률 1% → 2, 3% → 3.<br>· 손실률이 그보다 작아도 동종 대비 저감이 6시간(`sustainedDerateHours`) 이상이면 severity 2 | 냉각팬 고장은 더운 날에만 저감이 보여 월 손실률이 작다(0.73% < 1%) → 추가 뒤 냉각팬 고장 9/9, 오탐 0 | `lib/analytics/detectors/inv-thermal-derating.ts`, `lib/analytics/episodes/inverter-thermal.ts` · `61060df`, `038cfd1` |
+| `fc.blower_wear` 입력 | §5.5 블로워 P ∝ Q³ | · 새 추출기 `fc.blower_run@1`(블로워 전력·공기 유량·외기 온도·형제 스택 운전시간). 비전력 = 전력 ÷ 유량.<br>· bin: 유량 100 kg/h × 외기 5 °C. bin 안 유량 차이는 친화 법칙(P/Q ∝ Q², 지수 2)으로 보정한다.<br>· 필터 교체는 asset_event(maintenance·replacement, note에 '필터'·'filter')로 인식한다 | `fc.steady_run` 에피소드에 블로워 유량·외기 온도가 없다 | `lib/analytics/detectors/fc-blower-wear.ts`, `lib/analytics/episodes/fc-blower.ts` · `61060df` |
+| `h2chain.mass_balance_gap` 판정 | §3 체인 원장 물질수지 잔차 감시 | · 사이트 단위. 최근 7일 잔차율 중앙값의 절댓값 > 2% 이고, 기준 14일로 표준화한 일 잔차율 CUSUM(같은 부호 방향)이 경보일 때 finding.<br>· CUSUM은 kg이 아니라 잔차율 %로 돌리고, 음의 잔차(생산 과소 계량)도 잡는다.<br>· 심각도 2. `tank.static_leak` 교차 확인이 '지지'면 3 | 생산량 변동의 영향을 줄이기 위해 잔차율을 쓴다. 안전 판단은 `tank.static_leak`와 현장 안전설비 몫이다 | `lib/analytics/detectors/h2chain-mass-balance.ts`, `lib/analytics/pipeline/site-ledger.ts` · `61060df`, `0968373` |
+
+### 13.4 탐지기 기본 파라미터 (코드 `defaultParams`)
+
+판정에 직접 영향을 주는 값만 옮겼다. 전체 파라미터의 min·max·설명은 각 탐지기의 `paramSchema`와 `/settings/detectors` 화면에 있다. 모든 탐지기의 버전은 `@1`이다. "기준 표본"은 bin별로 가장 이른 표본이고, 간격 상한을 넘는 bin은 결합에서 뺀다.
+
+| 탐지기 | 고장모드 · 카테고리 | 기간 · 표본 | 조건 bin | 심각도 기준 | 그 밖의 핵심값 |
+|---|---|---|---|---|---|
+| `dq.gap_flatline` | `dq.data_gap_flatline` · data_quality | 완결성 < 0.95 또는 결측 합계 ≥ 2 h | — | 2 고정 | 고착 ≥ 6 h(일사량은 metric_def 2 h), 근거 포인트 10개 |
+| `ess.capacity_fade` | `ess.capacity_fade` · degradation | 최근 21일, 최근 합계 ≥ 15, bin당 ≥ 3, 기준 표본 bin당 5개(간격 ≤ 120일), 완결성 ≥ 0.95, 부트스트랩 1,000회 | C-rate 0.05C × 셀온도 5 °C (휴지 앵커는 방향 × 셀온도) | CI 상한 < 0이고 −3% → 2, −5% → 3, −10% → 4 | 휴지 앵커: 휴지 30분, ΔSOC ≥ 25%p, SOC 1σ 1%p, 전류 적분 0.5%, 쌍 ≤ 36 h, 덮음 ≥ 0.98 · SOH 목표 80%(외삽 최소 60일) · CUSUM k 0.5, h 5, σ 하한 0.5% |
+| `ess.cell_imbalance` | `ess.cell_imbalance` · degradation | 기준 20세션(최소 5), 최근 30일(최소 5), 추세 60일(최소 10일), 완결성 ≥ 0.9 | 측정 시점 충전 종료(`charge_end`) | 편차 증가 ≥ 20 mV이고 증가 추세면 2, ≥ 40 mV이거나 동종 수정 z > 3.5면 3 | 최소 동종 랙 2대, MAD 하한 2 mV |
+| `pv.inverter_peer` | `pv.inverter_underperformance` · performance | 최근 7일 중 5일 이상, 동종 ≥ 3대, 완결성 ≥ 0.9 | 사이트 안 동종 인버터 | 수정 z < −3.5 → 2, 편차 ≤ −10% → 3 | MAD 하한 비율 0.003 |
+| `el.voltage_rise` | `el.stack_voltage_degradation` · degradation | break-in 1,000 h 제외, bin당 ≥ 5, 합계 ≥ 15, 운전시간 범위 ≥ 100 h, 완결성 ≥ 0.9 | 전류밀도 보정 `reference_slope`, 온도 bin + bin 안 온도 회귀 | CI 하한 > 0이고 10 µV/h 초과 → 2, 20 → 3, 40 → 4 | 변화점 이후 ≥ 300 h, CUSUM k 0.5, h 5, σ 하한 0.5 mV |
+| `fc.voltage_decay` | `fc.stack_voltage_decay` · degradation | break-in 500 h 제외, 나머지는 위와 같음 | 전류밀도 보정·온도 회귀 끔(온도 bin만), `v_cell_at_jref` | 위와 같음(10 · 20 · 40 µV/h) | 블로워 전력 증가 체크 10%, 운전 온도 변화 체크 3 °C |
+| `el.sec_rise` | `el.system_efficiency_loss` · performance | 최근 30일, 기준 표본 bin당 10개(≤ 120일), bin당 ≥ 5, 합계 ≥ 15, break-in 1,000 h, 구간 생산량 ≥ 0.5 kg, 완결성 ≥ 0.9 | AC 전력 50 kW × 스택 온도 5 °C (`current_density`면 0.1 A/cm²) | CI 하한 > 0이고 +3% → 2, +5% → 3, +10% → 4 | 정류기·패러데이 효율 저하 1%p, 스택 전압 설명 비율 0.5, 부분부하 0.4·비중 증가 0.2, 퍼지 증가 30% |
+| `h2chain.mass_balance_gap` | `h2chain.mass_balance_gap` · performance | 최근 7일(유효 ≥ 5일), 기준 14일(유효 ≥ 7일), 완결성 ≥ 0.9 | 사이트 일 원장 | 잔차율 2% 초과 + CUSUM 경보 → 2, 누설 교차 '지지'면 3 | CUSUM k 0.5, h 4, σ 하한 0.5%p · 유량계 비율 변화 2% · 상관 0.6(30일) · 누설 설명 비율 0.3 · 결측일 2 |
+| `tank.static_leak` | `h2.storage_leak` · safety | 정지 보유 ≥ 4 h·샘플 ≥ 12·완결성 ≥ 0.8, 기준 12구간(최소 6), 최근 6구간(최소 4), 최근 30일 | 용기별 | CI 하한 > 0.5 kg/일 → safety 4, 유의하지만 그 미만 → performance 3 | 유의 배수 3σ, 편향 보정 한도 3σ, 잡음 σ 하한 0.02 kg/일 · 상태식 `lemmon2008` · 하류 압력 상승 1 bar, 온도 상관 0.6 |
+| `comp.sec_rise` | `comp.efficiency_loss` · performance | 최근 30일, 기준 표본 bin당 10개(≤ 120일), bin당 ≥ 5, 합계 ≥ 15, 이송량 ≥ 5 kg, 완결성 ≥ 0.8 | 압력비 2 × 흡입(외기) 온도 5 °C | CI 하한 > 0이고 +5% → 2, +10% → 3, +20% → 4 | 토출 온도 상승 5 °C, 누설 감지 압력 상승 0.2 bar·주의 0.5 bar, 진동 증가 20%, 외기 편중 5 °C |
+| `fc.blower_wear` | `fc.blower_wear` · degradation | 최근 30일, 기준 표본 bin당 10개(≤ 120일), bin당 ≥ 5, 합계 ≥ 15, 완결성 ≥ 0.8 | 공기 유량 100 kg/h × 외기 5 °C, 친화 지수 2 | CI 하한 > 0이고 +10% → 2, +20% → 3, +35% → 4 | 필터 교체 전후 14일·회복 5%, 외기 편중 5 °C, 스택 전압 감쇠 5 mV |
+| `pv.soiling_rate` | `pv.soiling` · performance | 무세척 구간 ≥ 14일·맑은 날 ≥ 6일, 인버터 완결성 ≥ 0.9, 유효 인버터 ≥ 50% | 맑은 날: 일사 비율 0.8, 변동 상한 1.3, 변동 분위 0.2, 청천 상한 앞뒤 15일 | 기울기 CI < 0이고 누적 손실 2% → 2, 4% → 3 | 온도계수 γ −0.0035 /°C(명판 우선), 복원 급상승 1.5%(맑은 날 2일 비교), 사이트 전체 비율 0.75, GHI/POA 비율 변화 3%, 세척비 3,000,000원 |
+| `ess.resistance_growth` | `ess.resistance_growth` · degradation | 최근 30일, 기준 표본 bin당 10개(≤ 120일), bin당 ≥ 5, 합계 ≥ 15 | SOC 10~90%·bin 10% × 셀온도 5 °C, 최소 계단 0.1C | CI 하한 > 0이고 +20% → 2, +40% → 3, +60% → 4 | 저온 편중 3 °C, 셀 편차 증가 10 mV, 용량 감소 동반 3% |
+| `inv.thermal_derating` | `pv.inverter_thermal_derating` · performance | 최근 30일, 동종 ≥ 3대, 비교 최소 출력 0.3 kW/kWp, 최근 저감 시간 합계 ≥ 3 h·저감 일수 ≥ 3일 | 외기 bin 5 °C, bin별 기준 5일 | 손실률 1% → 2, 3% → 3, 반복 저감 ≥ 6 h → 2 | 동종 대비 5% 낮음, 저감 시작 70 °C(명판 우선) − 여유 5 °C, 고온 외기 35 °C, 동종 동시 고온 0.75 |
+
+### 13.5 사이트 에너지·수소 체인 원장 (P3)
+
+| 항목 | 설계 원문 요지 | 실제 구현 | 이유 · 한계 | 관련 파일 · 커밋 |
+|---|---|---|---|---|
+| 저장 테이블 | §5.2 `site_energy_daily`: flows_kwh, h2_kg(produced·stored_delta·fc_consumed·vented_est·residual), 전해조 계통전력 비율, SEC, P2P 효율, alloc_version | PK(site_id, day KST). 설계 컬럼에 더해 `energy_kwh`(노드별 합계, NOT NULL), `renewable_share`, `fc_kg_per_mwh`, `pv_loss_kwh`, `dq`, `calc_version`, `run_id`(NOT NULL, `analysis_run` FK), `computed_at`이 있다. 분석 실행이 `m_1h`만 읽어 계산하고 겹침 구간은 다시 계산해 upsert한다 | 기간 합 P2P에 노드별 합계가 필요하다. `run_id` FK 때문에 `analysis_run` 행만 따로 지울 수 없다 | `db/migrations/20260915090000000_om-site-energy-daily.sql` · `8a5c4d4` |
+| 에너지 흐름 할당 `pool_hourly@1` | §3 PV → ESS/전해조 → 연료전지를 일 단위로 닫음. §9 할당 근사·alloc_version 표시 | 1) 매시 공급 {pv(인버터 `ac.power` 양수 합), ess_discharge(PCS `ac.power`, 방전 +), fc(`fc.ac.power`), grid_import(계량기 `ac.power`, 송전 + / 수전 −)}을 한 풀로 모은다.<br>2) 수요는 {site_aux, ess_charge, electrolyzer, compressor, grid_export}.<br>3) 계측 불일치 = 공급 합 − 계측 수요 합. 보조부하 계량이 없으면(`siteAuxKw` null) 양의 불일치를 보조부하로 보고, 추정값이 있으면 unmetered 수요로 둔다. 음의 불일치는 항상 unmetered 공급이다.<br>4) 흐름 from→to = 공급 × 수요 ÷ 풀 합계로 비례 할당해 하루 동안 더한다. 전력 행이 하나도 없는 시간은 풀에서 뺀다 | 한계: "한 시간 안의 전력은 섞인다"는 회계 가정이고 실제 전기적 경로가 아니다. 시간 평균을 쓰므로 한 시간 안에서 충전·방전이나 수전·송전이 번갈아 일어나면 순값만 남는다. ESS 방전은 PV로 충전한 전력으로 가정한다. 청정수소 인증 공식 산정이 아니다(화면에 명시) | `lib/analytics/ledger/allocation.ts`, `lib/chain/labels.ts` · `3101de1`, `8a5c4d4`, `11e04a2` |
+| 전해조 전력 기준 | §3 전해조 kWh/kg, 계통전력 비율 | 흐름 할당은 정류기 AC 입력(없으면 전해조 설비 전체 AC)을 쓴다. SEC·P2P 분자는 BoP를 포함한 설비 전체 AC(없으면 정류기 입력)를 쓴다. 전해조 BoP, 인버터 야간 소비, 연료전지 대기 소비는 site_aux 계측분으로 넣는다 | 기존 KPI `elz.sec`가 설비 전체 기준이라 맞췄다 | `lib/analytics/ledger/allocation.ts` · `3101de1` |
+| 수소 원장 `ledger@2` | §5.2 h2_kg: produced·stored_delta·fc_consumed·vented_est·residual | · produced: 전해조 적산계 `h2.mass.total` 하루 증가량(`meter_total`) 우선. 적산계가 없거나 경계 행이 없거나 값이 줄면 `h2.flow.mass` 적산(`meter`), 유량계도 없으면 셀 수 × 전류 × η_F × 3.7608e-5 kg/(A·h)(`faraday_estimate`, η_F 기본 1).<br>· stored_delta: 용기마다 끝·시작 P·T의 실기체 질량 차 합. 경계 시간이 정지 시간이면 P·T 시간 평균.<br>· vented_est = 퍼지 횟수 × `kgPerPurge` + `dryerLossFraction` × produced. 두 값의 기본은 0(추정 안 함).<br>· residual_pct = residual ÷ max(produced, fc_consumed, 1 kg) × 100 | · 5분 순시 유량의 시간 평균은 기동·정지가 표본 사이에 걸릴 때마다 틀려, 건강한 사이트 일 잔차율 p95가 2.083% → 적산계 우선 뒤 0.297%<br>· 배출 기본값 0: 유량계가 건조기 뒤, 연료전지 계량이 퍼지 전이면 이미 계량에 들어 있어 두 번 빼게 된다<br>· 한계: 유량계 행이 빠진 시간은 0으로 더해진다(`dq.h2.completeness`를 먼저 본다). 탱크 압력은 절대압으로 본다 | `lib/analytics/ledger/hydrogen.ts`, `lib/analytics/ledger/params.ts` · `3101de1`, `038cfd1` |
+| PV 미활용 원인 분해 | §8 P3 산출물 "PV 미활용 원인 분해"(세부 규칙 없음) | 기대 발전 = Σ POA/1000 × kWp × PR_ref × (1 + γ(T_mod − 25)). 인버터·시간마다 차이(기대 − 실제)를 **outage → ess_full → curtailment → clipping → derating → soiling_est → unexplained** 순으로 나눈다. 버킷마다 상한만큼만 가져가고 나머지를 다음 버킷에 넘긴다(clipping 상한 = 기대 − 정격, derating 상한 = 동종 중앙값 × kWp − 실제, soiling 상한 = 손실률 × 기대). 합계 = 기대 − 실제가 반올림 뒤에도 성립하고, 실제가 기대보다 크면 unexplained가 음수다 | · ess_full(출력제한 + ESS SOC ≥ 90%)을 curtailment 뒤에 두면 늘 0이 된다<br>· 트립된 인버터는 출력제한과 관계없이 발전이 없어 outage를 맨 앞에 둔다<br>· 한계: 시간 해상도라 한 시간 일부만 트립·클리핑돼도 그 시간 전체를 그 조건으로 본다. 출력제한 신호 없이 송전 한도로 깎인 손실은 unexplained에 남는다 | `lib/analytics/ledger/pv-loss.ts`, `lib/analytics/ledger/pr-reference.ts` · `3101de1` |
+| 수소 상태식·상수 | §5.5 탱크 질량수지 Z 보정 | 원장·누설 탐지기·전해조 비에너지가 `detectors/hydrogen-eos.ts` 한 곳의 정의를 쓴다.<br>· 기본: NIST Lemmon–Huber–Leachman 2008 압축계수 Z(T, P)(검증점 300 K·10 MPa → 1.05985282). 원장 표기 `lemmon2008@1`.<br>· Abel–Noble(선택): ρ = P / (R_s·T + b·P), R_s = R/M = 8.314462618 ÷ 2.01588e-3 ≈ **4124.48 J/(kg·K)**, b = **7.691e-3 m³/kg**(Chenoweth 1983, Sandia HyRAM 기본값).<br>· 패러데이 상수 96,485.33212 C/mol, 셀 1개·1 A·1 h 이론 수소 3.7608e-5 kg | · Abel–Noble은 고압에서 NIST 대비 약 ±0.5%(100 bar·0 °C −0.45%, 450 bar·40 °C +0.53%)이고 온도 의존도가 달라 정지 보유에 가짜 손실을 남겼다<br>· 처음에는 원장(4124.48, 7.691e-3)과 탐지기(4124.2, 7.69e-3)의 상수가 달라 하나로 통일했다<br>· 시뮬레이터 참값은 온도 의존 비리얼식(NIST 대비 ±0.13% 이내)이다 | `lib/analytics/detectors/hydrogen-eos.ts`, `lib/sim/models/h2-eos.ts` · `0968373`, `038cfd1`, `f7f3491` |
+| 화면 경고 임계 | §9 completeness·불확도 표시 | 원장 품질 경고: 원천 완결성 90% 미만인 날, 계측 불일치율(unmetered kWh ÷ 풀 kWh) 3% 초과. 체인 섹션에 할당 가정과 청정수소 인증 공식 산정이 아니라는 문구를 표시한다 | 추정값이다. 개발 DB 데모 3사이트 120일의 기간 불일치율 약 0.1%, 일 최대 1.5%를 보고 정했다 | `lib/chain/limits.ts`, `components/sites/chain-section.tsx` · `11e04a2` |
+
+### 13.6 탐지 준비도 규칙 (P3)
+
+설계(§4.1)는 "자산 × 고장모드마다 필요한 메트릭 충족 여부와, 이 메트릭을 확보하면 풀리는 고장모드 수"였다. 구현 규칙은 아래와 같다. 탐지기별 필수 메트릭·주기·이력 목록은 [데이터 계약 초안 부록 A](data-contract-draft.md)에 있다.
+
+| 규칙 | 구현 | 관련 파일 |
+|---|---|---|
+| 요구 조건 원천 | 탐지기 레지스트리 `requires`: 설비 종류(`assetClass`), 필수 메트릭(`metrics`, 판별 체크에만 쓰는 보조 메트릭은 제외), 샘플 주기 상한(`minPeriodS`, 포인트 `period_s`가 이 값 이하여야 함, null이면 무관), 최소 이력(`minHistoryDays`). 확보 순위 가중치용 대표 심각도는 카테고리로 정한다: safety 4, degradation·performance·availability 3, data_quality 2 | `lib/analytics/detectors/*.ts`, `lib/analytics/readiness/registry.ts` |
+| 셀 상태 | · n/a: 설비 종류가 해당 없음<br>· 없음(missing): 필수 메트릭 포인트가 하나라도 없음<br>· 부분(partial): 메트릭은 모두 있으나 완결성 < 0.9(데이터 없음은 0으로 봄), 주기 > 상한, 이력 < 최소 이력 중 하나 이상<br>· 준비(ready): 그 밖<br>같은 메트릭 포인트가 여럿(한정자)이면 완결성 → 주기 → 이력 순으로 가장 좋은 포인트를 쓴다. 셀 이력은 쓰는 포인트 이력의 최솟값이다. 주기 상한은 그 탐지기의 필수 메트릭 전부에 같이 적용한다 | `lib/analytics/readiness/matrix.ts` |
+| 행 구성 | · 첫 행 '(사이트 전체)': 사이트 단위 탐지기(물질수지·오염)만 판정한다. 요구 설비 종류 설비들의 포인트를 합쳐 보고, 그런 설비가 사이트에 없으면 n/a다.<br>· 설비 행: 대상 설비 종류가 같은 탐지기만 판정한다. 자기 포인트에 분석이 합쳐 쓰는 상위·형제·사이트 설비 포인트(에피소드 입력 규칙 + 인버터의 기상 설비 외기 온도)를 더한다.<br>· `dq.gap_flatline`은 포인트가 있는 모든 설비에 적용한다.<br>· 한정자 포인트(`valve.open#inlet`)는 메트릭 키만으로 요구 조건과 맞춘다 | `lib/analytics/readiness/site.ts`, `lib/analytics/pipeline/{sources,targets}.ts` |
+| 수집 통계 | 창은 최근 30일이다. 완결성 = 창 안 good 샘플 ÷ 기대 샘플이고, 기대 샘플은 max(첫 데이터, 창 시작)부터 지금까지로 센다. 창에 샘플이 없으면 "데이터 없음"이다. 이력 = 지금 − 첫 1시간 롤업(일, 내림). 포인트 주기가 없으면 창의 샘플 밀도로 추정한다. 요건 정의상 최소 이력은 기준선 재설정 이후 기간이지만, 화면은 첫 샘플부터 센다 | `lib/analytics/readiness/site.ts`, `lib/data/readiness.ts` |
+| 확보 순위 | unlocks(그 메트릭 하나만 없어서 없음인 셀 수) → severityWeight(그 셀들의 심각도 합) → blockedCells(그 메트릭이 누락 목록에 있는 셀 수) → 메트릭 키 순 | `lib/analytics/readiness/ranking.ts` |
+| 화면·CSV | `/data/readiness`. 상태는 색만으로 구분하지 않고 아이콘·글자·툴팁을 함께 준다. CSV `/api/readiness.csv`는 기본이 매트릭스, `table=acquisition`이면 확보 순위다. UTF-8 BOM, 비로그인은 401 | `app/(console)/data/readiness/page.tsx`, `app/api/readiness.csv/route.ts` · `6ede05b` |
+
+### 13.7 sim:eval 게이트와 최신 수치
+
+`lib/analytics/scorecard.json`(생성 2026-09-15, 전체 게이트 통과) 기준이다.
+
+- **평가 조건:** 메모리 모드, 2025-10-01부터 365일, 시드 101·202·303, 고장 시작 120일째. P2 스윕과 P3 12순번을 합쳐 잡 84개, 1,366초(22분 46초).
+- **CI 축소 조합:** `--runs 3,4,5,6,8,9,10,13,17`(잡 51개). 게이트별 판정이 전체 실행과 같았다.
+- **게이트:** 38개(P2 19 + P3 19).
+- **오탐 단위:** 건/자산·월(대조군 구간 포함).
+
+| # | 구분 | 게이트 | 기준 | 최신 값 |
+|---|---|---|---|---|
+| 1 | P2 | `ess.capacity_fade.recall_5pct` SIM-A(태양광+ESS) 5% 이상 재현율 (주입 9건) | ≥ 0.9 | 1 |
+| 2 | P2 | `ess.capacity_fade.mae_5pct` SIM-A 5% 이상 크기 MAE [%p] | ≤ 1 | 0.0698 |
+| 3 | P2 | `ess.capacity_fade.delay_5pct` SIM-A 5% 이상 탐지 지연 중앙값 [일] | ≤ 21 | 18 |
+| 4 | P2 | `ess.capacity_fade.integrated_recall_5pct` SIM-B(연계형 부분 사이클) 5% 이상 재현율 (주입 9건) | ≥ 0.8 | 1 |
+| 5 | P2 | `ess.capacity_fade.integrated_delay_5pct` SIM-B 5% 이상 탐지 지연 중앙값 [일] | ≤ 45 | 18 |
+| 6 | P2 | `ess.capacity_fade.summer_insufficient_run_days` 여름(6~8월) 연속 판정 불능 최장 일수 (전 사이트·랙) | < 60 | 0 |
+| 7 | P2 | `ess.capacity_fade.soc_limit_control_ok_checks` SOC 상한 변경 대조군, 변경 7일 뒤 판정 ok 점검 수 (랙 6대 중 최소) | ≥ 1 | 10 |
+| 8 | P2 | `ess.capacity_fade.soc_limit_control_fp` SOC 상한 변경 대조군, 변경 이후 finding 수 | ≤ 0 | 0 |
+| 9 | P2 | `ess.capacity_fade.fp_per_asset_month` 오탐 (2,457.8 자산·월) | ≤ 0.1 | 0 |
+| 10 | P2 | `ess.cell_imbalance.fp_per_asset_month` 오탐 (2,457.8) | ≤ 0.1 | 0 |
+| 11 | P2 | `pv.inverter_peer.fp_per_asset_month` 오탐 (3,719.8) | ≤ 0.1 | 0 |
+| 12 | P2 | `el.voltage_rise.fp_per_asset_month` 오탐 (631) | ≤ 0.1 | 0 |
+| 13 | P2 | `fc.voltage_decay.fp_per_asset_month` 오탐 (631) | ≤ 0.1 | 0 |
+| 14 | P2 | `dq.gap_flatline.fp_per_asset_month` 오탐 (17,470) | ≤ 0.1 | 0 |
+| 15 | P3 | `el.sec_rise.fp_per_asset_month` 오탐 (631) | ≤ 0.1 | 0 |
+| 16 | P3 | `h2chain.mass_balance_gap.fp_per_asset_month` 오탐 (631) | ≤ 0.1 | 0.0048 |
+| 17 | P3 | `tank.static_leak.fp_per_asset_month` 오탐 (2,524.2) | ≤ 0.1 | 0.0784 |
+| 18 | P3 | `comp.sec_rise.fp_per_asset_month` 오탐 (631) | ≤ 0.1 | 0 |
+| 19 | P3 | `fc.blower_wear.fp_per_asset_month` 오탐 (631) | ≤ 0.1 | 0 |
+| 20 | P3 | `pv.soiling_rate.fp_per_asset_month` 오탐 (930) | ≤ 0.1 | 0 |
+| 21 | P3 | `ess.resistance_growth.fp_per_asset_month` 오탐 (2,457.8) | ≤ 0.1 | 0.0122 |
+| 22 | P3 | `inv.thermal_derating.fp_per_asset_month` 오탐 (3,719.8) | ≤ 0.1 | 0 |
+| 23 | P2 | `el.voltage_rise.recall_20uvh` 20 µV/h 이상 재현율 (주입 6건) | ≥ 0.9 | 1 |
+| 24 | P2 | `el.voltage_rise.rel_error_20uvh` 20 µV/h 이상 크기 상대오차 중앙값 | ≤ 0.1 | 0.003 |
+| 25 | P2 | `fc.voltage_decay.rel_error_20uvh` 20 µV/h 이상 크기 상대오차 중앙값 (주입 6건) | ≤ 0.1 | 0.034 |
+| 26 | P2 | `ess.cell_imbalance.recall_10mv` 월 10 mV 이상 재현율 (주입 6건) | ≥ 0.9 | 1 |
+| 27 | P2 | `dq.gap_flatline.recall_6h` 6시간 이상 결측·고착 재현율 (주입 24건) | ≥ 0.9 | 1 |
+| 28 | P3 | `h2chain.healthy_residual_median` 대조군 SIM-C 일별 물질수지 잔차율 절댓값 중앙값 [%] (2,190일) | < 1 | 0.101 |
+| 29 | P3 | `h2chain.healthy_residual_p95` 같은 값의 95퍼센타일 [%] | < 2 | 0.297 |
+| 30 | P3 | `tank.static_leak.min_detectable_kg_per_day` 재현율 0.9 이상인 최소 누설률 [kg/일] (스윕 최대 0.5) | ≤ 0.5 | 0.1 |
+| 31 | P3 | `pv.control_findings` PV 대조군(출력제어·흐린 주·비 오는 주) 구간의 PV 탐지기 finding 수 | ≤ 0 | 0 |
+| 32 | P3 | `el.sec_rise.recall_5pct` 비에너지 5% 이상(정류기·패러데이·스택 경로) 재현율 (주입 18건) | ≥ 0.8 | 1 |
+| 33 | P3 | `comp.sec_rise.recall_valve_10pct` 밸브 마모 10% 이상 재현율 (주입 6건) | ≥ 0.8 | 1 |
+| 34 | P3 | `fc.blower_wear.recall_20pct` 블로워 비전력 +20% 이상(필터 막힘 20% 이상·마모 누적 20% 이상) 재현율 (주입 12건) | ≥ 0.8 | 1 |
+| 35 | P3 | `pv.soiling_rate.recall_0_1pct_day` 오염 0.1%/일 이상 재현율 (주입 6건) | ≥ 0.8 | 1 |
+| 36 | P3 | `ess.resistance_growth.recall_40pct` 내부저항 +40% 이상 재현율 (주입 3건) | ≥ 0.8 | 1 |
+| 37 | P3 | `inv.thermal_derating.recall_fan_failure` 냉각팬 고장(겨울·봄·여름 시작) 재현율 (주입 9건) | ≥ 0.8 | 1 |
+| 38 | P3 | `h2chain.mass_balance_gap.recall_drift_3pct` 유량계 드리프트 3%/월 이상 재현율 (주입 3건) | ≥ 0.8 | 1 |
+
+탐지기별 요약(전체 스윕 기준)이다. 재현율에는 탐지 한계보다 작은 주입도 들어 있어 1보다 낮게 나온다. 최소 탐지 크기는 재현율 0.9 이상인 가장 작은 주입 크기다.
+
+| 탐지기 | 단위 | TP | FP | FN | 재현율 | 정밀도 | 자산·월 | 오탐/자산·월 | 지연 중앙값(일) | 크기 MAE | 최소 탐지 크기 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `ess.capacity_fade` | % | 24 | 0 | 6 | 0.8 | 1 | 2,457.8 | 0 | 19.5 | 0.079 | 3 |
+| `ess.cell_imbalance` | mV/월 | 9 | 0 | 0 | 1 | 1 | 2,457.8 | 0 | 74 | — | 5 |
+| `pv.inverter_peer` | %p | 6 | 0 | 6 | 0.5 | 1 | 3,719.8 | 0 | 5 | 0.065 | 2 |
+| `el.voltage_rise` | µV/h | 9 | 0 | 3 | 0.75 | 1 | 631 | 0 | 37 | 0.104 | 10 |
+| `fc.voltage_decay` | µV/h | 6 | 0 | 6 | 0.5 | 1 | 631 | 0 | 25.5 | 1.02 | 20 |
+| `dq.gap_flatline` | h | 30 | 0 | 6 | 0.833 | 1 | 17,470 | 0 | 0.8 | — | 6 |
+| `el.sec_rise` | % | 18 | 0 | 9 | 0.667 | 1 | 631 | 0 | 61 | 3.381 | 6 |
+| `h2chain.mass_balance_gap` | %/월 | 9 | 3 | 0 | 1 | 0.75 | 631 | 0.0048 | 34 | — | 1 |
+| `tank.static_leak` | kg/일 | 14 | 198 | 7 | 0.667 | 0.066 | 2,524.2 | 0.0784 | 10.5 | 0.039 | 0.1 |
+| `comp.sec_rise` | % | 8 | 0 | 10 | 0.444 | 1 | 631 | 0 | 42 | 2.636 | 10 |
+| `fc.blower_wear` | %/월 | 14 | 0 | 4 | 0.778 | 1 | 631 | 0 | 50.5 | 5.067 | 5 |
+| `pv.soiling_rate` | %/일 | 9 | 0 | 3 | 0.75 | 1 | 930 | 0 | 45 | — | 0.05 |
+| `ess.resistance_growth` | % | 10 | 30 | 2 | 0.833 | 0.25 | 2,457.8 | 0.0122 | 54.5 | 11.63 | 20 |
+| `inv.thermal_derating` | 냉각 저하 배율 | 9 | 0 | 0 | 1 | 1 | 3,719.8 | 0 | 115 | — | 1 |
+
+**참고 지표** (게이트 아님)
+- **건강한 물질수지(SIM-C 2,190일):** 일 잔차율 절댓값 중앙값 0.101%, p90 0.248%, p95 0.297%, 최대 5.42%.
+- **`el.sec_rise` 경로 판별 체크 지지 비율:** 전체 0.722(목표 0.7). 경로별(각 6건)로는 정류기 0.333, 패러데이 0.833, 스택 1.0.
+- **누설과 물질수지:** 누설 주입 6건 중 물질수지 finding이 함께 나온 것은 3건(0.5).
+- **냉각팬 고장 탐지 지연:** 시작 120일째(겨울) 194·153·131일, 200일째(봄) 115·73·115일, 280일째(여름) 43·36·35일.
+- **크기별 탐지:**
+  - `tank.static_leak`: 0.005 kg/일 1/3, 0.01 0/3, 0.02 2/3, 0.05 2/3, 0.1 3/3(지연 15일), 0.2·0.5 3/3(5일).
+  - `el.sec_rise`: 3% 0/9, 6% 9/9, 10% 9/9.
+  - `ess.capacity_fade`: 1% 0/6, 3% 이상 6/6.
+  - `ess.cell_imbalance`: 월 5 mV 지연 133일, 10 mV 74일, 20 mV 43일.
+
+§8 P3 완료 기준과의 대응
+
+| §8 완료 기준 | 구현한 게이트 | 결과 |
+|---|---|---|
+| 신규 시나리오 게이트 편입·기존 회귀 없음 | P3 게이트 19개 추가, P2 게이트 19개 유지 | 38/38 통과. `el.voltage_rise` 20 µV/h 이상 상대오차는 0.038 → 0.003으로 좋아졌다 |
+| 건강한 사이트 물질수지 잔차 < 1% | SIM-C 일 잔차율 절댓값 중앙값 < 1%, p95 < 2% | 0.101%, 0.297%. 일 최대는 5.42%라 "매일 1% 미만"은 아니다 |
+| 탱크 미세누설 최소 탐지 크기 곡선 산출 | 0.005~0.5 kg/일 7단계 곡선, 재현율 0.9 이상 최소 크기 ≤ 0.5 | 0.1 kg/일 |
+| 출력제어·흐린 주 대조군에서 PV finding 0건 | 출력제어·흐린 주·비 오는 주 구간의 PV 탐지기 finding 0 | 0건 |
+
+### 13.8 알려진 한계·현장 적용 전 확인 사항
+
+| 항목 | 내용 | 현장 적용 전 확인·조치 | 근거 |
+|---|---|---|---|
+| SOC 기반 용량 추정의 BMS 의존 | · 휴지 앵커·CC·SOC 변화 방식은 BMS SOC 재보정 품질에 의존한다.<br>· 시뮬레이터 SOC는 참값이라 재보정 오차가 없어 평가 결과가 실제보다 좋게 나온다.<br>· 용량 감소가 끝난 뒤 처음 나타난 bin은 그 감소를 보지 못한다.<br>· 용량 조치 효과 검증(`ess.capacity_ah`)은 충전 세션 방식(앵커 → CC → SOC)만 써서, 연계형 사이트에서는 데이터 부족으로 끝날 수 있다 | 파일럿 BMS의 휴지 OCV 재보정 동작과 SOC 점프 빈도를 확인한다. 정기 용량시험 결과를 조치로 기록한다 | `lib/analytics/detectors/ess-capacity-samples.ts`, `lib/analytics/verification/before-after.ts` |
+| R_step의 샘플 주기 의존 | · R_step = ΔV/ΔI는 샘플 간격 동안의 분극을 포함해 주기에 따라 값이 달라진다. 같은 주기 계단끼리만 비교하므로 주기를 바꾸면 이전 계단은 비교에서 빠진다.<br>· 요구 주기 상한은 60초이고, 데이터 계약 초안의 DCIR용 권장은 2초 이하다.<br>· 시뮬레이터 배터리에는 RC 분극이 없어 60초 ΔV/ΔI에 OCV 변화가 조금 섞인다(+50% 주입이 1.60배로 보임).<br>· 크기 MAE 11.63%p. 오탐 0.0122는 인접 랙 용량 감소와 연동된다.<br>· 데모 랙은 적재 시작 시각에 따라 결과가 달랐다(메모리 모드: 14시 +28.4%, 15시 +17.0%로 finding 없음, 16시 +37.8%, 17시 finding 없음) | 랙 전류·전압 주기를 정하고 운영 중에는 바꾸지 않는다. 크기 해석은 추세·판별 체크와 함께 본다 | `lib/analytics/episodes/ess-steps.ts`, `lib/sim/models/` · `f7f3491`, `8a5c4d4` |
+| 비례 할당 가정 | · `pool_hourly@1`은 회계 가정이다(13.5).<br>· PV가 전해조에 직접 연결됐거나 ESS를 계통으로 충전하는 구성에서는 흐름이 실제와 다르다.<br>· 적산계(`h2.mass.total`)가 없는 사이트는 유량 적산으로 돌아가 건강한 사이트 일 잔차율 p95가 약 2%가 된다 | 계량점 구성(정류기 입력·설비 전체·보조부하·계통 계량기 부호)을 확인한다. 청정수소 인증 공식 산정에 쓰지 않는다 | `lib/analytics/ledger/allocation.ts`, `lib/analytics/ledger/hydrogen.ts` |
+| 시뮬레이터 튜닝 파라미터의 현장 오탐 위험 | 아래 기본값은 시뮬레이터 평가·데모에 맞춰 정하거나 바꿨다. 현장 데이터로는 검증하지 않았다.<br>· `pv.inverter_peer.madFloorRatio` 0.003<br>· `ess.capacity_fade.recentDays` 21·`minPerBin` 3<br>· `el.sec_rise.binBy` ac_power: 전류 설정값 운전 설비에는 맞지 않음<br>· `el.voltage_rise` reference_slope: 분극곡선 비선형과 계절에 따른 전류밀도 분포 이동이 겹치면 편향 가능<br>· `fc.voltage_decay` 기준 전류밀도 0.6 A/cm²·분극 기울기 0.2: 일반 PEMFC 값<br>· `comp.sec_rise.minMassKg` 5: 정상 이송량이 5 kg 미만인 소형 압축기는 조정 필요<br>· `pv.soiling_rate` 변동 상한 1.3·분위 0.2<br>· `inv.thermal_derating` 저감 시작 70 °C·반복 저감 6 h: 데모 냉각팬 저감 6.8 h로 경계 근처<br>· `tank.static_leak.safetyKgPerDay` 0.5: 추정<br>· 원장 경고 90%·3% | 파일럿에서 `detector_config`로 사이트별 값을 조정하고(근거에 버전·해시가 남음), 기각 사유 파레토(§8 P4)로 다시 정한다. 분극곡선·디레이팅 곡선·압축기 정격 같은 제조사 사양이 오면 기본값을 교체한다 | `lib/analytics/scorecard.json`(params_note), 각 탐지기 파일 |
+| `tank.static_leak` 오탐 | · 오탐 0.0784/자산·월(198건, 정밀도 0.066)은 게이트 안이지만 높다. 196건이 SIM-B 용기 1·3의 한 주짜리 경계 초과다.<br>· 원인: 통계량을 σ/√6으로 잡아 가중 중앙값의 비효율과 기준 편향 불확실도를 반영하지 않는다. 매주 점검이 한쪽 약 2.5% 검정이 되어 용기당 연 약 1회 오탐이 난다.<br>· 제안(미적용): 표준오차 1.2533σ·√(1/n최근 + 1/n기준). 임계가 약 0.076 → 0.117 kg/일이 되고 0.1 kg/일 민감도는 떨어진다.<br>· 안전 finding이 심각도 3으로 내려가면 배너에서 조용히 빠진다(전이 기록·알림 없음) | 표준오차 식 적용 여부와 심각도 하향 시 기록 방식을 정한다. 현장 누설 판단·운전 정지는 가스 검지기·안전설비·현장 안전책임자 몫이다. 이 콘솔은 법정 안전설비·가스 검지기·현장 PLC 인터록 판단을 대체하지 않는다 | `lib/analytics/detectors/tank-static-leak.ts` · `ae72e31`, `73282b6` |
+| 상태식·압력 기준 | · 분석은 탱크 압력을 절대압으로 본다. 게이지압이면 약 1 bar에 해당하는 질량이 일정하게 편향된다(차분에서는 대부분 상쇄).<br>· 시뮬레이터 PLC 재고 추정 `h2.inventory`는 300~450 bar에서 참값보다 1.0~1.9% 크다.<br>· 충전·방출 직후 가스 온도와 센서 온도 차이가 재고를 흔든다 | 압력 전송기의 게이지·절대 구분, 용기 내용적 명판, 온도 센서 위치(표면·가스)를 확인한다 | `lib/analytics/ledger/hydrogen.ts`, `lib/analytics/detectors/hydrogen-eos.ts` · `f7f3491` |
+| 판별 체크 입력 미연결 | 분석 실행기는 `el.sec_rise`의 퍼지 횟수(`purgeCounts`)와 `tank.static_leak`의 압력 교차 비교(`pressureCrossChecks`)를 넣지 않는다. 그래서 두 체크는 항상 '데이터없음'이다 | 퍼지 카운터·같은 뱅크 용기 압력 교차 입력을 연결할지 정한다 | `lib/analytics/pipeline/detect-p3.ts`, `lib/analysis/aux-inputs.ts` |
+| 짧은 기준 기간과 계절 bin 이동 | · 같은 조건 비교에서 여름 bin 기준이 고장 뒤에 생기면 효과를 작게 잡는다(블로워·압축기·내부저항).<br>· `el.sec_rise` 3% 상승 0/9, 크기 MAE 3.381, 정류기 경로 판별 체크 지지 비율 0.333.<br>· 평가 곡선에 단위가 섞였다: 압축기 씰 누설(bar/일, 0/9)이 % 곡선에, 블로워 "10" 구간에 마모 %/월과 막힘 %가 함께 있다 | 1년 이상 기준을 모으기 전에는 크기보다 방향·추세로 해석한다. 설비 교체·설정 변경은 `asset_event(resets_baseline)`로 기록한다 | `lib/analytics/scorecard.json` · `ae72e31` |
+| 카탈로그에 없는 메트릭 | 일 강수량(오염 복원은 맑은 날 PI 급상승으로 대신), 압축기 흡입 가스 온도(외기 온도로 대신) | 현장에서 받을 수 있으면 `metric_def`에 추가하고 탐지기 입력을 바꾼다 | `db/seed/catalog.ts`, `lib/analytics/episodes/compressor.ts` |
+| 준비도 주기·기준 시각 | · 주기 상한을 탐지기의 필수 메트릭 전부에 같이 적용한다. 그래서 SIM-B 스택 탐지기 3개 셀은 온도·운전시간 포인트가 300초라 '부분'으로 나오지만 분석은 동작한다.<br>· 완결성은 '지금'부터 30일로 계산해, 수신이 멈춘 데모 데이터는 날이 지날수록 완결성이 떨어진다 | 주기 상한을 메트릭별로 나눌지 정한다 | `lib/analytics/readiness/matrix.ts`, `lib/data/readiness.ts` |
+| 데이터 품질 평가 범위 | · 메모리 평가는 전송 계층 단절·백필·지연·시계 오차를 재현하지 않는다(DB E2E 모드 몫).<br>· 낮 시간에 0 근처로 고착된 일사계는 야간 제외 규칙 때문에 잡히지 않는다.<br>· 3시간 결측·고착은 12건 중 6건만 잡는다 | 파일럿 게이트웨이의 실제 단절·백필 패턴으로 다시 확인한다 | `lib/analytics/dq/summary.ts` · `8152a95` |
+| 탐지 지연 | · 전해조 스택은 break-in 1,000 h 이후만 쓴다.<br>· 연료전지 10 µV/h 이하는 탐지하지 못한다.<br>· 냉각팬 고장은 겨울에 시작하면 여름까지 드러나지 않는다(131~194일) | 리포트의 "관찰 중"·판정 보류 표현을 유지한다 | `lib/analytics/scorecard.json` |
+| 개발 의존성 취약점 | `npm audit`(2026-09-15)<br>· 운영 의존성: 0건<br>· 개발 의존성: 8건(high 5: brace-expansion·browserslist·flatted·js-yaml·minimatch / moderate 2: @humanfs/node·ajv / low 1: @babel/core)<br>· 모두 eslint·eslint-config-next·kysely-codegen을 거친 간접 의존성이고, 수정 버전은 있지만 적용하지 않았다. next는 0건이다 | 운영 전환 전에 lock 파일을 갱신하고 lint·typecheck·test·build를 다시 확인한다 | `package.json`, `package-lock.json` |
