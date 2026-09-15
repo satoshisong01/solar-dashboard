@@ -82,7 +82,7 @@
 | `--sites` | `SIM-A,SIM-B,SIM-C` | 적재할 사이트 |
 | `--seed` | 42 | 같은 시드·기간이면 같은 데이터 |
 | `--base-url` | `http://localhost:3000` | 수집 API 서버 |
-| `--scenario` | `healthy` | `healthy`(시나리오 없음), `dq` 또는 `demo120`(아래) |
+| `--scenario` | `healthy` | `healthy`(시나리오 없음), `dq`, `demo120` 또는 `demo`(아래) |
 | `--batch-minutes` | 60 | 게이트웨이 배치 길이(분) |
 | `--max-samples` | 5000 | 배치당 최대 샘플 수. 넘으면 나눠 보냄 |
 | `--concurrency` | 4 | 동시에 보내는 요청 수 |
@@ -92,17 +92,40 @@
 
 `demo120` 시나리오(120일 이상, 세 사이트 필요, 일수는 적재 시작일의 KST 0시 기준): SIM-A 랙 1 용량 45일째부터 30일간 −7%·인버터 1 효율 60일째 −2%p·랙 3 셀 불균형 30일째부터 월 10 mV, SIM-B 전해조 스택 30일째부터 25 µV/h·연료전지 30일째부터 30 µV/h·90일째 ESS SOC 상한 90% → 80%(대조군 조건), SIM-C 한파 주간(20일째)·흐린 주(50일째)·출력제어 3회(70·77·84일째). SOC 상한 변경처럼 봉투에 실리지 않는 운영 이벤트는 적재가 끝난 뒤 `om.asset_event`에 기록합니다(같은 행이 있으면 건너뜀).
 
-**분석 데모 (demo120 → 분석 결과)**
+`demo` 시나리오(`demo120` + P3, `lib/sim/presets-demo.ts`): SIM-A 전 인버터 끈적한 오염 0.08%/일(45·75일째 강한 비로 복원)·랙 2 내부저항 +45%(50일째부터 60일)·인버터 2 냉각팬 고장(40일째), SIM-B 용기 3 누설 60일째 0.05 kg/일 → 90일째 1 kg/일(안전 임계 0.5 kg/일의 2배)·압축기 밸브 마모 +12%(40일째부터 60일)·전해조 비에너지 +6% 정류기 경로(45일째부터 60일)·연료전지 공기 필터 막힘 35%(70일째부터 20일, 110일째 필터 교체 → `om.asset_event` replacement), SIM-C 고온 주(98일째)·일교차 확대(110일째).
+
+**분석 데모 (demo → 분석 결과)**
 
 ```bash
 npm run db:reset && npm run db:seed          # 계정도 지워지므로 필요하면 npm run admin:create
+npm run admin:create -- --email admin@hysol.local --password '<12자 이상>' --name 관리자
 npm run dev                                   # 별도 터미널
-npm run sim:backfill -- --days 120 --sites SIM-A,SIM-B,SIM-C --seed 42 --scenario demo120
+npm run sim:backfill -- --days 120 --sites SIM-A,SIM-B,SIM-C --seed 42 --scenario demo
 npm run verify:ingest
-npm run analyze -- --sites SIM-A,SIM-B,SIM-C --days 120 --to <적재 끝 시각, 예: 2026-09-15T02:00:00+09:00>
+npm run analyze -- --sites SIM-A,SIM-B,SIM-C --days 120 --to <적재 끝 시각, 예: 2026-09-15T16:00:00+09:00>
 ```
 
-이 PC 기준 실측: 샘플 29,514,240개·배치 8,640개 적재 4분 36초(`next dev`, 동시성 4), `.data/pg` 0.8 GB → 3.9 GB(DB 2.9 GB), 검증 46초, 3사이트 120일 분석 43초(에피소드 11,468개·KPI 8,429행). 기대 결과: SIM-A 랙 1 용량 약 −7.4%(기준 대비 기본 노화 포함)·인버터 1 약 −2.1%·랙 3 셀 전압 편차 약 +24 mV, SIM-B 전해조 약 21 µV/h(주입 전 30일의 기본 4 µV/h가 섞인 전체 기울기)·연료전지 약 28 µV/h, SIM-B SOC 상한 변경은 용량 탐지 표본 부족으로 오탐 없음, SIM-C 발견사항 0건. (위 실측은 휴지 앵커·bin별 기준 도입 전입니다. 도입 뒤 SIM-B 용량은 휴지 앵커로 판정되며, SOC 상한 변경 대조군이 판정 ok 상태에서 오탐 0인지는 `sim:eval` 게이트로 확인합니다. 개발 DB는 `ess.rest@2` 재추출이 필요해 다시 분석해야 합니다.)
+이 PC 기준 실측(2026-09-15, 2026-05-18 16:00 ~ 09-15 16:00 KST): 샘플 29,514,240개·배치 8,640개 적재 5분 46초(`next dev`, 동시성 4), `.data/pg` 1.1 GB → 3.9 GB, 검증 57초(모든 항목 통과), 3사이트 120일 분석 1분 21초(사이트당 25~27초: 추출 17~20초·KPI 1초·보조 입력 2~3초·탐지 1초·체인 원장 1초, 체인 원장 120일 × 3사이트·SIM-B/C 정지 보유 원시 창 940개). 기대 결과(열린 발견사항 13건):
+
+| 사이트 | 주입 | 탐지기 | 결과 |
+|---|---|---|---|
+| SIM-A | 랙 1 용량 −7% | `ess.capacity_fade` | −7.3%, 심각도 3 |
+| SIM-A | 랙 3 셀 불균형 월 10 mV | `ess.cell_imbalance` | +28 mV, 심각도 3 |
+| SIM-A | 인버터 1 효율 −2%p | `pv.inverter_peer` | −2.0%, 심각도 2 |
+| SIM-A | 오염 0.08%/일 | `pv.soiling_rate`(사이트 단위) | 손실 약 3.7%(0.05%/일), 사이트 전반·일사계·비 복원 체크 지지, 체인 원장 오염 손실 69일 |
+| SIM-A | 랙 2 저항 +45% | `ess.resistance_growth` | +37.8%(95% CI 11~73%), 심각도 2, 접속부 체크 지지 |
+| SIM-A | 인버터 2 냉각팬 고장 | `inv.thermal_derating` | 손실 0.5%(최근 30일 저감 6.8시간), 심각도 2 |
+| SIM-B | 전해조 스택 25 µV/h | `el.voltage_rise` | 21.5 µV/h, 심각도 3 |
+| SIM-B | 연료전지 30 µV/h | `fc.voltage_decay` | 28.4 µV/h, 심각도 3 |
+| SIM-B | 비에너지 +6% 정류기 | `el.sec_rise` | +5.5%, 심각도 3, 정류기 효율 체크 지지·스택 전압 반박 |
+| SIM-B | 용기 3 누설 → 1 kg/일 | `tank.static_leak` | 1.03 kg/일, 심각도 4(안전) |
+| SIM-B | (누설 영향) | `h2chain.mass_balance_gap`(사이트 단위) | 잔차 +2.3%, 저장용기 누설 체크 지지 |
+| SIM-B | 밸브 마모 +12% | `comp.sec_rise` | +8.0%, 심각도 2, 토출 온도 체크 지지 |
+| SIM-B | 필터 막힘 35%, 110일째 교체 | `fc.blower_wear` | +12.1%, 심각도 2, 교체 뒤 회복(베어링·임펠러 체크 반박) |
+| SIM-B | SOC 상한 90% → 80%(대조군) | `ess.capacity_fade` | 오탐 없음 |
+| SIM-C | 대조군(한파·흐린 주·출력제어·고온 주·일교차 확대) | 14종 | 발견사항 0건(데이터 품질 포함), 일별 물질수지 잔차율 절댓값 중앙값 0.111%·최대 1.16% |
+
+SIM-B 물질수지 잔차 중앙값: 누설 전(0~59일) 0.100%, 0.05 kg/일 구간(60~89일) 0.217%, 1 kg/일 구간(90일~) 2.28%. 데모 배치는 120일 끝에 탐지되도록 정했습니다(오염 마지막 비 75일째·필터 막힘 70일째 시작 — 이유는 `presets-demo.ts` 주석). 적재 창은 실행 시각(정시 내림)으로 정해져 시작 시각이 바뀌면 시뮬레이션 난수 흐름이 달라집니다. 경계에 가까운 탐지가 있어 실행 시각에 따라 결과가 달라질 수 있습니다: `ess.resistance_growth`는 메모리 모드 확인에서 14시 시작 +28.4%·15시 +17.0%(심각도 2 기준 20% 미만, finding 없음)·16시 +37.8%·17시 finding 없음, `inv.thermal_derating`은 최근 30일 저감 6.8~7.0시간(기준 6시간).
 
 **`verify:ingest` 검사 항목** (하나라도 실패하면 종료 코드 1)
 
@@ -133,15 +156,16 @@ npm run analyze -- --sites SIM-B --days 30 --to 2026-09-15T00:00:00+09:00 --asse
 
 1. `om.analysis_run` 행을 만들고, 전용 연결의 트랜잭션에서 사이트 id 순서대로 `pg_try_advisory_xact_lock(hashtext('om.analysis_run'), site_id)`를 잡습니다. 하나라도 못 잡으면 실행 행을 `failed`로 남기고 거절합니다(`AnalysisBusyError`). 잡은 뒤 같은 사이트를 포함한 채 시간 예산의 두 배보다 오래 `running`으로 남은 실행만 중단된 실행으로 보고 `failed`로 정리합니다(방금 들어와 잠금을 기다리는 다른 요청의 행은 건드리지 않음).
 2. 대상 사이트 포인트의 남은 dirty 롤업을 처리합니다.
-3. 설비별 에피소드 추출: `[from − 6시간의 KST 0시, to)`(앞 실행이 끝에 걸려 `open`으로 저장한 에피소드가 있으면 그 시작부터)를 다시 뽑아, 그 구간의 기존 에피소드를 지우고 새로 넣습니다. 전해조·연료전지 스택은 창 시작 전 마지막 운전 샘플을 따로 조회해(기본키 인덱스 역순) 창 첫 기동의 꺼짐 시간·냉간 여부를 전체 추출과 같게 잽니다.
+3. 설비별 에피소드 추출: `[from − 6시간의 KST 0시, to)`(앞 실행이 끝에 걸려 `open`으로 저장한 에피소드가 있으면 그 시작부터)를 다시 뽑아, 그 구간의 기존 에피소드를 지우고 새로 넣습니다. 전해조·연료전지 스택은 창 시작 전 마지막 운전 샘플을 따로 조회해(기본키 인덱스 역순) 창 첫 기동의 꺼짐 시간·냉간 여부를 전체 추출과 같게 잽니다. P3 추출기: 압축기 운전(`comp.run`), 연료전지 블로워 운전(`fc.blower_run`), 기상 일(`wx.day`), 랙 전류 스텝(`ess.current_step`, 랙 충방전 추출에 이미 읽은 원시를 함께 씀), 저장용기 정지 보유(`tank.hold`). 정지 보유는 먼저 1시간 롤업(전해조 유량·연료전지 소비·압축기 전력·뱅크 밸브의 시간 최댓값)으로 유입·유출이 없는 후보 시간을 고르고, 그 창(앞뒤 2시간)만 용기 압력·온도 원시를 읽습니다(전체 원시 추출과 같은 구간, integration 테스트로 확인).
 4. `om.kpi_daily` upsert (인버터 발전량·비발전량·동종 비율·가용률, 사이트 합계, 랙 왕복효율, 전해조 SEC, 연료전지 원단위·기준 전류밀도 전압).
-5. 탐지기 6종: 저장된 에피소드 전체 이력(기준선부터)과 `om.asset_event`(설비·상위 설비, `resets_baseline` 반영), 활성 `om.detector_config`(default < class < asset)로 `lib/analytics/pipeline`이 입력을 조립합니다. `dq.gap_flatline`은 1시간 롤업 공백과 원시 고착 구간을 SQL로 요약합니다(사이트에 데이터가 있는 구간만). 고착 구간 끝은 마지막 샘플 + 주기이고 길이가 `metric_def.flatline_max_s` 이상이면 고착이며, 일사량(POA·GHI, 기준 2시간)은 야간 |값| ≤ 5 W/m² 구간을 뺍니다. 같은 규칙을 `lib/analytics/dq/summary.ts`(메모리 평가 경로)가 순수 함수로 갖고 integration 테스트가 두 경로 결과가 같은지 확인합니다. 용량 감소 finding이 나면 대표 세션 충전 곡선을 읽어 오버레이를 채웁니다.
+5. 탐지기 14종(P2 6종 + P3 8종): 저장된 에피소드 전체 이력(기준선부터)과 `om.asset_event`(설비·상위 설비, `resets_baseline` 반영), 활성 `om.detector_config`로 `lib/analytics/pipeline`이 입력을 조립합니다. 설정은 코드 기본값 위에 default < class < asset 순으로 얹어 탐지기 `paramSchema`로 검증하고, 기본값에 없는 키는 버리며(`ignoredKeys`), 타입·범위가 틀리면 그 탐지기는 `insufficient`(`invalid_config: 경로: 메시지 (설정 버전)`)로 끝나고 `stats.sites[].configIssues`·탐지기 집계 `invalidConfig`에 남습니다. 근거 스냅샷에는 적용 설정 `{scope, version, params_hash}`(설정 행이 없으면 `code_default`)를 남깁니다. P3 보조 입력은 필요한 만큼만 읽습니다: 저장용기 누설은 판정에 쓰는 정지 보유 구간(기준 12개·최근 6개)의 압력·온도 원시만, 인버터 열 저감은 최근 30일 + 동종 기준 60일의 인버터 전력·방열판·출력제한·외기 원시와 `event_log`, 정류기 효율은 1시간 롤업 일 중앙값, 오염 세척일은 `maintenance_action`(세척), 오염 손실 금액은 `market_daily` SMP. `dq.gap_flatline`은 1시간 롤업 공백과 원시 고착 구간을 SQL로 요약합니다(사이트에 데이터가 있는 구간만). 고착 구간 끝은 마지막 샘플 + 주기이고 길이가 `metric_def.flatline_max_s` 이상이면 고착이며, 일사량(POA·GHI, 기준 2시간)은 야간 |값| ≤ 5 W/m² 구간을 뺍니다. 같은 규칙을 `lib/analytics/dq/summary.ts`(메모리 평가 경로)가 순수 함수로 갖고 integration 테스트가 두 경로 결과가 같은지 확인합니다. 용량 감소 finding이 나면 대표 세션 충전 곡선을 읽어 오버레이를 채웁니다.
    - `el.voltage_rise`·`fc.voltage_decay`: CUSUM 변화 시작점 뒤 누적 운전시간이 300 h(`minHoursAfterChange`) 이상이고 변화 전·후 기울기 95% CI가 겹치지 않으면 변화점 이후 기울기를 효과로 쓰고, 전체·변화 전 기울기는 근거에 남깁니다(열화율이 도중에 바뀐 스택의 크기 과소 추정 방지).
    - `ess.capacity_fade` 방식 우선순위: CV 종료 앵커 > 휴지 앵커(`rest_anchored`: 30분 이상 휴지 끝 SOC 두 점 사이 순 Ah ÷ ΔSOC, |ΔSOC| ≥ 25%, 중간 충방전 허용, 불확실도 역분산 가중) > CC 구간 Ah > 부분 충전 SOC 변화. 앞 방식이 판정 불능이면 다음 방식을 씁니다. SOC 기반 방식은 근거에 "BMS SOC 재보정 품질에 의존" 주의 코드를 남기고 화면·리포트가 문구로 보여 줍니다.
    - 기준은 bin별로 고릅니다: 기준선 재설정 이후 조건 bin마다 가장 이른 5개(`referencePerBin`)가 그 bin의 기준이고, 주 bin(최근 가중치 최대) 기준 시점과 120일(`maxReferenceSpreadDays`) 넘게 떨어진 bin은 결합에서 뺍니다(근거 bin 표에 기준 기간·제외 이유). `detector_config.reference_window`가 있으면 그 창이 우선입니다. 휴지 앵커는 `ess.rest@2` 에피소드(휴지 끝 SOC·휴지 중 순 Ah)가 필요합니다.
-6. finding upsert: `dedup_key = 탐지기|설비|고장모드`. 열린 건은 갱신(`last_detected_at`·`detection_count`·심각도·신뢰도·효과, 조치 이후 악화면 system이 `reopened`), 없으면 억제 기간 안의 기각 건이면 건너뛰고 아니면 새로 만듭니다(닫힌 이전 건은 `previous_finding_id`). 근거는 매번 `finding_evidence`에 추가합니다(`input_hash`).
-7. 조치 효과 검증: 후 창(`performed_at + stabilization_days`부터 `window_days`, 기본 30일)이 `to`까지 채워진 정비 조치를 `matched_before_after@1`로 비교해 `om.action_verification`에 upsert하고, `improved`이면 연결 발견사항을 system이 `verified`로 옮깁니다.
-8. 설비·탐지기 단위 오류와 시간 예산(기본 15분) 초과는 기록하고 계속해 `partial`, 실행 전체가 실패하면 `failed`로 끝납니다. `stats`에 사이트별 설비·에피소드·KPI 행·탐지기별 ok/부족/오류/finding·finding 생성·갱신·억제·재발·검증 결과·소요시간이 남습니다.
+6. 체인 원장: 1시간 롤업만 읽어 `lib/analytics/ledger`로 사이트·KST 날짜별 전력 흐름(pool_hourly@1 할당)·수소 수지(생산 − 연료전지 소비 − 저장량 변화 − 배출 추정 = 잔차)·SEC·P2P 효율·PV 미활용 원인 분해를 계산해 `om.site_energy_daily`에 upsert합니다(`[from − 6시간의 KST 0시, to)` 안의 끝난 날은 다시 계산해 덮어씀, `run_id`·`calc_version` 기록). 생산량은 전해조 적산계(`h2.mass.total`) 하루 증가량을 먼저 쓰고(없거나 리셋이면 유량 시간 평균 적산, 유량계도 없으면 패러데이 추정), 저장량은 NIST Lemmon 2008 상태식으로 용기별 경계 질량 차를 더합니다(경계 시간이 정지 시간이면 P·T 시간 평균). 같은 실행의 `pv.soiling_rate` 결과로 오염 손실을 나눈 뒤, 저장한 원장과 `tank.static_leak` 결과로 `h2chain.mass_balance_gap`을 마지막에 실행합니다. 청정수소 인증 공식 산정이 아닙니다.
+7. finding upsert: `dedup_key = 탐지기|설비|고장모드`, 사이트 단위 탐지기(`h2chain.mass_balance_gap`·`pv.soiling_rate`)는 `asset_id` NULL·`탐지기|site:<사이트 id>|고장모드`. 열린 건은 갱신(`last_detected_at`·`detection_count`·심각도·신뢰도·효과, 조치 이후 악화면 system이 `reopened`), 없으면 억제 기간 안의 기각 건이면 건너뛰고 아니면 새로 만듭니다(닫힌 이전 건은 `previous_finding_id`). 근거는 매번 `finding_evidence`에 추가합니다(`input_hash`).
+8. 조치 효과 검증: 후 창(`performed_at + stabilization_days`부터 `window_days`, 기본 30일)이 `to`까지 채워진 정비 조치를 `matched_before_after@1`로 비교해 `om.action_verification`에 upsert하고, `improved`이면 연결 발견사항을 system이 `verified`로 옮깁니다. 검증 지표(탐지기 같은 조건 bin): 랙 유효용량·충전 종료 셀 전압 편차·전해조 셀 전압·연료전지 기준 셀 전압, P3 전해조 시스템 비에너지(AC 전력 50 kW·스택온도 bin)·압축기 비에너지(압축비·외기)·연료전지 블로워 비전력(유량·외기)·태양광 성능지수·랙 내부저항(샘플 주기·SOC·셀온도). 좋아지는 방향(증가/감소)은 지표마다 정해져 있습니다. 인버터 열 저감 시간은 에피소드가 없어 아직 검증 지표가 아닙니다.
+9. 설비·탐지기 단위 오류와 시간 예산(기본 15분) 초과는 기록하고 계속해 `partial`, 실행 전체가 실패하면 `failed`로 끝납니다. `stats`에 사이트별 설비·에피소드·KPI 행·탐지기별 ok/부족(설정 오류)/오류/finding·설정 오류 목록·체인 원장(일수·롤업 행·기준 PR·오염 손실 추정 일수)·정지 보유 원시 창 수·finding 생성·갱신·억제·재발·검증 결과·단계별 소요시간(`stages`: extract·kpi·aux·detect·ledger·findings·verify)이 남습니다.
 
 상태 전이(`lib/analysis/transitions.ts`, 규칙은 `transition-rules.ts`): `triageFinding`(new·reopened → triaged), `dismissFinding`(사유 필수, 억제 기간, 사유가 '운영 조건 변경'이면 `resetBaseline`으로 기준선 분할 `asset_event` 생성), `reopenFinding`, `markFindingsInReport`(리포트 승인 시), `registerMaintenanceAction`(조치 기록 + `action_taken`). `verified`는 조치 검증(system)만 기록합니다.
 
@@ -176,15 +200,19 @@ npm run analyze -- --sites SIM-B --days 30 --to 2026-09-15T00:00:00+09:00 --asse
 DB·서버 없이 메모리 모드로 1년치 가상 데이터를 만들어 탐지기 성능을 재고, 설계 §5.5 CI 게이트를 판정합니다. 에피소드 추출·탐지기 입력 조립은 분석 실행(`lib/analysis`)과 같은 `lib/analytics/pipeline` 함수를 씁니다.
 
 ```bash
-npm run sim:eval                                  # 전체: 시드 3 × 크기 스윕 5 (사이트 잡 33개)
-npm run sim:eval -- --runs 3,4,5                  # CI 축소: 스윕 3~5번(용량 5·7·10%, 전해조 20·40 µV/h) — 용량·스택 게이트 주입은 전체와 같고 셀 불균형(월 20 mV)·데이터 품질(12시간)은 일부만
-npm run sim:eval -- --cache .data/sim-eval        # 시뮬레이션·추출 결과를 저장해 두고 탐지기 파라미터만 바꿔 다시 평가
+npm run sim:eval                                  # 전체: 시드 3 × (P2 스윕 5 + P3 순번 12) (사이트 잡 84개)
+npm run sim:eval -- --runs 3,4,5,6,8,9,10,13,17   # CI 축소(사이트 잡 51개): P2 스윕 3~5번 + P3 순번 1·3·4·5·8·12 (P3 순번 k = --runs 5+k)
+npm run sim:eval -- --cache .data/sim-eval        # 시뮬레이션·추출 결과를 저장해 두고 탐지기 파라미터만 바꿔 다시 평가 (전체 캐시 약 4.9 GB)
 ```
 
-- 프리셋은 `lib/sim/presets.ts`의 `EVAL_PRESET`(2025-10-01부터 365일, 고장은 120일째 시작, 용량 감소는 30일에 걸쳐 진행)입니다. 스윕: SIM-A 랙 1·SIM-B 랙 1 용량 1·3·5·7·10%, SIM-A 랙 3 셀 전압 산포 월 5·10·20 mV, 인버터 0.5~3%p, 전해조·연료전지 5~40 µV/h, 데이터 품질 결측·고착 3·6·12시간. 사이트마다 난수·플랜트가 독립이라 같은 시드·시나리오인 사이트는 한 번만 시뮬레이션합니다(대조군 SIM-C는 시드당 1회).
-- 잡은 자식 프로세스 N개(`--concurrency`, 기본 min(8, CPU−1))로 나눠 돌립니다. 이 PC(16코어)에서 전체 약 5분 20초, `--runs 3,4,5` 축소는 약 2분 20초입니다(휴지 앵커·데이터 품질 평가 추가 전 전체 3분 30초). 시드 하나만 고르면 게이트 주입이 2~3건이라 한 건의 지연이 중앙값을 좌우합니다(예: `--seeds 101 --runs 3,4`는 용량 5% 주입 지연 43일이 섞여 중앙값 31일로 미달). CI 코어가 적으면 `--runs 3,4,5`를 쓰고 `--concurrency`를 코어 수에 맞추세요.
+- 프리셋은 `lib/sim/presets.ts`의 `EVAL_PRESET`(2025-10-01부터 365일, 고장은 120일째 시작, 용량 감소는 30일에 걸쳐 진행)입니다. 스윕: SIM-A 랙 1·SIM-B 랙 1 용량 1·3·5·7·10%, SIM-A 랙 3 셀 전압 산포 월 5·10·20 mV, 인버터 0.5~3%p, 전해조·연료전지 5~40 µV/h, 데이터 품질 결측·고착 3·6·12시간. 사이트마다 난수·플랜트가 독립이라 같은 시드·시나리오인 사이트는 한 번만 시뮬레이션합니다(대조군 SIM-C는 시드당 P2·P3 각 1회).
+- P3 순번(`lib/sim/presets-eval-p3.ts`, 순번 i마다 각 스윕의 i번째 크기): SIM-A 오염 0.02~0.2%/일·랙 2 저항 10~50%·인버터 2 냉각팬 고장(120·200·280일째 시작), SIM-B 용기 2 누설 0.005~0.5 kg/일·전해조 비에너지 정류기·패러데이·스택 경로 3·6·10%·압축기 밸브 마모 5·10·20%·씰 누설·블로워 마모 2·5·10%/월·필터 막힘 10·25·40%·유량계 드리프트 1·2·4%/월, SIM-C P3 대조군(고압축비 주·재충전 보충·건강한 물질수지 30일·일교차 확대·부분부하 주·비 오는 주·고온 주). 서로 헷갈리게 하는 고장은 같은 순번에 두지 않습니다(누설·비에너지 ↔ 유량계 드리프트, 밸브 ↔ 씰, 블로워 마모 ↔ 필터).
+- 잡은 자식 프로세스 N개(`--concurrency`, 기본 min(8, CPU−1))로 나눠 돌립니다. 이 PC(16코어, 동시 8)에서 전체 84잡 22분 46초(잡 CPU 합 약 2시간 51분), 축소 51잡 12분 46초(게이트 38개 판정이 전체와 모두 같고 통과)입니다(P3 추가 전 전체 33잡 약 5분 20초). 캐시에서 다시 평가하면 전체 약 6분 45초입니다(탐지 단계만). 시드 하나만 고르면 게이트 주입이 2~3건이라 한 건의 지연이 중앙값을 좌우합니다(예: `--seeds 101 --runs 3,4`는 용량 5% 주입 지연 43일이 섞여 중앙값 31일로 미달). 축소 조합은 전체 결과로 계산한 38개 게이트 판정이 모두 전체와 같도록 골랐습니다(스코어카드 `reduced_runs`).
 - 주 단위 점검 시각마다 탐지기를 실행하고, 주입 설비는 하루 단위로 첫 탐지를 좁힙니다. 판정 규칙은 `lib/sim/eval/score.ts` 머리 주석에 있습니다: TP = 주입 설비·기대 고장모드 finding이 주입 시작~종료+7일에 나옴, FP = 그 밖의 finding(연속 점검은 한 건), 크기 오차 = 마지막 탐지 효과와 같은 창의 참값 차이(용량은 시뮬레이터 참 SOH 비율).
-- 게이트: `ess.capacity_fade` SIM-A 5% 이상 재현율 ≥ 0.9·크기 MAE ≤ 1%p·지연 중앙값 ≤ 21일, SIM-B(연계형 부분 사이클) 5% 이상 재현율 ≥ 0.8·지연 ≤ 45일, 여름(6~8월) 연속 판정 불능 < 60일, SOC 상한 변경 대조군 변경 7일 뒤 판정 ok 점검 ≥ 1·변경 이후 finding 0 / 6종 오탐 ≤ 0.1건/자산·월 / `el.voltage_rise` 20 µV/h 이상 재현율 ≥ 0.9 / 전해조·연료전지 20 µV/h 이상 크기 상대오차 중앙값 ≤ 10% / `ess.cell_imbalance` 월 10 mV 이상 재현율 ≥ 0.9 / `dq.gap_flatline` 6시간 이상 결측·고착 재현율 ≥ 0.9. 스코어카드 용량 항목에는 사이트별 곡선·판정 불능 비율(전체·여름)·SOC 상한 변경 대조군 결과가 함께 남습니다. 하나라도 미달이면 종료 코드 1입니다. 평가할 주입이 없으면(축소 선택에서 빠짐) 미달로 봅니다.
+- 게이트(38개): `ess.capacity_fade` SIM-A 5% 이상 재현율 ≥ 0.9·크기 MAE ≤ 1%p·지연 중앙값 ≤ 21일, SIM-B(연계형 부분 사이클) 5% 이상 재현율 ≥ 0.8·지연 ≤ 45일, 여름(6~8월) 연속 판정 불능 < 60일, SOC 상한 변경 대조군 변경 7일 뒤 판정 ok 점검 ≥ 1·변경 이후 finding 0 / 14종 오탐 ≤ 0.1건/자산·월 / `el.voltage_rise` 20 µV/h 이상 재현율 ≥ 0.9 / 전해조·연료전지 20 µV/h 이상 크기 상대오차 중앙값 ≤ 10% / `ess.cell_imbalance` 월 10 mV 이상 재현율 ≥ 0.9 / `dq.gap_flatline` 6시간 이상 결측·고착 재현율 ≥ 0.9. 스코어카드 용량 항목에는 사이트별 곡선·판정 불능 비율(전체·여름)·SOC 상한 변경 대조군 결과가 함께 남습니다. 하나라도 미달이면 종료 코드 1입니다. 평가할 주입이 없으면(축소 선택에서 빠짐) 미달로 봅니다.
+- P3 게이트: 대조군 SIM-C 일별 수소 물질수지 |잔차율| 중앙값 < 1%·95퍼센타일 < 2%(원장 완결성 0.9 이상인 날), `tank.static_leak` 재현율 0.9 이상 최소 누설률 ≤ 스윕 최대(0.5 kg/일), PV 대조군(출력제어·흐린 주·비 오는 주) 구간 PV 탐지기(`pv.inverter_peer`·`pv.soiling_rate`·`inv.thermal_derating`) finding 0, 기준 크기 재현율 ≥ 0.8 — `el.sec_rise` 비에너지 5% 이상(세 경로), `comp.sec_rise` 밸브 마모 10% 이상, `fc.blower_wear` 비전력 +20% 이상(필터 막힘 20% 이상·마모 누적 20% 이상), `pv.soiling_rate` 0.1%/일 이상, `ess.resistance_growth` +40% 이상, `inv.thermal_derating` 냉각팬 고장(겨울·봄·여름 시작), `h2chain.mass_balance_gap` 유량계 드리프트 3%/월 이상. 사이트 단위 탐지기(`h2chain.mass_balance_gap`·`pv.soiling_rate`)는 사이트 주입 하나로 채점합니다.
+- P3 참고 지표(게이트 아님, 스코어카드 `p3`): 건강한 물질수지 잔차 분포, `el.sec_rise` 주입 경로별 판별 체크 지지 비율(정류기 → `rectifier_efficiency`, 패러데이 → `faraday_efficiency`, 스택 → `stack_voltage`, 목표 0.7), 누설 0.2 kg/일 이상 주입의 물질수지 finding 비율, 냉각팬 고장 시작 계절별 탐지 지연.
+- 최근 전체 결과(2026-09-15): 게이트 38개 모두 통과. 물질수지 잔차 중앙값 0.101%·p95 0.297%(2,190일), 누설 최소 탐지 0.1 kg/일(0.1: 3/3 15일, 0.2·0.5: 3/3 5일, 0.05: 2/3), `el.voltage_rise` 10 µV/h 3/3(40일)·20 µV/h 이상 상대오차 중앙값 0.003, `el.sec_rise` 6%·10% 각 9/9(지연 68·56일, 3%는 0/9), `comp.sec_rise` 밸브 5% 2/3·10%·20% 3/3(씰 누설 0.02~0.1 bar/일은 0/9, 게이트 아님), 블로워 +20% 이상 12/12, 오염 0.1%/일 3/3(45일)·0.05%/일 3/3(110일), 저항 50% 3/3(27일), 냉각팬 9/9(지연: 겨울 시작 131~194일, 봄 73~115일, 여름 35~43일), 유량계 드리프트 1·2·4%/월 각 3/3. 오탐/자산·월: `tank.static_leak` 0.078(198건, 대부분 SIM-B 용기 1·3의 한 주짜리 경계 초과), `ess.resistance_growth` 0.012, `h2chain.mass_balance_gap` 0.005, 나머지 0. 경로 판별 체크 지지 전체 0.722(정류기 0.333·패러데이 0.833·스택 1.0), 누설 0.2 kg/일 이상 주입의 물질수지 finding 3/6.
 - `dq.gap_flatline`은 저장값 수준 주입만 평가합니다: 결측(`dq.sample_loss`, 메모리 모드 값 NaN = 저장되지 않은 샘플, HTTP 적재에서는 보내지 않음)·고착(`dq.stuck_sensor`) 3·6·12시간을 SIM-A·SIM-B에 넣고 주 단위 점검마다 최근 7일 창을 DB 경로와 같은 요약 규칙으로 평가합니다. 전송 계층 단절 후 백필·지연·시계 오차는 메모리 모드가 재현하지 않아 DB E2E 모드에서 확인합니다.
 - 전체 프리셋이면 `lib/analytics/scorecard.json`(탐지기별 재현율·정밀도·오탐률·지연·크기 오차·최소 탐지 크기 곡선, 게이트, 파라미터 조정 내역)을 갱신합니다. 일부만 돌리면 `--out`을 준 경우에만 씁니다. `npm run db:up`으로 로컬 DB가 떠 있으면 `sim.run`·`sim.injection`·`sim.eval_result`에도 기록합니다(`--no-db`로 끔).
 
