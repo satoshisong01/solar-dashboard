@@ -177,6 +177,12 @@ npm run analyze -- --sites SIM-B --days 30 --to 2026-09-15T00:00:00+09:00 --asse
 - **오늘**: 할 일 카운터(새 발견사항·조사 중·조치 후 검증 대기·최근 7일 검증 결과)와 새 발견·다시 열림 상위 10건. **플릿**: 열린 발견사항 최고 심각도 4 이상 위험, 2 이상 주의.
 - **시뮬레이터**(`/sim`): `HYSOL_SHOW_SIM=1`일 때만 메뉴·라우트가 열리며 스코어카드의 게이트·탐지기별 성능·최소 탐지 크기 곡선을 보여 줍니다. 플래그가 없으면 `proxy.ts`가 HTTP 404로 응답합니다(화면은 '찾을 수 없습니다').
 
+### 체인 원장·탐지 준비도·탐지기 설정 화면 (P3)
+
+- **사이트 상세 체인 원장**(`/sites/[siteCode]#chain`, `lib/chain`, `lib/data/chain.ts`): 분석 실행이 저장한 `om.site_energy_daily`를 기간(최근 7/30/90일 = KST 어제까지, 사용자 지정 = 양 끝 포함·최대 400일, URL `chain=`·`from=`·`to=`)으로 읽어 그립니다. 에너지 흐름 Sankey(kWh, pool_hourly@1 비례 할당 — 툴팁·안내 문구, 미계측 흐름은 옅은 회색), 수소 흐름 Sankey(kg: 생산 → 연료전지 소비·저장 증감·배기 추정·잔차, 저장 인출·음의 잔차는 공급 쪽 노드), 물질수지 잔차 일별 막대(kg·% 두 칸, `h2chain.mass_balance_gap` 활성 설정의 잔차율 밴드, 완결성 기준 미만인 날은 회색, 열린 물질수지 발견사항 링크), 체인 KPI(기간 합 SEC·kg/MWh·P2P·전해조 재생/계통 비율·잔차율, 없으면 '데이터 없음'), 전해조 입력 전력 비율 추세, PV 미활용 원인 분해 누적 막대와 기간 합 표, 원장 품질 경고(원천 완결성 90% 미만인 날, 계측 불일치율 3% 초과). ECharts Sankey 시리즈는 `components/charts/sankey-chart.tsx`에서만 등록합니다.
+- **탐지 준비도**(`/data/readiness?site=`, `lib/analytics/readiness/site.ts`, `lib/data/readiness.ts`): 설비(행) × 탐지기 14종(열). 포인트마다 최근 30일 1시간 롤업 good 샘플 ÷ 기대 샘플(창 시작과 첫 데이터 중 늦은 시각부터)로 완결성, 첫 롤업 버킷으로 이력을 잽니다. 설비 행은 분석이 합쳐 쓰는 상위·형제·사이트 설비 포인트(`pipeline/sources.ts` + 인버터 외기 온도)까지 보고, 사이트 단위 탐지기(태양광 오염·수소 물질수지)는 첫 행 '(사이트 전체)'에서 요구 설비 종류 설비들의 포인트로 판정합니다. 셀은 아이콘·글자·툴팁(누락 메트릭·부족 사유), 요약(준비됨 비율, 해당 없음 제외), 메트릭 확보 순위(그 메트릭만 없어서 막힌 조합 수). CSV: `GET /api/readiness.csv?site=SIM-B`(매트릭스) · `&table=acquisition`(확보 순위), UTF-8 BOM·CRLF·수식 방지, 파일명은 RFC 5987 `filename*`.
+- **탐지기 설정**(`/settings/detectors`, `/settings/detectors/[detectorId]`, `lib/detector-config`, `lib/ops/detector-config.ts`): 목록(버전·고장모드·카테고리·요구 메트릭·시뮬레이터 스코어카드 재현율·최소 탐지 크기·오탐·활성 설정 범위 수) → 상세(코드 기본값 표, 범위별 활성 버전·이력과 앞 버전 대비 params 차이, 새 버전 만들기, 활성/비활성 전환). 폼 필드는 `z.toJSONSchema(paramSchema)`로 서버에서 만들고, 빈 칸은 저장하지 않아(물려받음) 넓은 범위·코드 기본값을 씁니다. 서버는 필드 규칙(10진수·정수·min~max·선택지·null 가능)과 paramSchema(부분·기본값 병합)로 다시 검증한 뒤 한 트랜잭션에서 새 version INSERT + 같은 (탐지기, 범위) 이전 활성 끄기(advisory lock)를 합니다. 범위 선택지는 실제 실행에 적용되는 범위만 보여 줍니다(`lib/analytics/pipeline/targets.ts`: 물질수지·데이터 품질은 default만, 인버터 동종·열 저감은 default·class, 나머지는 asset까지, 설비는 검색 콤보). 기준 창은 KST 날짜 양 끝 포함 → `[시작 0시, 끝 다음 날 0시)`. 변경은 다음 분석 실행부터 적용되며 기존 발견사항은 바뀌지 않습니다.
+
 ### 코칭 리포트 (`/reports`, `/reports/[id]`, `/reports/[id]/print`, `lib/report`)
 
 분석과 분리되어 있습니다(설계 §0): 분석 실행은 리포트를 만들지 않고, 리포트 만들기는 분석을 실행하지 않습니다. 메일 발송·서버 PDF·LLM은 없습니다.
@@ -230,7 +236,7 @@ integration·e2e는 `npm run db:up`이 떠 있어야 합니다. 꺼져 있으면
 | 명령 | 내용 |
 |---|---|
 | `npm test` / `npm run test:unit` | Vitest unit (`lib/**`, `components/**`의 `*.test.ts`). DB 불필요 |
-| `npm run test:integration` | Vitest integration (`tests/integration`). 테스트 DB를 최신으로 migrate한 뒤 스키마·마이그레이션 왕복·수집·분석 실행(재실행 멱등·동시 실행 잠금·partial/failed)·리포트·조치를 검사 |
+| `npm run test:integration` | Vitest integration (`tests/integration`). 테스트 DB를 최신으로 migrate한 뒤 스키마·마이그레이션 왕복·수집·분석 실행(재실행 멱등·동시 실행 잠금·partial/failed)·리포트·조치·탐지기 설정 버전(활성 하나·동시 저장)을 검사 |
 | `npm run test:e2e` | Playwright (`tests/e2e`, chromium). `next build` 후 `next start -p 3100`을 띄우고, 테스트 DB 초기화(마이그레이션 down → up)·시드·테스트 관리자(`e2e-admin@hysol.local`) 생성, SIM-B 최근 2일을 실제 수집 API로 적재, 폐루프 시나리오용 SIM-A 과거 80일(고장 주입, `tests/e2e/closed-loop-plan.ts`)을 원시에 직접 적재한 뒤 실행(적재 약 30초). 끝나면 테스트 DB를 migrate·seed 직후 상태로 되돌린다 |
 | `npm run test:all` | unit → integration → e2e 순서로 모두 실행 |
 | `npx vitest run --project unit --coverage` | `lib/**` 커버리지 (`coverage/`). `lib/analytics/**`는 구문·분기·함수·라인 중 하나라도 80% 미만이면 실패 |
