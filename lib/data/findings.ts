@@ -5,6 +5,7 @@ import { db } from '@/lib/db/kysely';
 import { parseEffect } from '@/lib/desk/effect';
 import { sortInbox, type InboxRow } from '@/lib/desk/inbox';
 import { isFindingCategory } from '@/lib/desk/labels';
+import { SAFETY_FINDING_MIN_SEVERITY } from '@/lib/desk/safety';
 
 /** 인박스가 한 번에 읽는 발견사항 수 (최근 탐지 순). 넘으면 화면에 알린다 */
 export const INBOX_LIMIT = 500;
@@ -104,36 +105,44 @@ export interface FindingWorkCounts {
   readonly triaged: number;
   readonly awaitingVerification: number;
   readonly verificationsArrived: number;
+  /** 승인 대기 리포트 초안 (om.report status draft) */
+  readonly reportsAwaitingApproval: number;
 }
 
 export async function getFindingWorkCounts(nowMs: number): Promise<FindingWorkCounts> {
-  const [statusRows, arrived] = await Promise.all([
+  const [statusRows, arrived, drafts] = await Promise.all([
     db.selectFrom('om.finding').select(['status', sql<number>`count(*)::int`.as('n')]).groupBy('status').execute(),
     db
       .selectFrom('om.action_verification')
       .select(sql<number>`count(*)::int`.as('n'))
       .where('computed_at', '>=', new Date(nowMs - VERIFICATION_ARRIVAL_MS))
       .executeTakeFirst(),
+    db.selectFrom('om.report').select(sql<number>`count(*)::int`.as('n')).where('status', '=', 'draft').executeTakeFirst(),
   ]);
   const count = (status: FindingStatus) => statusRows.find((row) => row.status === status)?.n ?? 0;
-  return { newCount: count('new'), triaged: count('triaged'), awaitingVerification: count('action_taken'), verificationsArrived: arrived?.n ?? 0 };
+  return { newCount: count('new'), triaged: count('triaged'), awaitingVerification: count('action_taken'), verificationsArrived: arrived?.n ?? 0, reportsAwaitingApproval: drafts?.n ?? 0 };
 }
 
 export interface OpenFindingGroup {
   readonly siteId: number;
   readonly classKey: string | null;
+  /** 사이트 단위 발견사항(설비 없음)이면 탐지기 id, 아니면 null */
+  readonly siteDetectorId: string | null;
   readonly category: string;
   readonly count: number;
   readonly maxSeverity: number;
+  /** 그중 안전 발견사항(안전 카테고리·심각도 4 이상) 수 */
+  readonly safetyCount: number;
 }
 
-/** 플릿 매트릭스용: 열린 발견사항을 사이트·설비 종류·카테고리로 묶은 건수와 최고 심각도 */
+/** 플릿 매트릭스용: 열린 발견사항을 사이트·설비 종류(사이트 단위는 탐지기)·카테고리로 묶은 건수·최고 심각도·안전 발견사항 수 */
 export async function getOpenFindingGroups(): Promise<readonly OpenFindingGroup[]> {
-  const { rows } = await sql<{ site_id: number; class_key: string | null; category: string; n: number; max_severity: number }>`
-    SELECT f.site_id, a.class_key, f.category, count(*)::int AS n, max(f.severity)::int AS max_severity
+  const { rows } = await sql<{ site_id: number; class_key: string | null; site_detector_id: string | null; category: string; n: number; max_severity: number; safety_n: number }>`
+    SELECT f.site_id, a.class_key, CASE WHEN f.asset_id IS NULL THEN f.detector_id END AS site_detector_id, f.category, count(*)::int AS n, max(f.severity)::int AS max_severity,
+      (count(*) FILTER (WHERE f.category = 'safety' AND f.severity >= ${SAFETY_FINDING_MIN_SEVERITY}))::int AS safety_n
     FROM om.finding f LEFT JOIN om.asset a ON a.id = f.asset_id
     WHERE f.status NOT IN ('verified', 'dismissed')
-    GROUP BY f.site_id, a.class_key, f.category
+    GROUP BY 1, 2, 3, 4
   `.execute(db);
-  return rows.map((row) => ({ siteId: row.site_id, classKey: row.class_key, category: row.category, count: row.n, maxSeverity: row.max_severity }));
+  return rows.map((row) => ({ siteId: row.site_id, classKey: row.class_key, siteDetectorId: row.site_detector_id, category: row.category, count: row.n, maxSeverity: row.max_severity, safetyCount: row.safety_n }));
 }

@@ -1,9 +1,12 @@
 import 'server-only';
 import { sql } from 'kysely';
 import { db } from '@/lib/db/kysely';
+import { CLOSED_STATUSES } from '@/lib/analysis/transition-rules';
+import { SAFETY_FINDING_MIN_SEVERITY } from '@/lib/desk/safety';
 import { formatKstDate } from '@/lib/format';
 import { isMarketKey, MARKET_LABELS } from '@/lib/market/keys';
 import { getEnergyByWindows, type EnergyValues } from './energy';
+import { safetyFindingsBanner, type SafetyFindingsBanner } from './safety-banner';
 import { getEvents, type EventRow } from './sites';
 import { kstMonthStartMs, yesterdayAndToday } from './time';
 
@@ -12,11 +15,27 @@ const BANNER_EVENT_LIMIT = 3;
 export interface SafetyBanner {
   readonly count: number;
   readonly latest: readonly EventRow[];
+  /** 열린 안전 발견사항 (분석 결과, 이벤트와 따로 표시) */
+  readonly findings: SafetyFindingsBanner;
 }
 
-/** 확인되지 않은 안전 이벤트 수와 최근 몇 건 (기간 제한 없음: ack 전까지 고정 표시) */
+/** 열린 안전 발견사항 후보 (안전 카테고리·심각도 4 이상, 닫힌 상태 제외). 최종 규칙은 lib/data/safety-banner.ts */
+async function loadSafetyFindings(): Promise<SafetyFindingsBanner> {
+  const rows = await db
+    .selectFrom('om.finding as f')
+    .innerJoin('om.site as s', 's.id', 'f.site_id')
+    .leftJoin('om.asset as a', 'a.id', 'f.asset_id')
+    .select(['f.id', 's.code as site_code', 'a.path as asset_path', 'f.detector_id', 'f.category', 'f.severity', 'f.status', 'f.title', 'f.last_detected_at'])
+    .where('f.category', '=', 'safety')
+    .where('f.severity', '>=', SAFETY_FINDING_MIN_SEVERITY)
+    .where('f.status', 'not in', [...CLOSED_STATUSES])
+    .execute();
+  return safetyFindingsBanner(rows.map((r) => ({ id: r.id, siteCode: r.site_code, assetPath: r.asset_path, detectorId: r.detector_id, category: r.category, severity: r.severity, status: r.status, title: r.title, lastDetectedMs: r.last_detected_at.getTime() })));
+}
+
+/** 확인되지 않은 안전 이벤트 수와 최근 몇 건 (기간 제한 없음: ack 전까지 고정 표시) + 열린 안전 발견사항 */
 export async function getSafetyBanner(): Promise<SafetyBanner> {
-  const [countRow, latest] = await Promise.all([
+  const [countRow, latest, findings] = await Promise.all([
     db
       .selectFrom('om.event_log')
       .select(sql<number>`count(*)::int`.as('n'))
@@ -24,8 +43,9 @@ export async function getSafetyBanner(): Promise<SafetyBanner> {
       .where('acked_at', 'is', null)
       .executeTakeFirst(),
     getEvents({ unackedSafetyOnly: true, limit: BANNER_EVENT_LIMIT }),
+    loadSafetyFindings(),
   ]);
-  return { count: countRow?.n ?? 0, latest };
+  return { count: countRow?.n ?? 0, latest, findings };
 }
 
 /** 이 시간 넘게 배치를 보내지 않은 활성 게이트웨이를 공백으로 본다 */

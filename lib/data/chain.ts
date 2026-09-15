@@ -37,7 +37,8 @@ export interface ChainView {
   readonly openFindings: readonly OpenChainFinding[];
 }
 
-async function massBalanceThreshold(): Promise<MassBalanceThreshold> {
+/** 물질수지 잔차율 기준·완결성 기준 (활성 설정 → 코드 기본값). 체인 원장 섹션·플릿 원장 신호가 같이 쓴다 */
+export async function massBalanceThreshold(): Promise<MassBalanceThreshold> {
   const configs = await loadActiveDetectorConfigs(db);
   // 물질수지는 사이트 단위 실행이라 default 범위만 적용된다 (lib/analytics/pipeline/targets.ts)
   const resolved = resolveDetectorConfig(configs, MASS_BALANCE, null, h2ChainMassBalanceGap);

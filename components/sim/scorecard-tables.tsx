@@ -2,6 +2,7 @@ import { CircleCheck, CircleX } from 'lucide-react';
 import { EmptyNote, NUM_CLASS, TABLE_CLASS, TD_CLASS, TH_CLASS, TableScroll } from '@/components/ui/panel';
 import { detectorLabel } from '@/lib/desk/labels';
 import { formatMagnitude, type DetectorScoreView, type GateView } from '@/lib/desk/scorecard';
+import { detectorStage } from '@/lib/desk/scorecard-p3';
 import { formatNumber } from '@/lib/format';
 
 const pct = (value: number | null): string => (value === null ? '—' : `${formatNumber(value * 100, 1)}%`);
@@ -61,6 +62,7 @@ export function DetectorScoresTable({ detectors }: Readonly<{ detectors: readonl
       <table className={TABLE_CLASS}>
         <thead>
           <tr>
+            <th scope="col" className={TH_CLASS}>단계</th>
             <th scope="col" className={TH_CLASS}>탐지기</th>
             <th scope="col" className={`${TH_CLASS} text-right`}>TP / FP / FN</th>
             <th scope="col" className={`${TH_CLASS} text-right`}>재현율</th>
@@ -74,6 +76,7 @@ export function DetectorScoresTable({ detectors }: Readonly<{ detectors: readonl
         <tbody>
           {detectors.map((d) => (
             <tr key={d.detectorId}>
+              <td className={`${TD_CLASS} text-xs font-medium text-ink-2`}>{detectorStage(d.detectorId)}</td>
               <td className={TD_CLASS}>
                 <span className="block font-medium text-ink">{detectorLabel(d.detectorId)}</span>
                 <span className="block font-mono text-xs text-muted">{d.detector}</span>

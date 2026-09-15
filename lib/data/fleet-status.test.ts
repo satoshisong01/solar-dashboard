@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FLEET_THRESHOLDS, evaluateCell, worstLevel, type CellSignals } from './fleet-status';
+import { FLEET_THRESHOLDS, evaluateCell, summarizeLedgerResidual, worstLevel, type CellSignals } from './fleet-status';
 
 const NOW = Date.parse('2026-09-14T11:30:00Z');
 const MINUTE = 60_000;
@@ -14,6 +14,8 @@ const healthy: CellSignals = {
   invalidSamples24h: 0,
   openFindings: 0,
   maxFindingSeverity: null,
+  safetyFindings: 0,
+  ledgerResidual: null,
 };
 
 const signals = (patch: Partial<CellSignals>): CellSignals => ({ ...healthy, ...patch });
@@ -121,5 +123,23 @@ describe('worstLevel', () => {
   it('모두 na이거나 비어 있으면 na', () => {
     expect(worstLevel(['na', 'na'])).toBe('na');
     expect(worstLevel([])).toBe('na');
+  });
+});
+
+describe('P3 수소 도메인 신호', () => {
+  it('열린 안전 발견사항은 위험, 사유에 현장 확인 우선', () => {
+    const result = evaluateCell(signals({ openFindings: 1, maxFindingSeverity: 4, safetyFindings: 1 }), NOW);
+    expect(result).toEqual({ level: 'crit', reasons: ['열린 발견사항 1건 (최고 심각도 4)', '안전 발견사항 1건 (현장 확인 우선)'] });
+  });
+
+  it('수소 원장 잔차율: 최근 7일 유효일 중앙값이 기준을 넘으면 주의, 완결성 미달·오래된 날은 빼고 유효일 5일 미만이면 판단하지 않는다', () => {
+    const rule = { thresholdPct: 2, minCompleteness: 0.9 };
+    const days = ['2026-09-01', '2026-09-08', '2026-09-09', '2026-09-10', '2026-09-11', '2026-09-12', '2026-09-13', '2026-09-14'].map((day, i) => ({ day, residualPct: i === 0 ? -50 : 2.1 + i * 0.05, completeness: i === 2 ? 0.5 : 1 }));
+    const residual = summarizeLedgerResidual(days, rule);
+    expect(residual).toEqual({ medianPct: 2.33, days: 6, thresholdPct: 2 });
+    expect(evaluateCell(signals({ ledgerResidual: residual }), NOW)).toEqual({ level: 'warn', reasons: ['수소 원장 잔차율 중앙값 +2.33% (최근 6일, 기준 ±2%)'] });
+    expect(evaluateCell(signals({ ledgerResidual: { medianPct: -1.5, days: 7, thresholdPct: 2 } }), NOW).level).toBe('ok');
+    expect(summarizeLedgerResidual(days.slice(5), rule)).toBeNull();
+    expect(summarizeLedgerResidual([], rule)).toBeNull();
   });
 });

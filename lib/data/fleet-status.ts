@@ -1,5 +1,5 @@
 // 플릿 매트릭스 셀(사이트 × 도메인) 상태 규칙. 순수 함수 (now 주입).
-// 신호: 데이터 신선도 · 최근 알람 · 미확인 안전 이벤트 · 데이터 품질 비트 비율 · (P2) 열린 발견사항 최고 심각도.
+// 신호: 데이터 신선도 · 최근 알람 · 미확인 안전 이벤트 · 데이터 품질 비트 비율 · (P2) 열린 발견사항 최고 심각도 · (P3) 열린 안전 발견사항 · 수소 원장 잔차율.
 import { formatDuration } from '@/lib/format';
 
 export type StatusLevel = 'ok' | 'warn' | 'crit' | 'unknown' | 'na';
@@ -20,6 +20,43 @@ export interface CellSignals {
   /** 이 셀에 속한 열린 발견사항(기각·효과 확인 제외) 수와 최고 심각도(없으면 null) */
   readonly openFindings: number;
   readonly maxFindingSeverity: number | null;
+  /** 이 셀의 열린 안전 발견사항(안전 카테고리·심각도 4 이상) 수 */
+  readonly safetyFindings: number;
+  /** 수소 원장 최근 잔차율 요약 (저장 열만, 원장이 없거나 판단할 날이 모자라면 null) */
+  readonly ledgerResidual: LedgerResidual | null;
+}
+
+export interface LedgerResidual {
+  /** 최근 유효일 잔차율 중앙값 [%] */
+  readonly medianPct: number;
+  readonly days: number;
+  /** 물질수지 탐지기 잔차율 기준 [%] (활성 설정) */
+  readonly thresholdPct: number;
+}
+
+export interface LedgerDayResidual {
+  /** KST 'YYYY-MM-DD' */
+  readonly day: string;
+  readonly residualPct: number | null;
+  readonly completeness: number | null;
+}
+
+/** 수소 원장 잔차 규칙 기본값: h2chain.mass_balance_gap 기본 최근 기간 7일·최근 최소 유효일 5일 */
+export const LEDGER_RESIDUAL_RULES = Object.freeze({ recentDays: 7, minDays: 5 });
+
+/**
+ * 원장 저장일 중 마지막 recentDays일(달력 기준, 마지막 저장일부터)에서 완결성 기준 이상인 날의 잔차율 중앙값.
+ * 유효일이 minDays 미만이면 null (판단하지 않음)
+ */
+export function summarizeLedgerResidual(days: readonly LedgerDayResidual[], rule: { readonly thresholdPct: number; readonly minCompleteness: number }, recentDays = LEDGER_RESIDUAL_RULES.recentDays, minDays = LEDGER_RESIDUAL_RULES.minDays): LedgerResidual | null {
+  const last = [...days].map((d) => d.day).sort().at(-1);
+  if (last === undefined) return null;
+  const from = new Date(Date.parse(`${last}T00:00:00Z`) - (recentDays - 1) * 86_400_000).toISOString().slice(0, 10);
+  const values = days.filter((d) => d.day >= from && d.residualPct !== null && Number.isFinite(d.residualPct) && (d.completeness ?? 0) >= rule.minCompleteness).map((d) => d.residualPct as number).sort((a, b) => a - b);
+  if (values.length < minDays) return null;
+  const mid = Math.floor(values.length / 2);
+  const median = values.length % 2 === 1 ? (values[mid] as number) : ((values[mid - 1] as number) + (values[mid] as number)) / 2;
+  return { medianPct: Math.round(median * 100) / 100, days: values.length, thresholdPct: rule.thresholdPct };
 }
 
 export interface CellStatus {
@@ -75,6 +112,13 @@ function openFindings(count: number, maxSeverity: number | null): Finding | null
   return { level: 'ok', reason };
 }
 
+/** 수소 원장 잔차율 중앙값이 기준을 넘으면 주의 (발견사항 여부와 별개로 원장 자체의 이상 신호) */
+function ledgerResidual(signal: LedgerResidual | null): Finding | null {
+  if (signal === null || !(Math.abs(signal.medianPct) > signal.thresholdPct)) return null;
+  const sign = signal.medianPct > 0 ? '+' : '−';
+  return { level: 'warn', reason: `수소 원장 잔차율 중앙값 ${sign}${Math.abs(signal.medianPct).toFixed(2)}% (최근 ${signal.days}일, 기준 ±${signal.thresholdPct}%)` };
+}
+
 export function evaluateCell(signals: CellSignals, nowMs: number): CellStatus {
   if (!signals.hasAssets) return { level: 'na', reasons: [] };
 
@@ -84,6 +128,8 @@ export function evaluateCell(signals: CellSignals, nowMs: number): CellStatus {
     signals.unackedSafety > 0 ? { level: 'crit', reason: `미확인 안전 이벤트 ${signals.unackedSafety}건` } : null,
     dataQuality(signals.samples24h, signals.invalidSamples24h),
     openFindings(signals.openFindings, signals.maxFindingSeverity),
+    signals.safetyFindings > 0 ? { level: 'crit', reason: `안전 발견사항 ${signals.safetyFindings}건 (현장 확인 우선)` } : null,
+    ledgerResidual(signals.ledgerResidual),
   ].filter((finding): finding is Finding => finding !== null);
 
   return {

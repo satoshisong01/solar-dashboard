@@ -9,17 +9,18 @@ import { formatAgo, formatDuration } from '@/lib/format';
 
 const LINK_CLASS = 'inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline';
 
-/** 할 일 카운터: 새 발견사항 · 조사 중 · 조치 후 검증 대기 · 검증 결과 도착 */
+/** 할 일 카운터: 새 발견사항 · 조사 중 · 리포트 승인 대기 · 조치 후 검증 대기 · 검증 결과 도착 */
 export function WorkCountersPanel({ counts }: Readonly<{ counts: FindingWorkCounts }>) {
   const items = [
     { label: '새 발견사항', value: counts.newCount, href: '/desk?status=new#inbox', note: '분류 전' },
     { label: '조사 중', value: counts.triaged, href: '/desk?status=triaged#inbox', note: '분류됨' },
+    { label: '리포트 승인 대기', value: counts.reportsAwaitingApproval, href: '/reports', note: '검토 중인 초안' },
     { label: '조치 후 검증 대기', value: counts.awaitingVerification, href: '/desk?status=action_taken#inbox', note: '조치 완료' },
     { label: '검증 결과 도착', value: counts.verificationsArrived, href: '/desk?status=all#inbox', note: `최근 ${formatDuration(VERIFICATION_ARRIVAL_MS)} 계산` },
   ];
   return (
-    <Panel title="할 일" meta="발견사항 상태 기준">
-      <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <Panel title="할 일" meta="발견사항·리포트 상태 기준">
+      <ul className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         {items.map((item) => (
           <li key={item.label}>
             <Link href={item.href} className="flex flex-col gap-1 rounded-md border border-rule p-3 transition-colors hover:bg-sunken">

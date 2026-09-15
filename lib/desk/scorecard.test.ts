@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import scorecardJson from '@/lib/analytics/scorecard.json';
 import { formatMagnitude, parseScorecard, trustBadgeFor } from './scorecard';
+import { detectorStage, parseScorecardP3, pathLabel, seasonOf } from './scorecard-p3';
 
 describe('parseScorecard (저장소의 scorecard.json)', () => {
   const scorecard = parseScorecard(scorecardJson);
@@ -47,5 +48,27 @@ describe('formatMagnitude', () => {
     expect(formatMagnitude(20, 'µV/h')).toBe('20 µV/h');
     expect(formatMagnitude(null, '%')).toBeNull();
     expect(formatMagnitude(1.5, null)).toBe('1.5');
+  });
+});
+
+describe('parseScorecardP3 (P3 참고 지표)', () => {
+  it('물질수지 잔차 분포·PV 대조군·경로 판별·누설 교차·냉각팬 지연을 읽는다', () => {
+    const p3 = parseScorecardP3(scorecardJson);
+    expect(p3.healthyMassBalance).toMatchObject({ days: 2190, medianPct: 0.101, p95Pct: 0.297 });
+    expect(p3.pvControlFindings).toBe(0);
+    expect(p3.elSecPathSupport?.byMode.map(([mode]) => pathLabel(mode))).toEqual(['정류기 효율 경로', '패러데이 효율 경로', '스택 전압 경로']);
+    expect(p3.elSecPathSupport).toMatchObject({ overall: 0.722, target: 0.7 });
+    expect(p3.tankLeakMassBalance).toEqual({ injections: 6, withFinding: 3, share: 0.5 });
+    expect(p3.fanFailureDelays.map((row) => [row.startDay, row.startMs === null ? null : seasonOf(row.startMs)])).toEqual([
+      [120, '겨울'],
+      [200, '봄'],
+      [280, '여름'],
+    ]);
+    expect(parseScorecardP3({})).toEqual({ healthyMassBalance: null, pvControlFindings: null, elSecPathSupport: null, tankLeakMassBalance: null, fanFailureDelays: [] });
+  });
+
+  it('탐지기 단계: P2 6종 외에는 P3', () => {
+    expect(detectorStage('ess.capacity_fade')).toBe('P2');
+    expect(detectorStage('tank.static_leak')).toBe('P3');
   });
 });

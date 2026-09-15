@@ -5,7 +5,7 @@ import { FleetView } from '@/components/fleet/fleet-view';
 import { Panel } from '@/components/ui/panel';
 import { requireAdmin } from '@/lib/auth/dal';
 import { getFleetMatrix } from '@/lib/data/fleet';
-import { FLEET_THRESHOLDS } from '@/lib/data/fleet-status';
+import { FLEET_THRESHOLDS, LEDGER_RESIDUAL_RULES } from '@/lib/data/fleet-status';
 import { requestTimeMs } from '@/lib/data/time';
 import { formatDuration, formatKstDateTime } from '@/lib/format';
 
@@ -43,7 +43,11 @@ export default async function FleetPage() {
             </li>
             <li>
               열린 발견사항(기각·효과 확인 제외)의 최고 심각도: {FLEET_THRESHOLDS.findingCritSeverity} 이상 위험, {FLEET_THRESHOLDS.findingWarnSeverity} 이상 주의, 1(관찰)은 사유만 표시.
-              데이터 품질 발견사항은 데이터품질 열에, 나머지는 설비 종류의 도메인 열에 넣습니다.
+              데이터 품질 발견사항은 데이터품질 열에, 나머지는 설비 종류의 도메인 열에 넣습니다. 사이트 단위 발견사항은 탐지기로 열을 정합니다(태양광 오염 → PV, 수소 물질수지 잔차 → 저장).
+            </li>
+            <li>열린 안전 발견사항(안전 카테고리·심각도 4 이상, 분석 결과): 위험. 사유에 건수를 따로 적습니다.</li>
+            <li>
+              수소 원장 잔차(저장 열): 최근 {LEDGER_RESIDUAL_RULES.recentDays}일 원장 중 완결성 기준 이상인 날이 {LEDGER_RESIDUAL_RULES.minDays}일 이상이고 잔차율 중앙값의 절댓값이 물질수지 탐지기 기준(활성 설정)을 넘으면 주의. 분석 실행이 저장한 끝난 날의 원장만 보며, 14일보다 오래 멈춘 원장은 쓰지 않습니다.
             </li>
             <li>데이터품질 열의 신선도·품질 이상 비율은 사이트 전체 포인트를 봅니다.</li>
           </ul>

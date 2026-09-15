@@ -1,9 +1,11 @@
 import 'server-only';
 import { sql } from 'kysely';
 import { db } from '@/lib/db/kysely';
-import { FLEET_COLUMNS, domainOfClass, type FleetColumn } from './domains';
+import { kstDateString, MS_PER_DAY } from '@/lib/analytics/types';
+import { massBalanceThreshold } from './chain';
+import { FLEET_COLUMNS, domainOfClass, domainOfSiteDetector, type FleetColumn } from './domains';
 import { getOpenFindingGroups, type OpenFindingGroup } from './findings';
-import { FLEET_THRESHOLDS, evaluateCell, worstLevel, type CellSignals, type CellStatus, type StatusLevel } from './fleet-status';
+import { FLEET_THRESHOLDS, evaluateCell, LEDGER_RESIDUAL_RULES, summarizeLedgerResidual, worstLevel, type CellSignals, type CellStatus, type LedgerDayResidual, type LedgerResidual, type StatusLevel } from './fleet-status';
 import { getLatestSamples, type LatestSample } from './points';
 import { INVALID_QUALITY_MASK } from './quality';
 
@@ -36,11 +38,34 @@ interface FleetInputs {
   readonly events: readonly Readonly<{ site_id: number; class_key: string | null; is_safety: boolean; severity: string; n: number }>[];
   readonly quality: readonly (SiteClassRow & { readonly samples: number; readonly invalid: number })[];
   readonly findings: readonly OpenFindingGroup[];
+  /** 사이트 id → 수소 원장 잔차율 요약 (원장이 없거나 판단할 날이 모자라면 없음) */
+  readonly ledger: ReadonlyMap<number, LedgerResidual>;
+}
+
+/** 원장이 이 일수보다 오래 멈췄으면 플릿 신호로 쓰지 않는다 (최근 원장만) */
+const LEDGER_LOOKBACK_DAYS = 14;
+
+async function loadLedgerResiduals(nowMs: number): Promise<ReadonlyMap<number, LedgerResidual>> {
+  const [threshold, result] = await Promise.all([
+    massBalanceThreshold(),
+    sql<{ site_id: number; day: string; residual_pct: number | null; completeness: number | null }>`
+      SELECT site_id, to_char(day, 'YYYY-MM-DD') AS day, (h2_kg ->> 'residual_pct')::float8 AS residual_pct, (dq -> 'h2' ->> 'completeness')::float8 AS completeness
+      FROM om.site_energy_daily
+      WHERE day >= ${kstDateString(nowMs - LEDGER_LOOKBACK_DAYS * MS_PER_DAY)}::date AND day < ${kstDateString(nowMs)}::date
+    `.execute(db),
+  ]);
+  const bySite = result.rows.reduce((map, row) => map.set(row.site_id, [...(map.get(row.site_id) ?? []), { day: row.day, residualPct: row.residual_pct, completeness: row.completeness }]), new Map<number, LedgerDayResidual[]>());
+  return new Map(
+    [...bySite.entries()].flatMap(([siteId, days]) => {
+      const summary = summarizeLedgerResidual(days, { thresholdPct: threshold.residualPct, minCompleteness: threshold.minCompleteness }, LEDGER_RESIDUAL_RULES.recentDays, LEDGER_RESIDUAL_RULES.minDays);
+      return summary === null ? [] : [[siteId, summary] as const];
+    }),
+  );
 }
 
 async function loadInputs(nowMs: number): Promise<FleetInputs> {
   const since = new Date(nowMs - FLEET_THRESHOLDS.alarmWindowMs).toISOString();
-  const [sites, classes, points, events, quality, findings] = await Promise.all([
+  const [sites, classes, points, events, quality, findings, ledger] = await Promise.all([
     db.selectFrom('om.site').select(['id', 'code', 'name', 'lat', 'lon']).orderBy('code').execute(),
     db.selectFrom('om.asset').select(['site_id', 'class_key']).distinct().execute(),
     db.selectFrom('om.point as p').innerJoin('om.asset as a', 'a.id', 'p.asset_id').select(['p.id', 'a.site_id', 'a.class_key']).execute(),
@@ -61,9 +86,10 @@ async function loadInputs(nowMs: number): Promise<FleetInputs> {
       GROUP BY a.site_id, a.class_key
     `.execute(db),
     getOpenFindingGroups(),
+    loadLedgerResiduals(nowMs),
   ]);
   const latest = await getLatestSamples(points.map((p) => p.id));
-  return { sites, classes, points, latest, events: events.rows, quality: quality.rows, findings };
+  return { sites, classes, points, latest, events: events.rows, quality: quality.rows, findings, ledger };
 }
 
 const maxNullable = (a: number | null, b: number | null): number | null => (a === null ? b : b === null ? a : Math.max(a, b));
@@ -90,15 +116,21 @@ function signalsFor(inputs: FleetInputs, siteId: number, column: FleetColumn): C
     samples24h: sum(quality.map((row) => row.samples)),
     invalidSamples24h: sum(quality.map((row) => row.invalid)),
     ...findingSignals(inputs.findings, siteId, column),
+    // 수소 원장 잔차는 저장 열에 (사이트 단위 물질수지 발견사항과 같은 열: lib/data/domains.ts domainOfSiteDetector)
+    ledgerResidual: column === 'storage' ? (inputs.ledger.get(siteId) ?? null) : null,
   };
 }
 
-/** 데이터 품질 카테고리 발견사항은 데이터품질 열, 나머지는 설비 종류의 도메인 열 (사이트 단위 발견사항은 어느 열에도 넣지 않는다) */
-function findingSignals(groups: readonly OpenFindingGroup[], siteId: number, column: FleetColumn): Pick<CellSignals, 'openFindings' | 'maxFindingSeverity'> {
-  const inCell = groups.filter(
-    (g) => g.siteId === siteId && (g.category === 'data_quality' ? column === 'dq' : column !== 'dq' && g.classKey !== null && domainOfClass(g.classKey) === column),
-  );
-  return { openFindings: sum(inCell.map((g) => g.count)), maxFindingSeverity: inCell.length === 0 ? null : Math.max(...inCell.map((g) => g.maxSeverity)) };
+/** 발견사항 그룹의 열: 데이터 품질 카테고리는 데이터품질 열, 설비가 있으면 설비 종류의 도메인, 사이트 단위는 탐지기로 정한 도메인 (오염 → PV, 물질수지 → 저장) */
+function columnOfGroup(g: OpenFindingGroup): FleetColumn | null {
+  if (g.category === 'data_quality') return 'dq';
+  if (g.classKey !== null) return domainOfClass(g.classKey);
+  return g.siteDetectorId === null ? null : domainOfSiteDetector(g.siteDetectorId);
+}
+
+function findingSignals(groups: readonly OpenFindingGroup[], siteId: number, column: FleetColumn): Pick<CellSignals, 'openFindings' | 'maxFindingSeverity' | 'safetyFindings'> {
+  const inCell = groups.filter((g) => g.siteId === siteId && columnOfGroup(g) === column);
+  return { openFindings: sum(inCell.map((g) => g.count)), maxFindingSeverity: inCell.length === 0 ? null : Math.max(...inCell.map((g) => g.maxSeverity)), safetyFindings: sum(inCell.map((g) => g.safetyCount)) };
 }
 
 /** 플릿 매트릭스: 셀 상태는 lib/data/fleet-status.ts 규칙으로 계산한다 */
