@@ -13,6 +13,7 @@
     "test:integration": "vitest run --project integration",
     "test:e2e": "playwright test",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
+    "fonts:sync": "tsx scripts/fonts-sync.ts",
     "db:up": "tsx scripts/db-server.ts",
     "db:down": "tsx scripts/db-stop.ts",
     "db:migrate": "dotenv -e .env.development.local -- tsx scripts/db-migrate.ts up",
