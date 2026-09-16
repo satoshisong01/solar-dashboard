@@ -16,6 +16,7 @@ import { levelCheck, makeCheck, medianOrNull, medianShift } from './check-helper
 import { dateKo, fixed, insufficient, r, signed, withDefaults } from './common';
 import { compareRise, riseEvidence, riseParamShape, riseWindow, trendAgrees, type RiseParams, type RiseResult, type RiseSample } from './matched-rise';
 import { completenessParam, numParam } from './param-schema';
+import { required, SLOW_S } from './requirements';
 import type { AssetEventInput, CandidateFinding, Detector, DetectorContext, DetectorResult, DiagnosticCheck } from './types';
 
 export interface FcBlowerWearInput {
@@ -196,7 +197,16 @@ function detect(input: FcBlowerWearInput, ctx: DetectorContext<FcBlowerWearParam
 
 export const fcBlowerWear: Detector<FcBlowerWearInput, FcBlowerWearParams> = {
   ...META,
-  requires: { assetClass: ['fc.blower'], metrics: ['blower.power', 'blower.flow', 'ambient.temp', 'run.hours'], minPeriodS: 300, minHistoryDays: 45 },
+  requires: {
+    assetClass: ['fc.blower'],
+    metrics: [
+      required('blower.power', SLOW_S), // 비전력 분자. 블로워 전력은 공기 유량 설정값을 따라 분 단위로 계단 변화한다
+      required('blower.flow', SLOW_S), // 비전력 분모 + 유량 bin
+      required('ambient.temp', SLOW_S), // 흡입 공기 밀도 조건 bin (외기는 시간 단위로 변한다)
+      required('run.hours', SLOW_S), // 형제 스택 누적 운전시간 축 (일 단위 증가량)
+    ],
+    minHistoryDays: 45,
+  },
   defaultParams: FC_BLOWER_WEAR_DEFAULTS,
   paramSchema: FC_BLOWER_WEAR_PARAM_SCHEMA,
   detect,

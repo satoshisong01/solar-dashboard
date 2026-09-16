@@ -23,6 +23,7 @@ import { MS_PER_DAY, MS_PER_HOUR, type TimeWindow } from '../types';
 import { fixed, insufficient, r, withDefaults } from './common';
 import { ABEL_NOBLE_DEFAULTS, h2Eos, H2_EOS_MODELS, type H2Eos, type H2EosModel } from './hydrogen-eos';
 import { choiceParam, completenessParam, intParam, iterationsParam, numParam } from './param-schema';
+import { recommended, required, SLOW_S } from './requirements';
 import type { PressureCrossCheck } from './tank-peer-pressure';
 import { holdEvidence, tankChecks, type HoldFit } from './tank-static-leak-checks';
 import type { CandidateFinding, Detector, DetectorContext, DetectorResult } from './types';
@@ -270,7 +271,18 @@ function detect(input: TankStaticLeakInput, ctx: DetectorContext<TankStaticLeakP
 
 export const tankStaticLeak: Detector<TankStaticLeakInput, TankStaticLeakParams> = {
   ...META,
-  requires: { assetClass: ['h2.storage.tank'], metrics: ['tank.pressure', 'tank.temp', 'valve.open', 'compressor.power', 'fc.h2.consumption'], minPeriodS: 300, minHistoryDays: 14 },
+  requires: {
+    assetClass: ['h2.storage.tank'],
+    metrics: [
+      required('tank.pressure', SLOW_S), // 정지 보유 구간(최소 수 시간) 기울기. 5분이면 구간당 24점 이상이 모인다
+      required('tank.temp', SLOW_S), // 온도 보정 (가스 온도는 시간 단위로 움직인다)
+      required('valve.open', SLOW_S), // 정지 보유 구간 경계. 더 짧은 개폐는 압축기 전력·연료전지 소비로 교차 확인한다
+      required('compressor.power', SLOW_S), // 충전 중 구간 제외
+      required('fc.h2.consumption', SLOW_S), // 방출 중 구간 제외
+      recommended('h2.pressure', SLOW_S), // 판별 체크 ③ 밸브 통과 누설(연료전지 공급 = 하류 압력 상승)
+    ],
+    minHistoryDays: 14,
+  },
   defaultParams: TANK_STATIC_LEAK_DEFAULTS,
   paramSchema: TANK_STATIC_LEAK_PARAM_SCHEMA,
   detect,

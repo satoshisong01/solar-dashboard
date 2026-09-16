@@ -8,6 +8,7 @@ import type { JsonObject } from '../types';
 import { fixed, insufficient, r, severityByMagnitude, withDefaults } from './common';
 import { earlyLateMedians, stackTrendEvidence, stackVoltageTrend, type StackPoint, type StackTrendParams, type StackTrendResult } from './stack-voltage';
 import { boolParam, choiceParam, completenessParam, intParam, numParam } from './param-schema';
+import { FAST_S, recommended, required, SLOW_S } from './requirements';
 import type { CandidateFinding, CheckStatus, Detector, DetectorContext, DetectorResult, DiagnosticCheck, FailureMode } from './types';
 
 export interface StackDetectorParams extends StackTrendParams {
@@ -176,7 +177,16 @@ export const elVoltageRise: Detector<StackVoltageInput<ElSteadyEpisode>, StackDe
   version: '1',
   failureMode: EL_SPEC.failureMode,
   category: 'degradation',
-  requires: { assetClass: ['h2.elz.stack'], metrics: ['stack.current', 'stack.voltage', 'stack.temp', 'run.hours'], minPeriodS: 60, minHistoryDays: 30 },
+  requires: {
+    assetClass: ['h2.elz.stack'],
+    metrics: [
+      required('stack.current', FAST_S), // 정상운전 구간 판정·전류밀도 bin (부분부하 추종 중에는 분 단위로 움직인다)
+      required('stack.voltage', FAST_S), // 셀 전압 평균. 전류와 같은 시점이어야 분극이 섞이지 않는다
+      required('stack.temp', SLOW_S), // 온도 bin. 스택 열용량이 커 5분 안에 bin(5 °C)을 넘지 않는다
+      required('run.hours', SLOW_S), // 누적 운전시간 축·break-in 1,000 h 제외 (일 단위 증가량)
+    ],
+    minHistoryDays: 30,
+  },
   defaultParams: EL_VOLTAGE_RISE_DEFAULTS,
   paramSchema: EL_VOLTAGE_RISE_PARAM_SCHEMA,
   detect: runStack<ElSteadyEpisode>(EL_SPEC, EL_VOLTAGE_RISE_DEFAULTS, (e) => e.features.v_cell_mean, () => []),
@@ -187,7 +197,17 @@ export const fcVoltageDecay: Detector<StackVoltageInput<FcSteadyEpisode>, StackD
   version: '1',
   failureMode: FC_SPEC.failureMode,
   category: 'degradation',
-  requires: { assetClass: ['fc.stack'], metrics: ['stack.current', 'stack.voltage', 'stack.temp', 'run.hours', 'blower.power'], minPeriodS: 60, minHistoryDays: 30 },
+  requires: {
+    assetClass: ['fc.stack'],
+    metrics: [
+      required('stack.current', FAST_S), // 기준 전류밀도 보간·정상운전 구간 판정 (부하 추종 중에는 분 단위로 움직인다)
+      required('stack.voltage', FAST_S), // 셀 전압. 전류와 같은 시점이어야 분극이 섞이지 않는다
+      required('stack.temp', SLOW_S), // 온도 bin (스택 열용량이 크다)
+      required('run.hours', SLOW_S), // 누적 운전시간 축 (일 단위 증가량)
+      recommended('blower.power', SLOW_S), // 판별 체크: 같은 구간 블로워 전력 동반 상승(공기 공급 문제) 여부에만 쓴다
+    ],
+    minHistoryDays: 30,
+  },
   defaultParams: FC_VOLTAGE_DECAY_DEFAULTS,
   paramSchema: FC_VOLTAGE_DECAY_PARAM_SCHEMA,
   detect: runStack<FcSteadyEpisode>(FC_SPEC, FC_VOLTAGE_DECAY_DEFAULTS, (e) => e.features.v_cell_at_jref, (episodes, result, p) => [blowerCheck(episodes, result, p)]),

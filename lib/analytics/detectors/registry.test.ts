@@ -2,7 +2,7 @@
 import * as z from 'zod';
 import { describe, expect, it } from 'vitest';
 import { ASSET_CLASS_BY_KEY, METRIC_DEF_BY_KEY } from '@/db/seed/catalog';
-import { DETECTORS, P2_DETECTORS, P3_DETECTORS } from './index';
+import { DETECTORS, elSecRise, essResistanceGrowth, FAST_S, P2_DETECTORS, P3_DETECTORS, SLOW_S } from './index';
 
 interface JsonProperty {
   readonly type?: string | readonly string[];
@@ -61,17 +61,42 @@ describe('탐지기 레지스트리', () => {
     }
   });
 
-  it('requires: 설비 종류·메트릭은 카탈로그에 있고, 샘플 주기 상한·최소 데이터 기간이 채워져 있다', () => {
+  it('requires: 설비 종류·메트릭은 카탈로그에 있고, 메트릭마다 주기 상한이 채워져 있다', () => {
     for (const detector of DETECTORS) {
-      const { assetClass, metrics, minPeriodS, minHistoryDays } = detector.requires;
+      const { assetClass, metrics, minHistoryDays } = detector.requires;
       assetClass.forEach((key) => expect(ASSET_CLASS_BY_KEY.has(key), `${detector.id} ${key}`).toBe(true));
-      metrics.forEach((key) => expect(METRIC_DEF_BY_KEY.has(key), `${detector.id} ${key}`).toBe(true));
-      expect(minPeriodS === null || minPeriodS > 0).toBe(true);
+      for (const metric of metrics) {
+        expect(METRIC_DEF_BY_KEY.has(metric.key), `${detector.id} ${metric.key}`).toBe(true);
+        expect(metric.maxPeriodS === null || metric.maxPeriodS > 0, `${detector.id} ${metric.key}`).toBe(true);
+      }
+      expect(new Set(metrics.map((m) => m.key)).size, `${detector.id} 메트릭 중복`).toBe(metrics.length);
       expect(minHistoryDays).toBeGreaterThanOrEqual(1);
       if (detector.id !== 'dq.gap_flatline') {
         expect(assetClass.length).toBeGreaterThan(0);
-        expect(metrics.length).toBeGreaterThan(0);
+        expect(metrics.filter((m) => m.optional !== true).length, `${detector.id} 필수 메트릭`).toBeGreaterThan(0);
       }
+    }
+  });
+
+  it('주기 상한은 전기적 순시값 60초·그 밖 300초 두 값만 쓰고, 스택·랙 전압·전류만 60초다', () => {
+    const fast = DETECTORS.flatMap((d) => d.requires.metrics.filter((m) => m.maxPeriodS === FAST_S).map((m) => `${d.id}:${m.key}`));
+    for (const detector of DETECTORS) for (const metric of detector.requires.metrics) expect([FAST_S, SLOW_S], `${detector.id} ${metric.key}`).toContain(metric.maxPeriodS);
+    expect(new Set(fast.map((entry) => entry.split(':')[1]))).toEqual(new Set(['stack.current', 'stack.voltage', 'batt.current', 'batt.voltage', 'batt.soc', 'cell.voltage.max', 'cell.voltage.min']));
+    // 용량 감소만 SOC·셀 전압을 빠르게 받는다 (앵커 판정). 내부저항은 전압·전류만 빠르면 된다.
+    expect(essResistanceGrowth.requires.metrics.filter((m) => m.maxPeriodS === FAST_S).map((m) => m.key)).toEqual(['batt.current', 'batt.voltage']);
+    expect(elSecRise.requires.metrics.filter((m) => m.maxPeriodS === FAST_S).map((m) => m.key)).toEqual(['stack.current', 'stack.voltage']);
+  });
+
+  it('권장 메트릭은 판별 체크·보조 축에만 쓰는 것이고, 필수 메트릭과 겹치지 않는다', () => {
+    const optional = new Map(DETECTORS.map((d) => [d.id, d.requires.metrics.filter((m) => m.optional === true).map((m) => m.key)]));
+    expect(optional.get('fc.voltage_decay')).toEqual(['blower.power']);
+    expect(optional.get('el.sec_rise')).toEqual(['rectifier.efficiency', 'purge.count']);
+    expect(optional.get('tank.static_leak')).toEqual(['h2.pressure']);
+    expect(optional.get('pv.soiling_rate')).toEqual(['ghi.irradiance']);
+    expect(optional.get('ess.capacity_fade')).toEqual([]);
+    for (const detector of DETECTORS) {
+      const required = detector.requires.metrics.filter((m) => m.optional !== true).map((m) => m.key);
+      expect(required.filter((key) => (optional.get(detector.id) ?? []).includes(key))).toEqual([]);
     }
   });
 });

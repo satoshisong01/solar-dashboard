@@ -13,11 +13,11 @@ describe('레지스트리 → 준비도 요구 조건', () => {
       expect(req).toMatchObject({ detectorId: detector?.id, failureMode: detector?.failureMode, metrics: detector?.requires.metrics, minHistoryDays: detector?.requires.minHistoryDays });
     });
     expect(requirements.find((r) => r.detectorId === 'tank.static_leak')?.severity).toBe(4);
-    expect(requirements.find((r) => r.detectorId === 'dq.gap_flatline')).toMatchObject({ severity: 2, minPeriodS: null, assetClass: [] });
+    expect(requirements.find((r) => r.detectorId === 'dq.gap_flatline')).toMatchObject({ severity: 2, metrics: [], assetClass: [] });
     expect(requirements.find((r) => r.detectorId === 'el.sec_rise')?.severity).toBe(3);
   });
 
-  it('주기 상한이 null이면 포인트 주기가 길어도 partial로 만들지 않는다', () => {
+  it('필수 메트릭이 없는 탐지기는 포인트 주기가 길어도 partial로 만들지 않는다', () => {
     const dq = requirements.find((r) => r.detectorId === 'dq.gap_flatline');
     const asset = { id: 1, code: 'WX1', classKey: 'wx.station', points: [{ metricKey: 'poa.irradiance', periodS: 3_600, completeness: 1, historyDays: 30 }] };
     expect(dq && readinessCell(asset, dq).status).toBe('ready');

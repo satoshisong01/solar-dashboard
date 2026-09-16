@@ -3,7 +3,7 @@ import { PageHeader } from '@/components/console/page-header';
 import { SETTINGS_TABS, SectionTabs } from '@/components/console/section-tabs';
 import { DetectorListTable, type DetectorListRow } from '@/components/settings/detector-tables';
 import { Panel } from '@/components/ui/panel';
-import { DETECTORS } from '@/lib/analytics/detectors';
+import { DETECTORS, metricRequirementText } from '@/lib/analytics/detectors';
 import { playbookFor } from '@/lib/analytics/playbooks';
 import scorecardJson from '@/lib/analytics/scorecard.json';
 import { targetingOf } from '@/lib/analytics/pipeline/targets';
@@ -27,7 +27,7 @@ export default async function DetectorSettingsPage() {
     categoryLabel: CATEGORY_LABELS[detector.category],
     unitLabel: targetingOf(detector.id)?.findingUnit === 'site' ? '사이트 단위' : '설비 단위',
     assetClasses: detector.requires.assetClass,
-    metrics: detector.requires.metrics,
+    metrics: detector.requires.metrics.map(metricRequirementText),
     badge: trustBadgeFor(scorecard, detector.id),
     activeScopes: counts.get(detector.id) ?? 0,
   }));

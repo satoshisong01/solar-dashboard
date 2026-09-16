@@ -7,7 +7,7 @@ import { DetectorConfigForm, type ActiveConfig, type ScopeOption } from '@/compo
 import { DetectorConfigHistory } from '@/components/settings/detector-config-history';
 import { DefaultParamsTable } from '@/components/settings/detector-tables';
 import { Panel } from '@/components/ui/panel';
-import { DETECTORS } from '@/lib/analytics/detectors';
+import { DETECTORS, metricRequirementText } from '@/lib/analytics/detectors';
 import { allowedScopeKinds, targetingOf, type DetectorTargeting } from '@/lib/analytics/pipeline/targets';
 import { playbookFor } from '@/lib/analytics/playbooks';
 import scorecardJson from '@/lib/analytics/scorecard.json';
@@ -74,8 +74,9 @@ export default async function DetectorConfigPage({ params }: DetectorPageProps) 
           <dd className="text-ink">{targeting.findingUnit === 'site' ? '사이트 단위 (발견사항에 설비 없음)' : `설비 단위${targeting.targetClass ? ` (${targeting.targetClass})` : ' (포인트가 있는 모든 설비)'}`}</dd>
           <dt className="text-muted">요구 조건</dt>
           <dd className="text-ink">
-            설비 종류 {requires.assetClass.length === 0 ? '제한 없음' : requires.assetClass.join(', ')} · 최소 이력 {requires.minHistoryDays}일 · 포인트 주기 {requires.minPeriodS === null ? '제한 없음' : `${requires.minPeriodS}초 이하`}
-            <span className="block font-mono text-xs break-words text-muted">{requires.metrics.length === 0 ? '(필수 메트릭 없음)' : requires.metrics.join(', ')}</span>
+            설비 종류 {requires.assetClass.length === 0 ? '제한 없음' : requires.assetClass.join(', ')} · 최소 이력 {requires.minHistoryDays}일
+            <span className="block text-xs text-muted">주기 상한은 메트릭마다 다릅니다 · 권장 메트릭은 없어도 판정하며 원인 판별 체크만 줄어듭니다</span>
+            <span className="block font-mono text-xs break-words text-muted">{requires.metrics.length === 0 ? '(필수 메트릭 없음 — 매핑된 모든 포인트가 대상)' : requires.metrics.map(metricRequirementText).join(', ')}</span>
           </dd>
           <dt className="text-muted">설정 적용 범위</dt>
           <dd className="text-ink">{scopeNote(targeting)}</dd>

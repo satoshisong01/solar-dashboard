@@ -9,6 +9,7 @@ import { median, modifiedZ } from '../stats/robust';
 import { kstDateString, kstDayStart, MS_PER_DAY } from '../types';
 import { fixed, insufficient, r, signed, withDefaults } from './common';
 import { completenessParam, intParam, iterationsParam, numParam } from './param-schema';
+import { required, SLOW_S } from './requirements';
 import type { CandidateFinding, Detector, DetectorContext, DetectorResult, Severity } from './types';
 
 export interface PvInverterPeerInput {
@@ -150,7 +151,15 @@ function detect(input: PvInverterPeerInput, ctx: DetectorContext<PvInverterPeerP
 
 export const pvInverterPeer: Detector<PvInverterPeerInput, PvInverterPeerParams> = {
   ...META,
-  requires: { assetClass: ['pv.inverter'], metrics: ['ac.power', 'ac.power.limit', 'op.state'], minPeriodS: 300, minHistoryDays: 7 },
+  requires: {
+    assetClass: ['pv.inverter'],
+    metrics: [
+      required('ac.power', SLOW_S), // 일 발전량 적산 — 5분 표본의 적산 오차는 일 단위 비교에 묻힌다
+      required('ac.power.limit', SLOW_S), // 출력제어 일 제외 판정 (제어 지시는 분 단위로 유지된다)
+      required('op.state', SLOW_S), // 정지 일 제외 판정
+    ],
+    minHistoryDays: 7,
+  },
   defaultParams: PV_INVERTER_PEER_DEFAULTS,
   paramSchema: PV_INVERTER_PEER_PARAM_SCHEMA,
   detect,

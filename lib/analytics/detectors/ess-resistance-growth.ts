@@ -13,6 +13,7 @@ import { levelCheck, makeCheck, medianShift } from './check-helpers';
 import { fixed, insufficient, r, signed, withDefaults } from './common';
 import { compareRise, riseEvidence, riseParamShape, riseWindow, trendAgrees, type RiseParams, type RiseResult, type RiseSample } from './matched-rise';
 import { numParam } from './param-schema';
+import { FAST_S, required, SLOW_S } from './requirements';
 import type { CandidateFinding, Detector, DetectorContext, DetectorResult, DiagnosticCheck } from './types';
 
 export interface EssResistanceInput {
@@ -167,7 +168,16 @@ function detect(input: EssResistanceInput, ctx: DetectorContext<EssResistancePar
 
 export const essResistanceGrowth: Detector<EssResistanceInput, EssResistanceParams> = {
   ...META,
-  requires: { assetClass: ['ess.rack'], metrics: ['batt.current', 'batt.voltage', 'batt.soc', 'cell.temp.avg'], minPeriodS: 60, minHistoryDays: 45 },
+  requires: {
+    assetClass: ['ess.rack'],
+    metrics: [
+      required('batt.current', FAST_S), // R_step = ΔV/ΔI 계단. 주기가 길수록 계단 사이 분극이 섞인다 (DCIR 권장은 2초 이하)
+      required('batt.voltage', FAST_S), // 같은 계단의 전압 차. 전류와 같은 주기여야 한다
+      required('batt.soc', SLOW_S), // SOC bin(20%p 폭) 배정에만 쓴다
+      required('cell.temp.avg', SLOW_S), // 온도 bin(5 °C 폭) 배정에만 쓴다
+    ],
+    minHistoryDays: 45,
+  },
   defaultParams: ESS_RESISTANCE_DEFAULTS,
   paramSchema: ESS_RESISTANCE_PARAM_SCHEMA,
   detect,

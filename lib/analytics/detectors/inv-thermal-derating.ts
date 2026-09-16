@@ -15,6 +15,7 @@ import { kstDayStart, MS_PER_DAY } from '../types';
 import { fixed, insufficient, r, withDefaults } from './common';
 import { dayRowsOf, derateEvidence, derateSamples, thermalChecks, type DayRow, type DerateSample } from './inv-thermal-samples';
 import { intParam, iterationsParam, numParam } from './param-schema';
+import { required, SLOW_S } from './requirements';
 import type { CandidateFinding, Detector, DetectorContext, DetectorResult, Severity } from './types';
 
 export interface ThermalInverter {
@@ -158,7 +159,16 @@ function detect(input: InvThermalDeratingInput, ctx: DetectorContext<InvThermalD
 
 export const invThermalDerating: Detector<InvThermalDeratingInput, InvThermalDeratingParams> = {
   ...META,
-  requires: { assetClass: ['pv.inverter', 'wx.station'], metrics: ['ac.power', 'heatsink.temp', 'ac.power.limit', 'ambient.temp'], minPeriodS: 300, minHistoryDays: 30 },
+  requires: {
+    assetClass: ['pv.inverter', 'wx.station'],
+    metrics: [
+      required('ac.power', SLOW_S), // 저감 구간 출력. 저감은 시간 단위로 이어져 5분 표본으로 형태가 보인다
+      required('heatsink.temp', SLOW_S), // 방열판 온도. 열시상수가 분 단위라 5분이면 상승 곡선을 잡는다
+      required('ac.power.limit', SLOW_S), // 출력제어에 의한 감소를 열 저감과 구분한다
+      required('ambient.temp', SLOW_S), // 같은 외기 온도에서 비교 (사이트 기상 설비)
+    ],
+    minHistoryDays: 30,
+  },
   defaultParams: INV_THERMAL_DERATING_DEFAULTS,
   paramSchema: INV_THERMAL_DERATING_PARAM_SCHEMA,
   detect,

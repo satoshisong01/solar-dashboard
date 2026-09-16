@@ -1,6 +1,6 @@
 import { CircleCheck, CircleMinus, CircleX, TriangleAlert, type LucideIcon } from 'lucide-react';
 import { EmptyNote, NUM_CLASS, TABLE_CLASS, TD_CLASS, TH_CLASS, TableScroll } from '@/components/ui/panel';
-import { cellDisplay, type AcquisitionView, type CellIcon, type CellTone, type ReadinessRow } from '@/lib/analytics/readiness';
+import { cellDisplay, RECOMMENDED_LABEL, type AcquisitionView, type CellIcon, type CellTone, type ReadinessRow } from '@/lib/analytics/readiness';
 import { detectorLabel } from '@/lib/desk/labels';
 
 const ICONS: Readonly<Record<CellIcon, LucideIcon>> = { check: CircleCheck, alert: TriangleAlert, cross: CircleX, dash: CircleMinus };
@@ -14,12 +14,14 @@ const TONES: Readonly<Record<CellTone, string>> = {
 
 type MatrixRow = ReadinessRow & { readonly className: string };
 
-/** 설비(행) × 탐지기(열). 셀은 아이콘·짧은 글자·툴팁(사유·누락 메트릭)을 함께 쓴다 (색만으로 구분하지 않음) */
+/** 설비(행) × 탐지기(열). 셀은 아이콘·짧은 글자·툴팁(사유·누락 메트릭)을 함께 쓴다 (색만으로 구분하지 않음). '*'는 권장 메트릭 누락 */
 export function ReadinessMatrix({ rows }: Readonly<{ rows: readonly MatrixRow[] }>) {
   const detectors = rows[0]?.cells.map((c) => c.detectorId) ?? [];
   if (rows.length === 0 || detectors.length === 0) return <EmptyNote>이 사이트에 판정할 설비가 없습니다</EmptyNote>;
+  const hasRecommended = rows.some((row) => row.cells.some((cell) => cell.recommendedMissing.length > 0));
 
   return (
+    <>
     <TableScroll label="탐지 준비도 매트릭스 (설비 × 탐지기)">
       <table className={`${TABLE_CLASS} text-xs`}>
         <thead>
@@ -47,7 +49,10 @@ export function ReadinessMatrix({ rows }: Readonly<{ rows: readonly MatrixRow[] 
                   <td key={cell.detectorId} className={`${TD_CLASS} text-center`}>
                     <span title={view.tooltip} className={`inline-flex min-w-14 items-center justify-center gap-1 rounded border px-1.5 py-0.5 font-medium whitespace-nowrap ${TONES[view.tone]}`}>
                       <Icon aria-hidden="true" className="size-3.5 shrink-0" />
-                      <span aria-hidden="true">{view.short}</span>
+                      <span aria-hidden="true">
+                        {view.short}
+                        {view.recommendedMissing.length > 0 ? '*' : ''}
+                      </span>
                       <span className="sr-only">{view.tooltip}</span>
                     </span>
                   </td>
@@ -58,6 +63,10 @@ export function ReadinessMatrix({ rows }: Readonly<{ rows: readonly MatrixRow[] 
         </tbody>
       </table>
     </TableScroll>
+    {hasRecommended ? (
+      <p className="text-xs text-muted">* {RECOMMENDED_LABEL} — 판정은 하지만 원인 판별 체크·조건 bin이 줄어듭니다. 어떤 메트릭인지는 셀 툴팁에 있습니다.</p>
+    ) : null}
+    </>
   );
 }
 

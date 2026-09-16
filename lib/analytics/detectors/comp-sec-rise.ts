@@ -13,6 +13,7 @@ import { levelCheck, medianChangePct, medianShift, SAFETY_DISCLAIMER } from './c
 import { fixed, insufficient, r, signed, withDefaults } from './common';
 import { binWeightedShift, compareRise, riseEvidence, riseParamShape, riseWindow, trendAgrees, type RiseParams, type RiseResult, type RiseSample } from './matched-rise';
 import { completenessParam, numParam } from './param-schema';
+import { recommended, required, SLOW_S } from './requirements';
 import type { CandidateFinding, Detector, DetectorContext, DetectorResult, DiagnosticCheck } from './types';
 
 export interface CompSecRiseInput {
@@ -164,7 +165,21 @@ function detect(input: CompSecRiseInput, ctx: DetectorContext<CompSecRiseParams>
 
 export const compSecRise: Detector<CompSecRiseInput, CompSecRiseParams> = {
   ...META,
-  requires: { assetClass: ['h2.compressor'], metrics: ['compressor.power', 'compressor.suction.pressure', 'compressor.discharge.pressure', 'h2.flow.mass', 'ambient.temp'], minPeriodS: 300, minHistoryDays: 45 },
+  requires: {
+    assetClass: ['h2.compressor'],
+    metrics: [
+      required('compressor.power', SLOW_S), // 운전 구간 전력량 적산 (이송 질량 5 kg 이상 = 30분 이상 구간만 쓴다)
+      required('compressor.suction.pressure', SLOW_S), // 압력비 bin. 흡입 압력은 전해조 출구 압력이라 분 단위로 계단 변화한다
+      required('compressor.discharge.pressure', SLOW_S), // 압력비 bin (뱅크 충전 중 서서히 오른다)
+      required('h2.flow.mass', SLOW_S), // 이송 질량 적산 (전해조 제품 유량)
+      required('ambient.temp', SLOW_S), // 흡입 가스 온도 대용 조건 bin — 외기는 시간 단위로 변한다
+      recommended('compressor.discharge.temp', SLOW_S), // 판별 체크 ① 토출 온도 상승
+      recommended('compressor.leak.pressure', SLOW_S), // 판별 체크 ② 누설 감지 압력 상승
+      recommended('vibration.rms', SLOW_S), // 판별 체크 ③ 진동 증가
+      recommended('run.hours', SLOW_S), // 누적 운전시간 축 추세 (없으면 같은 조건 비교만 한다)
+    ],
+    minHistoryDays: 45,
+  },
   defaultParams: COMP_SEC_RISE_DEFAULTS,
   paramSchema: COMP_SEC_RISE_PARAM_SCHEMA,
   detect,

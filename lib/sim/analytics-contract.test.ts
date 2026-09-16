@@ -36,7 +36,7 @@ describe('lib/sim ↔ lib/analytics 계약', () => {
     for (const detector of P2_DETECTORS) {
       for (const classKey of detector.requires.assetClass) {
         const available = new Set((MERGED_CLASSES[classKey] ?? [classKey]).flatMap((key) => DETECTOR_METRICS[key] ?? []));
-        expect(detector.requires.metrics.filter((metric) => !available.has(metric))).toEqual([]);
+        expect(detector.requires.metrics.filter((metric) => metric.optional !== true && !available.has(metric.key)).map((metric) => metric.key)).toEqual([]);
       }
     }
   });

@@ -49,7 +49,8 @@ export const READINESS_CSV_HEADER: readonly string[] = [
   '심각도 (severity)',
   '상태 (status)',
   '상태 설명 (status_label)',
-  '누락 메트릭 (missing_metrics)',
+  '누락 필수 메트릭 (missing_metrics)',
+  '누락 권장 메트릭 (recommended_missing)',
   '부족 사유 (reasons)',
 ];
 
@@ -57,7 +58,18 @@ export const READINESS_CSV_HEADER: readonly string[] = [
 export function readinessCsvRows(cells: readonly ReadinessCell[]): CsvValue[][] {
   return [
     [...READINESS_CSV_HEADER],
-    ...cells.map((c) => [c.assetCode, c.assetClass, c.detectorId, c.failureMode, c.severity, c.status, STATUS_LABELS[c.status], c.missingMetrics.join('; '), c.reasons.map(reasonText).join('; ')]),
+    ...cells.map((c) => [
+      c.assetCode,
+      c.assetClass,
+      c.detectorId,
+      c.failureMode,
+      c.severity,
+      c.status,
+      STATUS_LABELS[c.status],
+      c.missingMetrics.join('; '),
+      c.recommendedMissing.join('; '),
+      c.reasons.map(reasonText).join('; '),
+    ]),
   ];
 }
 

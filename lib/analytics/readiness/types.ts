@@ -1,5 +1,8 @@
 // 탐지 준비도 매트릭스 입력·출력 타입 (설계 §4 /data/readiness, §4.1 "이 메트릭을 확보하면 풀리는 고장모드 수"). 순수 모듈.
 // 레지스트리 requires → DetectorRequirement 변환은 registry.ts(requirementsFromDetectors).
+import type { RequiredMetric } from '../detectors/types';
+
+export type { RequiredMetric };
 
 /** 탐지기(고장모드) 하나의 데이터 요구 조건 */
 export interface DetectorRequirement {
@@ -7,10 +10,8 @@ export interface DetectorRequirement {
   readonly failureMode: string;
   /** 적용 설비 종류. 빈 배열이면 모든 설비에 적용한다 (예: dq.gap_flatline) */
   readonly assetClass: readonly string[];
-  /** 필수 메트릭 키 */
-  readonly metrics: readonly string[];
-  /** 허용하는 가장 긴 포인트 주기 [s]. 포인트 period_s가 이보다 길면 partial. null이면 주기와 무관 (레지스트리 requires와 같다) */
-  readonly minPeriodS: number | null;
+  /** 필수·권장 메트릭과 메트릭별 주기 상한 (레지스트리 requires와 같다) */
+  readonly metrics: readonly RequiredMetric[];
   /** 필요한 데이터 이력 [일] */
   readonly minHistoryDays: number;
   /** 고장모드 심각도 1~5 (메트릭 확보 순위 동률 가중). 없으면 1 */
@@ -64,7 +65,9 @@ export interface ReadinessCell {
   readonly status: ReadinessStatus;
   /** 없는 필수 메트릭 (status = missing일 때만 비어 있지 않다) */
   readonly missingMetrics: readonly string[];
-  /** 있는 메트릭의 부족 사유 (missing 셀에도 참고로 남긴다) */
+  /** 없는 권장 메트릭. 상태를 낮추지 않는다 — 판별 체크·조건 bin이 줄어든다는 표시만 한다 */
+  readonly recommendedMissing: readonly string[];
+  /** 있는 필수 메트릭의 부족 사유 (missing 셀에도 참고로 남긴다) */
   readonly reasons: readonly PartialReason[];
 }
 

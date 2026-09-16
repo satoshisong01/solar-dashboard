@@ -126,7 +126,8 @@ function detect(input: DqGapFlatlineInput, ctx: DetectorContext<DqGapFlatlinePar
 
 export const dqGapFlatline: Detector<DqGapFlatlineInput, DqGapFlatlineParams> = {
   ...META,
-  requires: { assetClass: [], metrics: [], minPeriodS: null, minHistoryDays: 1 },
+  // 매핑된 모든 포인트가 대상이라 필수 메트릭이 없다. 결측·고착 판정은 포인트 자기 period_s로 하므로 주기 상한도 없다.
+  requires: { assetClass: [], metrics: [], minHistoryDays: 1 },
   defaultParams: DQ_GAP_FLATLINE_DEFAULTS,
   paramSchema: DQ_GAP_FLATLINE_PARAM_SCHEMA,
   detect,

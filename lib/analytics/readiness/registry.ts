@@ -12,8 +12,7 @@ export function requirementsFromDetectors(detectors: readonly RegistryDetector[]
     detectorId: d.id,
     failureMode: d.failureMode,
     assetClass: [...d.requires.assetClass],
-    metrics: [...d.requires.metrics],
-    minPeriodS: d.requires.minPeriodS,
+    metrics: d.requires.metrics.map((m) => ({ ...m })),
     minHistoryDays: d.requires.minHistoryDays,
     severity: CATEGORY_SEVERITY[d.category],
   }));

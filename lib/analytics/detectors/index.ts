@@ -1,5 +1,5 @@
 // 탐지기 레지스트리: P2 6종 + P3 8종 (설계 §5.3 로드맵). 입력 로드는 load 계층(파이프라인 단계)이 구현한다.
-// 각 탐지기는 requires(설비 종류·필수 메트릭·샘플 주기 상한·최소 데이터 기간 — 탐지 준비도 매트릭스)와
+// 각 탐지기는 requires(설비 종류·필수/권장 메트릭·메트릭별 샘플 주기 상한·최소 데이터 기간 — 탐지 준비도 매트릭스)와
 // paramSchema(파라미터별 기본값·min·max·label·unit·description — 탐지기 설정 UI)를 가진다.
 import { compSecRise } from './comp-sec-rise';
 import { dqGapFlatline } from './dq-gap-flatline';
@@ -41,6 +41,7 @@ export { ABEL_NOBLE_DEFAULTS, H2_KG_PER_AMP_HOUR_PER_CELL, h2DensityKgM3, h2Dens
 export { INV_THERMAL_DERATING_DEFAULTS, INV_THERMAL_DERATING_PARAM_SCHEMA, invThermalDerating, type InverterFaultEvent, type InvThermalDeratingInput, type InvThermalDeratingParams, type ThermalInverter } from './inv-thermal-derating';
 export type { ParamMeta } from './param-schema';
 export { pvInverterPeer, PV_INVERTER_PEER_DEFAULTS, PV_INVERTER_PEER_PARAM_SCHEMA, type PvInverterPeerInput, type PvInverterPeerParams } from './pv-inverter-peer';
+export { FAST_S, metricRequirementText, recommended, required, SLOW_S } from './requirements';
 export { PV_SOILING_DEFAULTS, PV_SOILING_PARAM_SCHEMA, pvSoilingRate, type PvSoilingInput, type PvSoilingParams } from './pv-soiling-rate';
 export { EL_VOLTAGE_RISE_DEFAULTS, EL_VOLTAGE_RISE_PARAM_SCHEMA, elVoltageRise, FC_VOLTAGE_DECAY_DEFAULTS, FC_VOLTAGE_DECAY_PARAM_SCHEMA, fcVoltageDecay, type StackDetectorParams, type StackVoltageInput } from './stack-detectors';
 export { pressureCrossChecks, type PressureCrossCheck, type PressureCrossSource } from './tank-peer-pressure';

@@ -46,6 +46,7 @@ describe('준비도 CSV 행', () => {
     severity: 3,
     status: 'partial',
     missingMetrics: [],
+    recommendedMissing: [],
     reasons: [
       { code: 'low_completeness', metricKey: 'batt.current', completeness: 0.8234, required: 0.9 },
       { code: 'coarse_period', metricKey: 'batt.soc', periodS: 300, requiredS: 60 },
@@ -54,10 +55,35 @@ describe('준비도 CSV 행', () => {
   };
 
   it('헤더는 한국어 (영문 키) 병기, 사유는 한국어 문장을 ; 로 잇는다', () => {
-    const rows = readinessCsvRows([cell, { ...cell, status: 'missing', missingMetrics: ['cell.voltage.max', 'cell.voltage.min'], reasons: [] }]);
-    expect(rows[0]).toEqual(['설비 경로 (asset_code)', '설비 종류 (asset_class)', '탐지기 (detector_id)', '고장모드 (failure_mode)', '심각도 (severity)', '상태 (status)', '상태 설명 (status_label)', '누락 메트릭 (missing_metrics)', '부족 사유 (reasons)']);
-    expect(rows[1]).toEqual(['ESS1/RACK02', 'ess.rack', 'ess.capacity_fade', 'ess.capacity_fade', 3, 'partial', '부분 준비', '', 'batt.current 완결성 82.3% (기준 90% 이상); batt.soc 주기 300초 (기준 60초 이하); 이력 20일 (기준 30일 이상)']);
-    expect(rows[2]?.slice(5, 8)).toEqual(['missing', '필수 메트릭 없음', 'cell.voltage.max; cell.voltage.min']);
+    const rows = readinessCsvRows([
+      { ...cell, recommendedMissing: ['ghi.irradiance'] },
+      { ...cell, status: 'missing', missingMetrics: ['cell.voltage.max', 'cell.voltage.min'], reasons: [] },
+    ]);
+    expect(rows[0]).toEqual([
+      '설비 경로 (asset_code)',
+      '설비 종류 (asset_class)',
+      '탐지기 (detector_id)',
+      '고장모드 (failure_mode)',
+      '심각도 (severity)',
+      '상태 (status)',
+      '상태 설명 (status_label)',
+      '누락 필수 메트릭 (missing_metrics)',
+      '누락 권장 메트릭 (recommended_missing)',
+      '부족 사유 (reasons)',
+    ]);
+    expect(rows[1]).toEqual([
+      'ESS1/RACK02',
+      'ess.rack',
+      'ess.capacity_fade',
+      'ess.capacity_fade',
+      3,
+      'partial',
+      '부분 준비',
+      '',
+      'ghi.irradiance',
+      'batt.current 완결성 82.3% (기준 90% 이상); batt.soc 주기 300초 (기준 60초 이하); 이력 20일 (기준 30일 이상)',
+    ]);
+    expect(rows[2]?.slice(5, 9)).toEqual(['missing', '필수 메트릭 없음', 'cell.voltage.max; cell.voltage.min', '']);
     expect(reasonText({ code: 'low_completeness', metricKey: 'x', completeness: null, required: 0.9 })).toBe('x 완결성 데이터 없음 (기준 90% 이상)');
   });
 

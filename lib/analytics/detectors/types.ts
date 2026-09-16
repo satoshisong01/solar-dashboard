@@ -80,14 +80,25 @@ export type DetectorResult =
 /** 탐지기 파라미터 스키마: 출력 타입이 P인 zod 객체 스키마 */
 export type ParamSchema<P> = ZodObject<ZodRawShape> & ZodType<P>;
 
+/**
+ * 탐지기 입력 메트릭 하나의 요건. 주기 상한은 메트릭마다 다르다 — 그 메트릭이 판정에 기여하는
+ * 가장 빠른 현상의 시간상수로 정한다. 탐지기 전체에 한 값을 걸면 벤더에게 불필요한 고속 수집을 요구하게 된다.
+ */
+export interface RequiredMetric {
+  /** 카탈로그 메트릭 키. 한정자(`valve.open#inlet`)는 무시하고 키만 맞춘다 */
+  readonly key: string;
+  /** 이 메트릭 포인트에 허용하는 가장 긴 샘플 주기 [s]. 포인트 period_s가 이보다 길면 partial. null이면 주기와 무관 */
+  readonly maxPeriodS: number | null;
+  /** 권장 메트릭: 없어도 판정은 되고 준비도는 ready다. 없으면 판별 체크·조건 bin이 줄어든다 */
+  readonly optional?: true;
+}
+
 /** 탐지 준비도 매트릭스가 쓰는 입력 요건 */
 export interface DetectorRequirements {
   /** 탐지 대상 설비 종류. 사이트 단위 탐지기는 사이트에 있어야 하는 설비 종류 전부 */
   readonly assetClass: readonly string[];
-  /** 필수 메트릭 (대상 설비와, 입력에 합쳐 넣는 상위·형제·사이트 설비의 메트릭). 판별 체크에만 쓰는 보조 메트릭은 넣지 않는다 */
-  readonly metrics: readonly string[];
-  /** 필요한 샘플 주기 상한 [s]: 필수 메트릭 포인트의 period_s가 이 값 이하여야 한다. null이면 주기와 무관 */
-  readonly minPeriodS: number | null;
+  /** 필수·권장 메트릭 (대상 설비와, 입력에 합쳐 넣는 상위·형제·사이트 설비의 메트릭)과 메트릭별 주기 상한 */
+  readonly metrics: readonly RequiredMetric[];
   /** 판정에 필요한 최소 데이터 기간 [일] (기준선 재설정 이후) */
   readonly minHistoryDays: number;
 }

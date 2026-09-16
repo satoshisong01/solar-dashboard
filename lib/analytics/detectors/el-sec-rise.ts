@@ -17,6 +17,7 @@ import { H2_KG_PER_AMP_HOUR_PER_CELL } from './hydrogen-eos';
 import { fixed, insufficient, r, signed, withDefaults, type TimedNumber } from './common';
 import { binWeightedShift, compareRise, riseEvidence, riseParamShape, riseWindow, trendAgrees, type RiseParams, type RiseResult, type RiseSample } from './matched-rise';
 import { choiceParam, completenessParam, numParam } from './param-schema';
+import { FAST_S, recommended, required, SLOW_S } from './requirements';
 import type { CandidateFinding, Detector, DetectorContext, DetectorResult, DiagnosticCheck } from './types';
 
 
@@ -220,7 +221,20 @@ function detect(input: ElSecRiseInput, ctx: DetectorContext<ElSecRiseParams>): D
 
 export const elSecRise: Detector<ElSecRiseInput, ElSecRiseParams> = {
   ...META,
-  requires: { assetClass: ['h2.elz.stack'], metrics: ['stack.current', 'stack.voltage', 'stack.temp', 'run.hours', 'h2.flow.mass', 'ac.power'], minPeriodS: 60, minHistoryDays: 45 },
+  requires: {
+    assetClass: ['h2.elz.stack'],
+    metrics: [
+      required('stack.current', FAST_S), // 정상운전 구간 판정·전류밀도 bin. 부분부하 추종 중에는 분 단위로 움직인다
+      required('stack.voltage', FAST_S), // 셀 전압 평균 (전류와 같은 시점에서 읽어야 분극이 섞이지 않는다)
+      required('stack.temp', SLOW_S), // 온도 bin. 스택 열용량이 커 5분 안에 bin(5 °C)을 넘지 않는다
+      required('run.hours', SLOW_S), // 누적 운전시간 축 (일 단위 증가량)
+      required('h2.flow.mass', SLOW_S), // 구간 수소 생산 적산 — 5분 평균 적산으로 충분하다
+      required('ac.power', SLOW_S), // 구간 설비 전체 전력량 적산 (BoP 포함)
+      recommended('rectifier.efficiency', SLOW_S), // 판별 체크 ② 정류기 효율 저하 (형제 정류기, 일 중앙값)
+      recommended('purge.count', SLOW_S), // 판별 체크 ③ 퍼지 횟수 증가 (누적 카운터의 일 증가분)
+    ],
+    minHistoryDays: 45,
+  },
   defaultParams: EL_SEC_RISE_DEFAULTS,
   paramSchema: EL_SEC_RISE_PARAM_SCHEMA,
   detect,

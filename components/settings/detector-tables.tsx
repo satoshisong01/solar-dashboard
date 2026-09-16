@@ -14,6 +14,7 @@ export interface DetectorListRow {
   readonly categoryLabel: string;
   readonly unitLabel: string;
   readonly assetClasses: readonly string[];
+  /** 'stack.current ≤60초' 형식의 메트릭별 요건 문구 (권장 메트릭은 '(권장)' 표시) */
   readonly metrics: readonly string[];
   readonly badge: TrustBadge;
   readonly activeScopes: number;

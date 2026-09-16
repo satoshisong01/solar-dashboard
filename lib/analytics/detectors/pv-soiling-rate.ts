@@ -13,6 +13,7 @@ import { relativeCiWidth, scoreConfidence } from '../stats/confidence';
 import { kstDateString, MS_PER_DAY, type JsonObject } from '../types';
 import { fixed, insufficient, r, withDefaults } from './common';
 import { intParam, numParam } from './param-schema';
+import { recommended, required, SLOW_S } from './requirements';
 import { soilingChecks } from './pv-soiling-checks';
 import { findResets, lossPctAt, piDays, segmentsOf, type PiDay, type Reset, type Segment } from './pv-soiling-days';
 import type { CandidateFinding, Detector, DetectorContext, DetectorResult, Severity } from './types';
@@ -183,7 +184,18 @@ function detect(input: PvSoilingInput, ctx: DetectorContext<PvSoilingParams>): D
 
 export const pvSoilingRate: Detector<PvSoilingInput, PvSoilingParams> = {
   ...META,
-  requires: { assetClass: ['pv.plant', 'pv.inverter', 'wx.station'], metrics: ['ac.power', 'ac.power.limit', 'op.state', 'poa.irradiance', 'module.temp'], minPeriodS: 300, minHistoryDays: 30 },
+  requires: {
+    assetClass: ['pv.plant', 'pv.inverter', 'wx.station'],
+    metrics: [
+      required('ac.power', SLOW_S), // 일 발전량 적산
+      required('ac.power.limit', SLOW_S), // 출력제어·클리핑 일 제외
+      required('op.state', SLOW_S), // 정지 일 제외
+      required('poa.irradiance', SLOW_S), // 일 일사량 적산 — 성능지수 분모
+      required('module.temp', SLOW_S), // 온도보정 PR (모듈 온도는 열시상수가 분 단위다)
+      recommended('ghi.irradiance', SLOW_S), // 판별 체크 ② 일사계 오염·드리프트(GHI/POA 비율)
+    ],
+    minHistoryDays: 30,
+  },
   defaultParams: PV_SOILING_DEFAULTS,
   paramSchema: PV_SOILING_PARAM_SCHEMA,
   detect,

@@ -59,9 +59,16 @@ export interface ReadinessRow {
   readonly cells: readonly ReadinessCell[];
 }
 
-/** 에피소드 입력 규칙에는 없지만 탐지기 보조 입력이 사이트 설비에서 끌어 쓰는 메트릭 (inv.thermal_derating 외기 온도) */
+/**
+ * 에피소드 입력 규칙(sources.ts)에는 없지만 탐지기 보조 입력(lib/analysis/aux-inputs.ts)이 사이트 설비에서 끌어 쓰는 메트릭.
+ * 실제 로더는 형제·상위 설비를 정확히 찾지만 여기서는 사이트 안 같은 종류 첫 설비로 근사한다 (설비가 하나뿐인 구성 기준).
+ */
 export const READINESS_EXTRA_SOURCES: Readonly<Record<string, readonly { readonly classKey: string; readonly metrics: readonly string[] }[]>> = {
-  'pv.inverter': [{ classKey: 'wx.station', metrics: ['ambient.temp'] }],
+  'pv.inverter': [{ classKey: 'wx.station', metrics: ['ambient.temp'] }], // inv.thermal_derating 외기 온도
+  'h2.elz.stack': [
+    { classKey: 'h2.elz.rectifier', metrics: ['rectifier.efficiency'] }, // el.sec_rise 판별 체크 ② 정류기 효율
+    { classKey: 'h2.elz', metrics: ['purge.count'] }, // el.sec_rise 판별 체크 ③ 퍼지 횟수
+  ],
 };
 
 const baseMetric = (metricKey: string): string => metricKey.split('#')[0] as string;
@@ -69,7 +76,7 @@ const byCode = <T extends { readonly code: string }>(a: T, b: T): number => (a.c
 const toReadinessPoint = (p: SitePointStat): ReadinessPoint => ({ metricKey: baseMetric(p.metricKey), periodS: p.periodS, completeness: p.completeness, historyDays: p.historyDays });
 
 function naCell(assetId: number, code: string, classKey: string, requirement: DetectorRequirement): ReadinessCell {
-  return { assetId, assetCode: code, assetClass: classKey, detectorId: requirement.detectorId, failureMode: requirement.failureMode, severity: requirement.severity ?? 1, status: 'n/a', missingMetrics: [], reasons: [] };
+  return { assetId, assetCode: code, assetClass: classKey, detectorId: requirement.detectorId, failureMode: requirement.failureMode, severity: requirement.severity ?? 1, status: 'n/a', missingMetrics: [], recommendedMissing: [], reasons: [] };
 }
 
 /** 설비 행 판정에 쓰는 포인트: 자기 포인트 + 관련 설비(상위·형제·사이트)의 요청 메트릭 포인트 */

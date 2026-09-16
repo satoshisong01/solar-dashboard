@@ -10,6 +10,7 @@ import { trendValueAt } from '../stats/trend';
 import { DAYS_PER_MONTH, MS_PER_DAY } from '../types';
 import { dailyMedians, fixed, insufficient, r, signed, summarizeTrend, withDefaults } from './common';
 import { choiceParam, completenessParam, intParam, iterationsParam, numParam } from './param-schema';
+import { FAST_S, required } from './requirements';
 import type { CandidateFinding, Detector, DetectorContext, DetectorResult, Severity } from './types';
 
 export type CellDvSource = 'charge_end' | 'rest';
@@ -156,7 +157,15 @@ function detect(input: EssCellImbalanceInput, ctx: DetectorContext<EssCellImbala
 
 export const essCellImbalance: Detector<EssCellImbalanceInput, EssCellImbalanceParams> = {
   ...META,
-  requires: { assetClass: ['ess.rack'], metrics: ['batt.current', 'cell.voltage.max', 'cell.voltage.min'], minPeriodS: 60, minHistoryDays: 60 },
+  requires: {
+    assetClass: ['ess.rack'],
+    metrics: [
+      required('batt.current', FAST_S), // 충전 종료 시점(전류 감소) 판정 — 종료 구간은 몇 분이다
+      required('cell.voltage.max', FAST_S), // 종료 직전 최고 셀 전압. 편차는 종료 몇 분 안에 최대가 된다
+      required('cell.voltage.min', FAST_S), // 종료 직전 최저 셀 전압
+    ],
+    minHistoryDays: 60,
+  },
   defaultParams: ESS_CELL_IMBALANCE_DEFAULTS,
   paramSchema: ESS_CELL_IMBALANCE_PARAM_SCHEMA,
   detect,

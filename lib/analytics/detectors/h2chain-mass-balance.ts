@@ -16,6 +16,7 @@ import { kstDateString, MS_PER_DAY, type JsonObject } from '../types';
 import { levelCheck, makeCheck, medianOrNull, pearson, SAFETY_DISCLAIMER } from './check-helpers';
 import { fixed, insufficient, r, signed, withDefaults } from './common';
 import { completenessParam, intParam, iterationsParam, numParam } from './param-schema';
+import { recommended, required, SLOW_S } from './requirements';
 import type { CandidateFinding, Detector, DetectorContext, DetectorResult, DiagnosticCheck, Severity } from './types';
 
 /** 일별 수소 원장 한 줄 (KST 하루) */
@@ -268,7 +269,18 @@ function detect(input: H2MassBalanceInput, ctx: DetectorContext<H2MassBalancePar
 
 export const h2ChainMassBalanceGap: Detector<H2MassBalanceInput, H2MassBalanceParams> = {
   ...META,
-  requires: { assetClass: ['h2.elz', 'h2.storage.tank', 'fc.plant'], metrics: ['h2.flow.mass', 'fc.h2.consumption', 'tank.pressure', 'tank.temp'], minPeriodS: 300, minHistoryDays: 21 },
+  requires: {
+    assetClass: ['h2.elz', 'h2.storage.tank', 'fc.plant'],
+    metrics: [
+      required('h2.flow.mass', SLOW_S), // 일 생산량 적산 (적산계가 없을 때의 대체 경로)
+      required('fc.h2.consumption', SLOW_S), // 일 소비량 적산
+      required('tank.pressure', SLOW_S), // 일 경계 재고 (상태식). 자정 전후 몇 분의 차이는 잔차에 묻힌다
+      required('tank.temp', SLOW_S), // 재고 온도 보정
+      recommended('h2.mass.total', SLOW_S), // 적산계 일 증가량 — 생산량 1순위. 없으면 유량 적산으로 대체(건강 사이트 일 잔차율 p95 0.3% → 2.1%)
+      recommended('purge.count', SLOW_S), // 판별 체크 ③ 배출 추정. 없으면 배출을 0으로 둔다
+    ],
+    minHistoryDays: 21,
+  },
   defaultParams: H2_MASS_BALANCE_DEFAULTS,
   paramSchema: H2_MASS_BALANCE_PARAM_SCHEMA,
   detect,

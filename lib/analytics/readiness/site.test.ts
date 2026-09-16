@@ -52,7 +52,8 @@ describe('siteReadinessRows', () => {
   });
 
   it('사이트 행: 사이트 단위 탐지기만 판정하고, 요구 설비 종류가 전혀 없으면 n/a', () => {
-    expect(cellOf(SITE_ROW_CODE, 'pv.soiling_rate')).toMatchObject({ status: 'ready', assetId: 0, assetClass: 'site' });
+    // 일사계 GHI는 권장 메트릭이라 없어도 ready다 (판별 체크 ②만 못 한다)
+    expect(cellOf(SITE_ROW_CODE, 'pv.soiling_rate')).toMatchObject({ status: 'ready', assetId: 0, assetClass: 'site', recommendedMissing: ['ghi.irradiance'] });
     // 전해조·연료전지가 없어도 저장용기가 있으면 적용 → 수소 유량·소비 메트릭 누락
     expect(cellOf(SITE_ROW_CODE, 'h2chain.mass_balance_gap')).toMatchObject({ status: 'missing', missingMetrics: ['h2.flow.mass', 'fc.h2.consumption'] });
     expect(cellOf(SITE_ROW_CODE, 'ess.capacity_fade').status).toBe('n/a');
@@ -68,7 +69,7 @@ describe('siteReadinessRows', () => {
     expect(cellOf('ESS1/RACK01', 'ess.capacity_fade').status).toBe('ready');
     expect(cellOf('ESS1/RACK02', 'ess.capacity_fade')).toMatchObject({ status: 'missing', missingMetrics: ['cell.voltage.min'], reasons: [{ code: 'low_completeness', metricKey: 'batt.soc' }] });
     // 탱크: 뱅크 밸브(한정자 포인트)는 메트릭 키로 맞추고, 압축기·연료전지 설비가 없으면 그 메트릭은 누락
-    expect(cellOf('H2BANK1/TANK1', 'tank.static_leak')).toMatchObject({ status: 'missing', missingMetrics: ['compressor.power', 'fc.h2.consumption'] });
+    expect(cellOf('H2BANK1/TANK1', 'tank.static_leak')).toMatchObject({ status: 'missing', missingMetrics: ['compressor.power', 'fc.h2.consumption'], recommendedMissing: ['h2.pressure'] });
   });
 
   it('dq.gap_flatline은 포인트가 있는 모든 설비에 적용, 형제 랙 포인트는 빌려 오지 않는다', () => {
@@ -106,6 +107,7 @@ describe('셀 표시 규칙', () => {
       tone: 'ok',
       icon: 'check',
       short: '준비',
+      recommendedMissing: [],
       tooltip: 'ESS1/RACK01 · 배터리 유효용량 감소: 준비됨',
     });
     const missing = cellDisplay(cellOf('ESS1/RACK02', 'ess.capacity_fade'));

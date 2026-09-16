@@ -15,6 +15,7 @@ import { binsEvidence, curveFor, referenceCurrentA, trendEvidence, type CurveInp
 import { splitReferenceRecent, type ReferenceSplit } from './ess-capacity-reference';
 import { CAPACITY_METHOD_ORDER, restPairSamples, sessionSamples, type CapacityMethod, type CapacitySample } from './ess-capacity-samples';
 import { boolParam, completenessParam, intParam, iterationsParam, nullableNumParam, numParam } from './param-schema';
+import { FAST_S, required, SLOW_S } from './requirements';
 import type { AssetEventInput, CandidateFinding, Detector, DetectorContext, DetectorResult } from './types';
 
 export interface EssCapacityInput {
@@ -310,7 +311,18 @@ function detect(input: EssCapacityInput, ctx: DetectorContext<EssCapacityParams>
 
 export const essCapacityFade: Detector<EssCapacityInput, EssCapacityParams> = {
   ...META,
-  requires: { assetClass: ['ess.rack'], metrics: ['batt.current', 'batt.voltage', 'batt.soc', 'cell.temp.avg', 'cell.voltage.max', 'cell.voltage.min'], minPeriodS: 60, minHistoryDays: 30 },
+  requires: {
+    assetClass: ['ess.rack'],
+    metrics: [
+      required('batt.current', FAST_S), // 충전 Ah 적분·CC 구간 판정. CV 전이에서 전류가 수 분 만에 꺾인다
+      required('batt.voltage', FAST_S), // CV 전이·충전 종료 앵커 판정
+      required('batt.soc', FAST_S), // 휴지 끝 SOC 앵커와 SOC 변화 방식의 분모 (SOC 점프를 놓치면 용량이 틀린다)
+      required('cell.voltage.max', FAST_S), // 셀 상한 도달 = 앵커 종료 조건. 종료 직전 몇 분에 결정된다
+      required('cell.voltage.min', FAST_S), // 방전 하한 도달 (휴지 앵커 쌍의 방전 쪽 경계)
+      required('cell.temp.avg', SLOW_S), // 조건 bin(5 °C 폭)에만 쓴다. 셀 온도는 열용량이 커 5분 안에 bin을 넘지 않는다
+    ],
+    minHistoryDays: 30,
+  },
   defaultParams: ESS_CAPACITY_DEFAULTS,
   paramSchema: ESS_CAPACITY_PARAM_SCHEMA,
   detect,
