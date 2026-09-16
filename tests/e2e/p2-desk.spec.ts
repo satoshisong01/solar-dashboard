@@ -49,7 +49,11 @@ test('분석 데스크: SIM-B 최근 30일 분석 실행 → 결과 요약·실�
   for (const label of ['어떻게 확인했나', '왜 문제인가', '지금 할 일']) await expect(plain).toContainText(label);
   await expect(panel(page, '활동 타임라인')).toBeVisible();
   await expect(panel(page, '효과')).toBeHidden();
+  // 기술 요약 문단도 접힌 안쪽이다 (쉬운 요약보다 위에 남지 않는다)
+  const technical = page.getByRole('region', { name: '기술 요약' });
+  await expect(technical).toBeHidden();
   await openDetails(page);
+  await expect(technical).toBeVisible();
   for (const title of ['효과', '원시 시계열', '원인 후보 판별']) await expect(panel(page, title)).toBeVisible();
   await expect(page.getByLabel('탐지기 신뢰 배지')).toBeVisible();
   await expect(panel(page, '활동 타임라인')).toContainText('발견사항 생성');

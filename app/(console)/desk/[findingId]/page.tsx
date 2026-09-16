@@ -112,7 +112,10 @@ export default async function FindingPage({ params, searchParams }: FindingPageP
       {isSafetyFinding(finding) && <SafetyFindingBanner />}
       <PlainSummaryCard summary={explanation.summary} severity={finding.severity} findingId={finding.id} source={explanation.source} model={explanation.model} />
       {/* 원시 시계열 기간을 고른 뒤 돌아온 요청(?series=)은 그 조작을 이어 쓰도록 펼친 채로 연다 */}
-      <TechnicalDetails label="효과·근거·원시 시계열·원인 판별" defaultOpen={spanParam !== undefined}>
+      <TechnicalDetails label="기술 요약·효과·근거·원시 시계열·원인 판별" defaultOpen={spanParam !== undefined}>
+        <section aria-label="기술 요약">
+          <p className="max-w-prose text-ink">{finding.summary}</p>
+        </section>
         <EffectCard finding={finding} chargeTimeText={chargeTime} />
         <EvidenceCanvas evidence={evidence} chargeTimeText={chargeTime} assetLabel={assetLabel} siteCode={finding.siteCode} peerCodes={peerCodes} />
         <section id="raw-series" className="scroll-mt-20">

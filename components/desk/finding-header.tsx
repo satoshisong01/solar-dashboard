@@ -97,7 +97,7 @@ export function FindingHeader({ finding, badge, simEnabled }: HeaderProps) {
           </>
         )}
       </p>
-      <p className="max-w-prose text-ink">{finding.summary}</p>
+      {/* 기술 요약(finding.summary)은 쉬운 요약보다 아래, '자세히 보기' 안에 있다 (워크스페이스 페이지) */}
       {finding.dismissReason && finding.status === 'dismissed' && <p className="text-sm text-muted">기각 사유: {finding.dismissReason}</p>}
       <TrustBadgeView badge={badge} detectorId={finding.detectorId} simEnabled={simEnabled} />
       <TransitionControls findingId={finding.id} status={finding.status} />

@@ -5,13 +5,14 @@ import { CustomOverlayMap, Map as KakaoMap, useKakaoLoader, useMap } from 'react
 import { Skeleton } from '@/components/ui/skeleton';
 import type { SiteMapStatus } from '@/lib/data/site-map';
 import { hiddenLabels } from './label-overlap';
+import { mapKeyOf } from './map-key';
 import { MARKER_LABEL, SiteMarker } from './site-marker';
 
 // NEXT_PUBLIC_ 변수는 빌드 때 번들에 들어간다. 값은 화면·로그에 출력하지 않는다.
-const KAKAO_MAP_KEY = process.env.NEXT_PUBLIC_KAKAO_MAP_KEY;
+const KAKAO_MAP_KEY = mapKeyOf(process.env.NEXT_PUBLIC_KAKAO_MAP_KEY);
 
-/** 지도 키가 설정되어 있는가 (없으면 부르는 쪽이 목록만 남긴다) */
-export const hasMapKey = KAKAO_MAP_KEY !== undefined;
+/** 지도 키가 설정되어 있는가 (없거나 비었으면 부르는 쪽이 목록만 남긴다) */
+export const hasMapKey = KAKAO_MAP_KEY !== null;
 
 export interface MapView {
   readonly center: Readonly<{ lat: number; lng: number }>;
@@ -91,7 +92,7 @@ type Props = Readonly<{
 export function SiteMapCanvas({ sites, view, padding, selectedCode, onSelect, nowMs, subdueHealthy = false, label }: Props) {
   const located = useMemo(() => sites.filter((site): site is LocatedSite => site.lat !== null && site.lon !== null), [sites]);
 
-  if (KAKAO_MAP_KEY === undefined) {
+  if (KAKAO_MAP_KEY === null) {
     return (
       <div className={NOTICE_WRAP_CLASS}>
         <p role="status" className={`${NOTICE_CLASS} text-ink-2`}>
