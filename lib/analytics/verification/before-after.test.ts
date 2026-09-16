@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createRng } from '@/lib/sim/rng';
 import { EL_SEC_RISE_DEFAULTS } from '../detectors/el-sec-rise';
-import { chargeSession, DAY0, elRuns, partialCycleDay } from '../detectors/test-fixtures';
+import { chargeSession, DAY0, elRuns, partialCycleDay, pvDay } from '../detectors/test-fixtures';
 import type { ElSteadyEpisode } from '../episodes/stack-episodes';
 import type { StoredEpisode } from '../pipeline/types';
 import { MS_PER_DAY } from '../types';
@@ -113,6 +113,59 @@ describe('matched_before_after@1', () => {
         { method: 'capacity_ah_soc', before: 0, after: 0, matched_bins: 0 },
       ],
     });
+  });
+
+  it('P3 지표는 탐지기와 같은 조건 bin·표본 자격 기준을 쓴다 (경계에서 표본을 버린다)', () => {
+    const base = { assetId: 7, dq: { completeness: 1, missing_ratio: 0, bad_ratio: 0 }, open: false, valid: true, invalidReason: null } as const;
+    const at = (day: number) => ({ start: DAY0 + day * MS_PER_DAY, end: DAY0 + day * MS_PER_DAY + 3_600_000 });
+    const bins = (result: ReturnType<typeof beforeAfter>) => (result.beforeStats as { bins: { key: string; median: number }[] }).bins;
+    const run = (metric: string, episodes: readonly StoredEpisode[]) =>
+      beforeAfter({ assetId: 7, metric, direction: 'decrease', minDelta: 0.01, before, after, episodes, rng: createRng(7), minPerBin: 1, minTotal: 1 });
+
+    // 압축기 비에너지: 이송 질량 1 kg 미만 구간은 버린다 (짧은 이송의 비에너지는 기동 손실이 지배한다)
+    const comp = (day: number, massKg: number): StoredEpisode => ({
+      ...base,
+      ...at(day),
+      kind: 'comp.run',
+      extractorVersion: 'comp.run@1',
+      features: { duration_s: 3600, energy_kwh: 20, mass_kg: massKg, mass_source: 'flow', sec_kwh_per_kg: 20 / massKg, suction_bar: 30, discharge_bar: 300, pressure_ratio: 10, discharge_temp_c: 90, leak_pressure_max_bar: 0.05, vibration_mm_s: null, ambient_c: 21, op_hours_cum: 100 },
+      conditions: { ratio_bin: 10, t_bin: 20 },
+    });
+    expect(bins(run('comp.sec_kwh_per_kg', [comp(1, 4), comp(14, 4)]))).toEqual([{ key: '10|20', n: 1, median: 5 }]);
+    expect(run('comp.sec_kwh_per_kg', [comp(1, 0.9), comp(14, 0.9)])).toMatchObject({ verdict: 'insufficient_data' });
+
+    // 블로워 비전력: 유량 bin × 외기 bin
+    const blower: StoredEpisode = { ...base, ...at(1), kind: 'fc.blower_run', extractorVersion: 'fc.blower_run@1', features: { duration_s: 3600, flow_kg_h: 620, power_kw: 3.6, specific_w_per_kg_h: 6, ambient_c: 17, op_hours_cum: 5000 }, conditions: { flow_bin: 600, t_bin: 15 } };
+    expect(bins(run('fc.blower_specific_power', [blower, { ...blower, ...at(14) }]))).toEqual([{ key: '600|15', n: 1, median: 6 }]);
+
+    // 랙 전류 계단 저항: |ΔI| ≥ 0.1 C이고 SOC 30~70%인 계단만, bin에 샘플 주기를 넣는다
+    const step = (day: number, extra: { deltaC?: number; soc?: number } = {}): StoredEpisode => ({
+      ...base,
+      ...at(day),
+      kind: 'ess.current_step',
+      extractorVersion: 'ess.current_step@1',
+      features: { r_mohm: 5, delta_i_a: 40, delta_i_c: extra.deltaC ?? 0.1, delta_v_v: 0.2, i_before_a: 0, i_after_a: 40, soc: extra.soc ?? 50, t_cell_c: 25, period_s: 60, cell_dv_mv: 6 },
+      conditions: { soc_bin: 50, t_bin: 25, direction: 'up' },
+    });
+    expect(bins(run('ess.resistance_mohm', [step(1), step(14)]))).toEqual([{ key: '60|50|25', n: 1, median: 5 }]);
+    expect(run('ess.resistance_mohm', [step(1, { deltaC: 0.09 }), step(14, { deltaC: 0.09 })])).toMatchObject({ verdict: 'insufficient_data' });
+    expect(run('ess.resistance_mohm', [step(1, { soc: 70 }), step(14, { soc: 70 })])).toMatchObject({ verdict: 'insufficient_data' });
+    expect(run('ess.resistance_mohm', [step(1, { soc: 29 }), step(14, { soc: 29 })])).toMatchObject({ verdict: 'insufficient_data' });
+
+    // 인버터 일 성능지수: 출력제어·클리핑·정지 일과 일사량 1 kWh/m² 미만 일은 버린다
+    const day = (offset: number, insolation: number | null, flags: Partial<ReturnType<typeof pvDay>['conditions']> = {}) => {
+      const episode = pvDay(7, offset, 4.5, flags);
+      return { ...episode, features: { ...episode.features, insolation_kwh_m2: insolation } } as StoredEpisode;
+    };
+    const pvResult = run('pv.performance_index', [day(1, 5), day(14, 5)]);
+    expect(bins(pvResult)).toEqual([{ key: 'all', n: 1, median: 0.9 }]);
+    for (const flag of [{ curtailed: true }, { clipping: true }, { stopped: true }]) expect(run('pv.performance_index', [day(1, 5, flag), day(14, 5, flag)])).toMatchObject({ verdict: 'insufficient_data' });
+    expect(run('pv.performance_index', [day(1, 0.9), day(14, 0.9)])).toMatchObject({ verdict: 'insufficient_data' });
+    expect(run('pv.performance_index', [day(1, null), day(14, null)])).toMatchObject({ verdict: 'insufficient_data' });
+
+    // 연료전지 셀 전압은 fc.steady_run 에피소드에서만 읽는다 (전해조 구간은 표본이 되지 않는다)
+    const elRun = { ...elRuns({ count: 2, startHours: 1200, endHours: 1300, rateUvPerH: 0, seed: 1 })[0], assetId: 7, ...at(1) } as StoredEpisode;
+    expect(run('fc.v_cell_v', [elRun, { ...elRun, ...at(14) }])).toMatchObject({ verdict: 'insufficient_data' });
   });
 
   it('지표 정의: 조치 폼이 쓰는 대표 에피소드 종류·이름·단위·좋아지는 방향', () => {
