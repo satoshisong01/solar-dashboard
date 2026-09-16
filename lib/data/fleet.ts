@@ -6,7 +6,6 @@ import { massBalanceThreshold } from './chain';
 import { FLEET_COLUMNS, domainOfClass, domainOfSiteDetector, type FleetColumn } from './domains';
 import { getOpenFindingGroups, type OpenFindingGroup } from './findings';
 import { FLEET_THRESHOLDS, evaluateCell, LEDGER_RESIDUAL_RULES, summarizeLedgerResidual, worstLevel, type CellSignals, type CellStatus, type LedgerDayResidual, type LedgerResidual, type StatusLevel } from './fleet-status';
-import { getLatestSamples, type LatestSample } from './points';
 import { INVALID_QUALITY_MASK } from './quality';
 
 export interface FleetSite {
@@ -33,8 +32,8 @@ interface SiteClassRow {
 interface FleetInputs {
   readonly sites: readonly FleetSite[];
   readonly classes: readonly SiteClassRow[];
-  readonly points: readonly (SiteClassRow & { readonly id: number })[];
-  readonly latest: ReadonlyMap<number, LatestSample>;
+  /** 사이트×설비 종류별 가장 최근 원시 샘플 시각. 수신 기록이 없는 조합은 빠진다 */
+  readonly lastSample: readonly (SiteClassRow & { readonly ts_ms: number })[];
   readonly events: readonly Readonly<{ site_id: number; class_key: string | null; is_safety: boolean; severity: string; n: number }>[];
   readonly quality: readonly (SiteClassRow & { readonly samples: number; readonly invalid: number })[];
   readonly findings: readonly OpenFindingGroup[];
@@ -65,10 +64,20 @@ async function loadLedgerResiduals(nowMs: number): Promise<ReadonlyMap<number, L
 
 async function loadInputs(nowMs: number): Promise<FleetInputs> {
   const since = new Date(nowMs - FLEET_THRESHOLDS.alarmWindowMs).toISOString();
-  const [sites, classes, points, events, quality, findings, ledger] = await Promise.all([
+  const [sites, classes, lastSample, events, quality, findings, ledger] = await Promise.all([
     db.selectFrom('om.site').select(['id', 'code', 'name', 'lat', 'lon']).orderBy('code').execute(),
     db.selectFrom('om.asset').select(['site_id', 'class_key']).distinct().execute(),
-    db.selectFrom('om.point as p').innerJoin('om.asset as a', 'a.id', 'p.asset_id').select(['p.id', 'a.site_id', 'a.class_key']).execute(),
+    // 신선도는 셀(사이트×설비 종류) 단위로만 쓰므로 포인트별 최근 샘플을 DB에서 바로 합친다.
+    // 포인트 id를 먼저 받아 두 번째 쿼리에 넘기던 것을 없애 왕복 한 번과 438행 전송이 사라진다.
+    sql<FleetInputs['lastSample'][number]>`
+      SELECT a.site_id, a.class_key, (extract(epoch FROM max(l.ts)) * 1000)::float8 AS ts_ms
+      FROM om.point p
+      JOIN om.asset a ON a.id = p.asset_id
+      CROSS JOIN LATERAL (
+        SELECT m.ts FROM om.measurement m WHERE m.point_id = p.id ORDER BY m.ts DESC LIMIT 1
+      ) l
+      GROUP BY a.site_id, a.class_key
+    `.execute(db),
     sql<FleetInputs['events'][number]>`
       SELECT e.site_id, a.class_key, e.is_safety, e.severity, count(*)::int AS n
       FROM om.event_log e LEFT JOIN om.asset a ON a.id = e.asset_id
@@ -88,12 +97,11 @@ async function loadInputs(nowMs: number): Promise<FleetInputs> {
     getOpenFindingGroups(),
     loadLedgerResiduals(nowMs),
   ]);
-  const latest = await getLatestSamples(points.map((p) => p.id));
-  return { sites, classes, points, latest, events: events.rows, quality: quality.rows, findings, ledger };
+  return { sites, classes, lastSample: lastSample.rows, events: events.rows, quality: quality.rows, findings, ledger };
 }
 
-const maxNullable = (a: number | null, b: number | null): number | null => (a === null ? b : b === null ? a : Math.max(a, b));
 const sum = (values: readonly number[]): number => values.reduce((total, value) => total + value, 0);
+const maxOrNull = (values: readonly number[]): number | null => (values.length === 0 ? null : Math.max(...values));
 
 /** 도메인 열은 그 도메인 설비만, 데이터품질 열은 사이트의 모든 설비(신선도·품질 비율만)를 본다 */
 function signalsFor(inputs: FleetInputs, siteId: number, column: FleetColumn): CellSignals {
@@ -106,10 +114,7 @@ function signalsFor(inputs: FleetInputs, siteId: number, column: FleetColumn): C
 
   return {
     hasAssets: inputs.classes.some(inColumn),
-    lastSampleMs: inputs.points
-      .filter(inColumn)
-      .map((point) => inputs.latest.get(point.id)?.tsMs ?? null)
-      .reduce(maxNullable, null),
+    lastSampleMs: maxOrNull(inputs.lastSample.filter(inColumn).map((row) => row.ts_ms)),
     majorAlarms24h: count((row) => !row.is_safety && row.severity === 'major'),
     criticalAlarms24h: count((row) => !row.is_safety && row.severity === 'critical'),
     unackedSafety: count((row) => row.is_safety),

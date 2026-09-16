@@ -25,11 +25,43 @@ interface KpiPoint {
   readonly kpi: EnergyKpiKey;
 }
 
-async function findKpiPoints(siteIds: readonly number[] | undefined): Promise<readonly KpiPoint[]> {
+interface KpiPointsAndBuckets {
+  readonly points: readonly KpiPoint[];
+  readonly buckets: ReadonlyMap<number, HourBucket[]>;
+}
+
+/**
+ * KPI 포인트와 그 포인트의 구간 버킷을 한 번에 읽는다.
+ * 포인트 id를 먼저 받아 버킷 쿼리에 넘기면 왕복이 두 번이라 한 쿼리로 합쳤다.
+ * 버킷은 LEFT JOIN이라 수신이 없는 포인트도 남는다 (KPI '해당 없음'과 '데이터 없음'을 가르는 데 쓴다).
+ */
+async function loadKpiPointsAndBuckets(
+  siteIds: readonly number[] | undefined,
+  fromMs: number,
+  toMs: number,
+): Promise<KpiPointsAndBuckets> {
+  const empty = { points: [], buckets: new Map<number, HourBucket[]>() };
+  if (siteIds !== undefined && siteIds.length === 0) return empty;
+
   let query = db
     .selectFrom('om.point as p')
     .innerJoin('om.asset as a', 'a.id', 'p.asset_id')
-    .select(['p.id', 'a.site_id', 'a.class_key', 'p.metric_key'])
+    .leftJoin('om.m_1h as b', (join) =>
+      join
+        .onRef('b.point_id', '=', 'p.id')
+        .on('b.bucket', '>=', new Date(fromMs))
+        .on('b.bucket', '<', new Date(toMs)),
+    )
+    .select([
+      'p.id',
+      'a.site_id',
+      'a.class_key',
+      'p.metric_key',
+      sql<number | null>`(extract(epoch FROM b.bucket) * 1000)::float8`.as('bucket_ms'),
+      'b.v_first',
+      'b.v_last',
+      'b.v_avg',
+    ])
     .where((eb) =>
       eb.or(
         ENERGY_KPI_KEYS.map((key) =>
@@ -37,33 +69,22 @@ async function findKpiPoints(siteIds: readonly number[] | undefined): Promise<re
         ),
       ),
     );
-  if (siteIds !== undefined) {
-    if (siteIds.length === 0) return [];
-    query = query.where('a.site_id', 'in', [...siteIds]);
-  }
+  if (siteIds !== undefined) query = query.where('a.site_id', 'in', [...siteIds]);
+
   const rows = await query.execute();
-  return rows.flatMap((row) => {
+  const points = new Map<number, KpiPoint>();
+  const buckets = new Map<number, HourBucket[]>();
+  for (const row of rows) {
     const kpi = ENERGY_KPI_KEYS.find(
       (key) => ENERGY_KPIS[key].classKey === row.class_key && ENERGY_KPIS[key].metricKey === row.metric_key,
     );
-    return kpi ? [{ pointId: row.id, siteId: row.site_id, kpi }] : [];
-  });
-}
-
-async function loadBuckets(pointIds: readonly number[], fromMs: number, toMs: number): Promise<ReadonlyMap<number, HourBucket[]>> {
-  const byPoint = new Map<number, HourBucket[]>();
-  if (pointIds.length === 0) return byPoint;
-  const { rows } = await sql<{ point_id: number; bucket_ms: number; v_first: number | null; v_last: number | null; v_avg: number | null }>`
-    SELECT point_id, (extract(epoch FROM bucket) * 1000)::float8 AS bucket_ms, v_first, v_last, v_avg
-    FROM om.m_1h
-    WHERE point_id = ANY(${[...pointIds]}::int4[])
-      AND bucket >= ${new Date(fromMs).toISOString()}::timestamptz AND bucket < ${new Date(toMs).toISOString()}::timestamptz
-  `.execute(db);
-  for (const row of rows) {
+    if (kpi === undefined) continue;
+    points.set(row.id, { pointId: row.id, siteId: row.site_id, kpi });
+    if (row.bucket_ms === null) continue;
     const bucket: HourBucket = { bucketMs: row.bucket_ms, first: row.v_first, last: row.v_last, avg: row.v_avg };
-    byPoint.set(row.point_id, [...(byPoint.get(row.point_id) ?? []), bucket]);
+    buckets.set(row.id, [...(buckets.get(row.id) ?? []), bucket]);
   }
-  return byPoint;
+  return { points: [...points.values()], buckets };
 }
 
 /**
@@ -74,11 +95,10 @@ export async function getEnergyByWindows(
   windows: readonly TimeWindow[],
   siteIds?: readonly number[],
 ): Promise<ReadonlyMap<number, readonly EnergyValues[]>> {
-  const points = await findKpiPoints(siteIds);
   if (windows.length === 0) return new Map();
   const fromMs = Math.min(...windows.map((w) => w.fromMs)) - HOUR_MS;
   const toMs = Math.max(...windows.map((w) => w.toMs));
-  const buckets = await loadBuckets(points.map((p) => p.pointId), fromMs, toMs);
+  const { points, buckets } = await loadKpiPointsAndBuckets(siteIds, fromMs, toMs);
 
   const siteIdsInResult = siteIds ?? [...new Set(points.map((p) => p.siteId))];
   return new Map(
