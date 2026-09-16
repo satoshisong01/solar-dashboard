@@ -32,6 +32,22 @@ export interface SessionSampleRules {
   readonly minCompleteness: number;
 }
 
+/**
+ * 표본 규칙 기본값. ess.capacity_fade 기본 파라미터와 조치 효과 검증(lib/analytics/verification)이 같은 값을 쓴다 —
+ * 탐지와 검증이 다른 규칙으로 표본을 뽑으면 "고쳤다"는 판정이 탐지 결과와 어긋난다.
+ */
+export const CAPACITY_SAMPLE_RULE_DEFAULTS: SessionSampleRules & Omit<RestPairRules, 'restThresholdC'> = Object.freeze({
+  cRateBinWidth: 0.05,
+  tempBinWidthC: 5,
+  minCompleteness: 0.95,
+  restMinutes: 30,
+  minDeltaSocRest: 25,
+  socSigmaPct: 1,
+  currentGainSigma: 0.005,
+  restPairMaxHours: 36,
+  restPairMinCoverage: 0.98,
+});
+
 const tempKey = (t: number | null, width: number): string => (t === null ? 'na' : String(binFloor(t, width)));
 
 /** 충전 세션 → 표본 (값이 없거나 무효·완결성 미달인 세션은 뺀다) */

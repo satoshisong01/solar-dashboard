@@ -13,7 +13,7 @@ import { dateKo, fixed, hoursKo, insufficient, r, severityByMagnitude, signed, w
 import { capacityChecks, type CapacityCheckParams } from './ess-capacity-checks';
 import { binsEvidence, curveFor, referenceCurrentA, trendEvidence, type CurveInput } from './ess-capacity-evidence';
 import { splitReferenceRecent, type ReferenceSplit } from './ess-capacity-reference';
-import { CAPACITY_METHOD_ORDER, restPairSamples, sessionSamples, type CapacityMethod, type CapacitySample } from './ess-capacity-samples';
+import { CAPACITY_METHOD_ORDER, CAPACITY_SAMPLE_RULE_DEFAULTS, restPairSamples, sessionSamples, type CapacityMethod, type CapacitySample } from './ess-capacity-samples';
 import { boolParam, completenessParam, intParam, iterationsParam, nullableNumParam, numParam } from './param-schema';
 import { FAST_S, required, SLOW_S } from './requirements';
 import type { AssetEventInput, CandidateFinding, Detector, DetectorContext, DetectorResult } from './types';
@@ -77,19 +77,12 @@ export const ESS_CAPACITY_DEFAULTS: EssCapacityParams = Object.freeze({
   maxReferenceSpreadDays: 120,
   // sim:eval 게이트(5% 이상 탐지 지연 ≤ 21일)에 맞춰 30일 → 21일, bin당 5 → 3 (합계 15는 유지). 조정 근거는 scorecard.json params_note
   recentDays: 21,
-  cRateBinWidth: 0.05,
-  tempBinWidthC: 5,
   minPerBin: 3,
   minTotal: 15,
   iterations: 1000,
-  minCompleteness: 0.95,
+  // 표본 규칙(bin 폭·완결성·휴지 앵커)은 조치 효과 검증과 한 곳에서 공유한다
+  ...CAPACITY_SAMPLE_RULE_DEFAULTS,
   useRestAnchored: true,
-  restMinutes: 30,
-  minDeltaSocRest: 25,
-  socSigmaPct: 1,
-  currentGainSigma: 0.005,
-  restPairMaxHours: 36,
-  restPairMinCoverage: 0.98,
   useCcAhFallback: true,
   useSocSpanFallback: true,
   sev2Pct: -3,

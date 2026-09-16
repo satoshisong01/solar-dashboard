@@ -1,5 +1,5 @@
 // 탐지기 테스트용 합성 에피소드 (결정적). 원시 → 에피소드 경로는 episodes 테스트가 따로 검증한다.
-import type { EssChargeEpisode } from '../episodes/ess';
+import type { EssChargeEpisode, EssDischargeEpisode, EssRestEpisode } from '../episodes/ess';
 import type { PvDayEpisode } from '../episodes/pv';
 import type { ElSteadyEpisode, FcSteadyEpisode } from '../episodes/stack-episodes';
 import { createRng, type Rng } from '@/lib/sim/rng';
@@ -65,6 +65,77 @@ export function capacityHistory(referenceAh: number, recentAh: number, seed: num
     const level = day < 20 ? referenceAh : day >= 60 ? recentAh : referenceAh + ((recentAh - referenceAh) * (day - 20)) / 40;
     return chargeSession({ day, capacityAh: noisy(level), cRateBin: day % 2 === 0 ? 0.1 : 0.15, tBin: day % 4 < 2 ? 20 : 25, ...extra });
   });
+}
+
+export interface PartialCycleOptions {
+  readonly day: number;
+  /** 휴지 앵커 쌍이 되짚어야 하는 유효용량 [Ah] */
+  readonly capacityAh: number;
+  readonly assetId?: number;
+  readonly tCell?: number;
+  /** 휴지 끝 SOC. 차이가 40%p 미만이라 충전 세션 SOC 변화 용량(capacity_ah_soc)은 나오지 않는다 */
+  readonly socLow?: number;
+  readonly socHigh?: number;
+}
+
+/**
+ * 부분 사이클 하루 (연계형 사이트 모양): 휴지(SOC 저) → 충전 → 휴지(SOC 고) → 방전 → 휴지(SOC 저).
+ * 만충·CV 종료가 없어 충전 세션 용량(앵커·CC·SOC 변화)이 전부 null이고, 휴지 앵커 쌍만 용량을 준다.
+ * 하루에 표본 두 개(충전 방향·방전 방향)가 나온다. 날짜 사이(마지막 휴지 → 다음 날 첫 휴지)는 덮음 비율이 모자라 쓰이지 않는다.
+ */
+export function partialCycleDay(o: PartialCycleOptions): (EssChargeEpisode | EssDischargeEpisode | EssRestEpisode)[] {
+  const assetId = o.assetId ?? 7;
+  const base = DAY0 + o.day * MS_PER_DAY;
+  const at = (hours: number) => base + hours * MS_PER_HOUR;
+  const tCell = o.tCell ?? 26;
+  const socLow = o.socLow ?? 35;
+  const socHigh = o.socHigh ?? 65;
+  const ah = (o.capacityAh * (socHigh - socLow)) / 100;
+  const common = { assetId, dq: DQ_FULL, open: false, valid: true, invalidReason: null } as const;
+  const rest = (fromH: number, toH: number, socEnd: number): EssRestEpisode => ({
+    ...common,
+    kind: 'ess.rest',
+    extractorVersion: 'ess.rest@1',
+    start: at(fromH),
+    end: at(toH),
+    features: { duration_s: (toH - fromH) * 3600, soc_mean: socEnd, soc_end: socEnd, ah_net: 0, t_cell_mean: tCell, cell_dv_end: 6, v_end: 800 },
+    conditions: { t_cell_bin: 25, end_reason: 'rest' },
+  });
+  const charge: EssChargeEpisode = {
+    ...common,
+    kind: 'ess.charge',
+    extractorVersion: 'ess.charge@1',
+    start: at(2),
+    end: at(10),
+    features: {
+      ah_in: ah,
+      wh_in: null,
+      i_mean_c: ah / 8 / o.capacityAh,
+      t_cell_mean: tCell,
+      soc_start: socLow,
+      soc_end: socHigh,
+      soc_ocv_start: socLow,
+      cc_ah: ah,
+      cv_s: 0,
+      soc_cv_start: null,
+      duration_s: 8 * 3600,
+      cell_dv_end: 6,
+      capacity_ah_anchored: null,
+      capacity_ah_cc: null,
+      capacity_ah_soc: null,
+    },
+    conditions: { c_rate_bin: 0.03, t_cell_bin: 25, anchor: false, pre_rest: true, cv_end: false, end_reason: 'rest' },
+  };
+  const discharge: EssDischargeEpisode = {
+    ...common,
+    kind: 'ess.discharge',
+    extractorVersion: 'ess.discharge@1',
+    start: at(12),
+    end: at(20),
+    features: { ah_out: ah, wh_out: null, i_mean_c: ah / 8 / o.capacityAh, t_cell_mean: tCell, soc_start: socHigh, soc_end: socLow, duration_s: 8 * 3600, cell_dv_end: 6 },
+    conditions: { c_rate_bin: 0.03, t_cell_bin: 25, pre_rest: true, end_reason: 'rest' },
+  };
+  return [rest(0, 2, socLow), charge, rest(10, 12, socHigh), discharge, rest(20, 22, socLow)];
 }
 
 export function pvDay(assetId: number, day: number, kwhPerKwp: number, flags: Partial<PvDayEpisode['conditions']> = {}): PvDayEpisode {

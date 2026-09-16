@@ -20,8 +20,8 @@ export interface AnalysisFixture {
 }
 
 /** 픽스처 사이트의 분석 결과·원시·카탈로그 행을 모두 지운다 (FK 순서) */
-export async function dropAnalysisFixture(db: Kysely<DB>): Promise<void> {
-  const site = await db.selectFrom('om.site').select('id').where('code', '=', ANALYSIS_SITE).executeTakeFirst();
+export async function dropAnalysisFixture(db: Kysely<DB>, siteCode: string = ANALYSIS_SITE): Promise<void> {
+  const site = await db.selectFrom('om.site').select('id').where('code', '=', siteCode).executeTakeFirst();
   if (!site) return;
   await db.transaction().execute(async (trx) => {
     const assets = trx.selectFrom('om.asset').select('id').where('site_id', '=', site.id);

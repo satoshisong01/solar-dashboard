@@ -2,7 +2,7 @@
 // matched_before_after@1로 전후를 비교해 om.action_verification에 upsert하고, 개선이면 연결한 발견사항을 system이 verified로 옮긴다.
 import { sql, type Kysely } from 'kysely';
 import { beforeAfter, VERIFICATION_METHOD, VERIFICATION_METRICS, type Verdict } from '@/lib/analytics/verification/before-after';
-import type { StoredEpisode } from '@/lib/analytics/pipeline/types';
+import type { PipelineAsset, StoredEpisode } from '@/lib/analytics/pipeline/types';
 import { MS_PER_DAY } from '@/lib/analytics/types';
 import type { DB } from '@/lib/db/types';
 import { deriveRng } from '@/lib/sim/rng';
@@ -29,7 +29,16 @@ export interface VerifyActionsInput {
   /** 분석 기간 끝 (후 창이 이 시각까지 채워져야 검증한다) */
   readonly until: number;
   readonly episodes: readonly StoredEpisode[];
+  /** 사이트 설비 (명판 capacity_ah → 용량 지표 휴지 앵커 방식) */
+  readonly assets: readonly PipelineAsset[];
   readonly seed: number;
+}
+
+/** 명판 정격 용량 [Ah]. 없거나 0 이하면 null (휴지 앵커 방식을 쓰지 않는다) */
+function ratedCapacityAh(assets: readonly PipelineAsset[], assetId: number): number | null {
+  const raw = assets.find((a) => a.id === assetId)?.nameplate.capacity_ah;
+  const value = typeof raw === 'string' && raw.trim() !== '' ? Number(raw) : raw;
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
 }
 
 export async function verifyActions(db: Kysely<DB>, input: VerifyActionsInput): Promise<VerificationStats> {
@@ -57,7 +66,17 @@ export async function verifyActions(db: Kysely<DB>, input: VerifyActionsInput): 
       stats = { ...stats, pending: stats.pending + 1 };
       continue;
     }
-    const result = beforeAfter({ assetId: action.asset_id, metric: effect.metric, direction: effect.direction, minDelta: effect.min_delta, before, after, episodes: input.episodes, rng: deriveRng(input.seed, 'verify', action.id) });
+    const result = beforeAfter({
+      assetId: action.asset_id,
+      metric: effect.metric,
+      direction: effect.direction,
+      minDelta: effect.min_delta,
+      before,
+      after,
+      episodes: input.episodes,
+      ratedCapacityAh: ratedCapacityAh(input.assets, action.asset_id),
+      rng: deriveRng(input.seed, 'verify', action.id),
+    });
     const verified = await db.transaction().execute(async (trx) => {
       const values = {
         before_window: range(before.start, before.end),

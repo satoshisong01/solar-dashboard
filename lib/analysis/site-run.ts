@@ -208,7 +208,7 @@ async function verifySite(ctx: SiteRunContext, site: SiteRow): Promise<SiteRunSt
   const assets = await loadSiteAssets(ctx.db, site.id);
   const targets = assets.filter((a) => ctx.assetIds === null || ctx.assetIds.has(a.id));
   const history = await loadEpisodes(ctx.db, targets.filter((a) => isExtractable(a.classKey)).map((a) => a.id), ctx.window.end);
-  const verification = await verifyActions(ctx.db, { runId: ctx.runId, siteId: site.id, assetIds: ctx.assetIds, until: ctx.window.end, episodes: history, seed: ctx.seed }).catch((error: unknown) => {
+  const verification = await verifyActions(ctx.db, { runId: ctx.runId, siteId: site.id, assetIds: ctx.assetIds, until: ctx.window.end, episodes: history, assets, seed: ctx.seed }).catch((error: unknown) => {
     recordError(ctx, { stage: 'verify', siteId: site.id }, error);
     return null;
   });
@@ -246,7 +246,7 @@ export async function runSite(ctx: SiteRunContext, site: SiteRow): Promise<SiteR
     recordError(ctx, { stage: 'findings', siteId: site.id }, error);
     return EMPTY_PERSIST_STATS;
   });
-  const verification = await time('verify', () => verifyActions(ctx.db, { runId: ctx.runId, siteId: site.id, assetIds: ctx.assetIds, until: ctx.window.end, episodes: history, seed: ctx.seed })).catch((error: unknown) => {
+  const verification = await time('verify', () => verifyActions(ctx.db, { runId: ctx.runId, siteId: site.id, assetIds: ctx.assetIds, until: ctx.window.end, episodes: history, assets, seed: ctx.seed })).catch((error: unknown) => {
     recordError(ctx, { stage: 'verify', siteId: site.id }, error);
     return null;
   });
