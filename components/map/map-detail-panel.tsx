@@ -56,12 +56,14 @@ export function MapDetailPanel({ site, nowMs, className = '' }: Readonly<{ site:
         <MapCurve curve={site.curve} label={site.curveLabel} unit={site.curveUnit} tone={tone} />
       </div>
 
-      {/* 지금은 분석 엔진이 낸 값을 쉬운 말로 푼 문장이다. 배지가 그 출처를 밝힌다 */}
+      {/* 저장된 AI 문장이 있으면 그것을, 없으면 분석 엔진 값을 쉬운 말로 푼 틀 문장을 쓴다. 배지가 그 출처를 밝힌다 */}
       <div className="flex flex-col gap-1.5 rounded-md border border-accent/40 bg-hydrogen-fill px-2.5 py-2">
         <p className="flex items-center gap-1.5 text-xs font-semibold text-ink">
           <Sparkles aria-hidden="true" className="size-3.5" />
           AI 진단 리포트
-          <span className="rounded-full border border-rule bg-surface px-1.5 py-px text-[0.625rem] font-normal text-muted">규칙 기반 요약</span>
+          <span className="rounded-full border border-rule bg-surface px-1.5 py-px text-[0.625rem] font-normal text-muted">
+            {site.worstFinding?.headlineSource === 'llm' ? 'AI가 작성 · 수치는 분석 엔진 값' : '규칙 기반 요약'}
+          </span>
         </p>
         <p className="text-xs text-pretty text-ink-2">{site.worstFinding === null ? '현재 특이사항 없음' : site.worstFinding.headline}</p>
         {site.worstFinding !== null && (

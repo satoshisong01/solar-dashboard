@@ -6,9 +6,9 @@ const databaseUrl = assertTestDatabaseUrl(process.env.DATABASE_URL);
 
 // om은 공용 DB에서 이 프로젝트가 쓰는 유일한 스키마다: 도메인 테이블 + 인증(auth_*) + 마이그레이션 기록(pgmigrations).
 const OM_TABLES = [
-  'action_verification', 'analysis_run', 'asset', 'asset_class', 'asset_event', 'auth_account', 'auth_rate_limit',
+  'action_verification', 'ai_explanation_setting', 'analysis_run', 'asset', 'asset_class', 'asset_event', 'auth_account', 'auth_rate_limit',
   'auth_session', 'auth_user', 'auth_verification', 'detector_config', 'episode', 'event_log',
-  'finding', 'finding_evidence', 'finding_transition', 'gateway', 'gateway_key', 'ingest_batch', 'kpi_daily', 'm_1h',
+  'finding', 'finding_evidence', 'finding_explanation', 'finding_transition', 'gateway', 'gateway_key', 'ingest_batch', 'kpi_daily', 'm_1h',
   'maintenance_action', 'market_daily', 'measurement', 'metric_def', 'pgmigrations', 'point', 'report', 'rollup_dirty',
   'site', 'site_energy_daily', 'unmapped_source',
 ];

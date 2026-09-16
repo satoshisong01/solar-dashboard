@@ -1,10 +1,12 @@
 // 리포트 저장·검토·승인 서비스 (DB). 설계 §0: 분석과 분리 — 관리자가 "리포트 만들기"를 눌렀을 때만 만든다(분석 실행을 부르지 않는다).
-//   만들기: 팩 조회 → EvidencePack → templateComposer → validateDraft → om.report(draft). 같은 사이트·기간·composer·팩이면 기존 행
+//   만들기: 팩 조회 → EvidencePack → templateComposer → (AI 설명이 켜져 있으면 문장만 다시 쓰기) → validateDraft → om.report(draft).
+//         같은 사이트·기간·composer·팩이면 기존 행. 다시 쓴 블록도 숫자 토큰·인용은 그대로라 승인 전 검토 흐름과 숫자 잠금은 달라지지 않는다.
 //   검토: 초안(draft) 행을 잠그고 문장 편집·블록 포함/제외 → 다시 검증해 저장
 //   승인: 검증 통과한 초안만. 같은 사이트·기간의 이전 초안·승인본은 superseded, 포함한 발견사항은 in_report (한 트랜잭션)
 import { sql, type Kysely, type Transaction } from 'kysely';
 import { markFindingsInReportInTransaction } from '@/lib/analysis/transitions';
 import type { DB } from '@/lib/db/types';
+import { defaultDraftRefiner, type DraftRefiner } from '@/lib/llm/report-refine';
 import { parseStoredValidation } from './citations';
 import { buildEvidencePack, readStoredPack } from './evidence-pack';
 import { loadPackInput, ReportError, type ReportRequest } from './load';
@@ -30,10 +32,12 @@ export interface CreateReportResult {
   readonly validation: ValidationResult;
 }
 
-export async function createReport(db: Kysely<DB>, request: ReportRequest & { readonly actor: string; readonly now: Date }): Promise<CreateReportResult> {
+/** refine은 테스트에서 가짜 제공자로 바꿔 끼운다. 기본값은 사이트 설정·키를 읽어 AI가 꺼져 있으면 아무것도 바꾸지 않는다 */
+export async function createReport(db: Kysely<DB>, request: ReportRequest & { readonly actor: string; readonly now: Date }, refine?: DraftRefiner): Promise<CreateReportResult> {
   if (request.actor.trim() === '') throw new ReportError('invalid', '작성자가 필요합니다');
   const pack = buildEvidencePack(await loadPackInput(db, request, request.now));
-  const draft = toReviewDraft(templateComposer.compose(pack));
+  const composed = await (refine ?? defaultDraftRefiner(db, request.siteId))(templateComposer.compose(pack), pack);
+  const draft = toReviewDraft(composed);
   const validation = storedValidation(draft, pack, request.now);
   const inserted = await db
     .insertInto('om.report')
@@ -127,9 +131,9 @@ export async function approveReport(db: Kysely<DB>, input: { readonly reportId: 
 }
 
 /** 같은 사이트·기간·발견사항 선택으로 새 초안을 만든다 (승인본을 고칠 때). 같은 리포트에서 다시 누르면 앞서 만든 초안을 돌려준다 */
-export async function regenerateReport(db: Kysely<DB>, input: { readonly reportId: string; readonly actor: string; readonly now: Date }): Promise<CreateReportResult> {
+export async function regenerateReport(db: Kysely<DB>, input: { readonly reportId: string; readonly actor: string; readonly now: Date }, refine?: DraftRefiner): Promise<CreateReportResult> {
   const row = await db.selectFrom('om.report').select(['site_id', 'pack']).where('id', '=', input.reportId).executeTakeFirst();
   const pack = row ? readStoredPack(row.pack) : null;
   if (!row || !pack) throw new ReportError('not_found', `리포트 ${input.reportId}을(를) 찾을 수 없습니다`);
-  return createReport(db, { siteId: row.site_id, period: pack.period, findingIds: pack.selection.findingIds, includeVerifiedActions: pack.selection.includeVerifiedActions, basedOnReportId: input.reportId, actor: input.actor, now: input.now });
+  return createReport(db, { siteId: row.site_id, period: pack.period, findingIds: pack.selection.findingIds, includeVerifiedActions: pack.selection.includeVerifiedActions, basedOnReportId: input.reportId, actor: input.actor, now: input.now }, refine);
 }

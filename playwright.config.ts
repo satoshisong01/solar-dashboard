@@ -52,6 +52,9 @@ export default defineConfig({
       INGEST_KEY_ENC_KEY: testEnv.INGEST_KEY_ENC_KEY ?? '',
       // 지도 화면이 그려지는 갈래를 빌드에 넣기 위한 자리표시 값 (실제 키가 아니다. 위에서 CDN을 막는다)
       NEXT_PUBLIC_KAKAO_MAP_KEY: 'e2e-placeholder-key',
+      // AI 설명은 끈다: next start가 .env.local을 읽으므로 비워 두지 않으면 E2E가 실제 Gemini API를 부른다.
+      // 생성·검증 경로는 unit(lib/llm)과 integration이 가짜 제공자로 덮는다.
+      GEMINI_API_KEY: '',
     },
   },
 });
