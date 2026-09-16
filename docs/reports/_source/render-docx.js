@@ -36,7 +36,7 @@ function runs(text, base = {}) {
   return out.length ? out : [tr({ text: '', ...base })];
 }
 
-const P = (text, { size = 10.5, color = C.ink, bold = false, align, before = 2, after = 5, line = 1.3, ...rest } = {}) =>
+const P = (text, { size = 10.5, color = C.ink, bold = false, align, before = 2, after = 4, line = 1.22, ...rest } = {}) =>
   new Paragraph({
     alignment: align, spacing: { before: sp(before), after: sp(after), line: Math.round(240 * line) }, ...rest,
     children: runs(text, { size: pt(size), color, bold }),
@@ -57,14 +57,14 @@ function table(b) {
   const cell = (content, i, header) => new TableCell({
     borders, width: { size: widths[i], type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER,
     shading: header ? { fill: C.head, type: ShadingType.CLEAR, color: 'auto' } : undefined,
-    margins: { top: 30, bottom: 30, left: 80, right: 80 },
+    margins: { top: 18, bottom: 18, left: 80, right: 80 },
     children: String(content ?? '').split('\n').map((line) => new Paragraph({
-      alignment: align(i), spacing: { before: 0, after: 0, line: 264 },
+      alignment: align(i), spacing: { before: 0, after: 0, line: 246 },
       children: runs(line, { size, bold: header, color: C.ink }),
     })),
   });
   const out = [];
-  if (b.title) out.push(P(`[표 ${tblNo}] ${b.title}`, { size: 10, bold: true, color: C.blue, before: 6, after: 4, keepNext: true }));
+  if (b.title) out.push(P(`[표 ${tblNo}] ${b.title}`, { size: 10, bold: true, color: C.blue, before: 5, after: 3, keepNext: true }));
   out.push(new Table({
     width: { size: CW, type: WidthType.DXA }, columnWidths: widths,
     rows: [
@@ -72,7 +72,7 @@ function table(b) {
       ...b.rows.map((r) => new TableRow({ children: r.map((v, i) => cell(v, i, false)) })),
     ],
   }));
-  out.push(b.note ? P(b.note, { size: 9, color: C.muted, before: 3, after: 8 }) : P('', { after: 4 }));
+  out.push(b.note ? P(b.note, { size: 9, color: C.muted, before: 3, after: 6 }) : P('', { after: 3 }));
   return out;
 }
 
@@ -84,11 +84,11 @@ function image(b) {
   const widthPx = Math.round(Math.min(b.widthIn ?? 4.8, 4.8) * 96);
   return [
     new Paragraph({
-      alignment: AlignmentType.CENTER, spacing: { before: sp(6), after: 0 }, keepNext: true,
+      alignment: AlignmentType.CENTER, spacing: { before: sp(4), after: 0 }, keepNext: true,
       children: [new ImageRun({ type: 'png', data: buf, transformation: { width: widthPx, height: Math.round((widthPx * hpx) / wpx) },
         altText: { title: b.caption, description: b.caption, name: path.basename(file) } })],
     }),
-    P(`[그림 ${figNo}] ${b.caption}`, { size: 9.5, color: C.muted, align: AlignmentType.CENTER, before: 2, after: 8 }),
+    P(`[그림 ${figNo}] ${b.caption}`, { size: 9.5, color: C.muted, align: AlignmentType.CENTER, before: 2, after: 6 }),
   ];
 }
 
@@ -102,21 +102,21 @@ function callout(b) {
       rows: [new TableRow({ children: [new TableCell({
         width: { size: CW, type: WidthType.DXA },
         borders: { top: border(C.tint), bottom: border(C.tint), left: { style: BorderStyle.SINGLE, size: 24, color: C.blue }, right: border(C.tint) },
-        shading: { fill: C.tint, type: ShadingType.CLEAR, color: 'auto' }, margins: { top: 110, bottom: 110, left: 200, right: 200 }, children,
+        shading: { fill: C.tint, type: ShadingType.CLEAR, color: 'auto' }, margins: { top: 80, bottom: 80, left: 200, right: 200 }, children,
       })] })],
     }),
-    P('', { after: 4 }),
+    P('', { after: 3 }),
   ];
 }
 
 const list = (items, reference) => items.map((it) => new Paragraph({
-  numbering: { reference, level: 0 }, spacing: { before: 0, after: sp(3), line: 300 }, children: runs(it, { size: pt(10.5) }),
+  numbering: { reference, level: 0 }, spacing: { before: 0, after: sp(2), line: 282 }, children: runs(it, { size: pt(10.5) }),
 }));
 
 let numberedLists = 0;
 function block(b) {
   switch (b.t) {
-    case 'h2': return [P(b.text, { size: 13, bold: true, color: C.blue, before: 10, after: 4, keepNext: true })];
+    case 'h2': return [P(b.text, { size: 13, bold: true, color: C.blue, before: 7, after: 3, keepNext: true })];
     case 'p': return [P(b.text)];
     case 'bold': return [P(b.text, { bold: true })];
     case 'note': return [P(b.text, { size: 10, color: C.muted })];
@@ -127,7 +127,7 @@ function block(b) {
     case 'callout': return callout(b);
     case 'pagebreak': return [new Paragraph({ children: [new PageBreak()] })];
     case 'sources': return b.items.map((s, i) => new Paragraph({
-      spacing: { before: 0, after: sp(2), line: 264 },
+      spacing: { before: 0, after: sp(1), line: 246 },
       children: [
         tr({ text: `[${s.n ?? i + 1}] ${s.title} `, size: pt(8.5), color: C.ink }),
         new ExternalHyperlink({ link: s.url, children: [tr({ text: s.url, size: pt(8), color: C.blue })] }),
@@ -162,7 +162,7 @@ spec.chapters.forEach((ch, i) => {
   const body = bodySections[bodySections.length - 1].children;
   body.push(new Paragraph({
     heading: HeadingLevel.HEADING_1, keepNext: true,
-    spacing: { before: sp(i === 0 || ch.pageBreak ? 2 : 16), after: sp(8) },
+    spacing: { before: sp(i === 0 || ch.pageBreak ? 2 : 11), after: sp(6) },
     border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: C.blue, space: 4 } },
     children: [tr({ text: `${ch.number}. ${ch.title}`, size: pt(17), bold: true, color: C.blue })],
   }));

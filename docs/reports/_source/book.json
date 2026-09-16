@@ -2,13 +2,13 @@
  "meta": {
   "title": "태양광·수소 발전 데이터 수집·AI 분석 예상안",
   "company": "주식회사 퍼스트씨앤디",
-  "date": "2026. 09. 14"
+  "date": "2026. 09. 17"
  },
  "sheets": [
   {
    "name": "안내",
    "title": "이 워크북 읽는 법",
-   "description": "실제 원시데이터가 없는 상태에서 업계 표준·공공기관·제조사 자료를 근거로 만든 예상안입니다. 수치는 출처 기준이며 설비 사양이 정해지면 다시 확인해야 합니다.",
+   "description": "실제 원시데이터가 없는 상태에서 업계 표준·공공기관·제조사 자료를 근거로 만든 예상안입니다. 수치는 출처 기준이며 설비 사양이 정해지면 다시 확인해야 합니다. 제2판(2026-09-17)에서 실제 사업 도면(가평 2MW 청정수소발전 P&ID, FCND-GP-PID-002 REV.2) 적용 결과를 더했습니다. 초판 2026-09-14.",
    "columns": [
     {
      "header": "시트",
@@ -30,11 +30,11 @@
     ],
     [
      "수집데이터_수소",
-     "수전해·압축저장·연료전지에서 보통 받는 운전 데이터"
+     "수전해·압축저장·연료전지에서 보통 받는 운전 데이터 + 가평 도면으로 더한 부속 계통 39행(산소·폐열·수처리·감압·반입)"
     ],
     [
      "운영·비정형 데이터",
-     "명판·정비이력·알람코드·점검사진·설정값 등 계측 외 데이터"
+     "명판·정비이력·알람코드·점검사진·설정값 등 계측 외 데이터 + 반입·출하 전표 등 장부 데이터"
     ],
     [
      "설계수명·교체주기",
@@ -46,7 +46,7 @@
     ],
     [
      "분석항목×주기",
-     "월간·분기·연간 AI 분석으로 판정 가능한 항목과 리포트 문장 예시"
+     "월간·분기·연간 AI 분석으로 판정 가능한 항목과 리포트 문장 예시(가평 구성 탐지기 3종 포함)"
     ],
     [
      "정기 리포트 구성",
@@ -54,7 +54,7 @@
     ],
     [
      "AI 분석 방법",
-     "현장 질문 → 입력 데이터 → 방법 → 결과 → 개선 코칭"
+     "현장 질문 → 입력 데이터 → 방법 → 결과 → 개선 코칭. 마지막 2행은 실제로 구현된 AI 설명 층"
     ],
     [
      "개선항목·기대효과",
@@ -70,12 +70,20 @@
     ],
     [
      "출처",
-     "번호별 출처 목록"
+     "번호별 출처 목록(초판 485행 + 가평 도면 조사 119행)"
+    ],
+    [
+     "가평 사이트",
+     "실제 사업 도면 적용 결과 — 설비 트리·명판, 매핑한 계장 태그, 신설 요청 포인트"
+    ],
+    [
+     "가평 P&ID 고장모드",
+     "부속 계통 다섯 갈래의 고장 모드·신호·탐지 방법·오탐 함정·권장 조치"
     ],
     {
      "cells": [
       "범례",
-      "우선순위 필수=핵심 판정에 반드시 필요 / 권장=정확도·오탐 방지 / 선택=있으면 좋음. 주기 ●=해당 주기 리포트에서 판정"
+      "우선순위 필수=핵심 판정에 반드시 필요 / 권장=정확도·오탐 방지 / 선택=있으면 좋음. 주기 ●=해당 주기 리포트에서 판정. 명판·값의 '미확인'은 추정으로 채우지 않고 남긴 값이며 회신 대기 목록입니다"
      ]
     }
    ],
@@ -162,13 +170,48 @@
      "=COUNTIFS('수집데이터_전력'!$A:$A,\"공통·부지\",'수집데이터_전력'!$F:$F,\"선택\")",
      "=SUM(B12:D12)"
     ],
+    [
+     "부산물 산소",
+     "=COUNTIFS('수집데이터_수소'!$A:$A,\"부산물 산소\",'수집데이터_수소'!$F:$F,\"필수\")",
+     "=COUNTIFS('수집데이터_수소'!$A:$A,\"부산물 산소\",'수집데이터_수소'!$F:$F,\"권장\")",
+     "=COUNTIFS('수집데이터_수소'!$A:$A,\"부산물 산소\",'수집데이터_수소'!$F:$F,\"선택\")",
+     "=SUM(B13:D13)"
+    ],
+    [
+     "폐열회수",
+     "=COUNTIFS('수집데이터_수소'!$A:$A,\"폐열회수\",'수집데이터_수소'!$F:$F,\"필수\")",
+     "=COUNTIFS('수집데이터_수소'!$A:$A,\"폐열회수\",'수집데이터_수소'!$F:$F,\"권장\")",
+     "=COUNTIFS('수집데이터_수소'!$A:$A,\"폐열회수\",'수집데이터_수소'!$F:$F,\"선택\")",
+     "=SUM(B14:D14)"
+    ],
+    [
+     "수처리",
+     "=COUNTIFS('수집데이터_수소'!$A:$A,\"수처리\",'수집데이터_수소'!$F:$F,\"필수\")",
+     "=COUNTIFS('수집데이터_수소'!$A:$A,\"수처리\",'수집데이터_수소'!$F:$F,\"권장\")",
+     "=COUNTIFS('수집데이터_수소'!$A:$A,\"수처리\",'수집데이터_수소'!$F:$F,\"선택\")",
+     "=SUM(B15:D15)"
+    ],
+    [
+     "감압·버퍼",
+     "=COUNTIFS('수집데이터_수소'!$A:$A,\"감압·버퍼\",'수집데이터_수소'!$F:$F,\"필수\")",
+     "=COUNTIFS('수집데이터_수소'!$A:$A,\"감압·버퍼\",'수집데이터_수소'!$F:$F,\"권장\")",
+     "=COUNTIFS('수집데이터_수소'!$A:$A,\"감압·버퍼\",'수집데이터_수소'!$F:$F,\"선택\")",
+     "=SUM(B16:D16)"
+    ],
+    [
+     "외부 반입",
+     "=COUNTIFS('수집데이터_수소'!$A:$A,\"외부 반입\",'수집데이터_수소'!$F:$F,\"필수\")",
+     "=COUNTIFS('수집데이터_수소'!$A:$A,\"외부 반입\",'수집데이터_수소'!$F:$F,\"권장\")",
+     "=COUNTIFS('수집데이터_수소'!$A:$A,\"외부 반입\",'수집데이터_수소'!$F:$F,\"선택\")",
+     "=SUM(B17:D17)"
+    ],
     {
      "cells": [
       "합계",
-      "=SUM(B6:B12)",
-      "=SUM(C6:C12)",
-      "=SUM(D6:D12)",
-      "=SUM(E6:E12)"
+      "=SUM(B6:B17)",
+      "=SUM(C6:C17)",
+      "=SUM(D6:D17)",
+      "=SUM(E6:E17)"
      ]
     },
     [
@@ -1290,8 +1333,8 @@
   },
   {
    "name": "수집데이터_수소",
-   "title": "수전해·압축저장·연료전지에서 보통 받는 데이터",
-   "description": "PEM 전해조·수소 압축기·고압 저장·PEM 연료전지 기준. 안전 인터록 신호는 분석과 별도로 즉시 알람 대상입니다.",
+   "title": "수전해·압축저장·연료전지·부속 계통에서 보통 받는 데이터",
+   "description": "PEM 전해조·수소 압축기·고압 저장·PEM 연료전지 기준. 안전 인터록 신호는 분석과 별도로 즉시 알람 대상입니다. 분야 ‘부산물 산소’~‘외부 반입’ 39행은 가평 2MW 청정수소발전 P&ID(FCND-GP-PID-002 REV.2)를 받아 더한 부속 계통 항목이며, 우선순위는 그 사이트의 매핑·신설 요청 구분입니다(필수=도면 태그가 있거나 없으면 판정 불가, 권장=정확도·오탐 방지).",
    "columns": [
     {
      "header": "분야",
@@ -2189,6 +2232,396 @@
      "선택",
      "질소 누적도를 보여주며 적응형 퍼지 최적화에 쓴다.",
      "열전도식 수소센서 / 물질수지 모델"
+    ],
+    [
+     "부산물 산소",
+     "부산물 산소 계통",
+     "제품 산소 순도",
+     "%",
+     "300초",
+     "필수",
+     "AT-402. 건조 기준 산소 농도. 국내법상 산소 제조자는 1일 1회 이상 품질검사로 99.5% 이상을 확인하고 기록해야 한다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 AT-402 · 조사 research-oxygen"
+    ],
+    [
+     "부산물 산소",
+     "산소 출하 설비",
+     "산소 질량유량",
+     "kg/h",
+     "10초",
+     "필수",
+     "FT-401/402. 생산·출하·방출 3지점 유량을 qualifier로 구분(기존 separator.level qualifier 패턴과 동일). 정격 생산 357 kg/h.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 FT-402 · 조사 research-oxygen"
+    ],
+    [
+     "부산물 산소",
+     "산소 출하 설비",
+     "누적 산소 출하량",
+     "kg",
+     "60초",
+     "필수",
+     "누적 출하량 카운터. 매출 계산과 계량 편차 탐지의 기준값.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 FT-402 · 조사 research-oxygen"
+    ],
+    [
+     "부산물 산소",
+     "산소 출하 설비",
+     "산소 출하 헤더 압력",
+     "bar",
+     "10초",
+     "필수",
+     "출하 헤더·트레일러 충전 압력. 충전 완료 판정과 잔압(heel) 계상에 필요하다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 PT-402 · 조사 research-oxygen"
+    ],
+    [
+     "부산물 산소",
+     "부산물 산소 계통",
+     "대기 산소 농도",
+     "%",
+     "5초",
+     "필수",
+     "AT-403. 대기 산소 농도. 23.5% 초과는 산소 농축 대기(화재 위험), 18% 미만은 질식 위험. gas.detector.ppm(수소)과 대칭 구조.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 AT-403 · 조사 research-oxygen"
+    ],
+    [
+     "부산물 산소",
+     "부산물 산소 계통",
+     "제품 산소 이슬점",
+     "°C",
+     "300초",
+     "권장",
+     "MT-401. 수분은 산소 순도의 최대 변수이며 의료용 규격은 H₂O ≤ 67 ppm이다. 건조기 파과 조기 탐지에도 쓴다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 MT-401 · 조사 research-oxygen"
+    ],
+    [
+     "폐열회수",
+     "폐열회수 열교환기 HX-301",
+     "열교환기 1차측 입구 온도",
+     "°C",
+     "10초",
+     "필수",
+     "HX-301 1차측 입구. LMTD·접근온도·Q_hot의 기준점. FC 스택 출구 온도 상한 감시와 겸한다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 TT-301 · 조사 research-heat"
+    ],
+    [
+     "폐열회수",
+     "폐열회수 열교환기 HX-301",
+     "열교환기 1차측 출구 온도",
+     "°C",
+     "10초",
+     "필수",
+     "1차측 출구(환수). Q_hot = ṁ_hot·cp·(T_hot_in − T_hot_out) 산출.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 TT-302 · 조사 research-heat"
+    ],
+    [
+     "폐열회수",
+     "폐열회수 열교환기 HX-301",
+     "열교환기 2차측 입구 온도",
+     "°C",
+     "10초",
+     "필수",
+     "2차측(정제수) 입구 = DI 물탱크 출구. Q_cold와 접근온도 계산에 필수인데 도면에 계기가 없다. 이 값의 계절 변동이 절감량 변동의 주원인이다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 TT-304 · 조사 research-heat"
+    ],
+    [
+     "폐열회수",
+     "폐열회수 열교환기 HX-301",
+     "열교환기 2차측 출구 온도",
+     "°C",
+     "10초",
+     "필수",
+     "2차측 출구 = 수전해 급수 온도. 수전해 스택 입구 상한(Nafion 막 제약, 통상 80 °C) 초과 감시를 겸한다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 TT-303 · 조사 research-heat"
+    ],
+    [
+     "폐열회수",
+     "폐열회수 열교환기 HX-301",
+     "열교환기 1차측 유량",
+     "m³/h",
+     "10초",
+     "필수",
+     "Q_hot 산출. 양측 열수지 교차검증으로 센서 드리프트와 교차누설을 분리하는 유일한 수단.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 FT-302 · 조사 research-heat"
+    ],
+    [
+     "폐열회수",
+     "폐열회수 열교환기 HX-301",
+     "열교환기 2차측 유량",
+     "m³/h",
+     "10초",
+     "필수",
+     "2차측 급수 유량. Q_cold 산출과 차압 정규화의 분모.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 미지정(계약 협의) · 조사 research-heat"
+    ],
+    [
+     "폐열회수",
+     "폐열회수 열교환기 HX-301",
+     "열교환기 1차측 차압",
+     "kPa",
+     "10초",
+     "권장",
+     "1차측 유로 막힘·스트레이너 막힘. ΔP ∝ 유량^1.7이므로 유량 정규화 후 추세를 본다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 PDT-301 · 조사 research-heat"
+    ],
+    [
+     "폐열회수",
+     "폐열회수 열교환기 HX-301",
+     "열교환기 2차측 차압",
+     "kPa",
+     "10초",
+     "권장",
+     "2차측 유로 막힘. 급수량이 0.5 m³/h로 작아 유로가 막히면 수전해 급수 부족으로 바로 이어진다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 PDT-302 · 조사 research-heat"
+    ],
+    [
+     "폐열회수",
+     "폐열회수 열교환기 HX-301",
+     "회수 열출력",
+     "kW",
+     "10초",
+     "권장",
+     "회수 열출력. 도면 350 kWth 대비 실적. 파생값(Q_cold 우선, Q_hot 교차검증).",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 FQ-301 · 조사 research-heat"
+    ],
+    [
+     "폐열회수",
+     "폐열회수 열교환기 HX-301",
+     "누적 회수 열량",
+     "kWh",
+     "60초",
+     "권장",
+     "누적 회수 열량. 절감 금액·HPS 열활용 증빙의 원장. 적산열량계 연산부 출력을 그대로 받는다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 FQ-301 · 조사 research-heat"
+    ],
+    [
+     "수처리",
+     "순수 제조설비",
+     "정제수 급수 유량",
+     "m³/h",
+     "60초",
+     "필수",
+     "도면 FT-101. 정제수 급수 유량(설계 0.5 m³/h). 물 소비 원단위 KPI의 분자이고, 급수 유량 현저 저하는 KGS AH271 3.3.1.2(1-6)의 비상정지 조건이라 안전 채널이기도 하다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 FT-101 · 조사 research-water"
+    ],
+    [
+     "수처리",
+     "순수 제조설비",
+     "회수수 재순환 유량",
+     "m³/h",
+     "60초",
+     "필수",
+     "회수수 재순환 유량(설계 0.3 m³/h). 도면에 계기 태그가 없어 신설 필요. 재순환율 KPI와 기액분리기 드레인 이상 판별의 핵심.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 FT-102 · 조사 research-water"
+    ],
+    [
+     "수처리",
+     "폐열회수 열교환기 HX-301",
+     "누적 급수량",
+     "m³",
+     "300초",
+     "필수",
+     "급수 누적 적산(카운터). Δ적산/Δ수소질량으로 원단위를 내는 편이 순시유량 적분보다 오차가 작다. 기존 research-electrolyzer.json makeup_water_volume과 같은 개념의 카탈로그 표기.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 FQ-101 · 조사 research-water"
+    ],
+    [
+     "수처리",
+     "DI 물탱크",
+     "물탱크 수위",
+     "%",
+     "60초",
+     "필수",
+     "도면 LT-101. 20 m³ 탱크 기준 1 %p ≈ 0.2 m³. 물수지 잔차(누수·과공급) 판별의 재고항이고, 저수위는 수전해 급수 상실로 직결되는 안전 지표. KGS AH271 3.2.3.2는 물 저장설비의 넘침 방지 구조를 요구한다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 LT-101 · 조사 research-water"
+    ],
+    [
+     "수처리",
+     "DI 물탱크",
+     "물탱크 수위 스위치",
+     "-",
+     "10초",
+     "필수",
+     "고·저수위 스위치(디지털). LT의 아날로그 값과 독립된 접점을 별도 채널로 받아야 계측기 고착(flatline)과 실제 수위 이상을 구분할 수 있다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 LS-101 · 조사 research-water"
+    ],
+    [
+     "수처리",
+     "순수 제조설비",
+     "RO 투과유량",
+     "m³/h",
+     "60초",
+     "필수",
+     "RO 투과수 유량. 정규화 투과유량(NPF) 산출의 원자료.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 FT-103 · 조사 research-water"
+    ],
+    [
+     "수처리",
+     "순수 제조설비",
+     "RO 농축수 유량",
+     "m³/h",
+     "60초",
+     "필수",
+     "RO 농축수 유량. 회수율과 농축배수(concentration factor)를 통해 스케일 위험을 계산한다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 FT-104 · 조사 research-water"
+    ],
+    [
+     "수처리",
+     "순수 제조설비",
+     "RO 공급 압력",
+     "bar",
+     "60초",
+     "필수",
+     "RO 고압펌프 토출 압력. 동해 규격 최소요건 PIT 3점 중 하나. 같은 투과유량에서 공급압이 오르면 막 오염 신호.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 PT-101 · 조사 research-water"
+    ],
+    [
+     "수처리",
+     "순수 제조설비",
+     "RO 공급-농축 차압",
+     "bar",
+     "60초",
+     "필수",
+     "공급–농축수 차압. 정규화 차압이 기준 대비 +10~15 % 오르면 세정 시점.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 PDT-101 · 조사 research-water"
+    ],
+    [
+     "수처리",
+     "순수 제조설비",
+     "경도 (as CaCO₃)",
+     "mg/L",
+     "86400초",
+     "권장",
+     "as CaCO₃. 연수기 후단 값이 RO 스케일 방어선이다. 동해 규격은 원수 116 → 연수 후단 설계 2(Max <5) mg/L. 온라인 경도계가 없으면 주기적 수기 입력 채널로 둔다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 AT-101 · 조사 research-water"
+    ],
+    [
+     "수처리",
+     "순수 제조설비",
+     "필터 차압",
+     "bar",
+     "60초",
+     "권장",
+     "전처리 마이크로필터·활성탄 여과기 차압. 폐색을 급수 유량 저하보다 먼저 잡는다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 PDT-102 · 조사 research-water"
+    ],
+    [
+     "수처리",
+     "순수 제조설비",
+     "펌프 소비전력",
+     "kW",
+     "60초",
+     "권장",
+     "1차측 순환펌프 소비전력. 회수열의 기생손실을 빼야 순 절감량이 나온다. 유량 대비 전력 상승은 임펠러 마모·공동현상 신호.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 미지정(계약 협의) · 조사 research-heat"
+    ],
+    [
+     "감압·버퍼",
+     "수소 감압밸브 스키드",
+     "수소 압력 설정값",
+     "bar",
+     "300초",
+     "필수",
+     "신규 키. 조정 설정압. 원격 조정이 없으면 메타데이터 상수로 등록하되, 현장 재조정 이력을 반드시 기록해야 편차 KPI가 성립한다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 미지정(계약 협의) · 조사 research-pressure"
+    ],
+    [
+     "감압·버퍼",
+     "수소 감압밸브 스키드",
+     "수소 압력 리플(1분 P-P)",
+     "bar",
+     "60초",
+     "필수",
+     "신규 키. 1분 구간 max−min(피크-피크). 60 s 샘플링으로는 헌팅·채터링(수 Hz)을 원리적으로 볼 수 없으므로 PLC에서 산출해 올려야 한다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 미지정(계약 협의) · 조사 research-pressure"
+    ],
+    [
+     "감압·버퍼",
+     "수소 감압밸브 스키드",
+     "방출관 온도",
+     "°C",
+     "300초",
+     "권장",
+     "신규 키. PSV 시머링·분출 확정. 수소는 상온 교축에서 오히려 온도가 오르므로 방출관 온도 '상승'이 정상 분출 신호다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 TT-501 · 조사 research-pressure"
+    ],
+    [
+     "외부 반입",
+     "외부 수소 반입 설비",
+     "수소 하역 질량유량",
+     "kg/h",
+     "1초",
+     "필수",
+     "하역 중 순간 질량유량. 하역 소요시간·중단 구간·역류 판별의 1차 신호이며, 적산이 반입량의 1순위 근거다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 FT-501 · 조사 research-supply"
+    ],
+    [
+     "외부 반입",
+     "외부 수소 반입 설비",
+     "누적 수소 반입량",
+     "kg",
+     "60초",
+     "필수",
+     "누적 반입 적산(counter, delta 집계). 물질수지 원장의 delivered 항 1순위 소스. 기존 h2.mass.total(생산 적산)과 같은 kind/rollup.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 FQ-501 · 조사 research-supply"
+    ],
+    [
+     "외부 반입",
+     "외부 수소 반입 설비",
+     "하역 헤더 압력",
+     "bar",
+     "5초",
+     "필수",
+     "감압 후 사이트 측 헤더 압력. 버퍼 압력에 근접하면 하역 구동력이 사라진다(미하역 잔량 발생).",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 PT-502 · 조사 research-supply"
+    ],
+    [
+     "외부 반입",
+     "외부 수소 반입 설비",
+     "하역 가스 온도",
+     "°C",
+     "5초",
+     "필수",
+     "하역 가스 온도. 체적·압력 기반 정산을 쓸 때의 보정 입력이며, Type IV 트레일러 저온 트립 판단에도 쓴다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 TT-502 · 조사 research-supply"
+    ],
+    [
+     "외부 반입",
+     "외부 수소 반입 설비",
+     "하역 상태 코드",
+     "-",
+     "5초",
+     "필수",
+     "하역 상태 코드(대기/연결/퍼지/하역중/종료/분리). 하역 구간을 기계적으로 잘라내야 '하역 중 손실'과 '정지 중 누설'을 구분할 수 있다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 미지정(계약 협의) · 조사 research-supply"
+    ],
+    [
+     "외부 반입",
+     "외부 수소 반입 설비",
+     "접지 연속성 양호",
+     "-",
+     "5초",
+     "필수",
+     "접지 연속성 양호 여부(bool). 미연결 상태에서 하역이 시작된 이력은 안전 이벤트이자 절차 준수 지표다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 미지정(계약 협의) · 조사 research-supply"
+    ],
+    [
+     "외부 반입",
+     "외부 수소 반입 설비",
+     "트레일러 잔압",
+     "bar",
+     "60초",
+     "필수",
+     "체류/연결 트레일러 잔압. 하역 종료 판정, 회수율, 반환 잔량(heel) 정산의 근거.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 PT-501 · 조사 research-supply"
+    ],
+    [
+     "외부 반입",
+     "외부 수소 반입 설비",
+     "누적 수소 방출량",
+     "kg",
+     "60초",
+     "권장",
+     "누적 방출량. 지금 원장의 vented_est는 퍼지 횟수 추정뿐이라 하역 벤트가 통째로 잔차에 섞인다.",
+     "P&ID FCND-GP-PID-002 REV.2 · 계장 태그 FT-502 · 조사 research-supply"
     ]
    ],
    "freezeCols": 3
@@ -2196,7 +2629,7 @@
   {
    "name": "운영·비정형 데이터",
    "title": "계측 외에 함께 받아야 하는 데이터",
-   "description": "명판·설계정보, 정비이력(=AI 학습 라벨), 알람코드, 점검 사진, 설정값 변경, 기상·시장가격 등.",
+   "description": "명판·설계정보, 정비이력(=AI 학습 라벨), 알람코드, 점검 사진, 설정값 변경, 기상·시장가격, 반입·출하 전표 등.",
    "columns": [
     {
      "header": "분야",
@@ -3002,6 +3435,36 @@
      "OT 네트워크 구성도·자산 목록",
      "존·컨듀잇 도면, 방화벽 규칙, 통신모듈 BOM, 원격접속 계정 목록, 제조사 클라우드 연결 목적지",
      "보안 경계 검증, 벤더 연결 위험 평가, 사고 시 격리 범위 결정"
+    ],
+    [
+     "장부·전표",
+     "수소 반입 전표",
+     "공급자, 트레일러 번호, 반입 질량[kg], 잔압(heel)[kg], 단가, 단가 기준(운송비·부가세 포함 여부), 청정수소 등급, 성적서 순도",
+     "물질수지 식 ‘반입’ 항의 2순위 소스(1순위는 하역 적산계). 계량값과 건별로 대조해 편차율을 본다. 둘 다 없는 날은 판정 불능이다"
+    ],
+    [
+     "장부·전표",
+     "산소 출하 전표",
+     "구매자, 차량 번호, 출하 질량[kg], 단가, 순도, 법정 품질검사 번호",
+     "산소 회수율(출하 ÷ 이론생산)과 방출 손실률의 분자. 압축기 투자 판단의 근거 자료가 된다"
+    ],
+    [
+     "장부·전표",
+     "법정 산소 품질검사 기록",
+     "1일 1회 이상 순도 99.5% 이상 확인 결과, 검사자, 검사 시각",
+     "고압가스 안전관리법 시행규칙 별표4상 산소 제조자 의무. 준수율 100%가 목표이며 리포트 준수 절에 싣는다"
+    ],
+    [
+     "장부·전표",
+     "세정·교체 이력",
+     "열교환기 세정일과 세정액, RO 세정일, 혼상수지 교체일과 그때의 누적 통수량, 필터 교체",
+     "기준선 리셋 시점. 남기지 않으면 성능 회복을 열화로, 교체 직후 값을 이상으로 오판한다"
+    ],
+    [
+     "장부·전표",
+     "도면 리비전과 명판 회신",
+     "P&ID 리비전 번호, 압력 기준(게이지/절대), Nm³ 기준조건(0/15/20 °C), 감압 단수·조정기 등급, 열교환기 벽 구조, 트레일러 형식",
+     "숫자가 아니라 해석의 기준이다. 미확인이면 질량 환산과 임계가 전부 가정 위에 선다(수소 재고 3.3%, Nm³ 환산 약 7% 차이)"
     ]
    ],
    "freezeCols": 2
@@ -3318,7 +3781,7 @@
   {
    "name": "분석항목×주기",
    "title": "월간·분기·연간 AI 분석으로 판정 가능한 항목",
-   "description": "●=해당 주기 리포트에서 판정. 월은 이상·손실, 분기는 추세(잠정), 연간·YoY는 열화율·수명(확정). 최소 데이터 기간 미달이면 리포트에 '판정 보류'로 표기합니다.",
+   "description": "●=해당 주기 리포트에서 판정. 월은 이상·손실, 분기는 추세(잠정), 연간·YoY는 열화율·수명(확정). 최소 데이터 기간 미달이면 리포트에 '판정 보류'로 표기합니다. 분야 ‘감압·버퍼’·‘폐열회수’·‘부산물 산소’ 3행은 가평 P&ID를 받아 실제로 만든 탐지기이며, 리포트 문장은 구현된 탐지기의 출력 형식입니다.",
    "columns": [
     {
      "header": "분야",
@@ -3981,6 +4444,45 @@
      "—",
      "\"전도도 상승 속도 2배. DI 필터 교체 앞당김.\"",
      "[52] 추정"
+    ],
+    [
+     "감압·버퍼",
+     "감압밸브 PRV",
+     "감압밸브 시트 누설(락업 크리프)",
+     "연료전지 정지·무유동 구간의 하류 압력 기울기[mbar/h]와 압력 설정값·상류 압력·외기온도",
+     "●",
+     "",
+     "",
+     "월간(무유동 hold 구간이 3회 이상 잡힐 때)",
+     "21일 이상 · 하류 압력 60초 이하",
+     "하류 압력이 무유동 구간에서 26 mbar/h로 오르고 있습니다(예시). 3회 연속 확인되어 조정기 점검을 요청합니다. 공급압 효과(버퍼 압력 하강에 따른 설정압 상승)는 구간 전·후반 기울기 비교로 배제했습니다.",
+     "가평 P&ID"
+    ],
+    [
+     "폐열회수",
+     "열교환기 HX-301",
+     "폐열회수 열교환기 성능 저하",
+     "1·2차측 입출구 온도 4점으로 낸 UA와 접근온도, 양측 유량·차압(있으면)",
+     "●",
+     "●",
+     "",
+     "월간 이상 · 분기 추세(잠정)",
+     "21일 이상(기준 14일, 세정 직후 권장) · 온도 60초 이하",
+     "접근온도가 기준 대비 +3.4 K 올랐고 1차측 차압은 그대로입니다(예시). 스케일·막힘보다 표면 막 또는 유량 저하 쪽입니다. 1차측 유량계가 없어 UA 대신 접근온도로 판정했습니다.",
+     "가평 P&ID"
+    ],
+    [
+     "부산물 산소",
+     "부산물 산소 계통",
+     "산소 중 수소(HTO) 상승",
+     "애노드 원가스 산소 중 수소 농도와 전해조 운전 유량·스택 전류, 법정 품질검사 기록",
+     "●",
+     "",
+     "",
+     "월간(전해조 운전 구간만)",
+     "21일 이상(기준 14일) · 60초 이하",
+     "산소 중 수소가 0.92 vol%로 법정 압축금지선(2 vol%)까지 1.08 vol%p 남았습니다(예시). 저부하 비중 증가만으로도 오르므로 스택 전류 구간을 맞춰 비교했습니다.",
+     "가평 P&ID"
     ]
    ],
    "freezeCols": 3
@@ -4208,7 +4710,7 @@
   {
    "name": "AI 분석 방법",
    "title": "AI 분석으로 얻는 결과와 개선 방향",
-   "description": "성숙도: 기술(현황)→진단(원인)→예측(수명)→처방(최적화). 정량 근거는 원 출처 기준이며 '검증 결과' 시트에서 대조 결과를 확인하세요. 출처 대조에서 반박·미확인으로 판정된 수치는 정정하거나 삭제했습니다.",
+   "description": "성숙도: 기술(현황)→진단(원인)→예측(수명)→처방(최적화). 정량 근거는 원 출처 기준이며 '검증 결과' 시트에서 대조 결과를 확인하세요. 마지막 2행(‘AI 설명’·‘리포트 문장 다듬기’)은 실제로 구현된 LLM 층이며, 수치는 통계 엔진이 만들고 LLM은 문장만 다시 씁니다. 출처 대조에서 반박·미확인으로 판정된 수치는 정정하거나 삭제했습니다.",
    "columns": [
     {
      "header": "분야",
@@ -5934,6 +6436,32 @@
      "계약 가용률 최소 98%(모범사례), 예방:시정 80/20(SolarPower Europe). 회수 효과 수치는 파일럿 전 미확인",
      "작업지시 최소 필드 입력 3~6개월, 피어 사이트",
      "처방(최적화)",
+     "중간"
+    ],
+    [
+     "LLM·코칭",
+     "발견사항 쉬운 말 설명 (AI 설명)",
+     "이 발견사항이 무슨 뜻이고 무엇을 하라는 것인가",
+     "분석 엔진이 만든 틀 문장 4줄\n효과 크기·신뢰구간·판정 등급\n설비·사이트 이름\n안전 고정 문구",
+     "수치와 판정은 통계·규칙 기반 엔진이 확정하고, LLM(Gemini)은 이미 만들어진 틀 문장을 읽기 쉽게 다시 쓰기만 한다. LLM이 숫자를 계산하거나 원인을 단정하는 경로는 설계상 없다. 요청 1회·타임아웃 20초, 네트워크 오류만 1회 재시도하고 나머지는 즉시 폴백. 생성문은 여섯 가지 검증을 통과해야 채택한다 — ①숫자·날짜는 엔진 문장에 있던 것만 개수까지 같게 ②설비·사이트 이름 보존 ③반대 방향 단어 추가 금지 ④금지 표현(원인 단정·안전 판단 대체·법적 조언) ⑤안전 고정 문구 보존 ⑥줄 구성·길이",
+     "읽기 쉬운 설명 4줄 + 생성문/틀 문장 배지",
+     "현장 담당자가 근거를 따로 묻지 않아도 되는 수준의 설명. 검증에 하나라도 걸리면 채택하지 않고 틀 문장으로 되돌린다",
+     "LLM 기반 시계열 예측 기법 3종에서 LLM 부분을 빼도 성능이 떨어지지 않았고 대부분 오히려 좋아졌다(Tan 외, NeurIPS 2024) — 판정에 LLM을 쓰지 않는 근거",
+     "엔진 판정이 먼저 있어야 한다. API 키가 없거나 꺼져 있으면 틀 문장만 쓴다(앱 동작은 같다)",
+     "기술(현황)",
+     "중간"
+    ],
+    [
+     "LLM·코칭",
+     "코칭 리포트 문장 다듬기",
+     "월간·분기 리포트 초안을 사람이 읽기 좋게 쓸 수 있는가",
+     "리포트 초안 섹션 문장\n발견사항·조치 이력·KPI 값\n금지 표현 목록",
+     "리포트 초안 검증 규칙(숫자 토큰·방향 단어·금지 표현)을 그대로 쓰되 쉬운 말 4줄용으로 넓혔다. 검토자가 승인하기 전에는 초안 상태로 남고, PDF 출력은 승인 후에만 된다",
+     "검토 대기 상태의 리포트 초안",
+     "검토자가 문장을 고치는 시간을 줄인다. 수치·판정은 바뀌지 않으므로 검토는 표현만 보면 된다",
+     "생성문이 숫자를 하나라도 바꾸면 채택하지 않는다(검증 규칙 ①) — 리포트 수치의 출처는 항상 분석 엔진이다",
+     "발견사항과 KPI가 먼저 계산돼 있어야 한다",
+     "기술(현황)",
      "중간"
     ]
    ],
@@ -8721,11 +9249,11 @@
   {
    "name": "출처",
    "title": "출처 목록",
-   "description": "'주기·수명' 번호는 설계수명·법정 점검·분석항목×주기·정기 리포트·개선항목 시트의 [n]과 대응합니다.",
+   "description": "'주기·수명' 번호는 설계수명·법정 점검·분석항목×주기·정기 리포트·개선항목 시트의 [n]과 대응합니다. '가평 P&ID·…' 119행은 실제 사업 도면 조사(부산물 산소·폐열회수·수처리·감압과 버퍼·외부 반입)의 출처이며, 번호는 영역별로 따로 매겨져 있습니다.",
    "columns": [
     {
      "header": "구분",
-     "width": 12,
+     "width": 16,
      "align": "center"
     },
     {
@@ -11652,9 +12180,2048 @@
      "",
      "산업통상자원부 - 수소 안전관리 로드맵 2.0(2023.5, 법무법인 세종 배포본)",
      "http://www.shinkim.com/newsletter/2023/GA/2023_vol185/links/2023_vol185_102.pdf"
+    ],
+    [
+     "가평 P&ID·부산물 산소",
+     "1",
+     "Panchawadkar, D. — Review of Opportunities to Valorise the Oxygen Generated from Water Electrolysis (KTH 석사논문, 2024)",
+     "http://www.diva-portal.org/smash/get/diva2:1901182/FULLTEXT01.pdf"
+    ],
+    [
+     "가평 P&ID·부산물 산소",
+     "2",
+     "NexantECA — Making money out of thin air: Valorizing the oxygen byproduct of green hydrogen production",
+     "https://www.nexanteca.com/blog/making-money-out-thin-air-valorizing-oxygen-byproduct-green-hydrogen-production"
+    ],
+    [
+     "가평 P&ID·부산물 산소",
+     "3",
+     "IRENA — Sale of electrolysis by-products (oxygen and heat), Innovation Landscape for Smart Electrification",
+     "https://www.irena.org/Innovation-landscape-for-smart-electrification/Power-to-hydrogen/30-Sale-of-electrolysis-by-products-oxygen-and-heat"
+    ],
+    [
+     "가평 P&ID·부산물 산소",
+     "4",
+     "EIGA Doc 04/26 — Fire Hazards of Oxygen and Oxygen-Enriched Atmospheres",
+     "https://www.eiga.eu/uploads/documents/DOC004.pdf"
+    ],
+    [
+     "가평 P&ID·부산물 산소",
+     "5",
+     "AIGA 021/20 — Oxygen Pipeline and Piping Systems (EIGA Doc 13/20 · CGA G-4.4 국제공통본)",
+     "https://asiaiga.org/uploaded_docs/en_AIGA_21_20_Oxygen_Pipeline_and_Piping_Systems.pdf"
+    ],
+    [
+     "가평 P&ID·부산물 산소",
+     "6",
+     "고압가스 안전관리법 시행규칙 [별표 4] — 고압가스 제조의 시설·기술·검사·감리 및 정밀안전검진 기준",
+     "https://www.law.go.kr/LSW/flDownload.do?flSeq=51958249"
+    ],
+    [
+     "가평 P&ID·부산물 산소",
+     "7",
+     "고압가스 안전관리법 시행규칙 [별표 1] — 저장능력 산정기준",
+     "https://www.law.go.kr/LSW//flDownload.do?gubun=&flSeq=116031027&bylClsCd=110201"
+    ],
+    [
+     "가평 P&ID·부산물 산소",
+     "8",
+     "고압가스 안전관리법 시행규칙 제2조 (정의) — 국가법령정보센터",
+     "https://www.law.go.kr/LSW/lsInfoP.do?urlMode=lsInfoP&lsId=006285"
+    ],
+    [
+     "가평 P&ID·부산물 산소",
+     "9",
+     "산업안전보건기준에 관한 규칙 제618조 (정의)",
+     "https://www.law.go.kr/%EB%B2%95%EB%A0%B9/%EC%82%B0%EC%97%85%EC%95%88%EC%A0%84%EB%B3%B4%EA%B1%B4%EA%B8%B0%EC%A4%80%EC%97%90%EA%B4%80%ED%95%9C%EA%B7%9C%EC%B9%99/%EC%A0%9C618%EC%A1%B0"
+    ],
+    [
+     "가평 P&ID·부산물 산소",
+     "10",
+     "물가자료 2024년 1월호 — 가스(공업실험용) 가격표 (조사기간 2023.12.1~12.10)",
+     "https://files-scs.pstatic.net/2024/01/19/u5Kz1gEmxH/%EC%82%B0%EC%86%8C.pdf"
+    ],
+    [
+     "가평 P&ID·부산물 산소",
+     "11",
+     "가스신문 — [초점] 용기에 충전된 산소·질소가격 어느 정도가 적정한가 (2024.1.8)",
+     "https://www.gasnews.com/news/articleView.html?idxno=113645"
+    ],
+    [
+     "가평 P&ID·부산물 산소",
+     "12",
+     "가평 2MW 청정수소발전 시스템 P&ID — FCND-GP-PID-002 REV.2 (2026-07-17)",
+     "internal://drawing/FCND-GP-PID-002-REV2"
+    ],
+    [
+     "가평 P&ID·부산물 산소",
+     "13",
+     "Sungrow — PEM Water Electrolysis Equipment 데이터시트 (DS_20250226)",
+     "https://info-support.sungrowpower.com/application/pdf/2025/02/28/DS_20250226_PEM%20Electrolyzer_Datasheet_EN.pdf"
+    ],
+    [
+     "가평 P&ID·부산물 산소",
+     "14",
+     "가스신문 — [분석] 식품용산소와 의료용산소, 무엇이 어떻게 다른가",
+     "http://www.gasnews.com/news/articleView.html?idxno=95397"
+    ],
+    [
+     "가평 P&ID·부산물 산소",
+     "15",
+     "peacesoftware — Online calculation: properties of oxygen / Engineering ToolBox — Oxygen density vs temperature and pressure",
+     "https://www.peacesoftware.de/einigewerte/o2_e.html"
+    ],
+    [
+     "가평 P&ID·부산물 산소",
+     "16",
+     "온라인가스저널 — [진단] 산업용가스 유통가격 현황 (2010.3.4)",
+     "https://www.igasnet.com/news/articleView.html?idxno=5121"
+    ],
+    [
+     "가평 P&ID·부산물 산소",
+     "17",
+     "Utilizing oxygen from green hydrogen production in wastewater treatment plant aeration: A techno-economic analysis (ScienceDirect, 2025)",
+     "https://www.sciencedirect.com/science/article/pii/S2666792425000484"
+    ],
+    [
+     "가평 P&ID·부산물 산소",
+     "18",
+     "Process Sensing Technologies — Paramagnetic oxygen analyzer / electrolyser gas analysis (XPM601, XHE601)",
+     "https://www.processsensing.com/en-us/products/paramagnetic-oxygen-analyzer-XPM601.htm"
+    ],
+    [
+     "가평 P&ID·부산물 산소",
+     "19",
+     "가스신문 — [2023년 가스기술사 제언] 특정고압가스 신고대상은 몇 병인가",
+     "https://www.gasnews.com/news/articleView.html?idxno=110558"
+    ],
+    [
+     "가평 P&ID·부산물 산소",
+     "20",
+     "가스신문 — [기고] 부생 수소 현황과 활용",
+     "http://www.gasnews.com/news/articleView.html?idxno=73661"
+    ],
+    [
+     "가평 P&ID·부산물 산소",
+     "21",
+     "가스신문 — 물분무장치 설치하면 저장탱크간 이격거리 적용 제외",
+     "https://www.gasnews.com/news/articleView.html?idxno=115366"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "1",
+     "DOE — Technical Targets for Proton Exchange Membrane Electrolysis",
+     "https://www.energy.gov/cmei/fuels/technical-targets-proton-exchange-membrane-electrolysis"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "2",
+     "van der Roest 외, Utilisation of waste heat from PEM electrolysers — Unlocking local optimisation, Int. J. Hydrogen Energy (2023), DOI 10.1016/j.ijhydene.2023.03.374",
+     "https://research.tudelft.nl/en/publications/utilisation-of-waste-heat-from-pem-electrolysers-unlocking-local-"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "3",
+     "Derez, Hoogsteyn, Delarue (KU Leuven), Optimisation of Electrolyser Operation: Integrating External Heat, arXiv:2507.06796 (2025-07-09)",
+     "https://arxiv.org/html/2507.06796v1"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "4",
+     "Ballard FCwave 제품 데이터시트 (2024-10-08)",
+     "https://www.ballard.com/wp-content/uploads/2024/11/FCwave_20241008.pdf"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "5",
+     "Ballard FCgen-LCS 스택 사양 요약 (secondwatt)",
+     "https://secondwatt.com/equipment/fuel-cells/ballard-power-systems-fcgen-lcs"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "6",
+     "두산퓨얼셀 PureCell Model 400 Hydrogen",
+     "https://www.doosanfuelcell.com/kr/prod/prod-0102/"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "7",
+     "적산열량계 기술기준 (산업통상자원부고시, 2018.06.07 타법개정)",
+     "https://www.ulex.co.kr/%EB%B2%95%EB%A5%A0/2100000009614-2048906-%EC%A0%81%EC%82%B0"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "8",
+     "MID Class 2 & EN 1434 Heat Meters (zpmeter 해설)",
+     "https://www.zpmeter.com/blog/which-heat-meters-meet-centralized-heating-acceptance-standards"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "9",
+     "Alfa Laval — Plate Heat Exchanger Calculation Method",
+     "https://www.alfalaval.co.uk/products/heat-transfer/plate-heat-exchangers/gasketed-plate-and-frame-heat-exchangers/calculation-method/"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "10",
+     "아파트관리신문 — 지역난방 운영관리 / 열교환기 유지관리 (4·끝)",
+     "https://www.aptn.co.kr/news/articleView.html?idxno=11977"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "11",
+     "Advancements and prospects of thermal management and waste heat recovery of PEMFC, Energy Conversion and Management: X (2021)",
+     "https://www.sciencedirect.com/science/article/pii/S2666202721000021"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "12",
+     "Shimadzu — Process Monitoring of PEM H₂ Electrolysis Feed Water (TOC-1000e)",
+     "https://www.shimadzu.com/an/sites/shimadzu.com.an/files/pim/pim_document_file/applications/application_note/25054/an_05-sca-130-612-en.pdf"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "13",
+     "NREL — Performance Losses and Current-Driven Recovery in PEM Electrolyzers (FY24, NREL/TP-5900-89676)",
+     "https://docs.nrel.gov/docs/fy24osti/89676.pdf"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "14",
+     "Data-Driven Fouling Detection in Refinery Preheat Train Heat Exchangers Using Neural Networks and Gradient Boosting, Sensors 25(16):4936 (2025), DOI 10.3390/s25164936",
+     "https://doi.org/10.3390/s25164936"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "15",
+     "Temperature optimization for improving polymer electrolyte membrane-water electrolysis system efficiency, Applied Energy (2021)",
+     "https://www.sciencedirect.com/science/article/pii/S0306261920316603"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "16",
+     "Plate Heat Exchanger Fouling Factor Calculation Methods (Industrial Monitor Direct)",
+     "https://industrialmonitordirect.com/blogs/knowledgebase/plate-heat-exchanger-fouling-factor-calculation-methods"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "17",
+     "Plate Heat Exchanger Pressure Drop: Formula & Calculation Guide (Industrial Monitor Direct)",
+     "https://industrialmonitordirect.com/blogs/knowledgebase/plate-heat-exchanger-pressure-drop-formula-and-flow-calculation"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "18",
+     "Double Wall Heat Exchanger Safeguards / Code (Eng-Tips 토론, IPC 608.16.3 인용)",
+     "https://www.eng-tips.com/threads/double-wall-heat-exchanger-safeguards-code.389705/"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "19",
+     "SilcoTek — Preventing Metal Ion Leaching in DI Water",
+     "https://www.silcotek.com/blog/preventing-metal-ion-leaching-in-di-water"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "20",
+     "헬로디디 — 버려지는 폐온수 재활용해 냉방에 활용",
+     "https://www.hellodd.com/news/articleView.html?idxno=64967"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "21",
+     "Nel Hydrogen FAQ",
+     "https://nelhydrogen.com/faq/"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "22",
+     "Low-temperature water electrolysis: fundamentals, progress, and new strategies, Materials Advances (RSC, 2022), DOI 10.1039/D2MA00185C",
+     "https://pubs.rsc.org/en/content/articlehtml/2022/ma/d2ma00185c"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "23",
+     "SWEP — Brazed plate heat exchanger cleaning in place (CIP)",
+     "https://www.swepgroup.com/product/brazed-plate-heat-exchanger/cleaning-in-place"
+    ],
+    [
+     "가평 P&ID·폐열회수",
+     "24",
+     "열사용시설기준 (위례에너지서비스 배포본, 2017.8.1 시행)",
+     "https://www.skens.com/download/wirye/wirye_steam2.pdf"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "1",
+     "ASTM D1193-06(2018) Standard Specification for Reagent Water",
+     "https://www.astm.org/Standards/D1193.htm"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "2",
+     "Puretec Industrial Water — High Purity Water Quality Standards",
+     "https://puretecwater.com/resources/high-purity-water-quality-standards/"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "3",
+     "ISO 3696:1987 Water for analytical laboratory use",
+     "https://www.iso.org/standard/9169.html"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "4",
+     "Nel Hydrogen — FAQ (급수 수질 요구)",
+     "https://nelhydrogen.com/faq/"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "5",
+     "Cummins HyLYZER-1000 PEM 전해조 사양서 (Bulletin 5676518, 2021-06)",
+     "https://www.cummins.com/sites/default/files/2021-08/cummins-hylyzer-1000-specsheet.pdf"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "6",
+     "US DOE Program Record 25003 — Water Use in Hydrogen Production (2026-05-14)",
+     "https://www.energy.gov/documents/record-25003-water-use-hydrogen-production"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "7",
+     "IRENA & Bluerisk — Water for hydrogen production (2023-12)",
+     "https://www.irena.org/-/media/Files/IRENA/Agency/Publication/2023/Dec/IRENA_Bluerisk_Water_for_hydrogen_production_2023.pdf"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "8",
+     "EIGA Doc 246/23 — Guideline for Small Scale Hydrogen Production",
+     "https://www.eiga.eu/uploads/documents/DOC246.pdf"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "9",
+     "JRC 122565 — EU harmonised protocols for testing of low temperature water electrolysers",
+     "https://publications.jrc.ec.europa.eu/repository/bitstream/JRC122565/jrc122565_ltwe_harmonisation_online_identifier_4.pdf"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "10",
+     "EUROWATER(Grundfos) — Keeping the water inside electrolyzers ultrapure",
+     "https://www.eurowater.com/Files/Files/eurowater/Country/International/Leaflets/WhitePaper-RefinementLoop-UPW-Hydrogen-EUROWATER.pdf"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "11",
+     "한국동서발전 — 동해 수전해 기반 수소 생산기지 구축사업 초순수 설비 구매규격서 (Doc 77001-10001-UM-487-002 Rev.A, 2025-04-11, 나라장터)",
+     "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R25BK00760746&bidPbancOrd=000&fileType=&fileSeq=8"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "12",
+     "KGS AH271 (2025) 수전해설비 제조의 시설·기술·검사 기준",
+     "https://h2hub.or.kr/main/info/regulation_info.do?mode=download&articleNo=2572&attachNo=4930"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "13",
+     "Water Technology Online — Membrane Cleaning Fundamentals: Cleaning Criteria and Normalization of Reverse Osmosis Systems",
+     "https://www.watertechonline.com/home/article/14171904/membrane-cleaning-fundamentals-cleaning-criteria-and-normalization-of-reverse-osmosis-systems"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "14",
+     "ASTM D4516-19a Standard Practice for Standardizing Reverse Osmosis Performance Data",
+     "https://www.astm.org/Standards/D4516.htm"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "15",
+     "Thermo Scientific — Measuring the Conductivity of Pure Water Using USP<645> Recommended Equipment",
+     "https://documents.thermofisher.com/TFS-Assets/LSG/Application-Notes/AN-PUREWATER-E%20RevA-HIGHRES.pdf"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "16",
+     "노고산 외, 제주도 MW급 저온 수전해 수소 생산 시스템의 그린수소 생산 능력 및 경제성 분석, 한국수소및신에너지학회 논문집 35(1), 2024",
+     "https://journal.hydrogen.or.kr/xml/36989/36989.pdf"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "17",
+     "Veolia — Ion Exchange & Water Demineralization Handbook, Chapter 8",
+     "https://www.watertechnologies.com/handbook/chapter-08-ion-exchange"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "18",
+     "Genesis Water Technologies — Optimizing Silica Fouling Control in Reverse Osmosis Systems",
+     "https://genesiswatertech.com/blog-post/optimizing-silica-fouling-control-in-reverse-osmosis-systems/"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "19",
+     "EUROWATER — Electrodeionization (EDI) 제품 설명",
+     "https://www.eurowater.com/en/water-treatment-plants/electrodeionization"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "20",
+     "Atlas Scientific — Conductivity Temperature Compensation",
+     "https://atlas-scientific.com/blog/conductivity-temperature-compensation"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "21",
+     "JRC 133726 / Clean Hydrogen Partnership — EU harmonised accelerated stress testing protocols for LTWE stacks",
+     "https://publications.jrc.ec.europa.eu/repository/handle/JRC133726"
+    ],
+    [
+     "가평 P&ID·수처리",
+     "22",
+     "MECO — Maintaining Ultrapure Water Quality: Strategies for Storage & Distribution",
+     "https://www.meco.com/maintain-ultrapure-water-storage-distribution/"
+    ],
+    [
+     "가평 P&ID·감압·버퍼",
+     "1",
+     "Prevent creep in regulators — Swagelok",
+     "https://bangalore.swagelok.com/en/knowledge/pressure-regulators/prevent-creep-in-regulators"
+    ],
+    [
+     "가평 P&ID·감압·버퍼",
+     "2",
+     "Troubleshooting common pressure regulator issues — Swagelok",
+     "https://www.swagelok.com/en/blog/troubleshoot-common-regulator-problems"
+    ],
+    [
+     "가평 P&ID·감압·버퍼",
+     "3",
+     "TESCOM Technical Training — Pressure Regulators Explained (Ver 1.1, Iain Johnston)",
+     "https://www.analyzedetectnetwork.com/manuals/r67iwoJ4WL.pdf"
+    ],
+    [
+     "가평 P&ID·감압·버퍼",
+     "4",
+     "Stabilizing Pressure Regulator Performance — Emerson Automation Experts",
+     "https://www.emersonautomationexperts.com/2018/valves-actuators-regulators/stabilizing-pressure-regulator-performance/"
+    ],
+    [
+     "가평 P&ID·감압·버퍼",
+     "5",
+     "Hydrogen Gas Regulator Failure — H2tools Lessons Learned (PNNL/DOE)",
+     "https://h2tools.org/lessons/hydrogen-gas-regulator-failure"
+    ],
+    [
+     "가평 P&ID·감압·버퍼",
+     "6",
+     "NIST Chemistry WebBook — Hydrogen thermophysical properties (isotherm 293.15 K)",
+     "https://webbook.nist.gov/cgi/fluid.cgi?ID=C1333740&Action=Page"
+    ],
+    [
+     "가평 P&ID·감압·버퍼",
+     "7",
+     "Validation and Comparison of HyRAM Physics Models (OSTI 1813659) — Sandia National Laboratories",
+     "https://www.osti.gov/servlets/purl/1813659"
+    ],
+    [
+     "가평 P&ID·감압·버퍼",
+     "8",
+     "HyRAM 1.0 Technical Reference Manual (SAND2015-10216) — Sandia / h2tools",
+     "https://h2tools.org/sites/default/files/SAND2015-10216-HyRAM-1.0-Technical-Reference-Manual.pdf"
+    ],
+    [
+     "가평 P&ID·감압·버퍼",
+     "9",
+     "KGS FU671 (2025) 수소연료사용시설의 시설·기술·검사 기준 — 한국가스안전공사",
+     "https://h2hub.or.kr/main/info/regulation_info.do?mode=download&articleNo=3039&attachNo=5967"
+    ],
+    [
+     "가평 P&ID·감압·버퍼",
+     "10",
+     "Gas Pressure Regulator HON 402 brochure — Honeywell",
+     "https://prod-edam.honeywell.com/content/dam/honeywell-edam/pmt/hps/products/pmc/gas/regulators---safety-accessories/high-pressure-regulators-up-to-pn40-(ansi-300)/hon-402/hon-402-brochure.pdf"
+    ],
+    [
+     "가평 P&ID·감압·버퍼",
+     "11",
+     "EN 334:2019 Gas pressure regulators for inlet pressure up to 10 MPa (100 bar) — CEN",
+     "https://standards.iteh.ai/catalog/standards/cen/d691abb9-4f05-418d-b188-1cb480e4225c/en-334-2019"
+    ],
+    [
+     "가평 P&ID·감압·버퍼",
+     "12",
+     "Rosemount 3051 Pressure Transmitter Product Data Sheet — Emerson",
+     "https://ipscustom.com/specs/rosemount/Pressure/3051_PDS_RevHA.pdf"
+    ],
+    [
+     "가평 P&ID·감압·버퍼",
+     "13",
+     "Valve Leakage — API 598 / ANSI FCI 70-2 / MSS-SP-61 / ISO 5208 — wermac.org",
+     "https://www.wermac.org/valves/valve_leakage.html"
+    ],
+    [
+     "가평 P&ID·감압·버퍼",
+     "14",
+     "API Standard 527 — Seat Tightness of Pressure Relief Valves",
+     "https://www.api.org/~/media/files/publications/whats%20new/527_e4%20pa.pdf"
+    ],
+    [
+     "가평 P&ID·감압·버퍼",
+     "15",
+     "Retail Hydrogen Station Reliability Status and Advances (OSTI 1603259) — NREL",
+     "https://www.osti.gov/servlets/purl/1603259"
+    ],
+    [
+     "가평 P&ID·감압·버퍼",
+     "16",
+     "도시가스 정압기 분해점검 주기 (Q&A) — 가스신문",
+     "https://www.gasnews.com/bbs/view.html?idxno=60133"
+    ],
+    [
+     "가평 P&ID·감압·버퍼",
+     "17",
+     "Comparative Experimental Assessment of Elastomeric and Thermoplastic Sealing Materials in Valve Sealing Under Cyclic High-Pressure Hydrogen Exposure — PMC",
+     "https://pmc.ncbi.nlm.nih.gov/articles/PMC13074313/"
+    ],
+    [
+     "가평 P&ID·감압·버퍼",
+     "18",
+     "How do you select the right pressure regulator material for hydrogen service? — Pressure Control Solutions",
+     "https://www.pressurecontrolsolutions.com/blogs/how-do-you-select-the-right-pressure-regulator-material-for-hydrogen-service/"
+    ],
+    [
+     "가평 P&ID·감압·버퍼",
+     "19",
+     "Rethinking Gas Leak Detection with Ultrasonic Technology — MSA Safety",
+     "https://blog.msasafety.com/fgfd-rethinking-gas-leak-detection-with-ultrasonic-technology/"
+    ],
+    [
+     "가평 P&ID·감압·버퍼",
+     "20",
+     "Technical Reference on Hydrogen Compatibility of Materials — Austenitic Stainless Steels: Type 316 (code 2103) — Sandia National Laboratories",
+     "https://www.sandia.gov/app/uploads/sites/158/2021/12/2103TechRef_316SS.pdf"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "1",
+     "'수소가격 인하 마중물' 450bar 튜브트레일러, 드디어 달린다 (월간수소경제)",
+     "https://www.h2news.kr/news/articleView.html?idxno=12352"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "2",
+     "액화수소 대항마 '타입4 튜브트레일러' 각광 (전기신문)",
+     "https://www.electimes.com/news/articleView.html?idxno=221102"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "3",
+     "[기획] 국내 수소튜브트레일러 산업 현황&전망 (투데이에너지)",
+     "https://www.todayenergy.kr/news/articleView.html?idxno=244561"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "4",
+     "수소 트레일러, 폭발 대신 '안전'을 싣는다 (에너지신문)",
+     "https://www.energy-news.co.kr/news/articleView.html?idxno=212859"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "5",
+     "Hydrogen Tube Trailers (US DOE EERE)",
+     "https://www.energy.gov/eere/fuelcells/hydrogen-tube-trailers"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "6",
+     "Hydrogen Tube Trailers: Types, Capacity, Pressure & Selection Guide (Rein Hytec)",
+     "https://www.rein-hytec.com/market-trends/what-is-a-hydrogen-tube-trailer"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "7",
+     "EIGA TB 51/24 — Hydrogen Interface for Trailer to Hydrogen Refueling Station",
+     "https://www.eiga.eu/uploads/documents/TB051.pdf"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "8",
+     "AIGA 126/24 — Standard Procedures for Hydrogen Supply Systems",
+     "https://www.asiaiga.org/uploaded_docs/en_AIGA_126_24_Guide_for_H2_Supply_Systems.pdf"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "9",
+     "Hydrogen Station Fact Sheet (H2FCP)",
+     "https://h2fcp.org/sites/default/files/Stations-Fact-sheet3_0.pdf"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "10",
+     "수소유통정보시스템 — 판매가격 보고 및 공개 제도 안내",
+     "https://www.h2nbiz.or.kr/rt/uif/inf/infoSalePrice.do"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "11",
+     "수소유통정보시스템 — 가격정보",
+     "https://www.h2nbiz.or.kr/rt/sts/pce/rtAmountInfo.do"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "12",
+     "수송용 수소 충전소 공급가격 조정 (한국가스공사 보도자료)",
+     "https://www.kogas.or.kr/site/koGas/bbs/View.do?cbIdx=41&Key=1010202000000&boardIdx=44570"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "13",
+     "수도권에 대규모 수소 공급...액화수소가 효율적이다 (뉴스톱)",
+     "http://www.newstof.com/news/articleView.html?idxno=1553"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "14",
+     "수소 유량 현장 교정 시스템 개발 (계장기술 기획특집)",
+     "http://www.procon.co.kr/bbs/board.php?bo_table=magazine_new&wr_id=1036"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "15",
+     "국가기술표준원 — 법정계량기 관리",
+     "https://www.kats.go.kr/content.do?cmsid=73"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "16",
+     "Emerson Micro Motion 고압 코리올리 유량계",
+     "https://www.emerson.com/en-us/news/automation/20-09-coriolis-high-pressure"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "17",
+     "OIML R 139 — Compressed Gaseous Fuel Measuring Systems for Vehicles (H2tools 요약)",
+     "https://h2tools.org/fuel-cell-codes-and-standards/oiml-r-139-compressed-gaseous-fuel-measuring-systems-vehicles-oiml-r"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "18",
+     "Hydrogen Conversions Calculator (H2tools / PNNL)",
+     "https://h2tools.org/hyarc/calculator-tools/hydrogen-conversions-calculator"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "19",
+     "수소 튜브트레일러(T/T) 이용 수소 유통 가능 (에너지데일리)",
+     "https://www.energydaily.co.kr/news/articleView.html?idxno=126024"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "20",
+     "청정수소 인증제, 어떻게 운영되나 (월간수소경제)",
+     "https://www.h2news.kr/news/articleView.html?idxno=12249"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "21",
+     "청정수소 인증제 관련 보도자료 (기후솔루션)",
+     "https://forourclimate.org/ko/newsroom/518"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "22",
+     "수소 상용화 앞당길 '청정수소발전의무화제도' A to Z (SK에코플랜트 뉴스룸)",
+     "https://news.skecoplant.com/plant-tomorrow/15746/"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "23",
+     "유틸리티 — CHPS 규제 변화 (하나증권 산업분석, 2026-06-10)",
+     "https://file.hanaw.com/download/research/FileServer/WEB/industry/industry/2026/06/09/Utilities_260610_CHPS.pdf"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "24",
+     "수소발전 입찰시장 연도별 구매량 산정 등에 관한 고시 (국가법령정보센터)",
+     "https://www.law.go.kr/%ED%96%89%EC%A0%95%EA%B7%9C%EC%B9%99/%EC%88%98%EC%86%8C%EB%B0%9C%EC%A0%84%20%EC%9E%85%EC%B0%B0%EC%8B%9C%EC%9E%A5%20%EC%97%B0%EB%8F%84%EB%B3%84%20%EA%B5%AC%EB%A7%A4%EB%9F%89%20%EC%82%B0%EC%A0%95%20%EB%93%B1%EC%97%90%20%EA%B4%80%ED%95%9C%20%EA%B3%A0%EC%8B%9C"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "25",
+     "2025년 일반수소발전시장 경쟁입찰 공고 (전력거래소)",
+     "https://kpx.or.kr/board.es?mid=a11201000000&bid=0042&list_no=75083&act=view"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "26",
+     "계량증명업 등록 안내 (정부24)",
+     "https://www.gov.kr/mw/AA020InfoCappView.do?HighCtgCD=A09006&CappBizCD=14110000061"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "27",
+     "수소 및 수소용품 관련 규제사항 체크리스트 (연구개발특구진흥재단, 2025.8)",
+     "https://www.innopolis.or.kr/fileDownload?titleId=182136&fileId=1&fileDownType=C¶mMenuId=MENU00318"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "28",
+     "Boil-off losses along LH2 pathway (LLNL-TR-750685, OSTI)",
+     "https://www.osti.gov/biblio/1466121"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "29",
+     "국내 최초, 세계 최대 용량 '3톤 액화수소 탱크트레일러' 출시 (상용차매거진)",
+     "https://www.cvinfo.com/news/articleView.html?idxno=26588"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "30",
+     "국내 수소튜브트레일러 현황(권역별) — 수소경제 종합정보포털",
+     "https://h2hub.or.kr/main/stat/stat_distribute_area_tube.do"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "31",
+     "가중평균 SMP — 전력통계정보시스템(EPSIS)",
+     "https://epsis.kpx.or.kr/epsisnew/selectEkmaSmpSmpChart.do?menuId=040201"
+    ],
+    [
+     "가평 P&ID·외부 반입",
+     "32",
+     "수소 유통시장, 플랫폼 구축과 계량표준화로 진화 중 (공학저널)",
+     "http://www.engjournal.co.kr/news/articleView.html?idxno=3258"
     ]
    ],
    "freezeCols": 1
+  },
+  {
+   "name": "가평 사이트",
+   "title": "가평 2MW 청정수소발전 — 도면 적용 결과 (FCND-GP-PID-002 REV.2)",
+   "description": "고객사가 보낸 실제 사업 도면을 그대로 넣은 결과입니다. 설비 17개를 도면 명판대로 등록했고, 계장 태그 10점은 계측 항목에 바로 매핑했으며, 나머지 52행(필수 37·권장 15)은 미설치라 데이터 계약 요청 목록이 됩니다. 명판의 '미확인'은 추정값으로 채우지 않고 그대로 남긴 값이며, 그 자체가 벤더·설계사 회신 대기 목록입니다.",
+   "columns": [
+    {
+     "header": "구분",
+     "width": 14,
+     "align": "center"
+    },
+    {
+     "header": "코드·태그",
+     "width": 16
+    },
+    {
+     "header": "이름·계측 항목",
+     "width": 34
+    },
+    {
+     "header": "명판 · 설비·한정자",
+     "width": 70
+    },
+    {
+     "header": "주기",
+     "width": 10,
+     "align": "center"
+    },
+    {
+     "header": "상태·중요도",
+     "width": 16,
+     "align": "center"
+    }
+   ],
+   "rows": [
+    {
+     "cells": [
+      "설비 트리",
+      "코드",
+      "이름",
+      "명판 (도면 표기 그대로 · 미확인은 그대로 남긴다)",
+      "",
+      "중요도"
+     ]
+    },
+    [
+     "설비",
+     "PV1",
+     "태양광 발전설비",
+     "dc kwp 1,500  (미확인: ac kw)",
+     "",
+     "4"
+    ],
+    [
+     "설비",
+     "ESS1",
+     "ESS 설비",
+     "energy kwh 2,000  (미확인: power kw, chemistry)",
+     "",
+     "4"
+    ],
+    [
+     "설비",
+     "ELZ1",
+     "PEM 수전해 설비",
+     "rated kw 2,500 · technology PEM · h2 rated kg h 44.9 · outlet bar 30  (미확인: nm3 reference c)",
+     "",
+     "5"
+    ],
+    [
+     "설비",
+     "ELZ1/RECT1",
+     "정류기",
+     "rated dc kw 2,500  (미확인: rated ac kva)",
+     "",
+     "4"
+    ],
+    [
+     "설비",
+     "ELZ1/WTU1",
+     "순수 제조설비",
+     "capacity l h 500 · feed m3 h 0.5 · recycle m3 h 0.3  (미확인: recycle source)",
+     "",
+     "4"
+    ],
+    [
+     "설비",
+     "ELZ1/WTU1/TANK1",
+     "DI 물탱크",
+     "volume m3 20  (미확인: material, vent filter)",
+     "",
+     "3"
+    ],
+    [
+     "설비",
+     "H2BUF1",
+     "수소 버퍼탱크",
+     "tank count 1 · water volume l 50,000 · max bar 30  (미확인: usable kg, pressure basis, min outlet bar)",
+     "",
+     "5"
+    ],
+    [
+     "설비",
+     "H2BUF1/TANK1",
+     "버퍼 용기",
+     "water volume l 50,000 · max bar 30  (미확인: vessel type)",
+     "",
+     "5"
+    ],
+    [
+     "설비",
+     "PRV1",
+     "수소 감압밸브 스키드",
+     "inlet bar max 30 · outlet bar set 0.8  (미확인: stages, class ac, class sg, min dp bar, downstream volume m3)",
+     "",
+     "5"
+    ],
+    [
+     "설비",
+     "FC1",
+     "PEM 연료전지 발전설비",
+     "rated kw 2,000 · technology PEMFC",
+     "",
+     "5"
+    ],
+    [
+     "설비",
+     "FC1/HX1",
+     "폐열회수 열교환기 HX-301",
+     "duty kw 350  (미확인: type, wall type, plate material, design approach k, design ua kw k)",
+     "",
+     "4"
+    ],
+    [
+     "설비",
+     "FC1/PCS1",
+     "연료전지 PCS",
+     "power kw 2,500 · ac voltage v 380 · dc voltage v 650",
+     "",
+     "4"
+    ],
+    [
+     "설비",
+     "MTR1",
+     "계통 연계 계량기",
+     "voltage v 22,900  (미확인: export limit kw)",
+     "",
+     "4"
+    ],
+    [
+     "설비",
+     "O2P1",
+     "부산물 산소 계통",
+     "o2 rated nm3 h 250  (미확인: purity grade)",
+     "",
+     "3"
+    ],
+    [
+     "설비",
+     "O2P1/TANK1",
+     "산소 저장탱크",
+     "water volume m3 30 · max bar 15  (미확인: pressure basis, design temp c, storage capacity m3)",
+     "",
+     "3"
+    ],
+    [
+     "설비",
+     "O2P1/LOAD1",
+     "산소 출하 설비",
+     "compressor present none  (미확인: loading bar, meter type, meter accuracy pct)",
+     "",
+     "3"
+    ],
+    [
+     "설비",
+     "H2DLV1",
+     "외부 수소 반입 설비",
+     "  (미확인: design bar, meter type, meter accuracy pct, bank present, vent stack)",
+     "",
+     "5"
+    ],
+    {
+     "cells": [
+      "도면 계장 태그",
+      "태그",
+      "계측 항목",
+      "설비 · 한정자",
+      "주기",
+      "상태"
+     ]
+    },
+    [
+     "계장",
+     "FT-101",
+     "정제수 급수 유량 [water.flow.feed]",
+     "ELZ1/WTU1",
+     "60초",
+     "매핑 완료"
+    ],
+    [
+     "계장",
+     "FT-201",
+     "수소 질량유량 [h2.flow.mass]",
+     "ELZ1 · elz.out",
+     "60초",
+     "매핑 완료"
+    ],
+    [
+     "계장",
+     "FT-301",
+     "연료전지 수소 소비 유량 [fc.h2.consumption]",
+     "FC1",
+     "60초",
+     "매핑 완료"
+    ],
+    [
+     "계장",
+     "LT-101",
+     "물탱크 수위 [water.tank.level]",
+     "ELZ1/WTU1/TANK1",
+     "60초",
+     "매핑 완료"
+    ],
+    [
+     "계장",
+     "PT-201",
+     "수소 압력 [h2.pressure]",
+     "H2BUF1 · buffer",
+     "60초",
+     "매핑 완료"
+    ],
+    [
+     "계장",
+     "PT-202",
+     "수소 압력 [h2.pressure]",
+     "FC1 · fc.inlet",
+     "60초",
+     "매핑 완료"
+    ],
+    [
+     "계장",
+     "PT-401",
+     "저장용기 압력 [tank.pressure]",
+     "O2P1/TANK1 · o2",
+     "10초",
+     "매핑 완료"
+    ],
+    [
+     "계장",
+     "TT-301",
+     "열교환기 1차측 입구 온도 [hx.temp.hot.in]",
+     "FC1/HX1",
+     "10초",
+     "매핑 완료"
+    ],
+    [
+     "계장",
+     "TT-302",
+     "열교환기 1차측 출구 온도 [hx.temp.hot.out]",
+     "FC1/HX1",
+     "10초",
+     "매핑 완료"
+    ],
+    [
+     "계장",
+     "TT-303",
+     "열교환기 2차측 출구 온도 [hx.temp.cold.out]",
+     "FC1/HX1",
+     "10초",
+     "매핑 완료"
+    ],
+    {
+     "cells": [
+      "신설 요청 포인트",
+      "태그",
+      "계측 항목",
+      "설비 · 한정자",
+      "주기",
+      "필요도"
+     ]
+    },
+    [
+     "요청",
+     "AT-401",
+     "산소 중 수소 농도(HTO) [h2.in.o2]",
+     "O2P1 · o2.product  — 법정 압축금지선 2 vol% 감시 (애노드 원가스 = 산소 계통 쪽에 붙는다)",
+     "60초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "AT-402",
+     "제품 산소 순도 [o2.purity]",
+     "O2P1  — 법정 1일 1회 99.5% 이상 확인",
+     "300초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "AT-403",
+     "대기 산소 농도 [o2.detector.pct]",
+     "O2P1 · vent",
+     "5초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "AT-403",
+     "대기 산소 농도 [o2.detector.pct]",
+     "O2P1/TANK1 · tankroom",
+     "5초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "AT-403",
+     "대기 산소 농도 [o2.detector.pct]",
+     "O2P1/LOAD1 · loading",
+     "5초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "CT-101",
+     "순수·냉각수 전도도 [water.conductivity]",
+     "ELZ1/WTU1 · ro",
+     "60초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "CT-102",
+     "순수·냉각수 전도도 [water.conductivity]",
+     "ELZ1/WTU1 · product",
+     "10초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "CT-301",
+     "순수·냉각수 전도도 [water.conductivity]",
+     "FC1/HX1 · feed",
+     "10초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "CT-302",
+     "순수·냉각수 전도도 [water.conductivity]",
+     "FC1/HX1 · feed.in",
+     "10초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "FQ-101",
+     "누적 급수량 [water.volume.total]",
+     "ELZ1/WTU1  — 원단위 KPI의 분자",
+     "300초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "FQ-501",
+     "누적 수소 반입량 [h2.delivery.mass.total]",
+     "H2DLV1  — 원장 delivered 항의 1순위 소스",
+     "60초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "FT-102",
+     "회수수 재순환 유량 [water.flow.recycle]",
+     "ELZ1/WTU1",
+     "60초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "FT-103",
+     "RO 투과유량 [ro.flow.permeate]",
+     "ELZ1/WTU1",
+     "60초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "FT-104",
+     "RO 농축수 유량 [ro.flow.reject]",
+     "ELZ1/WTU1",
+     "60초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "FT-302",
+     "열교환기 1차측 유량 [hx.flow.hot]",
+     "FC1/HX1",
+     "10초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "FT-402",
+     "산소 질량유량 [o2.flow.mass]",
+     "O2P1/LOAD1 · loading",
+     "10초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "FT-402",
+     "누적 산소 출하량 [o2.shipped.mass.total]",
+     "O2P1/LOAD1",
+     "60초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "FT-501",
+     "수소 하역 질량유량 [h2.delivery.flow.mass]",
+     "H2DLV1  — 코리올리 ±0.5%",
+     "1초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "LS-101",
+     "물탱크 수위 스위치 [water.level.alarm]",
+     "ELZ1/WTU1/TANK1 · low",
+     "10초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "LS-102",
+     "물탱크 수위 스위치 [water.level.alarm]",
+     "ELZ1/WTU1/TANK1 · high  — B.4 감압·버퍼 — 수소 재고 환산과 조정기 시트 누설 판정",
+     "10초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "PDT-101",
+     "RO 공급-농축 차압 [ro.pressure.diff]",
+     "ELZ1/WTU1",
+     "60초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "PT-101",
+     "RO 공급 압력 [ro.pressure.feed]",
+     "ELZ1/WTU1",
+     "60초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "PT-402",
+     "산소 출하 헤더 압력 [o2.loading.pressure]",
+     "O2P1/LOAD1",
+     "10초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "PT-501",
+     "트레일러 잔압 [h2.trailer.pressure]",
+     "H2DLV1",
+     "60초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "PT-502",
+     "하역 헤더 압력 [h2.delivery.pressure]",
+     "H2DLV1",
+     "5초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "TT-201",
+     "저장용기 온도 [tank.temp]",
+     "H2BUF1 · buffer.gas  — 30 bar에서 1 °C = 102 mbar = 겉보기 0.41 kg",
+     "60초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "TT-304",
+     "열교환기 2차측 입구 온도 [hx.temp.cold.in]",
+     "FC1/HX1  — 도면에 없다. 회수 열량·UA 계산 전체가 이 값에 걸린다",
+     "10초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "TT-401",
+     "저장용기 온도 [tank.temp]",
+     "O2P1/TANK1 · o2  — 온도 없이는 압력→질량 환산이 불가능하다",
+     "60초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "TT-502",
+     "하역 가스 온도 [h2.delivery.temp]",
+     "H2DLV1",
+     "5초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "XV-401",
+     "차단밸브 열림 [valve.open]",
+     "O2P1/TANK1 · o2.vent",
+     "5초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "XV-402",
+     "차단밸브 열림 [valve.open]",
+     "O2P1/LOAD1 · o2.loading  — B.2 폐열회수 HX-301 — 교차누설로부터 수전해 스택을 지키는 것이 먼저다",
+     "5초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "미지정",
+     "누적 급수량 [water.volume.total]",
+     "FC1/HX1 · hx.makeup  — 보충수 카운터가 없으면 누설·용출 판별 자체가 불가능",
+     "300초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "미지정",
+     "열교환기 2차측 유량 [hx.flow.cold]",
+     "FC1/HX1  — UA 판정의 2차측 유량 (FT-101과 같은 지점일 수 있다 — 확인 필요)",
+     "10초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "미지정",
+     "수소 압력 설정값 [h2.pressure.setpoint]",
+     "PRV1",
+     "300초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "미지정",
+     "수소 압력 리플(1분 P-P) [h2.pressure.ripple]",
+     "PRV1  — PLC가 1초 표본으로 산출해야 한다",
+     "60초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "미지정",
+     "하역 상태 코드 [h2.delivery.state]",
+     "H2DLV1",
+     "5초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "미지정",
+     "접지 연속성 양호 [h2.delivery.ground]",
+     "H2DLV1  — EIGA TB 51: 매 납품 접지 확인",
+     "5초",
+     "신설 요청 (필수)"
+    ],
+    [
+     "요청",
+     "AT-101",
+     "경도 (as CaCO₃) [water.hardness]",
+     "ELZ1/WTU1",
+     "86400초",
+     "신설 요청 (권장)"
+    ],
+    [
+     "요청",
+     "FQ-301",
+     "회수 열출력 [hx.heat.recovered]",
+     "FC1/HX1",
+     "10초",
+     "신설 요청 (권장)"
+    ],
+    [
+     "요청",
+     "FQ-301",
+     "누적 회수 열량 [hx.heat.total]",
+     "FC1/HX1",
+     "60초",
+     "신설 요청 (권장)"
+    ],
+    [
+     "요청",
+     "FT-401",
+     "산소 질량유량 [o2.flow.mass]",
+     "O2P1 · production",
+     "10초",
+     "신설 요청 (권장)"
+    ],
+    [
+     "요청",
+     "FT-502",
+     "누적 수소 방출량 [h2.vent.mass.total]",
+     "H2DLV1",
+     "60초",
+     "신설 요청 (권장)"
+    ],
+    [
+     "요청",
+     "MT-401",
+     "제품 산소 이슬점 [o2.dewpoint]",
+     "O2P1",
+     "300초",
+     "신설 요청 (권장)"
+    ],
+    [
+     "요청",
+     "PDT-102",
+     "필터 차압 [filter.pressure.diff]",
+     "ELZ1/WTU1 · prefilter",
+     "60초",
+     "신설 요청 (권장)"
+    ],
+    [
+     "요청",
+     "PDT-201",
+     "필터 차압 [filter.pressure.diff]",
+     "PRV1 · prv",
+     "300초",
+     "신설 요청 (권장)"
+    ],
+    [
+     "요청",
+     "PDT-301",
+     "열교환기 1차측 차압 [hx.pressure.diff.hot]",
+     "FC1/HX1",
+     "10초",
+     "신설 요청 (권장)"
+    ],
+    [
+     "요청",
+     "PDT-302",
+     "열교환기 2차측 차압 [hx.pressure.diff.cold]",
+     "FC1/HX1  — B.3 수처리 — 물수지 폐합과 소모품 상태 기반 관리",
+     "10초",
+     "신설 요청 (권장)"
+    ],
+    [
+     "요청",
+     "TT-202",
+     "저장용기 온도 [tank.temp]",
+     "H2BUF1 · buffer.skin",
+     "300초",
+     "신설 요청 (권장)"
+    ],
+    [
+     "요청",
+     "TT-501",
+     "방출관 온도 [vent.temp]",
+     "PRV1  — B.5 외부 수소 반입 — 이것이 없으면 물질수지 식 자체가 성립하지 않는다",
+     "300초",
+     "신설 요청 (권장)"
+    ],
+    [
+     "요청",
+     "미지정",
+     "펌프 소비전력 [pump.power]",
+     "ELZ1/WTU1 · feed",
+     "60초",
+     "신설 요청 (권장)"
+    ],
+    [
+     "요청",
+     "미지정",
+     "펌프 소비전력 [pump.power]",
+     "ELZ1/WTU1 · loop",
+     "60초",
+     "신설 요청 (권장)"
+    ],
+    [
+     "요청",
+     "미지정",
+     "펌프 소비전력 [pump.power]",
+     "ELZ1/WTU1 · ro",
+     "60초",
+     "신설 요청 (권장)"
+    ]
+   ],
+   "freezeCols": 2,
+   "filter": false
+  },
+  {
+   "name": "가평 P&ID 고장모드",
+   "title": "부속 계통 다섯 갈래의 고장 모드와 오탐 함정",
+   "description": "가평 도면 조사에서 정리한 고장 모드 58건입니다. '오탐 함정'은 다른 원인이 같은 신호를 그대로 흉내 내는 경우이며, 탐지기를 켜기 전에 이 목록으로 판별 체크를 먼저 설계합니다. 안전 판단은 현장 설비·PLC 인터록의 몫이며 콘솔이 대신하지 않습니다.",
+   "columns": [
+    {
+     "header": "영역",
+     "width": 12,
+     "align": "center"
+    },
+    {
+     "header": "고장 모드",
+     "width": 26
+    },
+    {
+     "header": "데이터에 나타나는 신호",
+     "width": 46
+    },
+    {
+     "header": "탐지 방법",
+     "width": 50
+    },
+    {
+     "header": "오탐 함정",
+     "width": 46
+    },
+    {
+     "header": "권장 조치",
+     "width": 46
+    },
+    {
+     "header": "심각도",
+     "width": 10,
+     "align": "center"
+    },
+    {
+     "header": "출처",
+     "width": 14,
+     "align": "center"
+    }
+   ],
+   "rows": [
+    [
+     "부산물 산소",
+     "산소 저장탱크·배관 정압 누설",
+     "출하·방출이 없는 구간에서 온도보정 압력이 지속 하강. 물질수지 잔차가 한 방향으로 누적. 탱크실 산소 농도의 완만한 상승.",
+     "밸브 전폐 + 생산 정지 구간(≥30분)을 골라 밀도 ρ(P,T,Z)로 환산한 재고 m(t)에 Theil-Sen 회귀를 건다. |dm/dt| > 만재 재고의 0.5%/h가 서로 다른 3개 정지구간에서 반복되면 경보. 기존 tank-static-leak.ts를 산소 EOS로 파라미터화해 재사용한다.",
+     "① 온도 하강만으로도 압력은 떨어진다 — TT-401 없이 PT만으로 판정하면 야간마다 오경보가 난다. ② 안전밸브 심(seat) 미세 누출은 배관 누설과 신호가 동일하다 — 방출관 산소 농도로 구분한다. ③ 분석·계측 샘플링 라인의 정상 소모(purge)를 누설로 오인. ④ 출하 직후 잔류 압력평형(20~30분)을 누설로 오인.",
+     "정지 구간 압력강하율을 보전 이력에 기록하고 0.5%/h를 넘으면 비눗물·초음파 누설점검 작업지시를 발행한다. 방출관 산소농도가 동시에 오르면 안전밸브 심 누출을 우선 의심하고 기능검사(압축기 최종단 1년, 그 밖 2년) 주기를 앞당긴다.",
+     "high",
+     "부산물 산소 [6]"
+    ],
+    [
+     "부산물 산소",
+     "버퍼 용량 부족에 의한 상시 방출(vent) 손실",
+     "탱크 압력이 상한에 붙어 있는 시간 비율이 높음. 생산량 대비 출하량의 누적 격차 확대. 방출밸브 개도 시간 증가.",
+     "일 단위 물질수지로 방출량 ≈ 이론생산(FT-201×0.5×1.429) − 출하량 − 재고증가를 산출하고, 방출 손실률 = 방출/이론생산으로 정의한다. 동시에 '탱크 압력 ≥ 상한 95%'인 시간비율(만재율)을 추적해, 만재율과 방출 손실률의 상관이 0.7 이상이면 구조적 버퍼 부족으로 분류한다.",
+     "① 유량계 없이 이론생산으로 대체하면 수전해 부하변동 시 오차가 커진다 — FT-401이 없을 때는 결과에 '추정' 플래그가 반드시 필요하다. ② 출하 계량 누락(전표 미입력)을 방출로 오인. ③ 정비 목적의 계획 방출(퍼지)을 손실로 집계.",
+     "단기로는 수전해 운전 스케줄을 트럭 도착 시각에 맞춰 조정한다(출하 직전 증산, 만재 임박 시 감발). 중기로는 압축기+튜브트레일러 도입으로 실질 버퍼를 10배 이상 확보하거나 탱크를 증설한다. 방출이 구조적으로 불가피하면 산소 판매를 포기하고 방출 설계를 안전 기준에만 맞추는 편이 총비용이 낮다 — 경제성 재검토 안건으로 올린다.",
+     "high",
+     "부산물 산소 [12]"
+    ],
+    [
+     "부산물 산소",
+     "산소 순도 저하 (수소 크로스오버 증가)",
+     "h2.in.o2(HTO) 상승. 저부하·고압 운전 구간에서 특히 두드러짐. 막 손상 시 계단형 상승.",
+     "부하 bin(전류밀도 구간)별로 HTO를 정규화한 뒤 월 단위 Theil-Sen 기울기를 본다. 법정 압축금지선(산소 중 수소 합계 2%)까지의 마진을 '남은 여유 %'로 상시 표시하고 50% 미만이면 경보. 단기적으로는 15분 이동중앙값이 1%를 넘으면 주의, 2%에서 압축·출하를 차단한다.",
+     "① 분석기 교정 드리프트 — 영점·스팬 교정 이력과 겹쳐 보지 않으면 막 열화로 오진한다. ② 샘플링 라인 응축수에 의한 농도 왜곡(습윤 산소를 건조 없이 분석). ③ 기동 직후·저부하 과도구간의 정상적 HTO 상승을 열화로 오인 — 부하 정규화가 필수다. ④ 배압 설정 변경(압력이 오르면 크로스오버가 커진다)을 열화로 오인.",
+     "부하 정규화 후에도 상승 추세가 3개월 지속되면 제조사에 막 건전성 진단을 요청한다. 단기로는 저부하 장시간 운전을 줄이고(최소부하 상향) 애노드 배압을 낮춘다. HTO 2% 도달 시 압축·출하 자동 차단은 선택이 아니라 법 준수 요건이다.",
+     "high",
+     "부산물 산소 [6]"
+    ],
+    [
+     "부산물 산소",
+     "압력 조절 이상 (PCV 헌팅 / 과압 / 안전밸브 반복 작동)",
+     "탱크 압력의 단주기 진동 진폭 확대, 설정압 초과 스파이크, 안전밸브 작동 횟수 증가.",
+     "압력 시계열의 이동 표준편차와 제로크로싱 횟수를 기준구간과 비교한다. 설정압 초과 이벤트를 카운트하고, 안전밸브 작동 추정(압력 급락 + 방출관 산소농도 급등 동시 발생)을 별도 이벤트로 적재한다.",
+     "① 태양광 변동에 따른 수전해 부하 급변으로 생기는 정상적 압력 요동 — PV 출력 변동률로 게이트한다. ② 출하 중 압력 변동을 제어 이상으로 오인. ③ 압력계 자체 노이즈·접지 불량.",
+     "PCV 정비·튜닝 작업지시를 낸다. 안전밸브가 반복 작동하면 설정압을 재확인하고 기능검사를 앞당기며, 작동 이력을 안전관리규정 기록(5년 보존)에 남긴다.",
+     "medium",
+     "부산물 산소 [6]"
+    ],
+    [
+     "부산물 산소",
+     "출하 계량 오차 (상거래 분쟁 위험)",
+     "출하 유량 적산값과 탱크 재고 감소 환산값의 지속적 편차, 또는 차량 계량대 실측 질량과의 편차.",
+     "출하 건별로 (a) FT-402 적산 질량, (b) Δ재고 = ρ(P₁,T₁,Z₁)V − ρ(P₂,T₂,Z₂)V, (c) 차량 계량 차이 세 값을 비교한다. (a)-(b), (a)-(c) 편차의 부호 있는 이동평균이 ±2%를 지속 초과하면 계량계 바이어스로 분류한다.",
+     "① 압축계수 Z를 1로 두고 환산하면 15 bar에서도 약 1%의 계통오차가 생긴다 — 반드시 실가스 EOS를 쓴다. ② 충전 중 단열압축에 의한 가스 온도 상승을 무시하면 (b)가 과소평가된다 — 충전 종료 후 온도 평형(30~60분) 뒤 값으로 계산한다. ③ 트레일러 잔압(heel) 미계상. ④ Nm³와 m³ 혼용(기준온도 0 ℃ / 15 ℃ / 20 ℃) — 계약서상 기준상태를 시스템 상수로 고정해야 한다.",
+     "계약서의 기준상태(0 ℃·101.325 kPa)와 환산계수 1.429 kg/Nm³를 시스템 상수로 고정하고 출하 전표에 기준상태를 명시한다. 편차가 2%를 넘으면 유량계 교정을 의뢰하고, 그 사이 출하량은 차량 계량대 값을 정본으로 삼는다.",
+     "medium",
+     "부산물 산소 [15]"
+    ],
+    [
+     "부산물 산소",
+     "산소 농축 대기 형성 (방출관·탱크실·출하장)",
+     "국소 산소 농도 23.5 vol% 초과. 방출 직후와 출하 중에 집중된다.",
+     "AT-403 5초 샘플링. 23.5% 초과가 60초 이상 지속되면 1차 경보, 25% 초과 시 즉시 경보 + 출하 중단 연동. 방출 이벤트와의 시간 상관을 함께 표시해 원인을 특정한다.",
+     "① 검지기 드리프트(전기화학식 수명 1~2년) — 교정 이력 없는 검지기의 단독 경보는 신뢰하지 않는다. ② 질소 퍼지 후 잔류로 인한 저농도 표시를 정상으로 오인(반대 방향 위험). ③ 통풍이 좋은 옥외에서는 국소 고농도가 검지기에 도달하지 않아 '음성 오탐'이 더 위험하다 — 검지기가 방출구 풍하측에 있는지 확인한다.",
+     "방출관 높이·방향을 재검토해 사람 접근 구역 밖으로 상향 방출시키고, 밀폐·반밀폐 공간은 시간당 6회 이상 환기를 확보한다. 작업복에 산소가 스며든 상태에서는 15분 이상 정상 대기에서 환기한 뒤 화기에 접근하도록 작업절차에 명시한다.",
+     "critical",
+     "부산물 산소 [4]"
+    ],
+    [
+     "부산물 산소",
+     "유분·이물 오염에 의한 산소 발화",
+     "압축기 토출 온도 이상 상승, 필터 차압 급증, 배관 내면 검사에서 유막·스케일 확인.",
+     "온라인 직접 탐지는 불가능하다. 압축기 토출온도(기존 compressor.discharge.temp 패턴)와 필터 차압의 동시 상승을 대리지표로 삼고, 정기 유분시험·청정도 검사 기록의 만기를 준수 캘린더로 관리한다.",
+     "① 외기온 상승에 따른 토출온도 상승을 오염으로 오인 — 외기온 보정이 필요하다. ② 압축기 부하율 변화. ③ 대리지표가 '음성'이라고 해서 안전하다는 뜻이 아니다 — 이 한계를 화면에 명시해야 한다.",
+     "산소 계통은 무급유(oil-free) 또는 산소 전용 윤활제만 쓴다(국내법상 석유류·유지류·글리세린의 산소압축기 내부윤활제 사용 금지). 배관·밸브는 산소 서비스 세정(탈지) 후 봉인 상태로 설치하고 세정 인증서를 자산 문서로 콘솔에 등록한다.",
+     "critical",
+     "부산물 산소 [6]"
+    ],
+    [
+     "부산물 산소",
+     "분석기·계측기 고착(flatline) 및 결측",
+     "HTO·순도·이슬점 값이 장시간 동일값 유지, 또는 샘플 누락.",
+     "기존 dq-gap-flatline.ts를 재사용한다. 분석기는 응답이 느리므로 flatline 임계를 압력·온도보다 길게(예: 6시간) 잡되 운전 중(op.state=생산)에만 적용한다.",
+     "① 안정된 정상 운전에서 분석기 값이 실제로 거의 변하지 않는 구간 — 분해능 이하의 변동은 flatline이 아니다. ② 정지 구간의 동결값을 고장으로 오인.",
+     "분석기 flatline이 확인되면 해당 기간의 순도·HTO 데이터를 KPI 계산에서 제외하고 '측정 불가' 구간으로 표시한다. 법정 1일 1회 품질검사는 온라인 분석기와 별개로 수동 채취·분석 기록이 있어야 하므로 기록 누락 여부를 준수 체크리스트로 관리한다.",
+     "medium",
+     "부산물 산소 [6]"
+    ],
+    [
+     "부산물 산소",
+     "건조기 파과(breakthrough) — 수분 혼입",
+     "이슬점 상승, 건조 기준 순도 하락, 흡착탑 재생 온도·시간 이상.",
+     "탑 교번 주기별로 사이클 내 최고 이슬점을 추적한다. 연속 3사이클에서 최고 이슬점이 상승하면 흡착제 열화 또는 재생 부족으로 분류한다.",
+     "① 여름철 입구 가스 온도 상승에 의한 일시적 부하 증가. ② 재생 히터 제어 문제와 흡착제 수명 저하는 신호가 유사하다 — 재생 온도 곡선으로 구분한다.",
+     "재생 온도·시간 설정을 먼저 확인하고 정상이면 흡착제 교체를 계획한다. 의료·식품 등급으로 판매 중이면 이슬점 초과 구간의 출하분을 추적할 수 있도록 로트 기록을 남긴다.",
+     "medium",
+     "부산물 산소 [1]"
+    ],
+    [
+     "부산물 산소",
+     "출하 지연에 의한 수전해 감발 (기회손실)",
+     "탱크 만재 + 트럭 미도착 상태에서 수전해 부하 지령이 강제 하향.",
+     "탱크 만재율과 수전해 부하 지령 하향 이벤트의 동시 발생을 집계한다. 월별 '산소 병목으로 잃은 수소 생산량(Nm³)'을 계산해 기회손실로 환산한다.",
+     "① 태양광 부족에 의한 정상 감발과 구분해야 한다 — PV 발전량이 충분한데도 감발했는지 확인한다. ② 연료전지 수소 수요 변동에 의한 감발.",
+     "산소가 수소 생산의 제약이 된 시간 비율을 월간 리포트 상단에 노출한다. 5%를 넘으면 방출 허용(= 산소 판매 포기)과 버퍼 증설 중 하나를 의사결정 안건으로 올린다.",
+     "medium",
+     "부산물 산소 [12]"
+    ],
+    [
+     "폐열회수",
+     "판 미세균열(핀홀)에 의한 1차→2차 교차누설 — 수전해 스택 즉시 손상",
+     "2차측 급수 전도도 급등(<1 → 수 μS/cm), 1차측 팽창탱크 수위 서서히 감소·보충수 빈도 증가, 양측 압력차 축소, 수전해 스택 셀전압 동반 상승",
+     "water.conductivity(qualifier 'feed') 1 μS/cm 초과가 3회 연속 샘플 지속 → 즉시 경보 + 급수 차단 권고. 동시에 1차측 보충수 카운트 주간 증가율과 상관을 본다. 단독 전도도 상승은 DI 수지 소진일 수 있으므로 HX 상류 전도도와 동시 비교가 필수다.",
+     "① 상류 DI 수지 소진(HX 상류 전도도도 같이 오르면 HX 문제 아님). ② 전도도계 온도보정 미적용 — 급수가 15 °C에서 55 °C로 오르면 같은 이온농도에서도 측정값이 크게 오른다(순수에서 약 2%/K 수준). 25 °C 환산값을 써야 한다. ③ 배관 신설·정비 직후 잔류물. ④ 316L 스테인리스 판에서의 금속이온 용출 — 초순수는 '배고픈 물'이라 316 SS에서 Ni·Fe를 뽑아낼 수 있어 누설이 없어도 전도도가 오른다.",
+     "즉시 HX-301 2차측을 차단하고 수전해 급수를 바이패스(예열 없이 직공급)로 돌린다. 1차측을 가압한 채 2차측을 개방해 누설 여부를 확인하고, 판 침투탐상 또는 EDA(Testex 계열) 검사를 한다. 항구 대책은 이중벽(double-wall, 벤트형) 열교환기로 교체하는 것이다. FC 냉각수에 글리콜이 들어 있으면 스택은 회복 불가이므로 교체 전제로 대응한다.",
+     "critical",
+     "ASTM Type II <1 μS/cm(s12); 이중벽 열교환기 요구 IPC 608.16.3 계열(s18); 초순수의 316 SS 이온 용출(s19)"
+    ],
+    [
+     "폐열회수",
+     "판 표면 스케일·오염에 의한 UA 저하",
+     "동일 유량·동일 입구온도 bin에서 UA 7일 중앙값이 기준 대비 하락, 접근온도 상승, 2차측 출구온도가 설정치(55 °C)에 못 미침",
+     "UA = Q / LMTD를 정상상태 창에서만 계산하고(게이트는 detectorProposals 참조), 유량 bin·1차측 입구온도 bin별로 기준 UA를 잡는다. 7일 중앙값이 기준 대비 −15% → 경고, −25% → 주의. 접근온도 +3 K(7일 중앙값) 동시 상승이면 확증. 차압이 같이 오르면 스케일/막힘, 차압이 그대로면 판 표면 막(생물막·유막) 또는 유량 저하다.",
+     "① 2차측 입구온도(DI 탱크 수온) 계절 변동 — 겨울에 입구가 차가우면 LMTD가 커져 같은 Q에서 UA가 낮아 보인다. 반드시 LMTD로 정규화하고 bin을 나눠야 한다. ② 순환펌프 VFD 감속 — 유량 저하는 UA도 함께 떨어뜨린다(파울링 아님). ③ 작은 온도차 구간의 오차 폭증 — 적산열량계 기술기준의 감온부 오차 Et=±(0.5+3ΔΘmin/ΔΘ)%는 ΔΘ가 작을수록 커진다. ΔΘ 10 K 미만 구간은 판정에서 제외한다. ④ 열수요(급수)가 없는 시간대의 0 유량.",
+     "먼저 차압·유량·스트레이너를 확인해 유량 저하가 원인인지 가른다. 유량이 정상인데 UA만 떨어지면 CIP 세정을 계획한다. 세정액은 스케일에 질산 1.5% 이하·65 °C 이하, 유기물에 가성소다(NaOH) 1.5% 이하·85 °C 이하를 쓰고, 칼슘 침전물에는 질산 10% + 인산나트륨계 2%를 쓴다. 염산은 판의 Cr₂O₃ 부동태 피막을 깨므로 절대 금지다. 세정 후 UA를 재측정해 기준선을 갱신한다.",
+     "medium",
+     "지역난방 판형 열교환기 유지관리(s10); Alfa Laval 계산법(s9); 적산열량계 기술기준 Et 산식(s7); 미처리 계통 U값 5년 후 30~50% 저하(s16, 상업자료)"
+    ],
+    [
+     "폐열회수",
+     "유로 막힘·스트레이너 막힘에 의한 차압 상승",
+     "동일 유량에서 ΔP 상승, 유량 저하(정속펌프) 또는 펌프 전력 상승(VFD 정유량 제어), UA 동반 하락",
+     "정규화 차압 R_dp = ΔP_meas / (ΔP_ref × (Q/Q_ref)^1.75)를 쓴다. R_dp 7일 중앙값 ≥ 1.20 → 경고, ≥ 1.50 → 주의. 지수 1.75는 판형 제조사 범위 1.5~2.0의 중앙값이며, 세정 직후 같은 유량 2~3점으로 현장에서 지수를 회귀해 확정하는 것이 좋다.",
+     "① 유체 점도 변화 — 1차측 온도가 낮은 기동 직후에는 점도가 높아 ΔP가 정상보다 크다. 온도 bin이 필요하다. ② 글리콜 농도 변경(점도·비열이 동시에 바뀌어 Q 계산도 틀어진다). ③ 차압계 영점 드리프트 — 정지·무유량 구간에서 ΔP가 0이 아니면 영점 재교정. ④ 밸브 개도 변경(운전 변경이지 막힘 아님).",
+     "스트레이너를 먼저 청소하고 유량계·차압계 영점을 확인한다. 유로 내부 막힘이 의심되면 역세(backflush)를 시도하고, 회복되지 않으면 분해 점검한다. 파울링 방지를 위해 판 사이 최소 유속 0.5 m/s(물 기준)를 유지하도록 유량 설정을 재검토한다. 2차측은 급수량이 0.5 m³/h로 작아 유속이 낮을 가능성이 높으므로, 판 매수를 줄이거나 저유량 전용 판형(좁은 유로)으로 재선정하는 것을 검토한다.",
+     "medium",
+     "판형 압력손실 지수·최소 유속 0.5 m/s(s17); s14"
+    ],
+    [
+     "폐열회수",
+     "바이패스/3방 밸브 고착 — 회수열 상실 또는 급수 과열",
+     "(고착-우회) 1차측 입출구 온도차 ≈ 0인데 FC는 정상 발열, 회수열 0, 덤프쿨러 가동 증가. (고착-전개) 2차측 출구온도가 설정 55 °C를 넘어 상승, 수전해 스택 입구 온도 상한 접근",
+     "FC 출력 ≥ 정격의 30%이고 급수 유량 > 0인 구간에서 hx.heat.recovered 15분 중앙값이 설계 열량의 10% 미만이면 '회수 상실'로 경고. 반대로 hx.temp.cold.out이 설정치 +5 K를 15분 초과하면 '과열'로 경고하고 수전해 스택 입구 온도와 함께 본다.",
+     "① 정상적인 열수요 소실 — 수전해가 정지 중이면 회수열 0이 맞다. 반드시 수전해 op.state로 게이트한다. ② 기동 중 밸브 램프 구간. ③ 급수 온도 설정 변경(운전자가 바꿨을 수 있어 설정값 변경 이력과 대조해야 한다).",
+     "밸브 액추에이터 피드백(개도)과 지령을 대조해 고착 여부를 확인하고, 고착이면 스템 청소·구동부 점검·교체를 한다. 과열 쪽 고착은 수전해 스택을 직접 위협하므로 급수 온도 상한 인터록(하드와이어)이 있는지 먼저 확인한다. 도면에 바이패스 밸브 태그가 없으므로 실제 존재 여부를 설계사에 확인해야 한다.",
+     "high",
+     "기존 파일 deep/research-fuelcell.json components[9] 3방향밸브 고착 참조. 급수 과열 방향은 본 파일에서 추가"
+    ],
+    [
+     "폐열회수",
+     "열회수 부하 소실로 인한 FC 냉각수 온도 상승과 감발(derate)",
+     "동일 FC 출력·동일 외기에서 냉각수 입구온도 상승, 팬/덤프쿨러 100% 지령 빈도 증가, 하절기 FC 출력 상한 하락",
+     "(hx.temp.hot.in − ambient.temp)를 FC 출력 bin별로 기준 대비 비교. 7일 중앙값 +5 K 초과 → 경고. 덤프쿨러 100% 운전시간 비율의 월간 추세를 함께 본다.",
+     "① 폭염일 외기 급상승 자체 — 외기로 정규화해야 한다. ② 팬 제어로직 변경. ③ 열회수량이 총 발열의 17%뿐이므로 열회수 유무가 냉각계통에 주는 영향은 작다 — 이 모드의 주원인은 덤프쿨러 쪽이지 HX-301이 아닐 가능성이 높다.",
+     "덤프쿨러/라디에이터 핀 청소와 팬 점검이 우선이다. 도면 수치상 FC 총 발열 약 2,014 kWth 중 350 kWth만 회수되므로, 잔여 약 1,664 kWth를 처리할 방열설비 용량이 실제로 확보되어 있는지 설계 검토를 요청한다(openQuestions 3번).",
+     "high",
+     "도면 수치 계산(H₂ 1,340 Nm³/h × 3.00 kWh/Nm³ LHV = 4,014 kW → 전기 2,000 kW → 발열 2,014 kW); 기존 파일 failureModes[33] 참조"
+    ],
+    [
+     "폐열회수",
+     "열량계·온도센서 쌍 드리프트로 인한 회수열량 오계상",
+     "1차측 열량 Q_hot과 2차측 열량 Q_cold의 비가 서서히 변화, 정지 중(무유량) ΔT가 0이 아님, 누적 회수열량이 물리적으로 불가능한 값(설계 열량 초과)",
+     "① 무유량 영점 검사: 양측 유량 ≈ 0이고 온도가 안정된 구간에서 |T_in − T_out|의 24시간 중앙값이 0.3 K를 넘으면 센서 쌍 불일치. ② 열수지 비 검사: Q_hot/Q_cold의 장기 추세를 본다 — 절대값이 아니라 '비의 변화'를 본다(이 계통은 설계상 비가 1이 아니다).",
+     "① 배관 방열 손실 — 보온이 나쁘면 Q_hot > Q_cold가 정상적으로 나온다. ② 이 계통에서는 설계상 Q_cold가 Q_hot의 약 7%이므로 '열수지 불일치' 절대값 판정을 쓰면 안 된다(openQuestions 2번 해결 전까지). ③ 비정상상태 구간(기동·정지 램프). ④ 글리콜 농도에 따른 cp 오차.",
+     "온도센서 쌍은 EN 1434 Class 2 기준으로 0.1 °C 이내 정합된 쌍을 쓰고, 정기검사 주기를 지킨다. 국내에서 열량을 거래·정산에 쓰면 적산열량계는 법정계량기이며 산업통상자원부 적산열량계 기술기준의 형식승인·검정 대상이다. ΔΘmin은 계통 설계 ΔT(15 K)의 1/5 이하(3 K 이하)로 지정해 정상 운전 구간의 감온부 오차가 Et=±(0.5+3×3/15)=±1.1% 수준에 머물게 한다.",
+     "medium",
+     "적산열량계 기술기준 2등급 산식(s7); EN 1434 온도센서 쌍 0.1 °C(s8, 2차자료)"
+    ],
+    [
+     "폐열회수",
+     "초순수 측 금속 이온 용출로 인한 급수 전도도 상승(누설 아님)",
+     "급수 전도도가 예열 후 상류보다 높아지나 1차측 보충수 증가는 없음, 신설·세정 직후 특히 두드러지고 시간이 지나며 서서히 감소",
+     "HX 상류 전도도와 하류 전도도를 동시에 측정해 차이 Δσ를 본다. Δσ > 0.3 μS/cm가 지속되면서 1차측 보충수 카운트가 증가하지 않으면 용출로 분류한다(누설이면 보충수가 반드시 는다).",
+     "① 전도도계 온도보정 미적용. ② 실제 누설의 초기 단계와 구별이 어렵다 — 보충수 카운트가 유일한 결정적 증거이므로 1차측 보충수 유량계·카운터가 없으면 이 판별이 불가능하다.",
+     "판 재질을 확인한다. 양측이 모두 초순수/저전도도 냉각수인 계통에서는 316L 대신 티타늄 판이나 부동태 처리·코팅 판을 검토한다. 신설·세정 직후에는 일정 시간 순환 세척(flushing) 후 전도도가 안정된 다음 수전해에 연결한다. HX 하류에 폴리셔(혼상 이온교환)를 두면 근본 해결이 되지만 압력손실과 유지비가 는다.",
+     "medium",
+     "초순수의 316 SS 이온 용출(s19); ASTM Type II/I 기준(s12)"
+    ],
+    [
+     "폐열회수",
+     "개스킷 열화·외부 누설",
+     "프레임 주변 육안 누수, 1차측 보충수 증가, 체결 치수(tightening dimension) 변화, 압력 유지 시험 실패",
+     "텔레메트리만으로는 잡기 어렵다. 1차측 보충수 카운터의 주간 증가율과 정지 중 계통 압력 감소율(정압 유지 시험)을 보조지표로 쓴다.",
+     "① 팽창탱크 질소 압력 저하(개스킷 문제 아님). ② 계절적 열팽창에 따른 정상적 압력 변동.",
+     "분해 점검 시 30~40 °C까지 식힌 뒤 대각선 방향으로 판을 분리하고, 판마다 핀홀·균열·변형을 확인한다. 개스킷은 경화·영구변형이 보이면 교체한다. 재조립 시 제조사 지정 체결 치수를 반드시 지킨다(과체결은 판 변형, 부족 체결은 누설).",
+     "medium",
+     "지역난방 판형 열교환기 분해 점검 절차(s10)"
+    ],
+    [
+     "폐열회수",
+     "동시운전 미성립으로 인한 회수열 상시 0 (설계·운영 리스크)",
+     "수전해 운전시간 중 FC가 도는 시간 비율이 낮음. 회수 열량 누적이 설계 기대치의 수분의 일에 머묾",
+     "가용률 KPI로 본다. chp.availability = (FC 운전 ∩ 수전해 운전 시간) / 수전해 운전 시간. 월간 값이 30% 미만이면 열회수 설비의 경제성 재검토 신호다.",
+     "① 축열조가 있으면 동시운전이 아니어도 열을 나중에 쓸 수 있다 — 도면에 축열조가 없어 보이므로 확인이 필요하다. ② 계절성(겨울 태양광 부족 → 수전해 가동 감소)을 월간이 아닌 연간으로 봐야 한다.",
+     "태양광 1.5 MWp로 수전해 2.5 MW를 돌리는 구조라 수전해는 주간에, FC는 야간·피크에 도는 것이 경제적 기본형이다. 두 설비가 실제로 겹치는 시간을 먼저 실측하고, 겹침이 적으면 축열조(온수 버퍼)를 넣거나 회수열의 용도를 급수 예열이 아닌 상시 부하(동결 방지, 건물 난방, DI 제조설비 RO 급수 예열)로 돌리는 것이 낫다.",
+     "high",
+     "도면 계통 구성(태양광→ESS→수전해, FC→PCS→계통)에서 유도한 운영 추론 — assumption. 외부 수소 반입 전제 주석 참조"
+    ],
+    [
+     "폐열회수",
+     "동절기 동결 (정지 중 HX·급수 배관)",
+     "외기 0 °C 이하 + 계통 정지 + 순환 정지가 겹치는 구간. 재기동 시 유량 0, 차압 이상, 판 변형·누설",
+     "ambient.temp < 2 °C이고 hx.flow.hot ≈ 0이 30분 이상 지속되며 tank.temp(di_water)가 5 °C 미만이면 동결 위험 경보.",
+     "① 계획 정비 중 배수 완료 상태(정상) — 정비 모드 플래그로 억제해야 한다. ② 온도계가 실내 설치라 외기를 대표하지 못하는 경우.",
+     "가평은 동절기 최저기온이 낮은 내륙 지역이므로, 2차측 정제수 라인은 동결 시 배수하거나 트레이싱(전열선) + 보온을 적용한다. 1차측에 글리콜이 들어간다면 교차누설 시 수전해 스택이 즉사하므로, 글리콜 대신 순수 + 트레이싱 조합을 우선 검토한다. 이 판단은 도면에 냉각수 조성이 없어 확정할 수 없다(openQuestions 9번).",
+     "medium",
+     "도면 소재지(가평); 기존 파일 fc_thermal_subsystem 동결 방지 참조. 가평 설계 최저기온은 unknown"
+    ],
+    [
+     "수처리",
+     "혼상 이온교환수지(MBP) 소진 — 실리카 선파과 후 전도도 급상승",
+     "제품 초순수 전도도가 0.1 µS/cm 보증선에 서서히 접근하다가 어느 시점부터 기울기가 급해진다. 실리카(SiO2)가 전도도보다 먼저 새어나온다. 교체 사이 누적 통수량(polisher.volume.total)이 직전 카트리지들보다 짧아진다.",
+     "① 제품 전도도의 최근 7일 Theil-Sen 기울기[µS/cm/day]를 구해 한계(0.1 µS/cm) 도달 예상일을 선형 외삽 → 잔여수명 일수로 표시. ② 같은 통수량 구간(예: 누적 100 m3 지점)에서의 전도도를 과거 N개 카트리지 중앙값과 비교, +30 % 이상이면 수지 조기소진으로 판정. ③ 실리카 샘플값이 3 µg/L(ASTM Type I·II 한계)를 넘으면 전도도가 아직 정상이어도 파과 경보를 올린다(Veolia: 실리카 파과가 전도도 파과에 선행).",
+     "수지 교체 직후 세척 부족으로 생기는 일시적 전도도 스파이크(수 시간~1일), 급수 온도 변화에 의한 온도보상 오차, 전도도 셀 오염, 장기 정지 후 재기동 시 정체수 배출 구간.",
+     "① 예비 수지 발주 리드타임 확보(동해 규격은 소모품을 2년치 옵션으로 별도 조달). ② 실리카·TOC 랩 분석으로 파과 유형 확인. ③ 전도도가 예상보다 빨리 오르면 원인을 상류(RO 성능 저하·원수 악화)에서 먼저 찾는다 — 수지만 바꾸면 다음 주기가 더 짧아진다.",
+     "medium",
+     "수처리 [[17, 11, 1, 10]]"
+    ],
+    [
+     "수처리",
+     "RO 막 오염·스케일링(NPF 저하 / 차압 상승 / 염제거율 저하)",
+     "온도·압력·회수율로 정규화한 투과유량(NPF)이 기준 대비 10 % 이상 감소, 정규화 차압 10~15 % 이상 증가, 정규화 염통과율 5~10 % 이상 증가 중 하나 이상이 지속.",
+     "ASTM D4516 방식으로 투과유량·염통과·차압을 표준조건(25 °C, 설계 압력·회수율)으로 환산한 뒤, 시운전 후 48~72 h 안정 구간을 기준선으로 잡아 상대 변화를 본다. 세 지표의 조합으로 원인을 가른다: 차압만 오르면 입구 막힘(입자·바이오), 투과유량만 줄면 표면 파울링, 염통과만 오르면 막 열화·O-ring 누설.",
+     "수온 하강(겨울철 투과유량은 온도만으로도 크게 감소 — 정규화 없이 보면 무조건 오염으로 보인다), 공급 TDS 변동, 회수율 설정 변경, 유량계·압력계 교정 이탈, 세정 직후 기준선 미갱신.",
+     "① 기준을 넘으면 즉시 CIP 계획. NPF가 30 % 떨어질 때까지 기다리면 표준 세정으로 회복되지 않는다(WaterTechOnline 사례: 93일 방치 시 투과유량 45 % 저하, 극약처방 세정 후에도 염통과 영구 상승). ② 스케일 의심이면 연수기 경도 누출을, 바이오파울링 의심이면 활성탄 여과기 잔류염소 제거 과잉과 정체를 먼저 점검. ③ 실리카 농축수 농도를 계산해 150 mg/L를 넘으면 회수율을 낮춘다.",
+     "high",
+     "수처리 [[13, 14, 18, 11]]"
+    ],
+    [
+     "수처리",
+     "연수기 재생 실패 → RO 탄산칼슘 스케일",
+     "연수 후단 경도가 설계 2 mg/L(as CaCO3)를 넘어 Max 5 mg/L에 접근. 이어서 RO 차압 상승과 NPF 저하가 따라온다. NaCl 소금통 잔량이 예상보다 늦게 줄거나 재생 사이클 후 경도가 회복되지 않는다.",
+     "① 경도 실측(수기 또는 온라인)이 5 mg/L 초과 시 즉시 경보. ② 재생 주기 사이 누적 처리수량과 원수 경도를 곱한 누적 경도부하가 설계 교환용량을 넘었는데 재생 이벤트가 없으면 재생 로직 이상으로 판단. ③ 경도 계측이 없는 사이트에서는 RO 차압 상승 속도와 RO 투과수 전도도가 동시에 악화되는 패턴을 대리 지표로 쓴다.",
+     "샘플링 위치 오류(재생 직후 정체수), 경도 시약 유효기간, 원수 경도의 계절 변동(동해 규격도 계절 변동을 설계에 반영하라고 명시), 자동 멀티포트 밸브의 위치 피드백 부재.",
+     "① NaCl 잔량·염수 흡입(에덕터) 점검, 멀티포트 밸브 동작 확인(동해 규격은 활성탄·연수기용 예비 밸브를 각각 1개씩 요구). ② 재생 주기를 원수 경도 실측에 맞춰 재설정. ③ 이미 RO에 스케일이 있으면 산 세정.",
+     "medium",
+     "수처리 [[11, 18, 13]]"
+    ],
+    [
+     "수처리",
+     "전처리 필터·활성탄 여과기 폐색으로 급수 유량 부족",
+     "전처리 차압 상승, RO 고압펌프 흡입압 저하(동해 규격의 PS 1점이 잡는 지점), 급수 유량(FT-101)이 설정값 0.5 m3/h 아래로 떨어지고 DI 탱크 수위가 서서히 하강.",
+     "① 필터 차압의 일간 최대값 추세(Theil-Sen)가 정격 교체 차압에 도달하는 날짜를 외삽. ② 같은 펌프 회전수에서의 유량/펌프전력 비를 보조 지표로 사용. ③ 급수 유량 저하가 지속되면 수전해 급수 상실 경로로 에스컬레이션 — KGS AH271 3.3.1.2(1-6)은 물·수용액 유량이 현저하게 낮은 경우 비상정지를 의무화한다.",
+     "역세(backwash) 진행 중의 정상적 차압·유량 변동, 수온 하강에 따른 점도 증가, 원수 공급압(설계 3~5 barg) 변동, 하류 수요 감소에 의한 정상적 유량 감소.",
+     "① 역세 주기 단축 또는 필터 교체(동해 규격은 RO 마이크로필터 예비를 교환 2회분 확보하도록 요구). ② 원수측 이물 유입원(공사·단수 후 탁도 상승) 조사. ③ 급수 유량 하한 인터록은 분석 결과와 무관하게 PLC가 처리해야 한다.",
+     "medium",
+     "수처리 [[12, 11, 8]]"
+    ],
+    [
+     "수처리",
+     "DI 물탱크 수위 이상 — 누수(하강) 또는 과공급·오버플로우(상승)",
+     "물수지 잔차가 0이 아니다. 즉 적산(급수+재순환) − 적산(스택 소비 + 측정된 드레인) − Δ(탱크 재고)가 계통적으로 한쪽으로 쌓인다. 누수면 정지 중에도 수위가 내려가고, 과공급이면 고수위 스위치가 반복 동작한다.",
+     "① 정지(비운전) 구간만 골라 수위 감소율[%/h]을 본다 — 운전 중 소비와 섞이지 않는 가장 깨끗한 창(기존 tank-static-leak 탐지기와 같은 발상). 20 m3 탱크에서 0.05 %/h(=10 L/h)만 새도 하루 240 L다. ② 운전 구간에서는 물수지 잔차를 누적해 CUSUM으로 본다. 잔차 누적이 급수량의 2 % 이상이면 경보. ③ 수위계 온도영향·거품층을 배제하려 고·저수위 스위치(디지털) 동작과 교차확인.",
+     "정전식·초음파 수위계의 온도 드리프트와 응결, 탱크 통기구 막힘에 의한 부압, 수지 교체/드레인·역세 이벤트(계획된 배수를 누수로 오인), 유량계 영점 드리프트(0.5 m3/h 저유량 영역은 전자유량계 정확도가 나빠지는 구간), 수위계 고착(flatline).",
+     "① 정지 중 하강이 확인되면 배관·플랜지·드레인 밸브 육안 점검과 밸브 시트 누설 시험. ② 과공급이면 급수 밸브 인터록(동해 규격의 Service Water Tank 수위 연동 공압 on/off 밸브)과 수위 설정값 확인. ③ KGS AH271 3.2.3.2가 요구하는 넘침 방지 구조 상태 점검.",
+     "high",
+     "수처리 [[12, 11]]"
+    ],
+    [
+     "수처리",
+     "수소 kg당 물 소비 원단위 상승",
+     "L/kg H2 원단위가 기준선(도면 환산 11.1, 상용 사양 9 L/kg) 대비 계통적으로 상승. 전도도·RO 지표는 정상인데 원단위만 오르면 물리적 손실(누수·드레인 과다·퍼지)이고, RO 회수율 저하가 동반되면 전처리 문제다.",
+     "① 주 단위 적산으로 SWC = Δwater.volume.total[L] / Δh2.mass.total[kg]를 계산. ② 부하율 bin(10 % 단위)과 계절(수온) bin으로 나눠 과거 동일 bin 중앙값과 비교, +10 % 이상 4주 연속이면 경보. ③ 원단위를 성분 분해해 어디가 늘었는지 본다: 화학양론(8.93 L/kg, 고정) + 가스 반출 순손실(30 bar 기준 약 0.11 L/kg) + 전처리 배출(회수율로 결정) + 물리 손실(잔차).",
+     "수소 유량계·질량 적산의 드리프트(분모 오차가 그대로 원단위 오차), 저부하·간헐운전 비중 증가(기동 시 드레인·세척수 비중이 커진다 — 태양광 연계 사이트의 구조적 특성), 정지 기간 중 순수기 자체 소비(역세·린스)를 수소 생산에 배분하는 계산 오류, 외부 반입 수소를 분모에 넣는 오류(이 사이트는 FC 소비 1,340 > 생산 500 Nm3/h로 외부 반입 전제).",
+     "① 원단위 상승분을 L/day로 환산해 용수 비용(제주 2022년 $0.35/ton 수준)과 물수지 잔차로 함께 제시. ② 분모(수소 적산) 신뢰도를 먼저 검증한 뒤 분자 조사. ③ 기동 횟수 증가가 원인이면 설비 조치가 아니라 운전 스케줄 조정으로 안내.",
+     "medium",
+     "수처리 [[5, 6, 16, 7]]"
+    ],
+    [
+     "수처리",
+     "재순환(응축수 회수) 회수율 저하",
+     "설계 0.3 m3/h 대비 재순환 유량이 감소하고, 같은 수소 생산량에서 급수(FT-101)는 늘어난다. 기액분리기 수위 변동 폭이 커지거나 드레인 밸브 동작 횟수가 비정상.",
+     "① 회수율 RR = 적산(recycle) / (적산(feed) + 적산(recycle))을 부하율 bin별로 추적, 기준 대비 -20 % 이상이면 경보. ② 급수 증가분과 재순환 감소분이 1:1로 상쇄되는지 확인 — 상쇄되면 회수 경로 문제, 상쇄되지 않으면 누수 쪽. ③ 가스측 수분 반출량은 압력·온도의 함수이므로(30 bar 기준 DOE 0.074 gal/kg) 운전 압력 변화를 먼저 보정.",
+     "운전 압력·온도 변경(압력이 낮아지면 가스가 실어가는 수분이 늘어 회수 대상 자체가 변한다), 재순환 유량계 부재 시 추정값 사용, 기액분리기 레벨 제어 방식(연속 vs 배치 드레인) 차이로 순시값이 크게 흔들리는 구간, 냉각수 온도 상승으로 응축기 성능이 계절적으로 떨어지는 경우.",
+     "① 기액분리기 드레인 밸브 시트·액추에이터 점검, 레벨 스위치 교정. ② 응축기 냉각수 온도·유량 확인. ③ 산소측 수분은 애초에 회수하지 않는 설계가 흔하므로(DOE 가정) 회수 대상 범위를 도면으로 확정한 뒤 목표치를 잡는다.",
+     "medium",
+     "수처리 [[6, 8]]"
+    ],
+    [
+     "수처리",
+     "DI 탱크 정체·CO2 침투에 의한 전도도·TOC 상승",
+     "탱크 출구 전도도가 MBP 출구 전도도보다 뚜렷이 높다. 저부하·정지가 길었던 다음날 아침에 특히 크고, 재가동 후 수 시간이면 돌아온다. TOC 샘플값도 같이 오른다.",
+     "① MBP 출구와 탱크 출구 전도도의 차(Δ)를 상시 계산해 Δ > 0.05 µS/cm가 지속되면 경보. ② 탱크 체류시간(= 탱크 재고 ÷ 급수 유량, 설계 20 m3 ÷ 0.5 m3/h ≈ 40 h)을 계산해 정체 시간과 Δ의 상관을 본다. ③ 대기 평형 CO2만으로도 순수 전도도는 이론 하한 0.055 µS/cm에서 1 µS/cm 수준까지 오를 수 있으므로 절대값이 아니라 Δ와 회복 시간으로 판정한다.",
+     "전도도계 2대의 셀상수·교정 차이(Δ가 계측기 계통오차일 수 있다 — 두 계기를 정기적으로 교차 검증해야 한다), 탱크 하부 샘플링으로 인한 층화 효과, 수지 교체 직후 잔류 미분.",
+     "① 통기구에 CO2 흡착/소수성 벤트 필터 적용 검토(동해 규격은 CO2 오염방지 설비를 공급자 판단에 맡기되 MBP 후단 0.1 µS/cm 보증을 전제로 함). ② 탱크 용량 대비 실제 소비가 작으면 순환(recirculation) 라인으로 정체를 줄인다. ③ 수질 초과 시 탱크로 되돌려 재처리하는 순환 인터록이 살아 있는지 확인.",
+     "low",
+     "수처리 [[11, 10, 15, 22]]"
+    ],
+    [
+     "수처리",
+     "정체수·저유량 구간의 미생물·바이오필름(원수~RO 전단 중심)",
+     "RO 차압이 압력 손실 위주로 오르고 세정 후에도 금방 재발. 활성탄 여과기 후단에서 특히 잘 생긴다(잔류염소가 제거된 유기물 풍부 구간). TOC와 입자수가 함께 오른다.",
+     "① RO 차압 상승 속도가 CIP 직후에도 빠르게 회복되지 않으면 바이오파울링 쪽으로 가중. ② 저유량·정지 시간 비중(운전 듀티)과 차압 상승 속도의 상관을 본다. ③ 미생물 자체는 온라인 계측이 사실상 없으므로 배양 샘플 결과를 수기 입력 채널로 받아 이벤트 상관분석에 쓴다.",
+     "EUROWATER는 전해조 계통 자체는 바이오파울링 위험이 매우 낮아 정제 루프의 UV가 대개 불필요하다고 본다 — 즉 이 고장모드는 스택 루프가 아니라 원수~전처리 구간에 한정된다. 전해조 루프 전도도 상승을 미생물 탓으로 돌리면 오진이다. 그 밖에 수온 상승(여름), 역세 중단.",
+     "① 활성탄 여과기 역세 주기 준수, 장기 정지 시 계통 배수 또는 순환. ② 바이오 의심 시 알칼리 세정(고 pH) 우선. ③ 태양광 연계로 야간·우천 정지가 길어지는 사이트는 정지 중 순수기 순환 운전을 운전 절차에 넣는다.",
+     "low",
+     "수처리 [[10, 8, 22]]"
+    ],
+    [
+     "수처리",
+     "애노드 루프 전도도 상승 — BoP 금속 용출·불소 이탈에 의한 스택 오염 경로",
+     "정제기 하류 루프 전도도가 0.1 µS/cm대에서 서서히 올라 1.0 µS/cm 운전기준에 접근. 급수(MBP 출구) 전도도는 정상인데 루프만 오른다. 수지 교체 주기가 짧아진다.",
+     "① 급수 전도도와 루프 전도도의 차로 전해조 내부 발생 오염을 분리한다(EUROWATER 모델: 오염원은 원수·전해조 방출·전해조 변형 3종). ② 물 이용률이 높을수록 오염이 농축된다 — 이용률 90 %면 10배, 99 %면 100배. 따라서 저유량 운전 구간에서 전도도가 튀는 것은 정상 물리이므로 유량 정규화가 필수. ③ 전도도만으로는 종을 구분할 수 없으므로 불소·금속 이온 샘플 분석과 병행(JRC도 이온선택전극 상시감시는 선택사항으로 둔다).",
+     "전도도계 온도보상 오류(초순수는 약 5.5 %/°C), 수지 교체 직후 미분 유출, 기동 직후 정체수, 배관 신규 설치 후 초기 용출(정상적 감쇠 구간).",
+     "① 정제 루프(측류) 크기가 DI 루프 유량의 1~5 % 범위에 있는지 설계 확인 — 목표 전도도가 낮을수록 측류를 키워야 한다. ② 루프 재질(스테인리스·티타늄) 부적합 구간 조사. ③ 스택 셀전압 상승과 상관이 확인되면 수지 즉시 교체 후 제조사 회복 절차 문의.",
+     "high",
+     "수처리 [[10, 9, 20]]"
+    ],
+    [
+     "수처리",
+     "전도도계 드리프트·오염·온도보상 오류(계측 신뢰성)",
+     "전도도가 이론 하한 0.055 µS/cm보다 낮게 읽히거나, 급수 온도와 전도도가 뚜렷한 상관을 보이거나(온도보상 실패), 값이 수 시간 이상 완전히 고착된다.",
+     "① 물리적 불가능 검사: 25 °C 환산값 < 0.055 µS/cm면 즉시 계측 이상. ② 온도-전도도 상관계수가 절대값 0.7을 넘으면 온도보상 설정 오류 의심(초순수는 비선형 보상이 필요하며 단일 계수 선형보상으로는 맞지 않는다). ③ 고착 판정: 카탈로그의 flatlineMaxS 체계를 적용하되 정지 구간은 제외. ④ 두 대(RO 후단·MBP 후단) 값의 물리적 순서(RO > MBP)가 뒤집히면 둘 중 하나가 고장.",
+     "정상적으로 매우 안정한 초순수 전도도를 고착으로 오인(수지 교체 직후 안정기), 정지 중 정체수, 셀상수 교정 직후의 계단 변화.",
+     "① 교정은 100 µS/cm 표준액으로 하고 저농도 표준액(5~25 µS/cm)은 쓰지 않는다 — NIST 표준액도 그 구간 불확도가 ±8.3~2.4 %에 이른다. ② 유량셀 내 기포는 전도도를 올리므로 샘플 라인 통수 확인. ③ 계측 이상 판정이 나면 그 기간의 수질 기반 탐지 결과를 전부 보류(게이트).",
+     "medium",
+     "수처리 [[15, 20, 1]]"
+    ],
+    [
+     "수처리",
+     "동절기 동결 — 물탱크·급수 배관",
+     "급수 온도(TT-303)가 5 °C 아래로 내려가고 야간 최저기온이 영하. 급수 유량 감소와 압력 변동이 동반되며, 최악의 경우 배관 파손 후 급수 상실.",
+     "① 급수 온도 최저값과 외기 온도의 시계열로 동결 위험 시간(온도 3 °C 미만 지속 시간)을 집계. ② 유량 저하와 온도 하강이 동시에 나타나면 동결 초기로 분류. ③ 정지 기간이 길고 기온이 낮은 날에 사전 경고를 낸다(태양광 연계로 겨울 야간 장시간 정지가 잦음).",
+     "온도계 위치가 폐열회수(HX-301)로 예열된 지점이면 실제 옥외 배관 온도를 대표하지 못한다(TT-303 태그 위치 확정 필요), 히팅 케이블 동작 중 국부 온도 상승.",
+     "① 보온·열선(electric tracing)과 방열기 동작 확인 — 동해 규격도 컨테이너 벽체 보온과 동파 방지 방열기를 공급범위에 명시한다. ② 장기 정지 시 배수 절차. ③ 국내 설계 최저기온(동해 사례 -13 °C)을 가평 사이트 값으로 대체해 임계 재설정.",
+     "medium",
+     "수처리 [[11, 8]]"
+    ],
+    [
+     "수처리",
+     "태양광·ESS 연계 간헐운전에 의한 수처리 설비 저듀티 열화",
+     "수전해가 하루 수 시간만 도는 사이트에서 순수기도 같이 서고, 정지 중 배관·막·수지가 정체된다. 재기동 때마다 초기 배수·린스로 물이 나가고 전도도가 튄다.",
+     "① 운전 듀티(일간 운전시간 비율)와 (a) 기동당 초기 전도도 회복시간, (b) 기동당 배수량, (c) 재순환율을 상관 분석. ② 원단위 상승분 중 기동 관련 손실을 기동 횟수로 회귀해 분리한다. ③ 듀티가 낮은 달일수록 수지 교체 주기가 짧아지는지 확인(정체 오염 가설 검증).",
+     "계절 일사량 변화에 의한 자연스러운 듀티 감소를 설비 이상으로 오인, ESS 평활 운전으로 듀티가 회복되는 구간과의 혼선, 유지보수 정지와 자연 정지의 미구분.",
+     "① 정지 중 순수기 순환 운전 절차 도입(EUROWATER 관점에서 전해조 루프의 바이오 위험은 낮지만 전처리 구간은 정체에 취약). ② 초기 배수량을 기록해 원단위 계산에서 분리. ③ ESS 평활 운전 설정을 물 소비·수지 수명 관점에서도 평가 — 이 사이트는 ESS 2.0 MWh가 수전해 전력 평활용이므로 듀티 정책이 곧 수처리 수명 정책이 된다.",
+     "low",
+     "수처리 [[10, 7]]"
+    ],
+    [
+     "감압·버퍼",
+     "감압밸브 시트 누설(leak-by) → 락업 크리프",
+     "연료전지 정지·하류 무유량 상태에서 출구압(PT-202)이 설정압 위로 '안정되지 않고' 계속 상승. 심하면 하류 PSV 작동·방출관 온도 상승·검지기 저농도 에피소드 동반.",
+     "무유동 확정(FT-301 < 검출한계 AND FC 정지 AND 상류 차단밸브 개방 AND 하류 격리) 후 30분 이상 hold 구간에서 PT-202의 Theil–Sen 기울기 계산. 하류 체적 0.5 m³·0.8 bar(g) 가정 시 시트 누설 1 NL/min(5.4 g/h)은 약 131 mbar/h, 0.1 NL/min은 약 13 mbar/h를 만든다(Abel–Noble 계산). 0~4 bar·0.075 %FS 전송기(3 mbar)라면 0.1 NL/min도 30분 내 유의하게 검출된다. 현장 확정 판정은 발포액(버블), 휴대용 수소 검지기, 초음파 누설 검지기(가압계통 약 2 bar 이상에서 유효)를 병행한다.",
+     "(1) 공급압 효과(decaying inlet): 버퍼 압력이 내려가면 단단 조정기의 출구 설정압은 오히려 '올라간다'. Tescom 판별법 — 압력이 설정압보다 몇 % 높은 값에서 '안정되면' 공급압 효과, 계속 상승하면 시트 누설. (2) 밀폐된 하류 배관의 온도 상승에 의한 가스 팽창. (3) 연료전지 정지 직후 과도(퍼지·잔압 균형). (4) 하류 체적이 밸브 구성에 따라 달라져 크리프율 절대값 비교가 무의미해지는 경우.",
+     "① 하류 격리 후 30~60분 재시험으로 재현성 확인. ② 재현되면 상류 필터·스트레이너 분해점검(이물이 최대 원인) 후 시트·포핏 교체. ③ 교체 전까지 연료전지 정지 시 버퍼 인출 차단밸브를 닫아 하류 과압을 막고, 하류 PSV 설정·건전성 확인. ④ 타이드 다이어프램(positive-seal) 형식으로 교체를 검토 — 크리프가 생기면 오히려 시트를 더 눌러 막는 구조다.",
+     "high",
+     "감압·버퍼 [[3, 1, 5, 19]]"
+    ],
+    [
+     "감압·버퍼",
+     "단단(single-stage) 감압 구성의 공급압 효과 과다 — 설계·선정 부적합",
+     "버퍼 압력이 30 → 10 bar로 내려가는 동안 FC 입구압이 설정압 대비 단조 상승. 입구압과의 상관계수가 −1에 가까움.",
+     "hold 구간이 아니라 '정상 운전' 구간에서 (P_out − P_set) 대 P_in 회귀. 기울기[mbar/bar]가 곧 공급압 효과 계수. Tescom 실측 등급으로 환산하면 버퍼 30 → 5 bar(=362.6 psi 강하) 구간에서 7 psi/100 psi 급은 +1.75 bar(설정 0.8 bar의 219 %), 1.5 psi/100 psi 급은 +0.375 bar(47 %), 고평형형 0.1 psi/100 psi 급은 +0.025 bar(3 %) 상승한다.",
+     "유량 변화에 의한 드룹과 뒤섞임 — 반드시 유량 bin을 고정하고 비교해야 한다. 설정압 재조정 이력이 없으면 기울기 추정이 오염된다.",
+     "① 2단 감압(예: 30 → 4~6 bar → 0.8 bar) 또는 파일럿/돔 로딩형·평형 주밸브형으로 구성 변경을 권고. ② 변경 전까지는 버퍼 운용 하한을 높게 잡아(예: 8 bar) 입구압 변동폭 자체를 줄인다. ③ 하류 PSV 설정압과 연료전지 최대 허용 입구압이 최악 공급압 효과 상승분을 견디는지 검증.",
+     "high",
+     "감압·버퍼 [[3, 10, 11]]"
+    ],
+    [
+     "감압·버퍼",
+     "드룹(droop) 증가 — 로드 스프링 피로·시트 마모·상류 필터 막힘",
+     "같은 유량에서 출구압 하락폭이 커짐. 연료전지 정격 부하 진입 시 입구압 부족 알람.",
+     "유량 bin(예: 0~20/20~50/50~80/80~100 % 정격)별 median(P_set − P_out)를 월 단위로 추세 비교. 같은 bin·같은 입구압 구간끼리만 비교. 필터 차압(PDI-201) 동반 상승이면 원인은 필터. 드룹은 입구압이 낮을수록 악화되므로 입구압 정규화가 필수(Tescom 예시: 같은 유량에서 P1 3500→500 psi로 낮추면 드룹이 32→52 psi로 악화).",
+     "버퍼 압력이 낮은 날(저일사 후)의 드룹 악화는 정상 특성. 유량계 영점 드리프트. 히스테리시스 — 유량 증가 방향과 감소 방향의 드룹이 다르다.",
+     "① 필터 차압이 기준 초과면 필터 먼저 교체. ② 필터 정상인데 드룹만 악화되면 스프링·시트 점검(로우드룹 보닛 적용 검토). ③ 정격 유량에서 드룹이 커져 FC 최소 공급압을 침범하면 즉시 부하 제한.",
+     "medium",
+     "감압·버퍼 [[3, 2]]"
+    ],
+    [
+     "감압·버퍼",
+     "헌팅·채터링(불안정) — 과대 사이징, 배관 난류, 하류 체적 부족, 계측관 위치 불량",
+     "출구압이 설정압 주위에서 지속 진동. 소음·진동. 부하 급변 직후 시작되는 경우가 많다.",
+     "PLC에서 1 s 샘플링으로 1분 피크-피크(h2.pressure.ripple)와 표준편차를 산출해 올린다. 60 s 샘플링만으로는 원리적으로 판정 불가. 유량 bin별 ripple의 P95가 기준 대비 증가하면 경고. 현장에서는 하모닉 공진(보닛에서 나는 '쉬익' 소리, 비파괴적)과 다이어프램 누설을 보닛 포트 거품시험으로 구분한다 — 연속 기포면 다이어프램 누설, 기포 없으면 하모닉 공진. 내부 마찰에 의한 공진(큰 채터 소음·진동·출구압 급변)은 파괴적이므로 즉시 조치.",
+     "연료전지 퍼지 주기에 동기된 정상 압력 변동(퍼지 카운터와 상관 확인). 유량계·전송기 노이즈. 부하 램프 구간.",
+     "① 적정 사이징 재확인(과대 사이징이 가장 흔한 원인). ② 하류 직관길이 확보·완충 체적 추가, 계측관(센싱 라인) 위치 조정, 내부/이중 레지스트레이션형 채택. ③ 지속되면 안정화 카트리지 또는 파일럿형으로 교체. ④ 채터 이력은 시트·다이어프램 수명 소모로 기록해 정비 우선순위에 반영.",
+     "medium",
+     "감압·버퍼 [[4, 3, 2]]"
+    ],
+    [
+     "감압·버퍼",
+     "다이어프램 피로·파단, 씰 급속감압(RGD) 손상",
+     "보닛 방출구에서 지속 수소 방출(검지기 저농도 에피소드 반복), 압력 제어 상실, 락업 불능, 출구압 급락 또는 급등.",
+     "GD-PRV 저농도 에피소드 빈도 + 압력 제어 상실 동시 발생. 보닛 포트 거품시험에서 '연속 기포'면 다이어프램 누설. 크리프가 진행되면 다이어프램이 파열될 수 있으므로 크리프 경보는 다이어프램 보호 관점에서도 조기에 울려야 한다.",
+     "하모닉 공진 소리를 누설로 오인. 주변 설비 누설의 검지기 교차 검출(같은 구역 peer 비교 필요).",
+     "① 즉시 격리·교체. ② 씰 재질 재검토 — NBR은 수소 투과율이 높고 급속감압 파괴(블리스터·찢어짐)에 취약, PCTFE는 불소수지 중 투과율이 가장 낮아 누설 최소화에 유리, PEEK는 동적 씰에 적합. ③ 릴리프식 안전장치가 내장된 조정기를 건축물 내에 설치하는 경우 가스방출구를 실외 안전장소로 배관(KGS FU671 2.4.6.2(4)).",
+     "high",
+     "감압·버퍼 [[3, 17, 18, 9]]"
+    ],
+    [
+     "감압·버퍼",
+     "하류 과압안전장치(PSV) 시머링·설정압 이동",
+     "하류 압력이 설정압 근처에서 머무르며 방출관 온도 소폭 상승, 버퍼 온도보정 질량이 소비량보다 빠르게 감소.",
+     "vent.temp 상승 + 검지기 에피소드 + 물질수지 잔차 양(+)의 3중 일치. 정기 작동시험에서 설정압 편차 추적. 주의 — API 527의 '10 cm³/h/in(호칭 1 in 초과)·10 cm³/h(1 in 이하)'는 물(액체) 시험 기준이며, 수소처럼 기체(공기·질소) 시험을 하는 경우 금속시트 허용치는 단일 수치가 아니라 설정압과 유효 오리피스 크기에 따른 기포수(bubbles/min) 표로 주어진다. 본 사이트 PSV의 오리피스·설정압 조합에 해당하는 값은 API 527 원문 Table 1을 구해야 확정된다(현재 unknown). 소프트시트는 1분간 누설 없음이며 시험압력은 설정압의 90 % 또는 설정압 −5 psig 중 높은 쪽이다.",
+     "외기 온도 상승에 의한 방출관 온도 변화. 정상 분출 후 재착좌 과정. 수소는 감압 시 온도가 오르므로 '온도 상승 = 누설'로 단정하면 안 되고 질량수지와 함께 봐야 한다.",
+     "① 방출 이벤트는 무조건 안전 이벤트로 기록. ② 시머링 의심 누적 시간이 기준을 넘으면 PSV 분해·작동시험. ③ 설정압·축적압력은 KGS FU671 2.8.1.5(화재 외 1개 설치 시 MAWP의 110 % 이하, 2개 이상 116 % 이하, 화재 시 121 % 이하)와 2.8.1.7(상용압력 초과 시 작동)을 재확인.",
+     "high",
+     "감압·버퍼 [[14, 9, 3]]"
+    ],
+    [
+     "감압·버퍼",
+     "버퍼탱크·배관·피팅 미세누설(정지 중 압력 강하)",
+     "인입·인출 밸브 폐쇄 hold 구간에서 온도·압축성 보정 질량이 지속 감소. 조작(밸브 여닫음) 전후에 검지기 저농도 에피소드가 반복.",
+     "Abel–Noble 보정 질량 m(t)의 Theil–Sen 기울기. 30 bar·50 m³에서 누설 1 kg/h는 251 mbar/h, 0.1 kg/h는 25 mbar/h를 만든다. 불확실도 예산: 전송기 0.075 %FS(0~40 bar)=30 mbar, 온도오차 1 °C=102 mbar. 둘을 제곱합하면 107 mbar ≈ 0.43 kg. 따라서 창 길이 2 h면 검출한계 약 0.21 kg/h, 8 h면 0.053 kg/h, 24 h면 0.018 kg/h. 온도를 ±0.2 °C로 잡으면 2 h에서 0.072 kg/h까지 내려간다.",
+     "(1) 온도 — 가장 큰 오탐원. (2) 압력 전송기 드리프트·고착. (3) 소비 중단으로 착각한 구간에 실제 미세 인출이 있는 경우(밸브 리크). (4) 게이지압/절대압 혼동 — 30 bar에서 1 atm 차이는 3.3 %.",
+     "① 동일 온도 시점끼리 비교하는 '일일 같은 시각' 24 h 창을 기본으로 삼아 온도 항을 상쇄. ② 유의 판정 시 발포액·휴대용 검지기·초음파로 피팅·밸브 스템 확인, 토크 재조임 또는 씰 교체. ③ 확인 전까지 운전압력 하향 검토. ④ KGS FU671 2.4.4.2에 따라 정기검사 시 사용압력 이상에서 누출성능을 확인한다.",
+     "critical",
+     "감압·버퍼 [[6, 12, 9, 19]]"
+    ],
+    [
+     "감압·버퍼",
+     "압력 전송기 드리프트·고착 → 재고·누설 오판",
+     "PT-201과 PT-202가 균압 구간(감압밸브 상·하류 균압, 또는 장시간 정지 후)에서 일정 오프셋. 24 h 분산 0(고착).",
+     "균압 구간 교차검증 + 장기 분산 감시. 전송기 5년 설치 안정도는 ±0.125 %URL 수준(Rosemount 3051 사양)이므로 이를 초과하는 드리프트는 교정 대상. 드리프트 의심 구간의 누설 추정 결과에는 '신뢰도 낮음' 플래그를 붙여 알람을 억제한다.",
+     "실제 유동 중의 배관 압손을 오프셋으로 오인. 스팬이 다른 두 전송기의 분해능 차이.",
+     "교정 또는 교체. 교정 이력을 메타데이터로 보관하고 누설 KPI 그래프에 교정 시점을 표시한다.",
+     "medium",
+     "감압·버퍼 [[12]]"
+    ],
+    [
+     "감압·버퍼",
+     "버퍼 재고 고갈 — 구조적 수소 수지 부족",
+     "연료전지 정격 운전 시 버퍼 압력이 시간당 20 bar 이상 하락. 도면 주석대로 수전해 생산 500 Nm³/h(44.9 kg/h) < FC 소비 1,340 Nm³/h(120.4 kg/h)이므로 외부 반입 없이는 항상 순감소.",
+     "h2.buffer.runtime = (m − m_min) / (소비율 − 생산율). 30 bar 만재에서 하한 3 bar까지의 가용량은 109.4 kg이며, 정격 단독 운전 시 0.91 h에 불과하다. 수전해가 동시 가동(44.9 kg/h)이면 순감소 75.5 kg/h로 1.45 h. 반입 리드타임(미확인)을 넘는 시점을 예보 알람으로 건다.",
+     "부분부하 운전(소비율이 정격보다 낮음)을 정격으로 외삽. 태양광 예측 오차. Nm³ 기준온도 혼동(0 °C vs 15 °C에서 약 5.5 % 차이).",
+     "① 가동여유 시간을 대시보드 1순위 지표로 올리고, 외부 수소 반입 리드타임 대비 안전계수 2배 시점에 경보. ② 하한 압력은 감압밸브가 필요로 하는 최소 차압으로 결정해야 하며(제조사 유량곡선 필요), 공급압 효과를 고려하면 실질 하한을 더 높게 잡는 편이 안전하다. ③ 발전 계획 수립 시 '버퍼는 1시간 완충장치이지 저장설비가 아니다'를 전제로 한다.",
+     "critical",
+     "감압·버퍼 [[6, 3]]"
+    ],
+    [
+     "감압·버퍼",
+     "겨울철 결빙·수분 응축에 의한 시트 고착 — 단, 줄-톰슨 동결은 수소에 해당하지 않음",
+     "저온기에 국한된 조절 불량·락업 불능. 감압부 표면 착상.",
+     "외기온 5 °C 이하 구간에 한정된 편차 증가를 계절 게이트로 판정. 수소·헬륨은 상온 팽창 시 오히려 온도가 오르므로(줄-톰슨 역전온도 약 200 K), '감압부가 얼었다'면 원인은 잔류 수분 또는 외기이지 줄-톰슨 냉각이 아니다. 수전해 출구 건조기(이슬점 목표 −70 °C)의 이슬점 열화를 함께 본다.",
+     "줄-톰슨 냉각을 원인으로 오진단(수소에는 적용되지 않음). 착상이 실제로는 외부 누설에 의한 국부 냉각인 경우.",
+     "① 건조기 이슬점·재생 주기 점검. ② 조정기는 직사광선·빗물을 피한 실외 설치가 원칙이며, 부득이한 실내 설치는 환기 양호한 장소(KGS FU671 2.4.6.1). 격납상자 사용 시 히팅·배수 확인. ③ 수전해설비는 5 °C 이하에서 자동 차단되도록 되어 있음(KGS FU671 2.4.5.1.6) — 연계 로직 확인.",
+     "medium",
+     "감압·버퍼 [[3, 9]]"
+    ],
+    [
+     "외부 반입",
+     "반입 기록 누락 (delivery_unlogged)",
+     "저장 재고(h2.inventory)가 생산 유량으로 설명할 수 없는 속도로 증가했는데 같은 날짜 원장에 delivered = 0 또는 전표가 없다. 하역 상태 코드도 '하역중'을 지나지 않았다.",
+     "일별 원장에서 stored_delta − produced_from_meter > 임계(예: 시간당 최대 생산량 × 1.5) 구간을 이벤트로 잘라내고, 같은 구간에 h2.delivery.mass.total 증가 또는 h2.import.invoice.mass 레코드가 있는지 조인. 없으면 '기록 없는 재고 증가' finding.",
+     "① 야간 냉각으로 탱크 온도가 떨어지면 압력이 내려가는데, 온도 보정을 빠뜨린 재고는 반대로 요동친다. ② 수전해 적산계 통신 결측으로 produced가 0으로 기록된 날. ③ 정비 후 질소 퍼지·수소 치환으로 압력이 오른 구간. ④ 자정 경계에서 하역이 걸친 경우 이틀에 나뉘어 한쪽만 큰 값이 된다.",
+     "하역 이벤트 구간(시각·수량·트레일러 번호)을 그대로 제시하고, 해당 날짜의 반입 전표 입력을 요청하세요. 전표가 정말 없으면 공급사에 납품확인서를 요청하고, 재고 급증이 하역이 아니었다면 온도 보정과 적산계 통신을 먼저 점검하세요.",
+     "2",
+     "원장 식에 delivered 항이 없음 — lib/analytics/ledger/hydrogen.ts:10"
+    ],
+    [
+     "외부 반입",
+     "반입 전표-사이트 계량 불일치 (invoice_meter_mismatch)",
+     "같은 하역 건에서 h2.delivery.mass.total 증가분과 h2.import.invoice.mass가 계속 한쪽으로 치우쳐 벌어진다(예: 전표가 항상 1~3% 많음).",
+     "하역 건별 차이율 = (전표 − 사이트계량)/전표 × 100을 계산하고, 기준 구간 대비 중앙값 이동을 CUSUM으로 본다. 부호가 일정하면 계통오차, 무작위면 계량 잡음.",
+     "① 계량 기준 차이 — 공급사는 출하 시 중량(트럭스케일) 또는 충전 시 계량, 사이트는 하역 계량이라 heel·호스 체적만큼 원래 다르다. ② Nm³ 기준조건(0 °C vs 20 °C) 차이로 약 7% 수준의 환산 차이가 날 수 있다. ③ 하역 벤트를 사이트 계량 뒤에서 하면 전표가 항상 많게 보인다. ④ 건수가 적으면 중앙값이 불안정하다.",
+     "먼저 계약서의 계량 기준(질량 kg인지 Nm³인지, 기준조건, 계량 지점)을 확인해 '정의 차이'를 제거하세요. 그래도 한쪽으로 치우치면 사이트 계량기 교정성적서와 공급사 계량 근거를 맞대고, 차이율의 허용 범위를 계약에 명문화하세요.",
+     "2",
+     "국내에서도 생산시설과 충전소 간 계량방식 차이가 문제로 지적되어 수소 질량유량계 교정설비 구축이 추진됨 — http://www.engjournal.co.kr/news/articleView.html?idxno=3258"
+    ],
+    [
+     "외부 반입",
+     "하역 계량기 드리프트 (delivery_meter_drift)",
+     "하역 중 계량 적산량과, 같은 구간의 저장 재고 증가량(Z 보정) + 그 사이 소비량의 합이 이루는 비율이 서서히 변한다.",
+     "하역 건마다 ratio = Δ(h2.delivery.mass.total) ÷ (Δ재고_Z보정 + 소비 적산 + 벤트 추정)을 계산하고, 기준 구간 중앙값 대비 변화폭을 본다(기존 h2chain.mass_balance_gap의 flowmeter_drift 체크와 같은 방식, 패러데이 기대치 대신 재고 증가를 기준으로 삼는다).",
+     "① 하역 중 수용부가 압축열로 데워지면 재고 증가가 실제보다 작게 계산된다(온도센서 열지연). ② 상태식 선택(Abel–Noble vs NIST Lemmon 2008)에 따라 고압에서 약 0.5% 차이가 난다. ③ 코리올리는 저유량 컷오프 근처에서 오차가 커진다 — 하역 끝물 구간을 포함하면 비율이 흔들린다. ④ 하역 중 연료전지 부하 변동이 크면 소비 적산 오차가 섞인다.",
+     "저유량 컷오프 이하 구간을 뺀 뒤 비율을 다시 보고, 그래도 변했으면 계량기 영점(zero) 재설정과 교정 이력을 확인하세요. 국내에는 수소 질량유량계 현장 교정 인프라가 갖춰지는 중이므로, 교정 주기와 기준기 소급성을 계약·O&M 절차에 넣어두세요.",
+     "2",
+     "OIML 기준 수소 유량계 최대허용오차 1.5%(등급 2)~2.0%(등급 4), 충전소 계량시스템 형식승인·검정 2~4% — http://www.procon.co.kr/bbs/board.php?bo_table=magazine_new&wr_id=1036"
+    ],
+    [
+     "외부 반입",
+     "하역 중 방출 손실 과다 (unloading_vent_loss)",
+     "하역 건수가 늘어난 기간에 물질수지 잔차가 같이 커진다. 호스 퍼지·연결/분리 횟수와 잔차의 상관이 높다.",
+     "하역 건수(또는 연결·분리 사이클 수)와 일 잔차의 상관계수를 본다(기존 purge_vent_estimate 체크와 동일 패턴). 벤트 유량계가 있으면 h2.vent.mass.total 증가분을 직접 원장의 vented 항에 넣고 잔차가 줄어드는지 확인.",
+     "① 하역이 몰린 날은 소비도 많은 날이라 상관이 가짜로 나올 수 있다 — 소비량을 통제한 편상관을 써야 한다. ② 벤트 추정을 '배관 체적 × 압력'으로 하면 배관 실측 체적이 틀린 만큼 통째로 편향된다. ③ 계절(외기 온도)에 따라 퍼지 절차 횟수가 달라진다.",
+     "하역 1회당 방출량을 실측(또는 배관 체적·방출 전 압력으로 산정)해 원장 파라미터로 등록하고, 값이 크면 호스 체적 축소·잔압 회수(에바큐에이션) 절차 도입을 검토하세요. 방출은 반드시 고정식 벤트라인/벤트스택으로 보내야 합니다.",
+     "2",
+     "EIGA/AIGA — 이송 중 방출은 호스 퍼지와 충전회로에 집중되며 고정식 벤트라인으로 배출 — https://www.asiaiga.org/uploaded_docs/en_AIGA_126_24_Guide_for_H2_Supply_Systems.pdf"
+    ],
+    [
+     "외부 반입",
+     "트레일러 잔류(heel) 정산 오류 (heel_settlement_error)",
+     "출차 시점 트레일러 잔압·온도로 계산한 잔량과 전표의 '반환 잔량'이 계속 다르다. 또는 잔압 하한에 못 미쳐 하역을 멈췄는데 전표에는 전량 인수로 기재된다.",
+     "분리 직전 h2.trailer.pressure·h2.trailer.temp와 트레일러 내용적(명판)으로 Z 보정 잔량을 계산하고 h2.import.heel.mass와 비교. 건별 차이의 중앙값과 부호를 추적한다. 회수율 = 하역량 ÷ (적재량 − 잔압상당량)도 함께 본다.",
+     "① 트레일러 내용적(수용적) 명판값이 틀리거나 용기 수가 다르면 잔량 계산이 통째로 어긋난다. ② 하역 직후 트레일러는 팽창으로 차가워져 있어 압력이 낮게 보인다 — 열평형 전에 읽으면 잔량을 과소평가한다. ③ 트레일러별 압력계가 공급사 자산이라 교정 이력을 모를 수 있다.",
+     "잔량 판정 시각을 '분리 후 N분(열평형 대기)'으로 절차에 고정하고, 트레일러 내용적·용기 수를 명판에서 받아 자산에 등록하세요. 회수율이 계약 전제보다 낮으면 수입 뱅크 추가나 잔압 하한 재협상으로 회수 가능분을 키우는 쪽이 단가 절감 효과가 큽니다.",
+     "2",
+     "잔압 70 bar 기준 Type I 실운송 198 kg / Type IV 373 kg — https://www.h2news.kr/news/articleView.html?idxno=12352 ; 현장 회수율 80~85% 보고 — https://www.rein-hytec.com/market-trends/what-is-a-hydrogen-tube-trailer"
+    ],
+    [
+     "외부 반입",
+     "온도 보정 누락에 의한 겉보기 반입량 오차 (temp_compensation_error)",
+     "잔차가 하역 중 온도 변화폭·일교차와 상관을 보인다. 특히 계절에 따라 반입 대조 차이의 부호가 바뀐다.",
+     "기존 h2chain.mass_balance_gap의 temperature_compensation 체크를 하역 구간으로 확장: 하역 전후 수용부 온도 변화(ΔT)와 건별 대조 차이의 상관을 본다.",
+     "① 표면 온도센서는 내부 가스 온도를 열지연을 두고 따라간다 — 상관이 있어도 원인이 센서 위치일 수 있다. ② 계량이 코리올리(질량 직독)면 온도 보정 문제는 재고 쪽에만 생긴다 — 원인 위치를 혼동하기 쉽다.",
+     "코리올리 질량 계량이 있으면 반입량은 계량을 정답으로 두고, 상관이 나오는 쪽(재고 계산)의 센서 위치·열지연 모델을 고치세요. 체적·압력 기반 정산만 쓰고 있다면 온도 보정과 상태식을 명시적으로 계약에 넣어야 합니다.",
+     "2",
+     "기존 탐지기의 동일 체크 — lib/analytics/detectors/h2chain-mass-balance.ts (temperature_compensation)"
+    ],
+    [
+     "외부 반입",
+     "반입 리드타임 초과·재고 고갈 (supply_stockout)",
+     "가용 재고(버퍼 + 체류 트레일러) ÷ 최근 일평균 소비 = 여유일이 계약 리드타임 아래로 떨어진다. 또는 연료전지가 수소 부족으로 부하를 스스로 낮춘다.",
+     "가용 재고 = Σ(Z 보정 재고 − 최소 인출 압력 상당량)을 계산하고, 최근 N일 소비 중앙값과 예정 발전 스케줄로 여유 시간을 추정. 리드타임(예: 발주→도착 24~48 h)과 비교해 경보.",
+     "① 태양광 호조로 생산이 늘면 소비 대비 여유가 실제보다 길어진다 — 계절·일사 조건을 반영하지 않으면 과경보. ② 연료전지 출력 계획이 바뀌면 소비 중앙값이 곧 무의미해진다. ③ 체류 트레일러를 재고에 넣을지 말지에 따라 여유일이 몇 배 달라진다 — 정의를 고정해야 한다.",
+     "이 사이트는 버퍼 120 kg이 연료전지 전부하 1시간분도 안 되므로, 체류 트레일러를 재고 정의에 포함할지부터 정하세요. 포함한다면 트레일러 잔압·내용적을 자산으로 등록하고, 포함하지 않는다면 여유일 KPI는 사실상 '다음 배송까지 남은 시간'이 됩니다.",
+     "3",
+     "도면 값으로 계산한 버퍼 가용량(typicalValues 참조)"
+    ],
+    [
+     "외부 반입",
+     "계량 기준 불일치 (unit_basis_mismatch)",
+     "전표는 Nm³, 사이트는 kg으로 기록되고 환산계수가 시스템마다 다르다. 또는 같은 kg인데 공급사는 출하 중량, 사이트는 하역 계량이다.",
+     "데이터 품질 게이트: 반입 레코드의 단위·기준조건 필드가 비어 있거나 사이트 설정과 다르면 '판정 불능'으로 처리하고 대조 탐지기를 아예 돌리지 않는다.",
+     "① 0 °C 기준과 15/20 °C 기준을 섞으면 약 5~7% 차이가 나는데, 이는 계량기 허용오차와 비슷한 크기라 '드리프트'로 오진하기 쉽다. ② 순도 보정(99.97% vs 100%) 유무도 0.03% 수준이지만 장기 누적되면 보인다.",
+     "계약과 콘솔 모두 질량(kg)을 1차 단위로 고정하고, Nm³ 표기가 필요하면 기준조건(0 °C, 101.325 kPa)과 환산계수를 명시적으로 기록하세요. 도면의 Nm³ 표기도 기준조건이 적혀 있지 않으므로 발주처 확인이 필요합니다.",
+     "2",
+     "Nm³는 0 °C·1 atm 기준, 수소 0.08988 kg/Nm³ — https://h2tools.org/hyarc/calculator-tools/hydrogen-conversions-calculator ; 국내 판매가격 보고는 kg 단위 — https://www.h2nbiz.or.kr/rt/uif/inf/infoSalePrice.do"
+    ],
+    [
+     "외부 반입",
+     "재고 경계 모호에 의한 이중계상 (inventory_boundary_ambiguity)",
+     "체류 트레일러를 재고에 넣었다 뺐다 하면서 stored_delta가 한 번에 수백 kg 튀고, 잔차가 그날만 폭주한다.",
+     "재고 정의(경계)에 버전을 붙이고, 경계가 바뀐 날은 원장에서 baselineReset으로 표시해 탐지기 기준 구간을 끊는다. 경계 변경 이벤트 없이 stored_delta가 트레일러 1대분 이상 점프하면 finding.",
+     "① 트레일러 교체(빈 차 출차 + 새 차 입차)가 같은 날 일어나면 정상인데도 큰 점프로 보인다 — 교체 이벤트와 조인해야 한다. ② 수입 뱅크를 추가 설치한 시점 이후로는 경계 자체가 바뀐다.",
+     "'사이트 재고 = 버퍼 + (수입 뱅크) + 연결된 트레일러'처럼 경계를 한 문장으로 고정해 문서화하고, 경계를 바꿀 때는 반드시 기준선 리셋을 기록하세요. 대조는 트레일러 단위(입차 잔량 → 출차 잔량)로도 따로 닫아두면 이중계상을 잡기 쉽습니다.",
+     "2",
+     "기존 탐지기의 baselineResetAt 처리 방식 — lib/analytics/detectors/h2chain-mass-balance.ts"
+    ],
+    [
+     "외부 반입",
+     "반입 단가 이상 (price_anomaly)",
+     "kg당 단가가 과거 분포에서 벗어나거나, 같은 공급사에서 건별 단가가 설명 없이 달라진다.",
+     "건별 단가의 로버스트 z(중앙값·MAD)와 계약 단가 대비 편차를 본다. 공개 시세(수소유통정보시스템 지역 평균)와의 스프레드도 함께 표시한다.",
+     "① 충전소 소매가는 발전용 벌크 단가와 성격이 다르다 — 공개 시세를 '정답'으로 쓰면 항상 어긋난다. ② 운송거리·긴급 배송 할증이 계약에 있으면 정상 변동이다. ③ 부가세·운송비 포함 여부가 전표마다 다를 수 있다.",
+     "단가는 '계약 기준가 대비 편차'로 감시하고, 공개 시세는 참고선으로만 겹쳐 그리세요. 전표 입력 시 운송비·할증·부가세 포함 여부를 필드로 받아두면 사후 분쟁이 줄어듭니다.",
+     "1",
+     "공개 시세(전국 평균 10,495원/kg, 지역 9,792~15,000원/kg, 2026-09 조회) — https://www.h2nbiz.or.kr/rt/sts/pce/rtAmountInfo.do"
+    ],
+    [
+     "외부 반입",
+     "하역 미완료·회수율 저하 (incomplete_unload)",
+     "하역 유량이 잔압 하한에 닿기 전에 0에 수렴하고, 트레일러 잔압이 계약 잔압보다 높은 채로 출차한다.",
+     "건별 회수율 = 하역량 ÷ (입차 잔량 − 목표 잔압 상당량)을 계산해 추세를 본다. 하역 말기 유량 곡선의 감쇠 시정수와 헤더 압력(PT-502)/트레일러 압력(PT-501) 차를 함께 본다.",
+     "① 사이트 버퍼가 이미 만압이면 구동력이 없어 정상적으로 멈춘다 — 수용부 압력을 통제해야 한다. ② 필터·체크밸브 막힘과 레귤레이터 설정 변경이 같은 모양을 만든다. ③ 겨울철 저온 트립으로 의도적으로 멈춘 경우.",
+     "수용부가 만압이어서 멈췄다면 하역 스케줄을 발전 스케줄과 맞추거나 수입 뱅크(중간 압력대)를 검토하세요. 만압이 아닌데 멈췄다면 하역 라인 필터·레귤레이터·체크밸브를 점검하세요. 회수율 1%p는 Type I 기준 약 2~3 kg, 연간으로는 수백 kg의 단가 차이가 됩니다.",
+     "2",
+     "cascade 감압으로 회수 가능분을 키움, 현장 회수율 80~85% — https://www.rein-hytec.com/market-trends/what-is-a-hydrogen-tube-trailer"
+    ],
+    [
+     "외부 반입",
+     "반입 수소 순도 미달 (purity_offspec)",
+     "성적서 순도는 규격 이내인데 하역 후 사이트 측 순도·산소 농도(OTH)·이슬점이 나빠진다. 연료전지 스택 성능이 반입 직후에만 떨어진다.",
+     "반입 이벤트 전후로 연료전지 스택 성능 지표(조건 매칭 셀 전압)와 퍼지 빈도를 비교하는 전후 대조. 순도는 성적서 값과 사이트 분석값을 병기.",
+     "① 하역 배관 잔류 공기·수분이 원인일 수 있다(수소 자체가 아니라 퍼지 절차 문제). ② 스택 성능 변화는 온도·부하 이력에 더 크게 좌우된다 — 조건 매칭 없이 비교하면 거의 확실히 오진한다. ③ 분석 샘플링 위치가 바뀌면 값이 바뀐다.",
+     "EIGA 권고대로 분석이 필요하면 트레일러에서 직접 채취하고, 평소에는 성적서를 자산 이력으로 보관하세요. 반입 직후에만 성능이 떨어지면 수소 품질보다 하역 퍼지 절차를 먼저 의심하세요.",
+     "2",
+     "EIGA TB 51/24 §Analysis — 트레일러가 분석성적서를 동반하므로 인터페이스 분석은 보통 불필요, 필요 시 트레일러에서 직접 — https://www.eiga.eu/uploads/documents/TB051.pdf"
+    ],
+    [
+     "외부 반입",
+     "접지 미연결·하역 인터록 우회 (grounding_bypass)",
+     "h2.delivery.ground가 불량인데 하역 상태가 '하역중'으로 진행된 이력, 또는 접지 감시 신호가 늘 일정한 값으로 고정(flatline)되어 있다.",
+     "상태 조합 규칙(하역중 AND 접지불량) 위반 이벤트를 세고, 접지 신호의 flatline을 데이터 품질 탐지기(dq-gap-flatline)로 감시.",
+     "① 접지 감시 접점이 노이즈로 순간 튀는 경우 — 디바운스 필요. ② 수동 확인 절차만 운영하는 사이트는 신호 자체가 없다(데이터 없음이지 위반이 아님).",
+     "안전 판단은 현장 안전설비와 절차의 몫입니다. 콘솔은 '절차 준수 기록'으로만 제시하세요. EIGA는 매 납품마다 패널에서 접지 연결을 감시하거나 훈련된 사람이 확인하고, 접지점 저항은 25 Ω 이하일 것을 권고합니다.",
+     "3",
+     "EIGA TB 51/24 §Grounding — https://www.eiga.eu/uploads/documents/TB051.pdf"
+    ],
+    [
+     "외부 반입",
+     "하역 저온에 의한 Type IV 라이너 손상 위험 (type4_low_temp)",
+     "겨울철 고유량 하역 중 h2.delivery.temp가 급격히 떨어지고, 같은 조건이 반복된다.",
+     "하역 구간의 최저 가스 온도와 평균 하역 유량을 산점도로 누적해 한계선 접근 빈도를 본다. 저온 트립 작동 횟수도 함께 집계.",
+     "① 센서가 배관 표면에 있으면 실제 가스 온도보다 높게 읽힌다 — 위험을 과소평가한다. ② Type I(강재) 트레일러에는 해당하지 않는 모드다 — 트레일러 타입을 모르면 전부 오경보.",
+     "트레일러 타입을 자산에 반드시 기록하고, Type IV라면 하역 유량 상한과 저온 트립 설정을 공급사와 합의해 절차에 넣으세요. 이 모드는 안전 항목이므로 판단은 현장과 제작사 기준을 따릅니다.",
+     "3",
+     "EIGA TB 51/24 Table 1 — 높은 하역 유량 + 저외기에서 Type IV 라이너 균열 위험, 트레일러·HRS 양측 저온 트립 안전기능 — https://www.eiga.eu/uploads/documents/TB051.pdf"
+    ],
+    [
+     "외부 반입",
+     "반입 항 누락으로 인한 기존 물질수지 탐지기 편향 (mass_balance_sign_bias)",
+     "반입이 있는 날마다 h2chain.mass_balance_gap의 잔차가 크게 음(−)으로 나온다. 반입이 몰린 주에는 CUSUM이 무조건 경보한다.",
+     "현행 식 residual = produced − fc_consumed − stored_delta − vented_est에서, 반입일의 stored_delta가 produced를 훨씬 넘으므로 잔차가 구조적으로 음이 된다. 반입일 여부와 잔차 부호의 연관을 보면 즉시 확인된다.",
+     "이것은 오탐이 아니라 모델 누락이다. 임계값(residualPct 2%)을 올려 덮으면 진짜 누설·계량 이상을 못 잡게 된다.",
+     "원장 식을 residual = produced + delivered − fc_consumed − stored_delta − vented_est로 확장하고(탐지기 버전 @2), 잔차율 분모도 max(produced + delivered, fc_consumed, floor)로 바꾸세요. 반입 데이터가 없는 사이트에서는 delivered = 0이므로 기존 동작과 같습니다. 반입 레코드가 결측인 날은 잔차를 계산하지 말고 '판정 불능'으로 두는 게 안전합니다.",
+     "3",
+     "lib/analytics/ledger/hydrogen.ts:9-11 및 lib/analytics/detectors/h2chain-mass-balance.ts"
+    ]
+   ],
+   "freezeCols": 2
   }
  ]
 }

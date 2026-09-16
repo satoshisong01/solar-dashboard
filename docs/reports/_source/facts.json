@@ -42,14 +42,14 @@
    "선택": 4
   }
  },
- "nonTelemetry_rows": 131,
- "cadence_items": 47,
+ "nonTelemetry_rows": 136,
+ "cadence_items": 50,
  "cadence_counts": {
-  "월간": 36,
-  "분기": 15,
+  "월간": 39,
+  "분기": 16,
   "연간": 23
  },
- "ai_analyses": 129,
+ "ai_analyses": 131,
  "ai_by_maturity": {
   "진단(원인)": 52,
   "처방(최적화)": 39,
@@ -63,7 +63,26 @@
   "미확인": 7,
   "반박": 5
  },
- "sources_rows": 485,
+ "sources_rows": 604,
  "lifespan_rows": 24,
- "improvement_rows": 18
+ "improvement_rows": 18,
+ "pid": {
+  "drawing": "FCND-GP-PID-002 REV.2 (2026-07-17)",
+  "sources": 119,
+  "recalculated_claims": 78,
+  "corrected_claims": 14,
+  "new_asset_classes": 8,
+  "new_metrics": 39,
+  "gapyeong_assets": 17,
+  "mapped_tags": 10,
+  "planned_points": {
+   "필수": 37,
+   "권장": 15,
+   "계기": 39
+  },
+  "failure_modes": 58,
+  "detectors_total": 17,
+  "detectors_gapyeong": 3,
+  "data_items_with_pid": 228
+ }
 }
