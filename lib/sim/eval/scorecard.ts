@@ -30,6 +30,14 @@ function capacityGates(jobs: readonly SiteJobResult[]): GateResult[] {
   ];
 }
 
+/** 기본 오탐 게이트 [건/자산·월] (설계 §5.5) */
+const DEFAULT_FP_GATE = 0.1;
+/**
+ * 탐지기별 오탐 게이트. tank.static_leak은 안전 카테고리(severity 4)를 낼 수 있어 더 엄격하게 둔다.
+ * 0.02 = 용기 1대가 5년에 한 번 정도만 헛경보를 내는 수준 (주 1회 점검 기준 한쪽 검정 약 0.05%).
+ */
+const FP_GATES: Readonly<Record<string, number>> = { 'tank.static_leak': 0.02 };
+
 export function evaluateGates(jobs: readonly SiteJobResult[], scores: readonly DetectorScore[]): GateResult[] {
   const electrolyzer = scoreAtLeast(jobs, 'el.voltage_rise', 20);
   const fuelCell = scoreAtLeast(jobs, 'fc.voltage_decay', 20);
@@ -37,7 +45,7 @@ export function evaluateGates(jobs: readonly SiteJobResult[], scores: readonly D
   const dq = scoreAtLeast(jobs, 'dq.gap_flatline', 6);
   return [
     ...capacityGates(jobs),
-    ...scores.map((s) => gate(`${s.detectorId}.fp_per_asset_month`, `${s.detectorId} 오탐 [건/자산·월] (대조군 포함, ${r(s.assetMonths, 1)} 자산·월)`, s.fpPerAssetMonth, '<=', 0.1)),
+    ...scores.map((s) => gate(`${s.detectorId}.fp_per_asset_month`, `${s.detectorId} 오탐 [건/자산·월] (대조군 포함, ${r(s.assetMonths, 1)} 자산·월, 정밀도 ${r(s.precision, 3) ?? '-'})`, s.fpPerAssetMonth, '<=', FP_GATES[s.detectorId] ?? DEFAULT_FP_GATE)),
     gate('el.voltage_rise.recall_20uvh', `el.voltage_rise 20 µV/h 이상 재현율 (주입 ${electrolyzer.injections}건)`, electrolyzer.recall, '>=', 0.9),
     gate('el.voltage_rise.rel_error_20uvh', 'el.voltage_rise 20 µV/h 이상 크기 상대오차 중앙값', electrolyzer.magnitudeRelErrorMedian, '<=', 0.1),
     gate('fc.voltage_decay.rel_error_20uvh', `fc.voltage_decay 20 µV/h 이상 크기 상대오차 중앙값 (주입 ${fuelCell.injections}건)`, fuelCell.magnitudeRelErrorMedian, '<=', 0.1),

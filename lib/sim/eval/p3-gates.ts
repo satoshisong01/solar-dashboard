@@ -1,6 +1,6 @@
 // P3 게이트와 부가 지표 (설계 §8 P3 완료 기준 + 탐지기별 기준 크기). 순수 모듈.
 //   건강한 사이트 물질수지: 대조군 SIM-C 일별 |잔차율| 중앙값 < 1% · 95퍼센타일 < 2% (수소 원장 완결성 0.9 이상인 날)
-//   저장용기 미세누설 최소 탐지 크기: 재현율 0.9 이상인 가장 작은 누설률이 스윕 안에 있음 (곡선은 detectors 항목)
+//   저장용기 미세누설 최소 탐지 크기: 재현율 0.9 이상인 가장 작은 누설률 ≤ TANK_MIN_DETECTABLE_GATE (곡선은 detectors 항목)
 //   PV 대조군: 출력제어·흐린 주·비 오는 주 구간(+7일)에 PV 탐지기 finding 0건
 //   탐지기별 기준 크기 재현율 ≥ 0.8 (오탐 ≤ 0.1건/자산·월은 탐지기 공통 게이트)
 import { r } from '@/lib/analytics/detectors/common';
@@ -15,6 +15,12 @@ const HEALTHY_MIN_COMPLETENESS = 0.9;
 const PV_DETECTORS: readonly string[] = ['pv.inverter_peer', 'pv.soiling_rate', 'inv.thermal_derating'];
 const PV_CONTROLS: readonly string[] = ['control.curtailment', 'control.cloudy_week', 'control.rainy_week'];
 const REFERENCE_RECALL = 0.8;
+/**
+ * 저장용기 누설 최소 탐지 크기 게이트 [kg/일].
+ * 표준오차 정정 뒤 전체 스윕(0.005~0.5 kg/일 9단계)에서 재현율 0.9 이상인 가장 작은 누설률이 0.15 kg/일로 측정됐고,
+ * 회귀 여유로 스윕 한 단계(0.15 → 0.2)를 더해 잡았다. 예전 임계는 스윕 최대값이라 통과가 보장됐다.
+ */
+const TANK_MIN_DETECTABLE_GATE = 0.2;
 
 /** 대조군 사이트 일별 |잔차율| (완결성 기준 통과한 날) */
 export function healthyResiduals(jobs: readonly SiteJobResult[]): number[] {
@@ -59,11 +65,10 @@ function referenceGates(jobs: readonly SiteJobResult[]): GateResult[] {
 export function p3Gates(jobs: readonly SiteJobResult[], scores: readonly DetectorScore[]): GateResult[] {
   const residuals = healthyResiduals(jobs);
   const leak = scores.find((s) => s.detectorId === 'tank.static_leak');
-  const largestLeak = Math.max(0, ...(leak?.curve.map((p) => p.magnitude) ?? []));
   return [
     gate('h2chain.healthy_residual_median', `대조군 SIM-C 일별 수소 물질수지 |잔차율| 중앙값 [%] (${residuals.length}일)`, residuals.length === 0 ? null : quantile(residuals, 0.5), '<', 1),
     gate('h2chain.healthy_residual_p95', 'SIM-C 일별 |잔차율| 95퍼센타일 [%]', residuals.length === 0 ? null : quantile(residuals, 0.95), '<', 2),
-    gate('tank.static_leak.min_detectable_kg_per_day', `tank.static_leak 재현율 0.9 이상 최소 누설률 [kg/일] (스윕 최대 ${largestLeak} 이하여야 함)`, leak?.minDetectableMagnitude ?? null, '<=', largestLeak > 0 ? largestLeak : 0),
+    gate('tank.static_leak.min_detectable_kg_per_day', 'tank.static_leak 재현율 0.9 이상 최소 누설률 [kg/일] (측정값 0.15 + 스윕 한 단계 여유)', leak?.minDetectableMagnitude ?? null, '<=', TANK_MIN_DETECTABLE_GATE),
     gate('pv.control_findings', 'PV 대조군(출력제어·흐린 주·비 오는 주) 구간 PV 탐지기 finding 수', jobs.some((j) => j.controls.some((c) => PV_CONTROLS.includes(c.kind))) ? pvControlFindings(jobs) : null, '<=', 0),
     ...referenceGates(jobs),
   ];

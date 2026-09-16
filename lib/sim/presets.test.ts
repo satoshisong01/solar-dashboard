@@ -139,7 +139,7 @@ describe('EVAL_PRESET · evalRunPlans', () => {
     const kindsOf = (plan: (typeof p3)[number]) => plan.scenarios.map((s) => s.kind);
 
     expect(p3.map((p) => p.id)).toEqual(Array.from({ length: EVAL_PRESET.p3.runs }, (_, i) => `eval-s101-p3-${i + 1}`));
-    expect(p3.map((p) => p.magnitudes.p3?.tankLeakKgPerDay ?? null)).toEqual([0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, null, null, null, null, null]);
+    expect(p3.map((p) => p.magnitudes.p3?.tankLeakKgPerDay ?? null)).toEqual([0.005, 0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.25, 0.5, null, null, null]);
     expect(p3.map((p) => p.magnitudes.p3?.elzSecRise?.mode ?? null)).toEqual(['rectifier', 'rectifier', 'rectifier', 'faradaic', 'faradaic', 'faradaic', 'stack', 'stack', 'stack', null, null, null]);
     expect(p3.map((p) => p.magnitudes.p3?.flowmeterDriftPctPerMonth ?? null)).toEqual([null, null, null, null, null, null, null, null, null, 1, 2, 4]);
     for (const plan of p3) {

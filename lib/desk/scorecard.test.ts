@@ -36,7 +36,7 @@ describe('parseScorecard (저장소의 scorecard.json)', () => {
     expect(trustBadgeFor(scorecard, 'el.voltage_rise')).toMatchObject({ kind: 'evaluated', minDetectable: '10 µV/h' });
     expect(trustBadgeFor(scorecard, 'ess.cell_imbalance')).toMatchObject({ kind: 'evaluated', recall: 1, minDetectable: '5 mV/월', fpPerAssetMonth: 0 });
     expect(trustBadgeFor(scorecard, 'dq.gap_flatline')).toMatchObject({ kind: 'evaluated', minDetectable: '6 h', fpPerAssetMonth: 0 });
-    expect(trustBadgeFor(scorecard, 'tank.static_leak')).toMatchObject({ kind: 'evaluated', minDetectable: '0.1 kg/일' });
+    expect(trustBadgeFor(scorecard, 'tank.static_leak')).toMatchObject({ kind: 'evaluated', minDetectable: '0.15 kg/일' });
     expect(trustBadgeFor(scorecard, 'pv.soiling_rate')).toMatchObject({ kind: 'evaluated', minDetectable: '0.05%/일', fpPerAssetMonth: 0 });
     expect(trustBadgeFor(parseScorecard({}), 'ess.capacity_fade')).toEqual({ kind: 'none', note: null });
   });
@@ -58,7 +58,7 @@ describe('parseScorecardP3 (P3 참고 지표)', () => {
     expect(p3.pvControlFindings).toBe(0);
     expect(p3.elSecPathSupport?.byMode.map(([mode]) => pathLabel(mode))).toEqual(['정류기 효율 경로', '패러데이 효율 경로', '스택 전압 경로']);
     expect(p3.elSecPathSupport).toMatchObject({ overall: 0.722, target: 0.7 });
-    expect(p3.tankLeakMassBalance).toEqual({ injections: 6, withFinding: 3, share: 0.5 });
+    expect(p3.tankLeakMassBalance).toEqual({ injections: 9, withFinding: 0, share: 0 });
     expect(p3.fanFailureDelays.map((row) => [row.startDay, row.startMs === null ? null : seasonOf(row.startMs)])).toEqual([
       [120, '겨울'],
       [200, '봄'],

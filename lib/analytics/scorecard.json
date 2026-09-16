@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated_at": "2026-09-15",
+  "generated_at": "2026-09-16",
   "mode": "memory",
   "preset": {
     "from": "2025-10-01T00:00:00+09:00",
@@ -84,7 +84,9 @@
           0.02,
           0.05,
           0.1,
+          0.15,
           0.2,
+          0.25,
           0.5
         ],
         "elzSecRise": [
@@ -169,7 +171,7 @@
     }
   },
   "jobs": 84,
-  "elapsed_s": 1366.3,
+  "elapsed_s": 454.5,
   "reduced_runs": {
     "runs": [
       3,
@@ -179,10 +181,10 @@
       8,
       9,
       10,
-      13,
+      11,
       17
     ],
-    "note": ""
+    "note": "P2 스윕 3~5(용량 5·7·10%, 전해조·연료전지 20·40 µV/h, 셀 불균형·데이터 품질은 가장 큰 크기) + P3 순번 1·3·4·5·6·12(순번 k = --runs 5+k): 비에너지 5% 이상 정류기 10%·패러데이 6%·10%, 밸브 20%, 블로워 마모 10%/월·필터 25%·40%, 오염 0.1·0.2%/일, 저항 50%, 냉각팬 겨울·여름 시작, 누설 0.005~0.15 kg/일, 유량계 드리프트 4%/월. 최소 탐지 크기 게이트(0.2 kg/일) 판정에는 재현율 0.9를 채우는 0.15 kg/일 주입이 필요해 순번 8(누설 0.25·스택 6%) 대신 순번 6을 넣었다. 대조군 SIM-C 잡(P2·P3)은 전체와 같다. 전체 결과로 계산한 게이트 판정이 모두 전체와 같았다."
   },
   "not_evaluated": {},
   "detectors": {
@@ -601,7 +603,7 @@
       "asset_months": 631,
       "fp_per_asset_month": 0,
       "median_delay_days": 61,
-      "magnitude_mae": 3.381,
+      "magnitude_mae": 3.339,
       "min_detectable_magnitude": 6,
       "curve": [
         {
@@ -617,8 +619,8 @@
           "injections": 9,
           "detected": 9,
           "recall": 1,
-          "median_delay_days": 68,
-          "magnitude_mae": 2.446
+          "median_delay_days": 66,
+          "magnitude_mae": 2.386
         },
         {
           "magnitude": 10,
@@ -626,7 +628,7 @@
           "detected": 9,
           "recall": 1,
           "median_delay_days": 56,
-          "magnitude_mae": 4.316
+          "magnitude_mae": 4.292
         }
       ],
       "params_note": "운전 조건 bin을 전류밀도 → 설비 AC 전력(binBy ac_power, 50 kW)으로 변경. 재생전력 연계 전해조는 전력 설정값으로 운전해 정류기·스택 열화 시 같은 전력의 전류밀도가 낮아지고, 전류밀도 bin 기준이 고장 뒤 표본으로 새로 만들어져 상승이 가려졌다(정류기 10% 주입: 월 중앙 SEC 57.7 → 63.2 kWh/kg인데 finding 0). 전류 설정값 운전 설비는 binBy current_density로 되돌린다. 평가 프리셋에서 유량계 드리프트를 비에너지 스윕과 다른 순번(P3 10~12)으로 분리(드리프트가 계량 kg을 키워 kWh/kg 상승을 가림). 첫 전체 평가 5% 이상 재현율 0.5 → 이 스코어카드. 심각도 임계·CI 조건·break-in 1,000 h는 그대로."
@@ -675,24 +677,24 @@
     "tank.static_leak": {
       "detector": "tank.static_leak@1",
       "unit": "kg/일",
-      "tp": 14,
-      "fp": 198,
-      "fn": 7,
-      "recall": 0.667,
-      "precision": 0.066,
+      "tp": 16,
+      "fp": 14,
+      "fn": 11,
+      "recall": 0.593,
+      "precision": 0.533,
       "asset_months": 2524.2,
-      "fp_per_asset_month": 0.0784,
-      "median_delay_days": 10.5,
-      "magnitude_mae": 0.039,
-      "min_detectable_magnitude": 0.1,
+      "fp_per_asset_month": 0.0055,
+      "median_delay_days": 5,
+      "magnitude_mae": 0.034,
+      "min_detectable_magnitude": 0.15,
       "curve": [
         {
           "magnitude": 0.005,
           "injections": 3,
-          "detected": 1,
-          "recall": 0.333,
-          "median_delay_days": 96,
-          "magnitude_mae": 0.082
+          "detected": 0,
+          "recall": 0,
+          "median_delay_days": null,
+          "magnitude_mae": null
         },
         {
           "magnitude": 0.01,
@@ -705,45 +707,61 @@
         {
           "magnitude": 0.02,
           "injections": 3,
-          "detected": 2,
-          "recall": 0.667,
-          "median_delay_days": 155.5,
-          "magnitude_mae": 0.058
+          "detected": 1,
+          "recall": 0.333,
+          "median_delay_days": 104,
+          "magnitude_mae": 0.108
         },
         {
           "magnitude": 0.05,
           "injections": 3,
-          "detected": 2,
-          "recall": 0.667,
-          "median_delay_days": 53.5,
-          "magnitude_mae": 0.062
+          "detected": 1,
+          "recall": 0.333,
+          "median_delay_days": 76,
+          "magnitude_mae": 0.068
         },
         {
           "magnitude": 0.1,
           "injections": 3,
+          "detected": 2,
+          "recall": 0.667,
+          "median_delay_days": 10.5,
+          "magnitude_mae": 0.022
+        },
+        {
+          "magnitude": 0.15,
+          "injections": 3,
           "detected": 3,
           "recall": 1,
-          "median_delay_days": 15,
-          "magnitude_mae": 0.01
+          "median_delay_days": 6,
+          "magnitude_mae": 0.017
         },
         {
           "magnitude": 0.2,
           "injections": 3,
           "detected": 3,
           "recall": 1,
-          "median_delay_days": 5,
-          "magnitude_mae": 0.043
+          "median_delay_days": 6,
+          "magnitude_mae": 0.039
+        },
+        {
+          "magnitude": 0.25,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 4,
+          "magnitude_mae": 0.029
         },
         {
           "magnitude": 0.5,
           "injections": 3,
           "detected": 3,
           "recall": 1,
-          "median_delay_days": 5,
-          "magnitude_mae": 0.023
+          "median_delay_days": 4,
+          "magnitude_mae": 0.026
         }
       ],
-      "params_note": "상태식을 Abel–Noble → NIST Lemmon–Huber–Leachman 2008 압축계수(eosModel lemmon2008, 300 K·10 MPa Z = 1.05986)로 변경(Abel–Noble 온도 편향이 일교차 정지 보유에서 약 0.03 kg/일 가짜 손실). 기준 정지 보유(최초 12개 중 6개 이상) 손실 중앙값을 편향으로 빼고(±3σ/√n 제한), 잡음 σ = max(MAD σ, 기준 CI 반폭 중앙값/1.96, noiseFloor)로 하한을 둠(MAD만 쓰면 보유 수가 적을 때 σ 과소). zSigma 3·noiseFloor 0.02 kg/일·안전 심각도 4(CI 하한 > 0.5 kg/일) 조건은 그대로."
+      "params_note": "상태식을 Abel–Noble → NIST Lemmon–Huber–Leachman 2008 압축계수(eosModel lemmon2008, 300 K·10 MPa Z = 1.05986)로 변경(Abel–Noble 온도 편향이 일교차 정지 보유에서 약 0.03 kg/일 가짜 손실). 기준 정지 보유(최초 12개 중 6개 이상) 손실 중앙값을 편향으로 빼고, 잡음 σ = max(MAD σ, 기준 CI 반폭 중앙값/1.96, noiseFloor)로 하한을 둠(MAD만 쓰면 보유 수가 적을 때 σ 과소). zSigma 3·noiseFloor 0.02 kg/일·안전 심각도 4(CI 하한 > 0.5 kg/일) 조건은 그대로. 표준오차 정정: 판정값은 최근 구간 가중 중앙값 − 기준 구간 중앙값이므로 SE = √(π/2)·σ·√(1/n_eff최근 + 1/n기준)로 고쳤다(가중 중앙값 비효율 1.2533 + 기준 창 불확실도, n_eff = (Σw)²/Σw²). 예전 σ/√n최근은 기준 12·최근 6구간에서 실제 SE의 0.65배라 명목 3σ가 한쪽 약 2σ(2.5%) 검정이었다. 누설 0 합성 정지 구간 1000회 유의 판정 비율 2.1% → 0.8%. CI도 같은 SE로 내고(반폭 = max(1.96·SE, 최근 구간 부트스트랩 반폭)), 기준 편향 보정 한도도 maxBaselineSigma × √(π/2)·σ/√n기준으로 맞췄다. 평가 영향: 오탐 198 → 14건(0.0784 → 0.0055건/자산·월), 정밀도 0.066 → 0.533, 탐지 지연 중앙값 10.5 → 5일, 크기 MAE 0.039 → 0.034, 재현율 0.667 → 0.593(작은 누설 0.005~0.05 kg/일을 놓친다). 게이트: 오탐만 0.1 → 0.02건/자산·월로 강화(안전 카테고리를 낼 수 있는 탐지기), 최소 탐지 크기 임계는 스윕 최대(통과 보장)에서 측정값 0.15 + 스윕 한 단계 = 0.2 kg/일로 바꿨다. 스윕에 0.15·0.25 kg/일을 추가해 0.1~0.3 구간을 다시 쟀다(0.1 → 2/3, 0.15 이상 3/3)."
     },
     "comp.sec_rise": {
       "detector": "comp.sec_rise@1",
@@ -808,7 +826,7 @@
           "magnitude_mae": 3.488
         }
       ],
-      "params_note": "운전 최소 이송량 minMassKg 1 → 5 kg: 1~2 kg 보충 운전(30분)은 기동·정지 에너지 때문에 비에너지가 정상 운전의 약 1.5배(약 3.0 vs 1.9 kWh/kg)라 기준 bin에 섞이면 부트스트랩 중앙값이 두 봉우리 사이를 오가 CI가 0을 넘었다(데모 밸브 마모 12%: 상승 +10.8%인데 CI −18 ~ +13%). 심각도 임계·bin 폭은 그대로. 평가 영향: 밸브 5% 3/3(129일) → 2/3(117일), 10%·20%·오탐 0은 그대로(짧은 운전을 빼 표본이 줄어 작은 상승의 CI가 넓어짐)."
+      "params_note": "운전 최소 이송량 minMassKg 1 → 5 kg: 1~2 kg 보충 운전(30분)은 기동·정지 에너지 때문에 비에너지가 정상 운전의 약 1.5배(약 3.0 vs 1.9 kWh/kg)라 기준 bin에 섞이면 부트스트랩 중앙값이 두 봉우리 사이를 오가 CI가 0을 넘었다(데모 밸브 마모 12%: 상승 +10.8%인데 CI −18 ~ +13%). 심각도 임계·bin 폭은 그대로. 평가 영향: 밸브 5% 3/3(129일) → 2/3(117일), 10%·20%·오탐 0은 그대로(짧은 운전을 빼 표본이 줄어 작은 상승의 CI가 넓어짐). 게이트 기준 크기 10%는 이 탐지기의 심각도 3 임계(sev3Pct 10%)와 같은 값이다. \"심각도 3 = 조치 권고 대상\"이므로 그 크기부터는 놓치지 않아야 한다는 뜻이고, 그보다 작은 크기는 게이트로 올리지 않고 곡선으로만 기록한다(밸브 마모 5% 재현율 2/3, 지연 중앙값 116.5일). 같은 규칙을 쓰는 탐지기: el.sec_rise 5%(sev3Pct 5), fc.blower_wear 20%(sev3Pct 20), ess.resistance_growth 40%(sev3Pct 40), el.voltage_rise·fc.voltage_decay 20 µV/h(심각도 3 임계 20), ess.capacity_fade 5%(심각도 3 임계 −5%). 속도로 주입하는 탐지기(ess.cell_imbalance 월 10 mV, pv.soiling_rate 0.1%/일, h2chain 3%/월)는 크기 자체가 아니라 평가 기간 안에 심각도 3 수준에 닿는 속도를 기준 크기로 쓴다. dq.gap_flatline 6 h는 탐지 기준(metric_def flatline_max_s)과 같고, inv.thermal_derating은 크기가 아니라 냉각팬 고장 시나리오, tank.static_leak은 최소 탐지 크기 곡선으로 대신한다."
     },
     "fc.blower_wear": {
       "detector": "fc.blower_wear@1",
@@ -821,7 +839,7 @@
       "asset_months": 631,
       "fp_per_asset_month": 0,
       "median_delay_days": 50.5,
-      "magnitude_mae": 5.067,
+      "magnitude_mae": 5.094,
       "min_detectable_magnitude": 5,
       "curve": [
         {
@@ -862,10 +880,10 @@
           "detected": 3,
           "recall": 1,
           "median_delay_days": 35,
-          "magnitude_mae": 4.135
+          "magnitude_mae": 4.189
         }
       ],
-      "params_note": "탐지기 변경 없음."
+      "params_note": "판정 규칙 변경 없음. 에어필터 막힘 판별 체크만 \"기준 기간 이전 교체\" → \"창 안(상승 이후 포함) 교체\"로 넓혀, 준공 직후 교체 기록이 없는 설비에서 늘 데이터없음이던 문제를 고쳤다(회복률 계산은 그대로). 심각도·재현율·오탐에는 영향이 없다."
     },
     "pv.soiling_rate": {
       "detector": "pv.soiling_rate@1",
@@ -1020,9 +1038,9 @@
       "target": 0.7
     },
     "tank_leak_mass_balance_share": {
-      "injections": 6,
-      "with_mass_balance_finding": 3,
-      "share": 0.5
+      "injections": 9,
+      "with_mass_balance_finding": 0,
+      "share": 0
     },
     "fan_failure_delays": [
       {
@@ -1118,7 +1136,7 @@
     },
     {
       "id": "ess.capacity_fade.fp_per_asset_month",
-      "description": "ess.capacity_fade 오탐 [건/자산·월] (대조군 포함, 2457.8 자산·월)",
+      "description": "ess.capacity_fade 오탐 [건/자산·월] (대조군 포함, 2457.8 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1126,7 +1144,7 @@
     },
     {
       "id": "ess.cell_imbalance.fp_per_asset_month",
-      "description": "ess.cell_imbalance 오탐 [건/자산·월] (대조군 포함, 2457.8 자산·월)",
+      "description": "ess.cell_imbalance 오탐 [건/자산·월] (대조군 포함, 2457.8 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1134,7 +1152,7 @@
     },
     {
       "id": "pv.inverter_peer.fp_per_asset_month",
-      "description": "pv.inverter_peer 오탐 [건/자산·월] (대조군 포함, 3719.8 자산·월)",
+      "description": "pv.inverter_peer 오탐 [건/자산·월] (대조군 포함, 3719.8 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1142,7 +1160,7 @@
     },
     {
       "id": "el.voltage_rise.fp_per_asset_month",
-      "description": "el.voltage_rise 오탐 [건/자산·월] (대조군 포함, 631 자산·월)",
+      "description": "el.voltage_rise 오탐 [건/자산·월] (대조군 포함, 631 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1150,7 +1168,7 @@
     },
     {
       "id": "fc.voltage_decay.fp_per_asset_month",
-      "description": "fc.voltage_decay 오탐 [건/자산·월] (대조군 포함, 631 자산·월)",
+      "description": "fc.voltage_decay 오탐 [건/자산·월] (대조군 포함, 631 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1158,7 +1176,7 @@
     },
     {
       "id": "dq.gap_flatline.fp_per_asset_month",
-      "description": "dq.gap_flatline 오탐 [건/자산·월] (대조군 포함, 17470 자산·월)",
+      "description": "dq.gap_flatline 오탐 [건/자산·월] (대조군 포함, 17470 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1166,7 +1184,7 @@
     },
     {
       "id": "el.sec_rise.fp_per_asset_month",
-      "description": "el.sec_rise 오탐 [건/자산·월] (대조군 포함, 631 자산·월)",
+      "description": "el.sec_rise 오탐 [건/자산·월] (대조군 포함, 631 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1174,7 +1192,7 @@
     },
     {
       "id": "h2chain.mass_balance_gap.fp_per_asset_month",
-      "description": "h2chain.mass_balance_gap 오탐 [건/자산·월] (대조군 포함, 631 자산·월)",
+      "description": "h2chain.mass_balance_gap 오탐 [건/자산·월] (대조군 포함, 631 자산·월, 정밀도 0.75)",
       "value": 0.0048,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1182,15 +1200,15 @@
     },
     {
       "id": "tank.static_leak.fp_per_asset_month",
-      "description": "tank.static_leak 오탐 [건/자산·월] (대조군 포함, 2524.2 자산·월)",
-      "value": 0.0784,
+      "description": "tank.static_leak 오탐 [건/자산·월] (대조군 포함, 2524.2 자산·월, 정밀도 0.533)",
+      "value": 0.0055,
       "comparator": "<=",
-      "threshold": 0.1,
+      "threshold": 0.02,
       "pass": true
     },
     {
       "id": "comp.sec_rise.fp_per_asset_month",
-      "description": "comp.sec_rise 오탐 [건/자산·월] (대조군 포함, 631 자산·월)",
+      "description": "comp.sec_rise 오탐 [건/자산·월] (대조군 포함, 631 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1198,7 +1216,7 @@
     },
     {
       "id": "fc.blower_wear.fp_per_asset_month",
-      "description": "fc.blower_wear 오탐 [건/자산·월] (대조군 포함, 631 자산·월)",
+      "description": "fc.blower_wear 오탐 [건/자산·월] (대조군 포함, 631 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1206,7 +1224,7 @@
     },
     {
       "id": "pv.soiling_rate.fp_per_asset_month",
-      "description": "pv.soiling_rate 오탐 [건/자산·월] (대조군 포함, 930 자산·월)",
+      "description": "pv.soiling_rate 오탐 [건/자산·월] (대조군 포함, 930 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1214,7 +1232,7 @@
     },
     {
       "id": "ess.resistance_growth.fp_per_asset_month",
-      "description": "ess.resistance_growth 오탐 [건/자산·월] (대조군 포함, 2457.8 자산·월)",
+      "description": "ess.resistance_growth 오탐 [건/자산·월] (대조군 포함, 2457.8 자산·월, 정밀도 0.25)",
       "value": 0.0122,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1222,7 +1240,7 @@
     },
     {
       "id": "inv.thermal_derating.fp_per_asset_month",
-      "description": "inv.thermal_derating 오탐 [건/자산·월] (대조군 포함, 3719.8 자산·월)",
+      "description": "inv.thermal_derating 오탐 [건/자산·월] (대조군 포함, 3719.8 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1286,10 +1304,10 @@
     },
     {
       "id": "tank.static_leak.min_detectable_kg_per_day",
-      "description": "tank.static_leak 재현율 0.9 이상 최소 누설률 [kg/일] (스윕 최대 0.5 이하여야 함)",
-      "value": 0.1,
+      "description": "tank.static_leak 재현율 0.9 이상 최소 누설률 [kg/일] (측정값 0.15 + 스윕 한 단계 여유)",
+      "value": 0.15,
       "comparator": "<=",
-      "threshold": 0.5,
+      "threshold": 0.2,
       "pass": true
     },
     {
