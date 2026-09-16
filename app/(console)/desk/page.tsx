@@ -13,8 +13,9 @@ import { applyInboxFilter, DEFAULT_INBOX_FILTER, parseInboxFilter, sortInbox } f
 
 export const metadata: Metadata = { title: '분석 데스크' };
 
-/** 이 화면의 Server Action(분석 실행)은 수십 초~몇 분 걸릴 수 있다 (배포 플랫폼 제한 초) */
-export const maxDuration = 800;
+/** 이 화면의 Server Action(분석 실행)은 수십 초~몇 분 걸릴 수 있다 (배포 플랫폼 제한 초).
+ * 300은 Vercel Hobby 플랜 상한이다. 더 긴 실행이 필요하면 플랜을 올리거나 npm run analyze로 서버 밖에서 돌린다. */
+export const maxDuration = 300;
 
 const RUN_HISTORY_LIMIT = 10;
 

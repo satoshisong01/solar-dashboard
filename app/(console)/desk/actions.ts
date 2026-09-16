@@ -10,8 +10,8 @@ import { summarizeRunStats, type RunSummary } from '@/lib/desk/run-summary';
 import { errorState, formValues, INVALID_FORM_MESSAGE, successState, type ActionState } from '@/lib/forms/action-state';
 import { parseActionForm, parseDismissForm, parseFindingIds, parseRunForm } from '@/lib/forms/desk';
 
-/** 화면에서 분석을 실행할 때의 시간 예산. 페이지 maxDuration(800초)보다 짧게 둔다 */
-const ACTION_TIME_BUDGET_MS = 10 * 60_000;
+/** 화면에서 분석을 실행할 때의 시간 예산. 페이지 maxDuration(300초)보다 짧게 둬서 플랫폼이 끊기 전에 스스로 마무리한다 */
+const ACTION_TIME_BUDGET_MS = 4 * 60_000;
 
 export interface RunResultData {
   readonly runId: string;
