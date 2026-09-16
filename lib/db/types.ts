@@ -27,64 +27,6 @@ export type Numeric = ColumnType<string, number | string, number | string>;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
-export interface AuthAccount {
-  accessToken: string | null;
-  accessTokenExpiresAt: Timestamp | null;
-  accountId: string;
-  createdAt: Generated<Timestamp>;
-  id: string;
-  idToken: string | null;
-  password: string | null;
-  providerId: string;
-  refreshToken: string | null;
-  refreshTokenExpiresAt: Timestamp | null;
-  scope: string | null;
-  updatedAt: Timestamp;
-  userId: string;
-}
-
-export interface AuthRateLimit {
-  count: number;
-  id: string;
-  key: string;
-  lastRequest: Int8;
-}
-
-export interface AuthSession {
-  createdAt: Generated<Timestamp>;
-  expiresAt: Timestamp;
-  id: string;
-  impersonatedBy: string | null;
-  ipAddress: string | null;
-  token: string;
-  updatedAt: Timestamp;
-  userAgent: string | null;
-  userId: string;
-}
-
-export interface AuthUser {
-  banExpires: Timestamp | null;
-  banned: boolean | null;
-  banReason: string | null;
-  createdAt: Generated<Timestamp>;
-  email: string;
-  emailVerified: boolean;
-  id: string;
-  image: string | null;
-  name: string;
-  role: string | null;
-  updatedAt: Generated<Timestamp>;
-}
-
-export interface AuthVerification {
-  createdAt: Generated<Timestamp>;
-  expiresAt: Timestamp;
-  id: string;
-  identifier: string;
-  updatedAt: Generated<Timestamp>;
-  value: string;
-}
-
 export interface OmActionVerification {
   action_id: Int8;
   after_stats: Generated<Json>;
@@ -144,6 +86,64 @@ export interface OmAssetEvent {
   note: string | null;
   resets_baseline: Generated<boolean>;
   ts: Timestamp;
+}
+
+export interface OmAuthAccount {
+  accessToken: string | null;
+  accessTokenExpiresAt: Timestamp | null;
+  accountId: string;
+  createdAt: Generated<Timestamp>;
+  id: string;
+  idToken: string | null;
+  password: string | null;
+  providerId: string;
+  refreshToken: string | null;
+  refreshTokenExpiresAt: Timestamp | null;
+  scope: string | null;
+  updatedAt: Timestamp;
+  userId: string;
+}
+
+export interface OmAuthRateLimit {
+  count: number;
+  id: string;
+  key: string;
+  lastRequest: Int8;
+}
+
+export interface OmAuthSession {
+  createdAt: Generated<Timestamp>;
+  expiresAt: Timestamp;
+  id: string;
+  impersonatedBy: string | null;
+  ipAddress: string | null;
+  token: string;
+  updatedAt: Timestamp;
+  userAgent: string | null;
+  userId: string;
+}
+
+export interface OmAuthUser {
+  banExpires: Timestamp | null;
+  banned: boolean | null;
+  banReason: string | null;
+  createdAt: Generated<Timestamp>;
+  email: string;
+  emailVerified: boolean;
+  id: string;
+  image: string | null;
+  name: string;
+  role: string | null;
+  updatedAt: Generated<Timestamp>;
+}
+
+export interface OmAuthVerification {
+  createdAt: Generated<Timestamp>;
+  expiresAt: Timestamp;
+  id: string;
+  identifier: string;
+  updatedAt: Generated<Timestamp>;
+  value: string;
 }
 
 export interface OmDetectorConfig {
@@ -346,6 +346,12 @@ export interface OmMetricDef {
   value_kind: string;
 }
 
+export interface OmPgmigrations {
+  id: Generated<number>;
+  name: string;
+  run_on: Timestamp;
+}
+
 export interface OmPoint {
   asset_id: number;
   created_at: Generated<Timestamp>;
@@ -422,12 +428,6 @@ export interface OmUnmappedSource {
   unit: string | null;
 }
 
-export interface Pgmigrations {
-  id: Generated<number>;
-  name: string;
-  run_on: Timestamp;
-}
-
 export interface SimEvalResult {
   details: Generated<Json>;
   detector_id: string;
@@ -463,16 +463,16 @@ export interface SimRun {
 }
 
 export interface DB {
-  auth_account: AuthAccount;
-  auth_rate_limit: AuthRateLimit;
-  auth_session: AuthSession;
-  auth_user: AuthUser;
-  auth_verification: AuthVerification;
   "om.action_verification": OmActionVerification;
   "om.analysis_run": OmAnalysisRun;
   "om.asset": OmAsset;
   "om.asset_class": OmAssetClass;
   "om.asset_event": OmAssetEvent;
+  "om.auth_account": OmAuthAccount;
+  "om.auth_rate_limit": OmAuthRateLimit;
+  "om.auth_session": OmAuthSession;
+  "om.auth_user": OmAuthUser;
+  "om.auth_verification": OmAuthVerification;
   "om.detector_config": OmDetectorConfig;
   "om.episode": OmEpisode;
   "om.event_log": OmEventLog;
@@ -488,13 +488,13 @@ export interface DB {
   "om.market_daily": OmMarketDaily;
   "om.measurement": OmMeasurement;
   "om.metric_def": OmMetricDef;
+  "om.pgmigrations": OmPgmigrations;
   "om.point": OmPoint;
   "om.report": OmReport;
   "om.rollup_dirty": OmRollupDirty;
   "om.site": OmSite;
   "om.site_energy_daily": OmSiteEnergyDaily;
   "om.unmapped_source": OmUnmappedSource;
-  pgmigrations: Pgmigrations;
   "sim.eval_result": SimEvalResult;
   "sim.injection": SimInjection;
   "sim.run": SimRun;

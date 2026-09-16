@@ -4,10 +4,13 @@ import { assertTestDatabaseUrl } from '../support/test-env';
 
 const databaseUrl = assertTestDatabaseUrl(process.env.DATABASE_URL);
 
+// om은 공용 DB에서 이 프로젝트가 쓰는 유일한 스키마다: 도메인 테이블 + 인증(auth_*) + 마이그레이션 기록(pgmigrations).
 const OM_TABLES = [
-  'action_verification', 'analysis_run', 'asset', 'asset_class', 'asset_event', 'detector_config', 'episode', 'event_log',
+  'action_verification', 'analysis_run', 'asset', 'asset_class', 'asset_event', 'auth_account', 'auth_rate_limit',
+  'auth_session', 'auth_user', 'auth_verification', 'detector_config', 'episode', 'event_log',
   'finding', 'finding_evidence', 'finding_transition', 'gateway', 'gateway_key', 'ingest_batch', 'kpi_daily', 'm_1h',
-  'maintenance_action', 'market_daily', 'measurement', 'metric_def', 'point', 'report', 'rollup_dirty', 'site', 'site_energy_daily', 'unmapped_source',
+  'maintenance_action', 'market_daily', 'measurement', 'metric_def', 'pgmigrations', 'point', 'report', 'rollup_dirty',
+  'site', 'site_energy_daily', 'unmapped_source',
 ];
 
 /** UTC 기준 오늘에서 offset개월 떨어진 달의 파티션 이름 */
@@ -35,7 +38,7 @@ describe('om 스키마 (hysol_test)', () => {
     return rows.map((row) => row.name);
   }
 
-  it('P1·P2·P3 테이블이 모두 있다 (파티션 자식 제외)', async () => {
+  it('P1·P2·P3·인증·마이그레이션 기록 테이블이 om에만 있다 (파티션 자식 제외)', async () => {
     const { rows } = await client.query<{ name: string }>(
       `SELECT c.relname AS name FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
        WHERE n.nspname = 'om' AND c.relkind IN ('r', 'p') AND NOT c.relispartition ORDER BY 1`,

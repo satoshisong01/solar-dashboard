@@ -7,6 +7,14 @@ import { getServerEnv, type ServerEnv } from '@/lib/env';
 const POOL_MAX = 5; // 서버리스 인스턴스마다 풀이 생기므로 작게 유지
 const IDLE_TIMEOUT_MS = 5_000;
 
+/**
+ * 연결 시작 파라미터로 넘기는 search_path (첫 쿼리부터 적용된다).
+ * Better Auth 어댑터는 auth_* 테이블을 스키마 없이 조회하고, 우리 테이블은 om 스키마에만 있다 (db/migrations).
+ * 운영 DB의 public은 다른 프로젝트와 공유하므로 om을 앞에 둬서 우리 테이블이 먼저 잡히게 한다.
+ * 도메인 SQL은 om.·sim.을 직접 붙이므로 영향이 없다. 공백은 넣지 않는다 (options는 공백으로 인자를 나눈다).
+ */
+export const CONNECT_OPTIONS = '-c search_path=om,public';
+
 type SslEnv = Pick<ServerEnv, 'DATABASE_SSL' | 'DATABASE_SSL_CA_PATH'>;
 type ReadCaFile = (path: string) => string;
 
@@ -53,6 +61,7 @@ export function getPool(): Pool {
   const pool = new Pool({
     connectionString: env.DATABASE_URL,
     ssl: buildSslOptions(env),
+    options: CONNECT_OPTIONS,
     max: POOL_MAX,
     idleTimeoutMillis: IDLE_TIMEOUT_MS,
   });
@@ -63,4 +72,12 @@ export function getPool(): Pool {
 
   globalForPool.__hysolPool = pool;
   return pool;
+}
+
+/** 풀을 닫고 캐시를 비운다. 스크립트·테스트가 끝날 때 쓴다 (다음 getPool()은 새 풀을 만든다). */
+export async function closePool(): Promise<void> {
+  const pool = globalForPool.__hysolPool;
+  if (!pool) return;
+  globalForPool.__hysolPool = undefined;
+  await pool.end();
 }
