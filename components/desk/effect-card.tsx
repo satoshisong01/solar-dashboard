@@ -1,4 +1,5 @@
 import { Panel } from '@/components/ui/panel';
+import { TermLink } from '@/components/ui/term-link';
 import type { FindingDetail } from '@/lib/data/finding-workspace';
 import { formatEffectLevels, formatEffectWithCi } from '@/lib/desk/effect';
 import type { EvidenceView, WindowView } from '@/lib/desk/evidence-types';
@@ -47,7 +48,11 @@ export function EffectCard({ finding, chargeTimeText }: EffectCardProps) {
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
           <p className="font-mono text-3xl font-semibold text-ink tabular-nums">{effectText.value}</p>
-          {ci && <p className="font-mono text-sm text-ink-2 tabular-nums">{ci}</p>}
+          {ci && (
+            <p className="font-mono text-sm text-ink-2 tabular-nums">
+              {ci} <TermLink termId="ci" term="95% 신뢰구간" />
+            </p>
+          )}
         </div>
         <dl className="grid gap-2 text-sm sm:grid-cols-2">
           {levels && (
@@ -75,7 +80,9 @@ export function EffectCard({ finding, chargeTimeText }: EffectCardProps) {
         </dl>
         {condition && (
           <p className="rounded-md border border-rule bg-sunken px-3 py-2 text-sm text-ink">
-            <span className="block text-xs text-muted">같은 조건</span>
+            <span className="block text-xs text-muted">
+              같은 조건 <TermLink termId="matched" term="같은 조건 비교" />
+            </span>
             {condition}
           </p>
         )}

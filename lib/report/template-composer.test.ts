@@ -28,9 +28,9 @@ describe('templateComposer@1 섹션', () => {
     const todo = draft.sections.find((s) => s.kind === 'todo');
     expect(todo?.title).toBe('이번 분기 할 일');
     expect(todo?.blocks.map((b) => b.text)).toEqual([
-      '1. [SIM-B/ELZ1/STACK1] OCV 대기 최소화·램프율 제한 — 전해조 셀 전압 상승 +21.4 µV/h (심각도 4, 신뢰도 99%)',
-      '2. [SIM-A/ESS1/RACK03] 완충 유지로 밸런싱 시간 확보 — 셀 전압 편차 증가 +23.7 mV (심각도 3, 신뢰도 98%)',
-      '3. [SIM-A/ESS1/RACK01] 기준 조건 용량시험으로 감소 폭 확정 — 배터리 유효용량 감소 −7.4% (심각도 3, 신뢰도 85%)',
+      '1. [SIM-B/ELZ1/STACK1] OCV 대기 최소화·램프율 제한 — 전해조 셀 전압 상승 +21.4 µV/h (심각도 4 · 바로 확인, 신뢰도 99%)',
+      '2. [SIM-A/ESS1/RACK03] 완충 유지로 밸런싱 시간 확보 — 셀 전압 편차 증가 +23.7 mV (심각도 3 · 이번 주 확인, 신뢰도 98%)',
+      '3. [SIM-A/ESS1/RACK01] 기준 조건 용량시험으로 감소 폭 확정 — 배터리 유효용량 감소 −7.4% (심각도 3 · 이번 주 확인, 신뢰도 85%)',
     ]);
   });
 

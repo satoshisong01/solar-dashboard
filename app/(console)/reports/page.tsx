@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { PageHeader } from '@/components/console/page-header';
+import { SCREEN_GUIDES } from '@/lib/desk/plain/guides';
 import { CreateReportForm } from '@/components/reports/create-report-form';
 import { ReportList } from '@/components/reports/report-list';
 import { ReportScopeForm, type ScopeDefaults } from '@/components/reports/report-scope-form';
@@ -37,7 +38,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
 
   return (
     <>
-      <PageHeader title="코칭 리포트" purpose="사이트별 리포트 초안을 만들고 검토·승인한 뒤 PDF로 출력" />
+      <PageHeader title="코칭 리포트" purpose="사이트별 리포트 초안을 만들고 검토·승인한 뒤 PDF로 출력" guide={SCREEN_GUIDES.reports} />
 
       <Panel title="리포트 만들기" meta="분석 실행과 별개 · 메일 발송 없음 · PDF는 인쇄 화면에서 출력">
         {sites.length === 0 ? (

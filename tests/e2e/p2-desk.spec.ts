@@ -53,6 +53,27 @@ test('분석 데스크: SIM-B 최근 30일 분석 실행 → 결과 요약·실�
   for (const title of ['효과', '원시 시계열', '원인 후보 판별']) await expect(panel(page, title)).toBeVisible();
   await expect(page.getByLabel('탐지기 신뢰 배지')).toBeVisible();
   await expect(panel(page, '활동 타임라인')).toContainText('발견사항 생성');
+
+  // 용어 옆 물음표 → 용어집의 해당 항목
+  await page.getByRole('link', { name: '원인 후보 · 플레이북 뜻 보기' }).click();
+  await expect(page).toHaveURL(/\/help#playbook$/);
+  await expect(page.locator('#playbook')).toContainText('원인을 가려내는 점검 방법');
+});
+
+test('화면 안내는 끄고 켤 수 있고, 용어집은 목차에서 항목으로 간다', async ({ page }) => {
+  await page.goto('/desk');
+  const guide = page.getByText('급한 것부터 읽고');
+  await expect(guide).toBeVisible();
+  await page.getByRole('button', { name: '이 화면 안내 숨기기' }).click();
+  await expect(guide).toHaveCount(0);
+  await page.getByRole('button', { name: '이 화면 안내 보기' }).click();
+  await expect(guide).toBeVisible();
+
+  await page.goto('/help');
+  await expect(page.getByRole('heading', { level: 1, name: '용어집' })).toBeVisible();
+  await page.getByRole('link', { name: '95% 신뢰구간 (95% CI)', exact: true }).click();
+  await expect(page).toHaveURL(/\/help#ci$/);
+  await expect(page.locator('#ci')).toContainText('참값이 들어 있을 만한 범위');
 });
 
 test('없는 발견사항 id는 찾을 수 없음 화면', async ({ page }) => {

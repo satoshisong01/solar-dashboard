@@ -13,6 +13,7 @@ import { RawSeriesPanel } from '@/components/desk/raw-series-panel';
 import { SafetyFindingBanner } from '@/components/desk/safety-finding-banner';
 import { TechnicalDetails } from '@/components/desk/technical-details';
 import { EmptyNote, Panel } from '@/components/ui/panel';
+import { TermLink } from '@/components/ui/term-link';
 import scorecardJson from '@/lib/analytics/scorecard.json';
 import { PLAYBOOKS } from '@/lib/analytics/playbooks';
 import { requireAdmin } from '@/lib/auth/dal';
@@ -130,7 +131,7 @@ export default async function FindingPage({ params, searchParams }: FindingPageP
         <section id="raw-series" className="scroll-mt-20">
           <RawSeriesPanel series={series} span={span} basePath={basePath} exploreHref={finding.asset ? `/sites/${encodeURIComponent(finding.siteCode)}/assets/${finding.asset.id}` : null} />
         </section>
-        <Panel title="원인 후보 판별" meta={playbook ? playbook.title : undefined}>
+        <Panel title="원인 후보 판별" meta={playbook ? playbook.title : undefined} action={<TermLink termId="playbook" term="원인 후보 · 플레이북" />}>
           <ChecksTable checks={checks} />
           {playbook && <PlaybookDetails playbook={playbook} />}
         </Panel>

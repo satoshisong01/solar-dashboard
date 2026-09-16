@@ -101,7 +101,7 @@ describe("요약 맨 앞 '즉시 확인 필요' (안전 발견사항)", () => {
     expect(summary?.blocks[0]?.id).toBe(URGENT_BLOCK_ID);
     expect(summary?.blocks[0]?.citations).toEqual(['finding:10']);
     expect(textOf(draft, URGENT_BLOCK_ID)).toBe(
-      '즉시 확인 필요: [SIM-B/H2BANK1/TANK3] 저장용기 정지 보유 누설 — 저장용기 누설 의심 1.03 kg/일 — 즉시 현장 확인(심각도 4). 가스 검지기 기록과 현장 점검을 먼저 확인하고, 운전 정지 여부는 현장 안전책임자가 판단하세요. 이 콘솔은 법정 안전설비·가스 검지기·현장 PLC 인터록 판단을 대체하지 않습니다.',
+      '즉시 확인 필요: [SIM-B/H2BANK1/TANK3] 저장용기 정지 보유 누설 — 저장용기 누설 의심 1.03 kg/일 — 즉시 현장 확인(심각도 4 · 바로 확인). 가스 검지기 기록과 현장 점검을 먼저 확인하고, 운전 정지 여부는 현장 안전책임자가 판단하세요. 이 콘솔은 법정 안전설비·가스 검지기·현장 PLC 인터록 판단을 대체하지 않습니다.',
     );
     const review = toReviewDraft(draft);
     expect(review.sections[0]?.blocks[0]?.locked).toBe(true);

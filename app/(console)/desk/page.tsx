@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { PageHeader } from '@/components/console/page-header';
+import { SCREEN_GUIDES } from '@/lib/desk/plain/guides';
 import { InboxFilters } from '@/components/desk/inbox-filters';
 import { InboxWorkbench } from '@/components/desk/inbox-table';
 import { RunHistory } from '@/components/desk/run-history';
@@ -37,7 +38,7 @@ export default async function DeskPage({ searchParams }: DeskPageProps) {
 
   return (
     <>
-      <PageHeader title="분석 데스크" purpose="분석을 실행하고 발견사항(finding)을 분류한 뒤 근거 확인·원인 판별·권고 작성" />
+      <PageHeader title="분석 데스크" purpose="분석을 실행하고 발견사항(finding)을 분류한 뒤 근거 확인·원인 판별·권고 작성" guide={SCREEN_GUIDES.desk} />
 
       <Panel title="분석 실행" meta="수동 실행 · 결과는 발견사항으로만 저장">
         {options.sites.length === 0 ? <EmptyNote>등록된 사이트가 없습니다</EmptyNote> : <RunPanel options={options} />}

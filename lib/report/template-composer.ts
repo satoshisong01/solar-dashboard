@@ -3,6 +3,7 @@
 // 모든 숫자는 팩 경로 토큰이라 validateDraft가 팩 값과 대조한다.
 import { SINGLE_SAMPLE_METHOD } from '@/lib/analytics/verification/before-after';
 import { verdictLabel } from '@/lib/desk/labels';
+import { severityAction } from '@/lib/desk/plain/common';
 import { isSafetyFinding, SAFETY_FINDING_NOTICE } from '@/lib/desk/safety';
 import { SAFETY_NOTICE, URGENT_BLOCK_ID, type DraftBlock, type DraftSection, type ReportComposer, type ReportDraft } from './composer';
 import { ledgerSection } from './ledger-section';
@@ -53,9 +54,10 @@ function summarySection(pack: EvidencePack, s: Scope): DraftSection {
 function urgentBlock(pack: EvidencePack, s: Scope): DraftBlock | null {
   const safety = pack.findings.flatMap((f, index) => (isSafetyFinding(f) ? [{ f, index }] : []));
   if (safety.length === 0) return null;
-  const items = safety.map(({ index }) => {
+  // 심각도 숫자 뒤에 급함을 말로 덧붙인다 (숫자가 아니라 토큰 검증에 걸리지 않는다)
+  const items = safety.map(({ f, index }) => {
     const fs = s.at(`findings[${index}]`);
-    return seq('[', fs.label('assetPath'), '] ', fs.label('detectorLabel'), ' — ', fs.label('title'), '(심각도 ', fs.num('severity'), ')');
+    return seq('[', fs.label('assetPath'), '] ', fs.label('detectorLabel'), ' — ', fs.label('title'), '(심각도 ', fs.num('severity'), ` · ${severityAction(f.severity)})`);
   });
   const piece = seq('즉시 확인 필요: ', joinPresent(items, '; '), `. 가스 검지기 기록과 현장 점검을 먼저 확인하고, 운전 정지 여부는 현장 안전책임자가 판단하세요. ${SAFETY_FINDING_NOTICE}`);
   return block(URGENT_BLOCK_ID, piece, safety.map(({ f }) => `finding:${f.id}`));
@@ -69,7 +71,7 @@ function todoSection(pack: EvidencePack, s: Scope): DraftSection {
     if (!f) return [];
     const fs = s.at(`findings[${todo.findingIndex}]`);
     const effect = when(fs.has('effect.value'), () => seq(' ', fs.signed('effect.value', effectDigits(f, 1)), unitSuffix(f.effect.unit)));
-    const piece = seq(s.num(`todo[${i}].rank`), '. [', fs.label('assetPath'), '] ', s.label(`todo[${i}].action`), ' — ', fs.label('detectorLabel'), effect, ' (심각도 ', fs.num('severity'), ', 신뢰도 ', fs.pct('confidence'), '%)');
+    const piece = seq(s.num(`todo[${i}].rank`), '. [', fs.label('assetPath'), '] ', s.label(`todo[${i}].action`), ' — ', fs.label('detectorLabel'), effect, ' (심각도 ', fs.num('severity'), ` · ${severityAction(f.severity)}, 신뢰도 `, fs.pct('confidence'), '%)');
     return [block(`todo.${todo.rank}`, piece, [`finding:${f.id}`])];
   });
   return { kind: 'todo', title: TODO_TITLES[pack.period.kind], blocks: blocks.length > 0 ? blocks : [block('todo.none', '우선 조치할 발견사항이 없습니다.', ['stats'])] };

@@ -25,6 +25,7 @@ export const CONSOLE_ROUTES = Object.freeze([
   { href: '/safety', title: '안전' },
   { href: '/data', title: '데이터' },
   { href: '/settings', title: '설정' },
+  { href: '/help', title: '용어집' },
 ]);
 
 export function getE2eAdminPassword(): string {

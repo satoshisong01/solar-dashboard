@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { PageHeader } from '@/components/console/page-header';
+import { SCREEN_GUIDES } from '@/lib/desk/plain/guides';
 import { AckHistoryTable, SafetyNotice, SilenceList, UnackedEventList } from '@/components/safety/safety-panels';
 import { Panel } from '@/components/ui/panel';
 import { requireAdmin } from '@/lib/auth/dal';
@@ -27,7 +28,7 @@ export default async function SafetyPage() {
 
   return (
     <>
-      <PageHeader title="안전" purpose="안전 이벤트 즉시 경로와 확인 이력" />
+      <PageHeader title="안전" purpose="안전 이벤트 즉시 경로와 확인 이력" guide={SCREEN_GUIDES.safety} />
       <SafetyNotice />
 
       <Panel title="안전감시 공백" meta={`수소·ESS 설비가 있는 사이트의 게이트웨이 무수신 ${silenceMinutes}분 이상 · 기준 ${formatKstDateTime(nowMs)}`}>

@@ -2,6 +2,7 @@ import { ShieldAlert } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { PageHeader } from '@/components/console/page-header';
+import { SCREEN_GUIDES } from '@/lib/desk/plain/guides';
 import { EmptyNote, NUM_CLASS, Panel, TABLE_CLASS, TD_CLASS, TH_CLASS, TableScroll } from '@/components/ui/panel';
 import { requireAdmin } from '@/lib/auth/dal';
 import { SITE_LAYOUT_LABELS, listSites } from '@/lib/data/sites';
@@ -17,7 +18,7 @@ export default async function SitesPage() {
 
   return (
     <>
-      <PageHeader title="사이트" purpose="사이트 맥락: 설비 트리, KPI, 타임라인, 에너지·수소 체인" />
+      <PageHeader title="사이트" purpose="사이트 맥락: 설비 트리, KPI, 타임라인, 에너지·수소 체인" guide={SCREEN_GUIDES.sites} />
       <Panel title="사이트 목록" meta={`${sites.length}곳`}>
         {sites.length === 0 ? (
           <EmptyNote>등록된 사이트가 없습니다</EmptyNote>

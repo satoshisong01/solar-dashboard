@@ -6,6 +6,7 @@ import { startTransition, useActionState, useState, type FormEvent } from 'react
 import { dismissFindingsAction, triageFindingsAction, type BulkResultData } from '@/app/(console)/desk/actions';
 import { ActionMessage, buttonClass } from '@/components/forms/controls';
 import { NUM_CLASS, TABLE_CLASS, TD_CLASS, TH_CLASS, TableScroll } from '@/components/ui/panel';
+import { TermLink } from '@/components/ui/term-link';
 import { formatEffectWithCi } from '@/lib/desk/effect';
 import type { InboxRow } from '@/lib/desk/inbox';
 import { CATEGORY_LABELS, detectorLabel } from '@/lib/desk/labels';
@@ -123,9 +124,13 @@ function InboxTable({ rows, triage, dismiss, dismissState, pending }: TableProps
                   <span className="sr-only">모두 선택</span>
                 </label>
               </th>
-              <th scope="col" className={TH_CLASS}>급함·신뢰도</th>
+              <th scope="col" className={TH_CLASS}>
+                급함 <TermLink termId="severity" term="심각도 (급함)" /> · 신뢰도 <TermLink termId="confidence" term="신뢰도" />
+              </th>
               <th scope="col" className={TH_CLASS}>발견사항</th>
-              <th scope="col" className={TH_CLASS}>효과 크기</th>
+              <th scope="col" className={TH_CLASS}>
+                효과 크기 <TermLink termId="effect" term="효과 크기" />
+              </th>
               <th scope="col" className={TH_CLASS}>상태</th>
               <th scope="col" className={TH_CLASS}>최초·최근 탐지</th>
               <th scope="col" className={`${TH_CLASS} text-right`}>탐지 횟수</th>

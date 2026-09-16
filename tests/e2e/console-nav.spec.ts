@@ -3,7 +3,7 @@ import { CONSOLE_ROUTES } from './e2e-env';
 
 // chromium 프로젝트의 storageState(auth.setup.ts에서 로그인한 세션)를 쓴다.
 
-test('로그인 후 사이드바에 HySol Desk와 메뉴 10개가 보인다', async ({ page }) => {
+test('로그인 후 사이드바에 HySol Desk와 메뉴 11개가 보인다', async ({ page }) => {
   await page.goto('/');
 
   // 데스크톱 너비에서는 모바일 탭 메뉴가 숨겨져 사이드바 메뉴만 잡힌다.

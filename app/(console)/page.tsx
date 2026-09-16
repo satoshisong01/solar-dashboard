@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { PageHeader } from '@/components/console/page-header';
+import { SCREEN_GUIDES } from '@/lib/desk/plain/guides';
 import { TopFindingsPanel, WorkCountersPanel } from '@/components/today/finding-panels';
 import { SafetyBanner } from '@/components/today/safety-banner';
 import { DataGapsPanel, EnergySummaryPanel, RevenuePanel } from '@/components/today/today-panels';
@@ -27,7 +28,7 @@ export default async function TodayPage() {
 
   return (
     <>
-      <PageHeader title="오늘" purpose="출근 후 5분 안에 할 일과 밤사이 변화 파악" />
+      <PageHeader title="오늘" purpose="출근 후 5분 안에 할 일과 밤사이 변화 파악" guide={SCREEN_GUIDES.today} />
       <p className="-mt-3 text-xs text-muted">기준 시각 {formatKstDateTime(nowMs)} KST</p>
       <SafetyBanner banner={safety} />
       <WorkCountersPanel counts={counts} />

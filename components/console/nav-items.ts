@@ -4,6 +4,7 @@ import {
   FileText,
   FlaskConical,
   LayoutGrid,
+  LifeBuoy,
   ListChecks,
   MapPin,
   Microscope,
@@ -44,6 +45,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
       { href: '/safety', label: '안전', icon: ShieldAlert },
       { href: '/data', label: '데이터', icon: Database },
       { href: '/settings', label: '설정', icon: Settings },
+      { href: '/help', label: '용어집', icon: LifeBuoy },
     ],
   },
 ];

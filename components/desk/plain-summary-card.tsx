@@ -1,5 +1,6 @@
 import { Hourglass } from 'lucide-react';
 import type { PlainSummary } from '@/lib/desk/plain';
+import { TermLink } from '@/components/ui/term-link';
 import { severityAction } from '@/lib/desk/plain/common';
 
 type Row = Readonly<{ label: string; text: string | null }>;
@@ -27,7 +28,7 @@ export function PlainSummaryCard({ summary, severity }: Readonly<{ summary: Plai
         {summary.hold ? (
           <span className="inline-flex items-center gap-1 rounded border border-rule-strong bg-sunken px-1.5 py-px text-xs font-medium text-ink-2">
             <Hourglass aria-hidden="true" className="size-3" />
-            판단 보류
+            판단 보류 <TermLink termId="hold" term="판정 보류" />
           </span>
         ) : (
           <span className="rounded border border-rule-strong bg-sunken px-1.5 py-px text-xs font-medium text-ink-2">{severityAction(severity)}</span>

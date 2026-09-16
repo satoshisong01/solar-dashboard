@@ -3,6 +3,7 @@ import { RangeControls } from '@/components/charts/range-controls';
 import { keepWithinAxes } from '@/components/charts/series-window';
 import { TimeseriesChart } from '@/components/charts/timeseries-chart';
 import { PageHeader } from '@/components/console/page-header';
+import { SCREEN_GUIDES } from '@/lib/desk/plain/guides';
 import { explorePointLabel, type ExplorePoint } from '@/components/explore/explore-filter';
 import { ExplorePicker } from '@/components/explore/explore-picker';
 import { EmptyNote, Panel } from '@/components/ui/panel';
@@ -56,7 +57,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
 
   return (
     <>
-      <PageHeader title="탐색기" purpose="임의 포인트를 골라 원시 데이터 탐색" />
+      <PageHeader title="탐색기" purpose="임의 포인트를 골라 원시 데이터 탐색" guide={SCREEN_GUIDES.explore} />
       <div className="grid gap-6 xl:grid-cols-[22rem_minmax(0,1fr)]">
         <Panel title="포인트 선택">
           <ExplorePicker

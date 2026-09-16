@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GatewayIngestTable } from '@/components/data/gateway-ingest-table';
 import { PageHeader } from '@/components/console/page-header';
+import { SCREEN_GUIDES } from '@/lib/desk/plain/guides';
 import { DATA_TABS, SectionTabs } from '@/components/console/section-tabs';
 import { Panel } from '@/components/ui/panel';
 import { requireAdmin } from '@/lib/auth/dal';
@@ -21,7 +22,7 @@ export default async function DataPage() {
 
   return (
     <>
-      <PageHeader title="데이터" purpose="수집 상태·데이터 품질 관리, 데이터 계약 협의 지원" />
+      <PageHeader title="데이터" purpose="수집 상태·데이터 품질 관리, 데이터 계약 협의 지원" guide={SCREEN_GUIDES.data} />
       <SectionTabs label="데이터 하위 화면" tabs={DATA_TABS} current="/data" />
 
       <Panel

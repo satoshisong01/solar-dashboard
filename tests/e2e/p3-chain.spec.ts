@@ -192,7 +192,7 @@ test("(6) 리포트 만들기(SIM-B): 심각도 4 인용·검증 통과 → 안�
   const firstSummaryBlock = panel(page, '요약').locator('[id^="block-"]').first();
   await expect(firstSummaryBlock).toHaveAttribute('id', 'block-summary.urgent');
   await expect(firstSummaryBlock).toContainText(`즉시 확인 필요: [${P3_SITE}/${P3_ASSETS.leakTank}]`);
-  await expect(firstSummaryBlock).toContainText('(심각도 4)');
+  await expect(firstSummaryBlock).toContainText('(심각도 4 · 바로 확인)');
   await expect(firstSummaryBlock).toContainText(SAFETY_NOTICE);
   await expect(firstSummaryBlock.getByRole('button', { name: '문장 편집' })).toHaveCount(0);
 

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { PageHeader } from '@/components/console/page-header';
+import { SCREEN_GUIDES } from '@/lib/desk/plain/guides';
 import { FleetMatrix } from '@/components/fleet/fleet-matrix';
 import { FleetView } from '@/components/fleet/fleet-view';
 import { Panel } from '@/components/ui/panel';
@@ -25,7 +26,7 @@ export default async function FleetPage() {
 
   return (
     <>
-      <PageHeader title="플릿" purpose="여러 사이트를 도메인별 건강 상태로 관망" />
+      <PageHeader title="플릿" purpose="여러 사이트를 도메인별 건강 상태로 관망" guide={SCREEN_GUIDES.fleet} />
       <Panel title="사이트 × 도메인 상태" meta={`기준 시각 ${formatKstDateTime(nowMs)} KST`}>
         <FleetView matrix={<FleetMatrix rows={rows} />} sites={sites} />
         <details className="text-xs text-muted">
