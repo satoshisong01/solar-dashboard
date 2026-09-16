@@ -278,6 +278,18 @@ npx node-pg-migrate create <이름> -j sql -m db/migrations --migration-filename
 - `tests/integration/migrations.test.ts`가 마이그레이션 후 `public` 스키마 테이블 수가 0인지 검사합니다.
 - 첫 마이그레이션의 down은 `om` 스키마를 지우지 않습니다(같은 스키마의 `om.pgmigrations`에 기록을 지워야 하기 때문). 로컬에서 완전히 비우려면 `npm run db:reset`을 씁니다.
 
+## 배포 지역 (서버리스 함수)
+
+운영 DB는 AWS RDS 서울(`ap-northeast-2`)에 있습니다. 서버 렌더가 미국에서 돌면 쿼리마다 태평양을 왕복하므로 화면마다 수백 ms가 그냥 사라집니다. 저장소 루트의 `vercel.json`이 함수 지역을 서울(`icn1`)로 고정합니다.
+
+```json
+{ "regions": ["icn1"] }
+```
+
+- Hobby 플랜은 **지역을 하나만** 고를 수 있습니다(여러 지역은 Pro 이상). 하나만 적는 이 설정은 Hobby에서도 받아들여집니다.
+- `vercel.json`이 적용되지 않으면 Vercel 대시보드의 **Project Settings → Functions → Function Region**에서 `Seoul, South Korea (icn1)`을 골라도 같은 결과입니다. 두 곳에 모두 있으면 `vercel.json`이 이깁니다.
+- 배포 뒤 확인: 응답 헤더 `x-vercel-id`의 앞부분이 `icn1`이면 서울에서 실행된 것입니다.
+
 ## 운영 RDS에 마이그레이션 적용
 
 `npm run db:migrate`는 `.env.development.local`(로컬 DB)을 읽으므로 운영에는 쓰지 않습니다. `.env.local`의 옛 `DB_*` 변수는 읽지 않습니다. 운영용 env 파일을 따로 만들어(`.env*`는 git에 올라가지 않음, 예: `.env.rds.local`) 같은 스크립트를 실행합니다.
