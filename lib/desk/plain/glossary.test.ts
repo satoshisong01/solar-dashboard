@@ -21,7 +21,7 @@ describe('용어집', () => {
   });
 
   it('현장 담당자가 만나는 말을 모두 덮는다', () => {
-    const required = ['severity', 'confidence', 'effect', 'ci', 'baseline', 'matched', 'operating-segment', 'hold', 'mass-balance', 'self-sufficiency', 'completeness', 'soh'];
+    const required = ['severity', 'confidence', 'effect', 'ci', 'baseline', 'matched', 'operating-segment', 'hold', 'mass-balance', 'self-sufficiency', 'completeness', 'soh', 'soc'];
     expect(required.filter((id) => glossaryTerm(id) === undefined)).toEqual([]);
   });
 

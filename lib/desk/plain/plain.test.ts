@@ -20,7 +20,9 @@ const summaryOf = (detectorId: string) => {
 };
 
 /** 현장 담당자가 모르는 말 — 1~3번 문장에 남아 있으면 안 된다 (4번은 플레이북 점검 항목 원문이라 뺀다) */
-const JARGON = ['비에너지', '물질수지', '수정 z', '신뢰구간', '95% CI', 'CUSUM', 'Theil', '유효용량', '완결성', '심각도', '판정 보류', 'SOH', '고착', '성능지수', '외삽'];
+const JARGON = ['비에너지', '물질수지', '수정 z', '신뢰구간', '95% CI', 'CUSUM', 'Theil', '유효용량', '완결성', '심각도', '판정 보류', 'SOH', 'SOC', 'DOD', 'C-rate', '고착', '성능지수', '외삽'];
+/** C-rate는 약어가 아니라 '0.10~0.20C'처럼 숫자 뒤 C로 나타난다 (°C는 앞이 숫자가 아니라 걸리지 않는다) */
+const C_RATE_NOTATION = /\d\s*C(?![a-zA-Z])/;
 
 describe('쉬운 말 요약 (탐지기 14종)', () => {
   it('탐지기 14종 전부 한 줄 요약 문장을 가진다', () => {
@@ -44,12 +46,13 @@ describe('쉬운 말 요약 (탐지기 14종)', () => {
     const summary = summaryOf(detectorId);
     const text = [summary.what, summary.basis, summary.outlook].join(' ');
     expect(JARGON.filter((word) => text.includes(word))).toEqual([]);
+    expect(C_RATE_NOTATION.test(text)).toBe(false);
   });
 
   it('ess.capacity_fade: 담기는 전기 감소 + 같은 조건 + 충전시간 영향', () => {
     const summary = summaryOf('ess.capacity_fade');
     expect(summary.what).toMatch(/^배터리 랙 1\(RACK01\)에 담기는 전기의 양이 처음 재던 때보다 \d+\.\d% 줄었습니다\.$/);
-    expect(summary.basis).toMatch(/^충전 전류 .+와 셀 온도 .+처럼 조건이 비슷했던 때끼리만 골라 예전 \d+번, 최근 \d+번을 비교했습니다\.$/);
+    expect(summary.basis).toMatch(/^한 시간에 [\d.]+~[\d.]+%씩 채우는 충전 속도와 셀 온도 .+처럼 조건이 비슷했던 때끼리만 골라 예전 \d+번, 최근 \d+번을 비교했습니다\.$/);
     expect(summary.outlook).toContain('같은 전류로 가득 채우는 시간이');
     expect(summary.nextStep).toBe('정기 용량시험 결과와 비교.');
   });

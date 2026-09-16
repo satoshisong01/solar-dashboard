@@ -1,5 +1,5 @@
 // 2) 왜 믿을 만한지 — 무엇과 무엇을 같은 조건에서 견줬는지 한 문장. 근거 스냅샷(EvidenceView)의 표본 수·조건 범위를 그대로 쓴다.
-import { cRateRangeText, parseCapacityBinKey, tempRangeText } from '../conditions';
+import { parseCapacityBinKey, tempRangeText } from '../conditions';
 import type { CapacityEvidence, CellImbalanceEvidence, DqEvidence, EvidenceView, PvPeerEvidence, StackEvidence } from '../evidence-types';
 import type { MassBalanceEvidence, RiseEvidence, SoilingEvidence, TankLeakEvidence, ThermalEvidence } from '../p3-evidence-types';
 import { RISE_META } from '../rise-meta';
@@ -11,13 +11,22 @@ const rangeOf = (values: readonly number[]): { low: number; high: number } | nul
 /** '예전 20번, 최근 12번을 비교했습니다' */
 const comparedCounts = (nRef: number, nCur: number, word: string): string => `예전 ${amount(nRef)}${word}, 최근 ${amount(nCur)}${withParticle(word, '을', '를')} 비교했습니다`;
 
+/**
+ * C-rate는 '한 시간에 용량의 몇 %를 채우는 속도'와 같다 (0.10C = 시간당 10%).
+ * 쉬운 말 요약에서는 약어 대신 이 뜻을 그대로 쓴다 — 범위 숫자는 그대로 남는다.
+ */
+const chargeSpeedText = (low: number, high: number): string => {
+  const pct = (value: number): string => String(Math.round(value * 1000) / 10);
+  return `한 시간에 ${pct(low)}~${pct(high)}%씩 채우는 충전 속도`;
+};
+
 function capacityBasis(e: CapacityEvidence): string {
   const used = e.bins.filter((bin) => bin.used);
   const keys = used.map((bin) => parseCapacityBinKey(bin.key));
   const cRates = rangeOf(keys.flatMap((key) => (key.cRate === null ? [] : [key.cRate])));
   const temps = rangeOf(keys.flatMap((key) => (key.tempC === null ? [] : [key.tempC])));
   const conditions = [
-    cRates === null ? null : `충전 전류 ${cRateRangeText(cRates.low, cRates.high + e.widths.cRate, e.widths.cRate)}`,
+    cRates === null ? null : chargeSpeedText(cRates.low, cRates.high + e.widths.cRate),
     temps === null ? null : `셀 온도 ${tempRangeText(temps.low, temps.high + e.widths.tempC, e.widths.tempC)}`,
   ].filter((part): part is string => part !== null);
   const word = e.metric === 'rest_anchored' ? '쌍' : '번';
@@ -51,7 +60,7 @@ function dqBasis(e: DqEvidence): string {
 function riseBasis(e: RiseEvidence): string {
   const meta = RISE_META[e.detectorId];
   const used = e.bins.filter((bin) => bin.used);
-  const conditions = `${withParticle(meta.loadName, '과', '와')} ${meta.tempName}가`;
+  const conditions = `${withParticle(meta.plainLoadName, '과', '와')} ${meta.tempName}가`;
   if (used.length === 0) return `${conditions} 비슷한 때끼리 견줬습니다`;
   const examples = used.slice(0, 2).map((bin) => bin.label).join(', ');
   return `${conditions} 비슷한 구간 ${used.length}개(${examples}${used.length > 2 ? ' 등' : ''})만 골라, ${comparedCounts(sum(used.map((bin) => bin.nRef)), sum(used.map((bin) => bin.nCur)), e.countWord)}`;

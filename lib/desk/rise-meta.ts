@@ -15,14 +15,16 @@ export interface RiseMeta {
   readonly countWord: string;
   /** 첫 조건 이름 (조건 문장용) */
   readonly loadName: string;
+  /** 쉬운 말 요약에서 쓰는 첫 조건 이름 — 현장에서 모르는 약어는 풀어 쓴다 */
+  readonly plainLoadName: string;
   readonly tempName: string;
 }
 
 export const RISE_META: Readonly<Record<RiseDetectorId, RiseMeta>> = {
-  'el.sec_rise': { subject: '계통측 시스템 비에너지', levelUnit: 'kWh/kg', levelDigits: 2, conditionHeader: '조건 (운전 부하 · 스택 온도)', countWord: '구간', loadName: '운전 부하', tempName: '스택 온도' },
-  'comp.sec_rise': { subject: '압축기 비에너지', levelUnit: 'kWh/kg', levelDigits: 3, conditionHeader: '조건 (압력비 · 외기 온도)', countWord: '회', loadName: '압력비', tempName: '외기 온도' },
-  'fc.blower_wear': { subject: '블로워 비전력', levelUnit: 'W/(kg/h)', levelDigits: 2, conditionHeader: '조건 (공기 유량 · 외기 온도)', countWord: '구간', loadName: '공기 유량', tempName: '외기 온도' },
-  'ess.resistance_growth': { subject: '랙 직류 내부저항', levelUnit: 'mΩ', levelDigits: 1, conditionHeader: '조건 (SOC · 셀 온도)', countWord: '회', loadName: 'SOC', tempName: '셀 온도' },
+  'el.sec_rise': { subject: '계통측 시스템 비에너지', levelUnit: 'kWh/kg', levelDigits: 2, conditionHeader: '조건 (운전 부하 · 스택 온도)', countWord: '구간', loadName: '운전 부하', plainLoadName: '운전 부하', tempName: '스택 온도' },
+  'comp.sec_rise': { subject: '압축기 비에너지', levelUnit: 'kWh/kg', levelDigits: 3, conditionHeader: '조건 (압력비 · 외기 온도)', countWord: '회', loadName: '압력비', plainLoadName: '압력비', tempName: '외기 온도' },
+  'fc.blower_wear': { subject: '블로워 비전력', levelUnit: 'W/(kg/h)', levelDigits: 2, conditionHeader: '조건 (공기 유량 · 외기 온도)', countWord: '구간', loadName: '공기 유량', plainLoadName: '공기 유량', tempName: '외기 온도' },
+  'ess.resistance_growth': { subject: '랙 직류 내부저항', levelUnit: 'mΩ', levelDigits: 1, conditionHeader: '조건 (SOC · 셀 온도)', countWord: '회', loadName: 'SOC', plainLoadName: '배터리가 찬 정도', tempName: '셀 온도' },
 };
 
 /** 첫 조건 bin 폭과 단위 (bin 키 접두어 P/j는 el.sec_rise만) */
