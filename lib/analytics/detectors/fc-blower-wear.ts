@@ -111,14 +111,16 @@ function filterRecoveries(samples: readonly RiseSample[], result: RiseResult, ev
 
 function filterChecks(recoveries: readonly FilterRecovery[], referenceEnd: number, p: FcBlowerWearParams): DiagnosticCheck[] {
   const measuredOf = (items: readonly FilterRecovery[]): JsonObject => ({ filter_events: items.map((x) => ({ date: dateKo(x.ts), recovery_pct: r(x.recoveryPct, 2) })) });
-  const past = recoveries.filter((x) => x.recoveryPct !== null && x.ts <= referenceEnd);
-  const bestPast = past.length === 0 ? null : Math.max(...past.map((x) => x.recoveryPct ?? 0));
-  const clogging = past.length === 0
-    ? makeCheck('air_filter', '에어필터 막힘 (교체 후 회복 이력)', 'no_data', measuredOf(recoveries), '기준 기간 이전 필터 교체 기록이 없어 회복 이력을 볼 수 없습니다. 흡입필터 차압을 확인하세요.')
-    : levelCheck('air_filter', '에어필터 막힘 (교체 후 회복 이력)', bestPast, [p.filterRecoveryPct, 1], measuredOf(past), {
-        supports: '예전 필터 교체 뒤 비전력이 회복된 이력이 있습니다. 이번 상승도 필터 막힘일 수 있으니 필터부터 교체하고 다시 비교하세요.',
-        refutes: '예전 필터 교체 뒤에도 비전력이 회복되지 않았습니다. 필터보다 블로워 자체 원인을 의심하세요.',
-        unknown: '예전 필터 교체 뒤 회복 폭이 작습니다.',
+  // 기준 기간 이전 교체만 보면 준공 직후 교체가 없는 설비에서 늘 '데이터없음'이었다.
+  // 창 안(상승 이후 포함) 교체도 같은 회복률 계산으로 함께 본다 — 상승 뒤 교체로 회복됐으면 그 자체가 필터 막힘 근거다.
+  const measured = recoveries.filter((x) => x.recoveryPct !== null);
+  const best = measured.length === 0 ? null : Math.max(...measured.map((x) => x.recoveryPct ?? 0));
+  const clogging = measured.length === 0
+    ? makeCheck('air_filter', '에어필터 막힘 (교체 후 회복 이력)', 'no_data', measuredOf(recoveries), '창 안에 전후 비교가 되는 필터 교체 기록이 없습니다. 흡입필터 차압을 확인하세요.')
+    : levelCheck('air_filter', '에어필터 막힘 (교체 후 회복 이력)', best, [p.filterRecoveryPct, 1], measuredOf(measured), {
+        supports: '필터 교체 뒤 비전력이 회복된 이력이 있습니다. 이번 상승도 필터 막힘일 수 있으니 필터부터 교체하고 다시 비교하세요.',
+        refutes: '필터 교체 뒤에도 비전력이 회복되지 않았습니다. 필터보다 블로워 자체 원인을 의심하세요.',
+        unknown: '필터 교체 뒤 회복 폭이 작습니다.',
         no_data: '필터 교체 전후 데이터가 부족합니다.',
       });
   const latest = recoveries.filter((x) => x.ts > referenceEnd).at(-1);

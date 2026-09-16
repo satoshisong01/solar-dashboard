@@ -87,6 +87,17 @@ describe('el.sec_rise@1', () => {
     expect(JSON.stringify(finding?.evidence).length).toBeLessThan(20_000);
   });
 
+  it('퍼지 횟수가 기준 대비 30% 이상 늘면 퍼지 체크 지지, 입력이 없으면 데이터없음', () => {
+    const purgeOf = (o: ElSecRiseInput) => {
+      const result = elSecRise.detect(o, ctx());
+      const checks = result.status === 'ok' ? ((result.findings[0]?.evidence.checks ?? []) as { id: string; status: string }[]) : [];
+      return checks.find((c) => c.id === 'purge_count')?.status;
+    };
+    const rising = Array.from({ length: DAYS }, (_, day) => ({ ts: DAY0 + day * MS_PER_DAY, value: day < DAYS - 30 ? 10 : 15 }));
+    expect(purgeOf(input({ risePct: 6, seed: 2 }, { purgeCounts: rising }))).toBe('supports');
+    expect(purgeOf(input({ risePct: 6, seed: 2 }))).toBe('no_data');
+  });
+
   it('셀 전압이 함께 오르면 스택 열화 동반(category degradation), 패러데이 효율 저하도 지지', () => {
     const result = elSecRise.detect(input({ risePct: 12, seed: 3, voltageFollows: true, faradayDrop: 0.03 }), ctx());
     expect(result.status === 'ok' && result.findings[0]).toMatchObject({ severity: 4, category: 'degradation' });

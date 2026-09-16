@@ -3,6 +3,7 @@
 //     후보 앞뒤 시간에는 멈추지 않은 샘플(또는 데이터 없음)이 있으므로, 2시간 여유면 실제 정지 구간의 시작·끝이 창 경계에 걸리지 않는다.
 //   inv.thermal_derating 표본: 최근 recentDays일 + 기준 비교용 THERMAL_REFERENCE_DAYS일만 원시에서 5분 버킷으로 만든다.
 //   el.sec_rise 정류기 효율: 1시간 롤업 최솟값이 운전 기준 이상인(한 시간 내내 운전한) 시간의 KST 일 중앙값.
+//   el.sec_rise 퍼지 횟수: 누적 카운터 1시간 롤업의 KST 일 증가분.
 import type { TimedNumber } from '../detectors/common';
 import { DEFAULT_TANK_HOLD_PARAMS } from '../episodes/tank-hold';
 import { median } from '../stats/robust';
@@ -68,6 +69,29 @@ export const thermalSampleWindow = (now: number, recentDays: number): TimeWindow
 
 /** 정류기가 한 시간 내내 운전했다고 보는 효율 최솟값 [%] (정지 중에는 0으로 보고된다) */
 export const RECTIFIER_RUNNING_MIN_PCT = 50;
+
+/** 누적 카운터 1시간 롤업 한 행 (첫·마지막 값) */
+export interface CounterHour {
+  readonly hourStart: number;
+  readonly nGood: number;
+  readonly first: number | null;
+  readonly last: number | null;
+}
+
+/**
+ * 누적 카운터(퍼지 횟수 등) 1시간 롤업 → KST 일 증가분 (그날 마지막 − 처음, 시각은 그날 정오).
+ * 값이 줄어든 날은 카운터 리셋으로 보고 0으로 둔다 (수소 원장 purgeCount와 같은 규칙).
+ */
+export function counterDailyDeltas(hours: readonly CounterHour[]): TimedNumber[] {
+  const byDay = new Map<number, { first: number; last: number }>();
+  for (const h of [...hours].sort((a, b) => a.hourStart - b.hourStart)) {
+    if (h.nGood <= 0 || h.first === null || h.last === null) continue;
+    const day = kstDayStart(h.hourStart);
+    const seen = byDay.get(day);
+    byDay.set(day, seen ? { first: seen.first, last: h.last } : { first: h.first, last: h.last });
+  }
+  return [...byDay.entries()].sort((a, b) => a[0] - b[0]).map(([day, span]) => ({ ts: day + MS_PER_DAY / 2, value: Math.max(0, span.last - span.first) }));
+}
 
 /** 정류기 효율 1시간 롤업 → KST 일 중앙값 (한 시간 내내 운전한 시간의 평균만, 시각은 그날 정오) */
 export function rectifierEfficiencyDays(hours: readonly Pick<HourStat, 'hourStart' | 'nGood' | 'min' | 'avg'>[]): TimedNumber[] {

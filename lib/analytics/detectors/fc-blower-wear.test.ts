@@ -64,15 +64,16 @@ describe('fc.blower_wear@1', () => {
     expect(checksOf(result)).toEqual({ air_filter: 'no_data', bearing_impeller: 'no_data', air_density: 'refutes', stack_voltage: 'refutes' });
   });
 
-  it('필터 교체 이력: 과거 교체 뒤 회복했으면 필터 막힘 지지, 기준 이후 교체에도 회복이 없으면 베어링·임펠러 지지', () => {
+  it('필터 교체 이력: 교체 뒤 회복했으면 필터 막힘 지지(창 안 교체 포함), 교체에도 회복이 없으면 필터 반박·베어링 임펠러 지지', () => {
     const history = runs({ wearPct: 30, seed: 3, filterRecovery: { day: 20, pct: 0 } });
     const pastRecovery = history.map((e) => (e.start < DAY0 + 12 * MS_PER_DAY ? { ...e, features: { ...e.features, specific_w_per_kg_h: (e.features.specific_w_per_kg_h ?? 0) * 1.1 } } : e));
     const clogged = run({ runs: pastRecovery, events: [filterEvent(12)] }, { referencePerBin: 5 });
     expect(checksOf(clogged).air_filter).toBe('supports');
     const worn = run({ runs: runs({ wearPct: 30, seed: 4 }), events: [filterEvent(130)] });
-    expect(checksOf(worn).bearing_impeller).toBe('supports');
+    expect(checksOf(worn)).toMatchObject({ bearing_impeller: 'supports', air_filter: 'refutes' });
+    // 상승 이후(기준 기간 밖) 교체로 회복된 경우도 필터 막힘 근거로 본다
     const helped = run({ runs: runs({ wearPct: 40, seed: 5, filterRecovery: { day: 130, pct: 25 } }), events: [filterEvent(130)] });
-    expect(checksOf(helped).bearing_impeller).toBe('refutes');
+    expect(checksOf(helped)).toMatchObject({ bearing_impeller: 'refutes', air_filter: 'supports' });
   });
 
   it('대조군: 마모 없음 · 최근 고온 편중(+10 °C)은 0건', () => {

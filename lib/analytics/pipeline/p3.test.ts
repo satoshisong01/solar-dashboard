@@ -7,7 +7,7 @@ import type { TankHoldEpisode, TankHoldPoint } from '../episodes/tank-hold';
 import type { H2Ledger } from '../ledger/types';
 import { kstDayStart, MS_PER_DAY, MS_PER_HOUR, MS_PER_MINUTE } from '../types';
 import { runSiteDetectors } from './detect';
-import { rectifierEfficiencyDays, tankHoldWindows, TANK_WINDOW_PADDING_MS, thermalSampleWindow, type HourStat } from './load-plans';
+import { counterDailyDeltas, rectifierEfficiencyDays, tankHoldWindows, TANK_WINDOW_PADDING_MS, thermalSampleWindow, type HourStat } from './load-plans';
 import { buildLedgerDays, completeKstDays, kstDayMs, ledgerDayRowOf, massBalanceDays, referencePrOf, soilingFractionsByDay, type LedgerDayRow } from './site-ledger';
 import type { SiteSnapshot } from './snapshot';
 import { EPISODE_KINDS, seriesRequests } from './sources';
@@ -181,5 +181,16 @@ describe('원시 부분 로드 규칙 (load-plans)', () => {
     ];
     expect(rectifierEfficiencyDays(rows)).toEqual([{ ts: FIRST_DAY + MS_PER_DAY / 2, value: 94.5 }]);
     expect(thermalSampleWindow(NOW + 5 * MS_PER_HOUR, 30)).toEqual({ start: NOW - 90 * MS_PER_DAY, end: NOW + 5 * MS_PER_HOUR });
+  });
+
+  it('누적 카운터 일 증가분: 그날 최대 − 최소, good 없는 시간은 빼고 리셋된 날은 0', () => {
+    const counter = (h: number, first: number, last: number, nGood = 12) => ({ hourStart: FIRST_DAY + h * MS_PER_HOUR, nGood, first, last });
+    const rows = [counter(11, 1020, 1050), counter(10, 1000, 1020), counter(12, 0, 0, 0), counter(30, 900, 960)];
+    expect(counterDailyDeltas(rows)).toEqual([
+      { ts: FIRST_DAY + MS_PER_DAY / 2, value: 50 },
+      { ts: FIRST_DAY + MS_PER_DAY + MS_PER_DAY / 2, value: 60 },
+    ]);
+    // 카운터 리셋(줄어든 날)은 0
+    expect(counterDailyDeltas([counter(10, 1000, 1000), counter(11, 10, 12)])).toEqual([{ ts: FIRST_DAY + MS_PER_DAY / 2, value: 0 }]);
   });
 });

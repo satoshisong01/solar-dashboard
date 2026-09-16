@@ -1,13 +1,13 @@
 // P3 탐지기의 에피소드가 아닌 입력 조회 (load 계층). 판단은 lib/analytics가 한다.
 //   inv.thermal_derating  최근 recentDays + 기준 60일 원시 → 5분 버킷 표본, 인버터 event_log 코드
-//   el.sec_rise           형제 정류기 rectifier.efficiency 1시간 롤업 → 일 중앙값
+//   el.sec_rise           형제 정류기 rectifier.efficiency 1시간 롤업 → 일 중앙값, 전해조 purge.count 누적 카운터 → 일 증가분
 //   pv.soiling_rate       세척 조치(maintenance_action), 최근 SMP(market_daily smp_land)
 import { sql, type Kysely } from 'kysely';
 import { invThermalDerating } from '@/lib/analytics/detectors/inv-thermal-derating';
 import type { TimedNumber } from '@/lib/analytics/detectors/common';
 import { inverterThermalSamples, type InverterThermalSample } from '@/lib/analytics/episodes/inverter-thermal';
 import { resolveDetectorConfig } from '@/lib/analytics/pipeline/config';
-import { rectifierEfficiencyDays, thermalSampleWindow } from '@/lib/analytics/pipeline/load-plans';
+import { counterDailyDeltas, rectifierEfficiencyDays, thermalSampleWindow } from '@/lib/analytics/pipeline/load-plans';
 import type { SiteAuxInputs } from '@/lib/analytics/pipeline/snapshot';
 import type { DetectorConfigRow, PipelineAsset } from '@/lib/analytics/pipeline/types';
 import type { DB } from '@/lib/db/types';
@@ -53,6 +53,18 @@ async function rectifierInputs(db: Kysely<DB>, assets: readonly PipelineAsset[],
   return result;
 }
 
+/** 전해조 스택 id → 일 퍼지 횟수 증가분. 퍼지 카운터는 스택이나 상위 전해조 설비(h2.elz)에 붙는다 */
+async function purgeInputs(db: Kysely<DB>, assets: readonly PipelineAsset[], points: readonly PointRow[], now: number): Promise<Map<number, TimedNumber[]>> {
+  const result = new Map<number, TimedNumber[]>();
+  for (const stack of assets.filter((a) => a.classKey === 'h2.elz.stack')) {
+    const owners = new Set([stack.id, ...(stack.parentId === null ? [] : [stack.parentId])]);
+    const purgePoints = points.filter((p) => owners.has(p.assetId) && p.metricKey === 'purge.count');
+    if (purgePoints.length === 0) continue;
+    result.set(stack.id, counterDailyDeltas(await loadHourly(db, purgePoints, { start: 0, end: now })));
+  }
+  return result;
+}
+
 async function pvInputs(db: Kysely<DB>, siteId: number, assets: readonly PipelineAsset[], now: number): Promise<Pick<SiteAuxInputs, 'cleaningTs' | 'smpKrwPerKwh'>> {
   const pvIds = assets.filter((a) => a.classKey === 'pv.plant' || a.classKey === 'pv.inverter').map((a) => a.id);
   if (pvIds.length === 0) return {};
@@ -67,6 +79,6 @@ async function pvInputs(db: Kysely<DB>, siteId: number, assets: readonly Pipelin
 
 /** 사이트 P3 보조 입력 (정지 구간 원시 점·원장 일 행은 따로 채운다) */
 export async function loadAuxInputs(db: Kysely<DB>, siteId: number, assets: readonly PipelineAsset[], points: readonly PointRow[], configs: readonly DetectorConfigRow[], now: number): Promise<SiteAuxInputs> {
-  const [thermal, rectifierEfficiency, pv] = [await thermalInputs(db, assets, points, configs, now), await rectifierInputs(db, assets, points, now), await pvInputs(db, siteId, assets, now)];
-  return { ...thermal, rectifierEfficiency, ...pv };
+  const [thermal, rectifierEfficiency, purgeCounts, pv] = [await thermalInputs(db, assets, points, configs, now), await rectifierInputs(db, assets, points, now), await purgeInputs(db, assets, points, now), await pvInputs(db, siteId, assets, now)];
+  return { ...thermal, rectifierEfficiency, purgeCounts, ...pv };
 }
