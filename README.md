@@ -278,6 +278,17 @@ npx node-pg-migrate create <이름> -j sql -m db/migrations --migration-filename
 - `tests/integration/migrations.test.ts`가 마이그레이션 후 `public` 스키마 테이블 수가 0인지 검사합니다.
 - 첫 마이그레이션의 down은 `om` 스키마를 지우지 않습니다(같은 스키마의 `om.pgmigrations`에 기록을 지워야 하기 때문). 로컬에서 완전히 비우려면 `npm run db:reset`을 씁니다.
 
+## 본문 글꼴 (Pretendard 동적 서브셋)
+
+본문 글꼴은 사내 표준 Pretendard이고 자체 호스팅합니다. 한 벌(2.06MB)을 통째로 받으면 첫 화면이 그만큼 늦어지므로, 업스트림이 배포하는 **unicode-range 동적 서브셋 92개 구간**(`app/fonts/pretendard/`)으로 나눠 둡니다.
+
+- `app/layout.tsx`의 `next/font/local`이 **[91] 구간만** 선언합니다. 라틴·숫자·기호와 가장 흔한 한글 음절이 든 37KB짜리 구간이고, 이것만 preload 링크가 붙습니다.
+- 나머지 91개 구간은 `app/fonts/pretendard.css`가 `'Pretendard Variable'` 이름으로 선언합니다. 화면에 그 글자가 나올 때 브라우저가 그 구간만 받습니다.
+- `app/globals.css`의 `--font-body`는 두 벌을 차례로 둡니다. 브라우저가 글자마다 글리프가 있는 쪽을 고릅니다.
+- **글리프를 버리지 않습니다.** 사이트 이름·발견사항·리포트 문장은 DB에서 오므로, 쓰는 글자만 남기는 자체 서브셋은 예상 못 한 글자가 두부(tofu)로 나옵니다. 한글 음절 11,172자가 전부 어느 구간엔가 있습니다.
+
+글꼴을 다시 만들거나 버전을 올릴 때는 `npm run fonts:sync` 하나만 실행합니다(버전은 `scripts/fonts-sync.ts`의 `VERSION`에 고정). 업스트림 `@font-face`와 `unicode-range`를 그대로 옮기고 경로와 `format()` 표기만 바꿉니다. 손으로 고치지 마세요.
+
 ## 배포 지역 (서버리스 함수)
 
 운영 DB는 AWS RDS 서울(`ap-northeast-2`)에 있습니다. 서버 렌더가 미국에서 돌면 쿼리마다 태평양을 왕복하므로 화면마다 수백 ms가 그냥 사라집니다. 저장소 루트의 `vercel.json`이 함수 지역을 서울(`icn1`)로 고정합니다.
