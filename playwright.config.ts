@@ -17,6 +17,9 @@ export default defineConfig({
   use: {
     baseURL: E2E_BASE_URL,
     trace: 'retain-on-failure',
+    // 카카오 지도 CDN은 막는다: E2E는 바깥 네트워크에 기대지 않는다.
+    // 지도를 실제로 보는 테스트(p3-map.spec.ts)는 tests/e2e/kakao-stub.ts를 페이지에 넣어 쓴다.
+    launchOptions: { args: ['--host-resolver-rules=MAP dapi.kakao.com ~NOTFOUND'] },
   },
   projects: [
     { name: 'setup', testMatch: /auth\.setup\.ts/ },
@@ -47,6 +50,8 @@ export default defineConfig({
       BETTER_AUTH_SECRET: testEnv.BETTER_AUTH_SECRET ?? '',
       BETTER_AUTH_URL: E2E_BASE_URL,
       INGEST_KEY_ENC_KEY: testEnv.INGEST_KEY_ENC_KEY ?? '',
+      // 지도 화면이 그려지는 갈래를 빌드에 넣기 위한 자리표시 값 (실제 키가 아니다. 위에서 CDN을 막는다)
+      NEXT_PUBLIC_KAKAO_MAP_KEY: 'e2e-placeholder-key',
     },
   },
 });

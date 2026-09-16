@@ -13,7 +13,7 @@ import { KOREA_VIEW, SiteMapCanvas, type FitPadding, type MapView } from './site
 const FOCUS_LEVEL = 9;
 /** 지도 위에 뜬 패널과 마커 라벨이 겹치지 않을 여백(px). 왼쪽은 목록, 오른쪽은 상세 패널이 차지한다 */
 const FIT_PADDING: FitPadding = { top: 96, right: 360, bottom: 64, left: 320 };
-const FALLBACK_LABEL = '아래 목록에서 발전소 상태를 확인하세요.';
+const FALLBACK_LABEL = '목록에서 발전소 상태를 확인하세요.';
 
 /**
  * 플릿 지도. 지도가 화면을 채우고 요약 칩·목록·상세가 그 위에 뜬다 (좁은 화면에서는 지도 아래로 쌓인다).

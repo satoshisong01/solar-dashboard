@@ -28,6 +28,10 @@ export interface FitPadding {
   readonly left: number;
 }
 
+/** 지도 대신 띄우는 안내. 지도 위에 뜬 목록·상세 패널에 가리지 않게 가운데 좁은 칸에 카드로 둔다 */
+const NOTICE_WRAP_CLASS = 'flex h-full items-center justify-center p-4';
+const NOTICE_CLASS = 'max-w-64 rounded-md border border-rule bg-surface/95 px-4 py-3 text-center text-sm text-balance shadow-md';
+
 type LocatedSite = SiteMapStatus & { readonly lat: number; readonly lon: number };
 
 const sameSet = (a: ReadonlySet<string>, b: ReadonlySet<string>): boolean => a.size === b.size && [...a].every((value) => b.has(value));
@@ -89,10 +93,12 @@ export function SiteMapCanvas({ sites, view, padding, selectedCode, onSelect, no
 
   if (KAKAO_MAP_KEY === undefined) {
     return (
-      <p role="status" className="flex h-full flex-col items-center justify-center gap-1 px-4 text-center text-sm text-ink-2">
-        지도 키가 설정되지 않았습니다. {label}
-        <span className="text-xs text-muted">(NEXT_PUBLIC_KAKAO_MAP_KEY)</span>
-      </p>
+      <div className={NOTICE_WRAP_CLASS}>
+        <p role="status" className={`${NOTICE_CLASS} text-ink-2`}>
+          지도 키가 설정되지 않았습니다. {label}
+          <span className="mt-1 block text-xs text-muted">(NEXT_PUBLIC_KAKAO_MAP_KEY)</span>
+        </p>
+      </div>
     );
   }
   return (
@@ -119,9 +125,9 @@ function LoadedMap({ appKey, sites, view, padding, selectedCode, onSelect, nowMs
 
   if (error) {
     return (
-      <p role="alert" className="flex h-full items-center justify-center px-4 text-center text-sm text-warn">
-        지도를 불러오지 못했습니다. {label}
-      </p>
+      <div className={NOTICE_WRAP_CLASS}>
+        <p role="alert" className={`${NOTICE_CLASS} text-warn`}>지도를 불러오지 못했습니다. {label}</p>
+      </div>
     );
   }
   if (loading) return <Skeleton className="size-full" />;

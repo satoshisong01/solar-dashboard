@@ -3,10 +3,12 @@ import { PageHeader } from '@/components/console/page-header';
 import { SCREEN_GUIDES } from '@/lib/desk/plain/guides';
 import { TopFindingsPanel, WorkCountersPanel } from '@/components/today/finding-panels';
 import { SafetyBanner } from '@/components/today/safety-banner';
+import { SiteMapCard } from '@/components/today/site-map-card';
 import { DataGapsPanel, EnergySummaryPanel, RevenuePanel } from '@/components/today/today-panels';
 import { requireAdmin } from '@/lib/auth/dal';
 import { getFindingWorkCounts, listNewAndReopened } from '@/lib/data/findings';
 import { requestTimeMs } from '@/lib/data/time';
+import { getSiteMapStatus } from '@/lib/data/site-map';
 import { getDataGaps, getEnergySummary, getMarketSummary, getSafetyBanner } from '@/lib/data/today';
 import { formatKstDateTime } from '@/lib/format';
 
@@ -17,13 +19,14 @@ const TOP_FINDINGS = 10;
 export default async function TodayPage() {
   await requireAdmin();
   const nowMs = requestTimeMs();
-  const [safety, counts, topFindings, gaps, energy, market] = await Promise.all([
+  const [safety, counts, topFindings, gaps, energy, market, mapSites] = await Promise.all([
     getSafetyBanner(),
     getFindingWorkCounts(nowMs),
     listNewAndReopened(TOP_FINDINGS),
     getDataGaps(nowMs),
     getEnergySummary(nowMs),
     getMarketSummary(nowMs),
+    getSiteMapStatus(nowMs),
   ]);
 
   return (
@@ -32,6 +35,7 @@ export default async function TodayPage() {
       <p className="-mt-3 text-xs text-muted">기준 시각 {formatKstDateTime(nowMs)} KST</p>
       <SafetyBanner banner={safety} />
       <WorkCountersPanel counts={counts} />
+      <SiteMapCard sites={mapSites} nowMs={nowMs} />
       <TopFindingsPanel rows={topFindings} nowMs={nowMs} limit={TOP_FINDINGS} />
       <div className="grid gap-6 lg:grid-cols-2">
         <DataGapsPanel gaps={gaps} nowMs={nowMs} />
