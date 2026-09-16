@@ -45,10 +45,8 @@ describe('탐지 준비도 DB 입력 (hysol_test)', () => {
     const completeness = voltageRise?.reasons.find((r) => r.code === 'low_completeness');
     expect(completeness).toMatchObject({ metricKey: 'stack.current', required: 0.9 });
     expect(completeness?.code === 'low_completeness' ? completeness.completeness : null).toBeCloseTo((DAYS - GAP.days) / DAYS, 3);
-    expect(voltageRise?.reasons.filter((r) => r.code === 'coarse_period')).toEqual([
-      { code: 'coarse_period', metricKey: 'stack.temp', periodS: 300, requiredS: 60 },
-      { code: 'coarse_period', metricKey: 'run.hours', periodS: 300, requiredS: 60 },
-    ]);
+    // 주기 상한은 메트릭마다 다르다: 스택 전압·전류만 60초이고 온도·누적 운전시간은 300초라 300초 포인트도 충분하다
+    expect(voltageRise?.reasons.filter((r) => r.code === 'coarse_period')).toEqual([]);
     expect(voltageRise?.reasons).toContainEqual({ code: 'short_history', historyDays: DAYS, requiredDays: 30 });
     expect(voltageRise?.reasons.some((r) => r.code === 'low_completeness' && r.metricKey === 'stack.voltage')).toBe(false);
 
@@ -64,7 +62,10 @@ describe('탐지 준비도 DB 입력 (hysol_test)', () => {
     expect(csv).toHaveLength(cells.length + 1);
     const row = csv.find((values) => values[0] === STACK && values[2] === 'el.voltage_rise');
     expect(row?.[5]).toBe('partial');
-    expect(String(row?.[8])).toContain('stack.temp 주기 300초 (기준 60초 이하)');
+    expect(String(row?.[9])).toContain('stack.current 완결성');
+    // 권장 메트릭 열: 이 스택에는 정류기 효율·퍼지 카운터 포인트가 없다
+    const secRow = csv.find((values) => values[0] === STACK && values[2] === 'el.sec_rise');
+    expect(String(secRow?.[8])).toBe('rectifier.efficiency; purge.count');
   });
 
   it('수신이 멈춘 뒤 30일이 지나면 최근 창에 샘플이 없어 완결성은 데이터 없음, 이력은 첫 버킷부터 센다', async () => {
@@ -74,5 +75,16 @@ describe('탐지 준비도 DB 입력 (hysol_test)', () => {
     expect(voltageRise?.status).toBe('partial');
     expect(voltageRise?.reasons).toContainEqual({ code: 'low_completeness', metricKey: 'stack.voltage', completeness: null, required: 0.9 });
     expect(voltageRise?.reasons.some((r) => r.code === 'short_history')).toBe(false);
+  });
+
+  it('포인트 주기가 그 메트릭의 상한을 넘으면 그 메트릭만 주기 부족으로 남는다', async () => {
+    const nowMs = ANALYSIS_BASE_MS + DAYS * DAY_MS;
+    await db.updateTable('om.point').set({ period_s: 600 }).where('asset_id', '=', fixture.stackId).where('metric_key', '=', 'stack.temp').execute();
+    try {
+      const view = await getSiteReadiness({ id: fixture.siteId }, nowMs);
+      expect(cellOf(view, STACK, 'el.voltage_rise')?.reasons.filter((r) => r.code === 'coarse_period')).toEqual([{ code: 'coarse_period', metricKey: 'stack.temp', periodS: 600, requiredS: 300 }]);
+    } finally {
+      await db.updateTable('om.point').set({ period_s: 300 }).where('asset_id', '=', fixture.stackId).where('metric_key', '=', 'stack.temp').execute();
+    }
   });
 });
