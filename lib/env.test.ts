@@ -7,7 +7,7 @@ const VALID_ENV = {
   BETTER_AUTH_URL: 'http://localhost:3100',
 } as const;
 
-const OPTIONAL_KEYS = ['DATABASE_SSL', 'DATABASE_SSL_CA_PATH', 'BETTER_AUTH_TRUSTED_ORIGINS', 'SAFETY_SILENCE_MINUTES'] as const;
+const OPTIONAL_KEYS = ['DATABASE_SSL', 'DATABASE_SSL_CA_PATH', 'BETTER_AUTH_TRUSTED_ORIGINS', 'SAFETY_SILENCE_MINUTES', 'GEMINI_API_KEY', 'GEMINI_MODEL'] as const;
 
 type EnvKey = keyof typeof VALID_ENV | (typeof OPTIONAL_KEYS)[number];
 type EnvOverrides = Partial<Record<EnvKey, string | undefined>>;

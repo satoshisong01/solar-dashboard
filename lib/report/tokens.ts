@@ -113,6 +113,20 @@ export function tokenMatchesValue(token: NumberToken, value: unknown): boolean {
   return Number.isFinite(shown) && Math.abs(shown - actual) <= 0.5 * 10 ** -decimalsOf(token.text) + 1e-9;
 }
 
+/**
+ * 표시 문자열 두 개가 같은 값을 가리키는가 (표시 반올림 허용: '7.4' ↔ '7.396', '6' ↔ '6.2').
+ * 자릿수가 적은 쪽의 반올림 폭으로 견준다. 날짜처럼 수로 읽히지 않는 표기는 글자가 같아야 한다.
+ * 엔진이 쓴 표기를 문장 생성기(lib/llm)가 자릿수만 줄여 다시 쓴 경우를 같다고 보려고 쓴다.
+ */
+export function displayNumbersMatch(shown: string, engine: string): boolean {
+  if (shown === engine) return true;
+  const a = parseDisplayedNumber(shown);
+  const b = parseDisplayedNumber(engine);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return false;
+  const digits = Math.min(decimalsOf(shown), decimalsOf(engine));
+  return Math.abs(a - b) <= 0.5 * 10 ** -digits + 1e-9;
+}
+
 export type TokenIssueCode = 'token_path' | 'token_value' | 'untracked_number' | 'missing_number' | 'missing_label';
 
 export interface TokenIssue {

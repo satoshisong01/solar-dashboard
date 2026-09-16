@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { NumberToken } from './composer';
-import { formatTokenValue, numericTexts, resolvePath, textTokenIssues, tokenMatchesValue } from './tokens';
+import { displayNumbersMatch, formatTokenValue, numericTexts, resolvePath, textTokenIssues, tokenMatchesValue } from './tokens';
 
 const token = (overrides: Partial<NumberToken>): NumberToken => ({ text: '', path: 'x', format: 'number', digits: 1, abs: false, ...overrides });
 
@@ -44,5 +44,20 @@ describe('resolvePath·textTokenIssues', () => {
     const tokens = [token({ text: '3', digits: 0 })];
     expect(textTokenIssues('3건 중 3건', tokens).map((i) => i.code)).toEqual(['untracked_number']);
     expect(textTokenIssues('3건 중 3건', [...tokens, token({ text: '3', digits: 0 })])).toEqual([]);
+  });
+});
+
+describe('displayNumbersMatch', () => {
+  it('자릿수가 적은 쪽의 반올림 폭으로 견준다', () => {
+    expect(displayNumbersMatch('6', '6.2')).toBe(true);
+    expect(displayNumbersMatch('6.2', '6.2')).toBe(true);
+    expect(displayNumbersMatch('7', '6.2')).toBe(false);
+    expect(displayNumbersMatch('12,030', '12,030')).toBe(true);
+    expect(displayNumbersMatch('−7.4', '-7.43')).toBe(true);
+  });
+
+  it('날짜처럼 수로 읽히지 않는 표기는 글자가 같아야 한다', () => {
+    expect(displayNumbersMatch('2026-07-30', '2026-07-30')).toBe(true);
+    expect(displayNumbersMatch('2026-07-31', '2026-07-30')).toBe(false);
   });
 });

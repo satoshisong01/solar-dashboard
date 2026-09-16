@@ -67,6 +67,10 @@ const serverEnvSchema = z
       error: 'http(s):// 형식의 URL이어야 합니다',
     }),
     BETTER_AUTH_TRUSTED_ORIGINS: trustedOriginsSchema,
+    // AI 설명(설계 §5.4 LLM 연결 지점)용 Gemini 키. 선택 변수다 — 없으면 LLM을 부르지 않고 과제 2의 틀 문장만 쓴다.
+    GEMINI_API_KEY: z.preprocess(emptyToUndefined, z.string().min(1, '빈 값이 아니어야 합니다').optional()),
+    // 모델 id. 비워 두면 lib/llm/gemini.ts의 DEFAULT_GEMINI_MODEL을 쓴다 (기본값을 여기 두면 env 결과 객체가 키 없이도 커진다).
+    GEMINI_MODEL: z.preprocess(emptyToUndefined, z.string().regex(/^[a-z0-9][a-z0-9.-]*$/, '소문자·숫자·점·하이픈으로 된 모델 id여야 합니다').optional()),
     // 수소·ESS 설비가 있는 사이트의 게이트웨이가 이 시간(분) 이상 무수신이면 안전 화면에 "안전감시 공백"으로 표시한다.
     SAFETY_SILENCE_MINUTES: z.preprocess(
       emptyToUndefined,

@@ -10,6 +10,9 @@ import { RISE_META } from '../rise-meta';
 import { amount, LEAK_DIGITS, size } from './common';
 import type { PlainFinding } from './types';
 
+/** 안전 판단을 사람에게 되돌리는 고정 문구. 문장을 다시 쓸 때도 그대로 남아야 한다 (lib/llm/validate.ts) */
+export const SAFETY_DECISION_NOTICE = '운전을 멈출지는 현장 안전책임자가 판단합니다.';
+
 const sum = (values: readonly (number | null)[]): number => values.reduce((total: number, value) => total + (value ?? 0), 0);
 
 function capacityOutlook(e: CapacityEvidence, effect: EffectView): string {
@@ -69,7 +72,7 @@ function riseLevel(e: RiseEvidence, effect: EffectView): string {
 function tankLeakOutlook(e: TankLeakEvidence): string {
   const daily = e.pctPerDay === null ? '' : ` 세워 둔 저장량의 하루 ${size(e.pctPerDay, 2)}%에 해당합니다.`;
   if (e.safetyCategory && e.safetyKgPerDay !== null) {
-    return `줄어드는 양이 안전 기준 하루 ${size(e.safetyKgPerDay, LEAK_DIGITS)} kg을 넘어, 안전 확인이 먼저인 건입니다.${daily} 운전을 멈출지는 현장 안전책임자가 판단합니다.`;
+    return `줄어드는 양이 안전 기준 하루 ${size(e.safetyKgPerDay, LEAK_DIGITS)} kg을 넘어, 안전 확인이 먼저인 건입니다.${daily} ${SAFETY_DECISION_NOTICE}`;
   }
   const noise = e.thresholdKgPerDay === null ? '' : ` 센서 흔들림으로 설명되는 크기(하루 ${size(e.thresholdKgPerDay, LEAK_DIGITS)} kg)보다 큽니다.`;
   return `아직 미세 누설 의심 단계입니다.${noise}${daily}`;
