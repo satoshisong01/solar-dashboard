@@ -49,9 +49,28 @@ export interface PointDef {
   readonly scale: number;
   readonly valueOffset: number;
   readonly periodS: number;
+  /** 도면 계장 태그 (예: PT-201). 도면이 없는 사이트는 null */
+  readonly instrumentTag: string | null;
 }
 
-export type Nameplate = Readonly<Record<string, number | string>>;
+/**
+ * 계기가 아직 없어 om.point을 만들지 않는 포인트 (데이터 계약으로 벤더·설계사에 요청할 항목).
+ * 화면은 '미설치'로 표시한다 — 태그는 있으나 point가 없는 '미매핑'과 다르다.
+ */
+export interface PlannedPointDef {
+  /** 제안 태그. 도면에 태그 자리가 없으면 null */
+  readonly instrumentTag: string | null;
+  readonly assetCode: string;
+  readonly metricKey: string;
+  readonly qualifier: string;
+  /** 요청 주기 [s]. 계약 문서의 값 그대로 (수집 규약의 60·300 제약을 받지 않는다) */
+  readonly periodS: number;
+  /** required = 없으면 해당 판정 자체가 성립하지 않음 · recommended = 판별 체크가 줄어듦 */
+  readonly necessity: 'required' | 'recommended';
+}
+
+/** 명판 값. null은 '미확인'(벤더·설계사 회신 대기)이다 — 추정값으로 채우지 않는다. */
+export type Nameplate = Readonly<Record<string, number | string | null>>;
 
 export interface AssetDef {
   readonly code: string; // 사이트 안 경로. 부모는 마지막 '/' 앞부분
@@ -61,7 +80,8 @@ export interface AssetDef {
   readonly nameplate: Nameplate;
   readonly peerGroup: string | null;
   readonly criticality: 1 | 2 | 3 | 4 | 5;
-  readonly commissionedAt: string; // YYYY-MM-DD
+  /** YYYY-MM-DD. 아직 준공하지 않은 사이트는 null */
+  readonly commissionedAt: string | null;
   readonly points: readonly PointDef[];
 }
 
@@ -92,4 +112,6 @@ export interface SiteDef {
   readonly gateway: GatewayDef;
   readonly assets: readonly AssetDef[];
   readonly unmappedTags: readonly UnmappedTagDef[];
+  /** 계기 신설을 요청할 포인트 (DB에 넣지 않는다) */
+  readonly plannedPoints: readonly PlannedPointDef[];
 }

@@ -1,6 +1,6 @@
 // sim:backfill · sim:live 공용 도우미 (인자 검증, 게이트웨이 키 읽기, 서버 확인, 출력 형식).
 // 게이트웨이 비밀값은 npm 스크립트가 dotenv로 넣은 .env.development.local의 SIM_GATEWAY_SECRET_*만 읽고 출력하지 않는다.
-import { SIM_SITES } from '../db/seed/sites';
+import { simulatorSites } from '../db/seed/sites';
 import { INGEST_PATH, type GatewayCredential } from '../lib/sim/emit-http';
 import { KST_OFFSET_MS } from '../lib/sim/math';
 
@@ -10,9 +10,15 @@ export function parseIntegerOption(name: string, raw: string | undefined, min: n
   return value;
 }
 
+/**
+ * 실사이트(simulated: false)까지 시뮬레이터 대상으로 열지 여부.
+ * 기본은 닫혀 있다 — 실사이트에 가짜 데이터를 넣으려면 SIM_INCLUDE_REAL_SITES=1로 명시해야 한다.
+ */
+export const includeRealSites = (): boolean => process.env.SIM_INCLUDE_REAL_SITES === '1';
+
 export function parseSiteCodes(raw: string | undefined): readonly string[] {
   const codes = (raw ?? '').split(',').map((code) => code.trim()).filter(Boolean);
-  const known = new Set(SIM_SITES.map((site) => site.code));
+  const known = new Set(simulatorSites({ includeRealSites: includeRealSites() }).map((site) => site.code));
   const unknown = codes.filter((code) => !known.has(code));
   if (codes.length === 0 || unknown.length > 0 || new Set(codes).size !== codes.length) {
     throw new Error(`--sites는 ${[...known].join(',')} 중 중복 없는 쉼표 목록이어야 합니다 (받은 값: ${raw ?? '없음'})`);
@@ -27,7 +33,7 @@ export function parseBaseUrl(raw: string | undefined): string {
 
 /** 게이트웨이 코드 → 키 ID·비밀값. 빠진 환경변수 이름만 알려 준다. */
 export function loadGatewayCredentials(siteCodes: readonly string[]): ReadonlyMap<string, GatewayCredential> {
-  const sites = SIM_SITES.filter((site) => siteCodes.includes(site.code));
+  const sites = simulatorSites({ includeRealSites: includeRealSites() }).filter((site) => siteCodes.includes(site.code));
   const missing = sites.filter(({ gateway }) => !process.env[gateway.secretEnvVar]).map(({ gateway }) => gateway.secretEnvVar);
   if (missing.length > 0) {
     throw new Error(`.env.development.local에 ${missing.join(', ')}이(가) 없습니다. 먼저 npm run db:seed 를 실행하세요.`);

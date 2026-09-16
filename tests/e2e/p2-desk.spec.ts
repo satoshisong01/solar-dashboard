@@ -14,7 +14,7 @@ test('분석 데스크: SIM-B 최근 30일 분석 실행 → 결과 요약·실�
   await page.goto('/desk');
   const run = panel(page, '분석 실행');
   await expect(run).toContainText('리포트나 파일을 만들지 않습니다');
-  for (const code of ['SIM-A', 'SIM-C']) await run.getByRole('checkbox', { name: new RegExp(code) }).uncheck();
+  for (const code of ['SIM-A', 'SIM-C', 'GP-1']) await run.getByRole('checkbox', { name: new RegExp(code) }).uncheck();
   await expect(run.getByRole('checkbox', { name: new RegExp(E2E_INGEST_SITE) })).toBeChecked();
   await expect(run.getByRole('radio', { name: '최근 30일' })).toBeChecked();
 

@@ -236,7 +236,7 @@ const gridConditions = (tMs: number): Pick<StepContext, 'gridFrequencyHz' | 'gri
 
 function initialState(site: SiteDef, seed: number, startMs: number): PlantState {
   const commissionedAt = site.assets[0]?.commissionedAt;
-  if (!commissionedAt) throw new Error(`${site.code}에 설비가 없습니다`);
+  if (!commissionedAt) throw new Error(`${site.code}: 시뮬레이터는 준공일이 있는 설비가 필요합니다`);
   const daysInService = Math.max(0, (startMs - kstDateToMs(commissionedAt)) / MS_PER_DAY);
   const init = { site, daysInService, rng: deriveRng(seed, site.code, 'static') };
   return {

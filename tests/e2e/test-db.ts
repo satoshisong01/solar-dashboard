@@ -4,7 +4,7 @@
 import { randomBytes } from 'node:crypto';
 import { Kysely, PostgresDialect } from 'kysely';
 import pg from 'pg';
-import { SIM_SITES } from '../../db/seed/sites';
+import { SEED_SITES } from '../../db/seed/sites';
 import { seedDatabase, type SeedSummary } from '../../lib/db/seed';
 import type { DB } from '../../lib/db/types';
 import { decodeEncryptionKey } from '../../lib/ingest/key-crypto';
@@ -15,7 +15,7 @@ type TestEnv = Readonly<Record<string, string>>;
 
 /** 게이트웨이 코드 → HMAC 비밀값. db:seed:test가 env 파일에 넣은 값이 있으면 그대로 쓰고, 없으면 이번 실행용으로 만든다. */
 export function simGatewaySecrets(env: TestEnv): ReadonlyMap<string, string> {
-  return new Map(SIM_SITES.map(({ gateway }) => [gateway.code, env[gateway.secretEnvVar] ?? randomBytes(32).toString('base64url')]));
+  return new Map(SEED_SITES.map(({ gateway }) => [gateway.code, env[gateway.secretEnvVar] ?? randomBytes(32).toString('base64url')]));
 }
 
 function encryptionKeyOf(env: TestEnv): Uint8Array {

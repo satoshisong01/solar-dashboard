@@ -83,7 +83,7 @@ describe('simulate — 결정성', () => {
   });
 
   it('잘못된 옵션은 첫 반복에서 오류', async () => {
-    await expect(collect({ siteCodes: ['SIM-Z'], ...ONE_DAY, seed: 1 })).rejects.toThrow('알 수 없는 가상 사이트');
+    await expect(collect({ siteCodes: ['SIM-Z'], ...ONE_DAY, seed: 1 })).rejects.toThrow('알 수 없는 사이트');
     await expect(collect({ siteCodes: ['SIM-A'], from: FROM, to: FROM, seed: 1 })).rejects.toThrow('to는 from보다');
     await expect(collect({ siteCodes: ['SIM-A'], ...ONE_DAY, seed: 1, stepS: 7 })).rejects.toThrow('stepS');
   });

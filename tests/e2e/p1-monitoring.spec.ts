@@ -3,9 +3,10 @@ import { LOOP_SITE } from './closed-loop-plan';
 import { E2E_BASE_URL, E2E_INGEST_SITE, SIGNED_OUT } from './e2e-env';
 
 // chromium 프로젝트의 storageState(auth.setup.ts에서 로그인한 세션)를 쓴다.
-// 데이터: globalSetup이 E2E_INGEST_SITE(SIM-B) 최근 2일을 실제 수집 API로 적재했고, SIM-A는 폐루프 픽스처(과거 80일)만 있고, SIM-C는 수신 기록이 없다.
+// 데이터: globalSetup이 E2E_INGEST_SITE(SIM-B) 최근 2일을 실제 수집 API로 적재했고, SIM-A는 폐루프 픽스처(과거 80일)만 있고, SIM-C·GP-1은 수신 기록이 없다.
 
-const SITE_CODES = ['SIM-A', 'SIM-B', 'SIM-C'];
+// 시드가 넣는 사이트 전부 (플릿 매트릭스는 코드순). GP-1은 실사이트라 시뮬레이터 데이터가 없다.
+const SITE_CODES = ['GP-1', 'SIM-A', 'SIM-B', 'SIM-C'];
 /** lib/data/fleet-status.ts의 신선도 사유 문구 */
 const FRESHNESS_REASON = /수신 끊김|수신 지연|수신 기록 없음/;
 const STACK_NAME = '전해 스택 1';
@@ -26,7 +27,7 @@ async function openStackAsset(page: Page): Promise<void> {
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(STACK_NAME);
 }
 
-test('플릿 매트릭스에 사이트 3곳이 보이고, 적재한 사이트는 모든 도메인의 데이터 신선도가 정상이다', async ({ page }) => {
+test('플릿 매트릭스에 시드한 사이트 4곳이 보이고, 적재한 사이트는 모든 도메인의 데이터 신선도가 정상이다', async ({ page }) => {
   await page.goto('/fleet');
   const matrix = page.getByRole('region', { name: '사이트 × 도메인 상태 매트릭스' });
   const rows = matrix.locator('tbody > tr');

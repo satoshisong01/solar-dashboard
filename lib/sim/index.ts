@@ -1,6 +1,6 @@
 // 연계형 발전소 시뮬레이터 진입점.
 // simulate()는 사이트별 게이트웨이가 보낼 om.ingest.v1 봉투를 전송 순서대로 내보낸다(서명·전송은 호출자 몫).
-import { SIM_SITES } from '@/db/seed/sites';
+import { SEED_SITES } from '@/db/seed/sites';
 import type { GatewayDef, SiteDef } from '@/db/seed/types';
 import { buildEnvelope, type GatewayClock, type IngestEnvelope } from './envelope';
 import type { SimEvent } from './events';
@@ -99,9 +99,10 @@ function normalizeOptions(options: SimulateOptions): RunConfig {
   };
 }
 
+/** 시드에 있는 사이트만 시뮬레이션한다. 실사이트를 넣을지는 호출자(scripts/sim-shared.ts)가 설정으로 정한다. */
 function findSite(code: string): SiteDef {
-  const site = SIM_SITES.find((s) => s.code === code);
-  if (!site) throw new Error(`알 수 없는 가상 사이트: ${code}`);
+  const site = SEED_SITES.find((s) => s.code === code);
+  if (!site) throw new Error(`알 수 없는 사이트: ${code}`);
   return site;
 }
 

@@ -32,7 +32,7 @@ export function evalSite(siteCode: string): EvalSite {
       classKey: a.classKey,
       peerGroup: a.peerGroup,
       nameplate: a.nameplate,
-      commissionedAt: kstDateMs(a.commissionedAt),
+      commissionedAt: a.commissionedAt === null ? null : kstDateMs(a.commissionedAt),
     };
   });
   return { siteId, site, assets, byPath: new Map(assets.map((a) => [`${site.code}/${a.code}`, a])) };

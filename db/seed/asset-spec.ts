@@ -14,6 +14,10 @@ export interface PointOptions {
   readonly sourceUnit?: string; // 생략하면 메트릭의 정규 단위
   readonly scale?: number;
   readonly valueOffset?: number;
+  /** 수집 주기 [s]. 주면 fast보다 앞선다 (실사이트는 데이터 계약의 주기를 그대로 쓴다) */
+  readonly periodS?: number;
+  /** 도면 계장 태그 (예: PT-201) */
+  readonly tag?: string;
 }
 
 export type PointSpec = readonly [metricKey: string, tag: string, options?: PointOptions];
@@ -30,7 +34,8 @@ export interface AssetSpec {
 
 export interface SiteContext {
   readonly siteCode: string;
-  readonly commissionedAt: string; // YYYY-MM-DD
+  /** YYYY-MM-DD. 준공 전이면 null */
+  readonly commissionedAt: string | null;
 }
 
 export const FAST: PointOptions = { fast: true };
@@ -53,7 +58,8 @@ function buildPoint(assetCode: string, [metricKey, tag, options = {}]: PointSpec
     sourceUnit: options.sourceUnit ?? metric.unit,
     scale: options.scale ?? 1,
     valueOffset: options.valueOffset ?? 0,
-    periodS: options.fast ? FAST_PERIOD_S : SLOW_PERIOD_S,
+    periodS: options.periodS ?? (options.fast ? FAST_PERIOD_S : SLOW_PERIOD_S),
+    instrumentTag: options.tag ?? null,
   };
 }
 

@@ -109,6 +109,7 @@ function resolveCapacityFade(site: SiteDef, fault: BatteryCapacityFadeFault, ori
   const days = requireRange(fault.days, `${fault.kind} days`, 0, 3_650);
   const startMs = startMsOf(originMs, fault.startDay, fault.kind);
   const baseline = DEGRADATION_PARAMS[param].baseline;
+  if (asset.commissionedAt === null) throw new Error(`${fault.kind}: ${site.code}/${asset.code}에 준공일이 없습니다`);
   // 모델은 준공일부터 기본 감소율로 SOH를 적분하므로 시작 시점 SOH를 같은 식으로 구해 상대 감소율로 바꾼다.
   const sohAtStart = Math.max(0.5, 1 - (baseline * (startMs - kstDateToMs(asset.commissionedAt))) / MS_PER_DAY);
   const extraPerDay = (sohAtStart * totalPct) / 100 / days;

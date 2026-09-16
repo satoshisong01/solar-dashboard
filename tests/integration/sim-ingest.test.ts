@@ -3,7 +3,7 @@
 import { randomBytes } from 'node:crypto';
 import { sql, type Kysely } from 'kysely';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { SIM_SITES } from '@/db/seed/sites';
+import { SEED_SITES, SIM_SITES } from '@/db/seed/sites';
 import { seedDatabase } from '@/lib/db/seed';
 import type { DB } from '@/lib/db/types';
 import { handleIngestRequest, type IngestDeps } from '@/lib/ingest/handler';
@@ -79,7 +79,7 @@ describe('시뮬레이터 적재와 검증 (hysol_test)', () => {
   let secrets: ReadonlyMap<string, string>;
 
   beforeAll(async () => {
-    secrets = new Map(SIM_SITES.map(({ gateway }) => [gateway.code, process.env[gateway.secretEnvVar] ?? randomBytes(32).toString('base64url')]));
+    secrets = new Map(SEED_SITES.map(({ gateway }) => [gateway.code, process.env[gateway.secretEnvVar] ?? randomBytes(32).toString('base64url')]));
     await seedDatabase(db, { encryptionKey: testEncryptionKey(), gatewaySecrets: secrets });
     await clearSimIngestData(db);
 

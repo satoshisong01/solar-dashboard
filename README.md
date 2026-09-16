@@ -31,13 +31,15 @@
    ```bash
    npm run db:migrate
    ```
-5. 설비 카탈로그와 가상 사이트를 넣습니다.
+5. 설비 카탈로그와 사이트를 넣습니다.
    ```bash
    npm run db:seed
    ```
-   - `om.asset_class`·`om.metric_def` 카탈로그와 가상 사이트 SIM-A(태양광+ESS)·SIM-B(연계형)·SIM-C(연계형 대조군)의 설비 트리·게이트웨이·포인트 매핑을 upsert합니다. 여러 번 실행해도 결과가 같고, 이미 있는 설비·포인트는 UPDATE만 해서 id 시퀀스도 늘지 않습니다.
+   - `om.asset_class`·`om.metric_def` 카탈로그와 사이트 4곳 — 가상 SIM-A(태양광+ESS)·SIM-B(연계형)·SIM-C(연계형 대조군)와 실사이트 GP-1(가평 2MW 청정수소발전, 도면 FCND-GP-PID-002 REV.2) — 의 설비 트리·게이트웨이·포인트 매핑을 upsert합니다. 여러 번 실행해도 결과가 같고, 이미 있는 설비·포인트는 UPDATE만 해서 id 시퀀스도 늘지 않습니다.
    - 게이트웨이 개발용 HMAC 비밀값 `SIM_GATEWAY_SECRET_<게이트웨이 코드>`가 env 파일에 없으면 생성해 파일 끝에 추가하고, DB에는 `INGEST_KEY_ENC_KEY`로 암호화해 저장합니다. 이미 저장된 키는 현재 `INGEST_KEY_ENC_KEY`로 풀리고 비밀값이 같으면 다시 암호화하지 않습니다(키를 바꿨거나 비밀값이 달라졌을 때만 다시 암호화). 비밀값은 출력하지 않습니다.
    - 정의는 `db/seed/`(순수 데이터 모듈)에 있습니다. `db/seed/sites.ts`의 `UNMAPPED_SOURCE_TAGS`는 일부러 매핑하지 않는 태그라 DB에 넣지 않습니다(미매핑 인박스·재처리 시연용).
+   - 실사이트 GP-1은 `attributes.simulated: false`입니다. 시뮬레이터는 `SIM_SITES`(가상 3곳)만 보므로 기본으로 실사이트에 데이터를 넣지 않습니다. 넣으려면 `SIM_INCLUDE_REAL_SITES=1`을 명시해야 합니다.
+   - 포인트의 `instrument_tag`에는 도면 계장 태그(PT-201 등)를 넣습니다(게이트웨이당 유일). 도면에 없어 아직 설치하지 않은 계기는 `db/seed/templates-gapyeong.ts`의 `GAPYEONG_PLANNED_POINTS`(데이터 계약 요청 목록)로 두고 DB에 넣지 않습니다.
 6. 관리자 계정을 만듭니다. 가입이 비활성이라 계정은 이 스크립트로만 만듭니다.
    ```bash
    npm run admin:create -- --email admin@hysol.local --password '<12자 이상>' --name 관리자
@@ -52,7 +54,7 @@
 | `db:migrate` / `db:migrate:down` | 개발 DB에 남은 마이그레이션 전부 적용 / 마지막 1개 되돌리기. `scripts/db-migrate.ts`가 node-pg-migrate를 실행하며 `DATABASE_SSL`·`DATABASE_SSL_CA_PATH`를 앱과 같은 규칙으로 반영한다. 개수 지정: `npm run db:migrate:down -- 2` |
 | `db:migrate:test` | 테스트 DB 마이그레이션 (integration·e2e가 시작할 때 같은 작업을 자동으로 한다) |
 | `db:types` | DB에서 `lib/db/types.ts` 생성 (om, public, sim 스키마. 파티션 자식 테이블은 제외) |
-| `db:seed` / `db:seed:test` | 개발 / 테스트 DB에 카탈로그·가상 사이트 멱등 upsert. 게이트웨이 개발용 비밀값이 없으면 해당 env 파일에 생성 |
+| `db:seed` / `db:seed:test` | 개발 / 테스트 DB에 카탈로그·사이트(가상 3곳 + 실사이트 GP-1) 멱등 upsert. 게이트웨이 개발용 비밀값이 없으면 해당 env 파일에 생성 |
 | `db:reset` | **로컬 전용.** 개발 DB 스키마를 모두 지우고 다시 migrate. `localhost:54320`이 아니면 중단 |
 | `db:rollup:rebuild` | **로컬 전용.** `om.m_1h`를 원시 측정값에서 UTC 하루 단위로 전부 다시 집계한다(롤업 규칙이 바뀐 뒤 과거분을 맞출 때). 끝나면 `n_good/n` 비율을 출력. `localhost:54320`이 아니면 중단 |
 | `admin:create` / `admin:create:test` | 개발 / 테스트 DB에 관리자 계정 생성. 이미 있으면 안내 후 종료 |

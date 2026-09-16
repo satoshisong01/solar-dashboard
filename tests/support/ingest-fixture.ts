@@ -3,7 +3,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { Kysely, PostgresDialect, sql } from 'kysely';
 import pg from 'pg';
-import { SIM_SITES } from '@/db/seed/sites';
+import { SEED_SITES } from '@/db/seed/sites';
 import { seedDatabase } from '@/lib/db/seed';
 import type { DB } from '@/lib/db/types';
 import type { IngestEnvelopeInput } from '@/lib/ingest/envelope';
@@ -79,7 +79,7 @@ export async function dropIngestFixture(db: Kysely<DB>): Promise<void> {
 export async function createIngestFixture(db: Kysely<DB>): Promise<IngestFixture> {
   const encryptionKey = testEncryptionKey();
   // db:seed:test가 만든 비밀값이 있으면 그대로 써서 SIM 게이트웨이 키가 env 파일과 어긋나지 않게 한다.
-  const gatewaySecrets = new Map(SIM_SITES.map(({ gateway }) => [gateway.code, process.env[gateway.secretEnvVar] ?? randomBytes(32).toString('base64url')]));
+  const gatewaySecrets = new Map(SEED_SITES.map(({ gateway }) => [gateway.code, process.env[gateway.secretEnvVar] ?? randomBytes(32).toString('base64url')]));
   await seedDatabase(db, { encryptionKey, gatewaySecrets });
   await dropIngestFixture(db);
 

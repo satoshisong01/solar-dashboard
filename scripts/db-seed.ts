@@ -1,4 +1,4 @@
-// 카탈로그(asset_class·metric_def)와 가상 사이트 SIM-A/B/C를 멱등 upsert한다.
+// 카탈로그(asset_class·metric_def)와 사이트(가상 SIM-A/B/C + 실사이트 GP-1)를 멱등 upsert한다.
 //   npm run db:seed       → .env.development.local (hysol)
 //   npm run db:seed:test  → .env.test.local (hysol_test)
 // 게이트웨이 개발용 HMAC 비밀값(SIM_GATEWAY_SECRET_<CODE>)이 env 파일에 없으면 생성해 파일 끝에 추가하고,
@@ -7,7 +7,7 @@ import { randomBytes } from 'node:crypto';
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { parseArgs, parseEnv } from 'node:util';
-import { SIM_SITES } from '../db/seed/sites';
+import { SEED_SITES } from '../db/seed/sites';
 import { db } from '../lib/db/kysely';
 import { seedDatabase } from '../lib/db/seed';
 import { getServerEnv } from '../lib/env';
@@ -39,7 +39,7 @@ function ensureGatewaySecrets(envFilePath: string): ReadonlyMap<string, string> 
   const secrets = new Map<string, string>();
   const newLines: string[] = [];
 
-  for (const { gateway } of SIM_SITES) {
+  for (const { gateway } of SEED_SITES) {
     const existing = process.env[gateway.secretEnvVar];
     if (existing) {
       if (existing.length < MIN_SECRET_LENGTH) {

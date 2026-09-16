@@ -4,7 +4,7 @@
 import { randomBytes } from 'node:crypto';
 import { sql, type Kysely } from 'kysely';
 import pg from 'pg';
-import { SIM_SITES } from '@/db/seed/sites';
+import { SEED_SITES } from '@/db/seed/sites';
 import { seedDatabase } from '@/lib/db/seed';
 import type { DB } from '@/lib/db/types';
 import { rebuildHourlyRollups } from '@/lib/ingest/rollup';
@@ -94,7 +94,7 @@ async function insertSeries(databaseUrl: string, rows: readonly { pointId: numbe
 
 /** 시드 → 이전 결과 정리 → 시뮬레이션 → 원시 적재 → 1시간 롤업 재집계 */
 export async function createP3Fixture(db: Kysely<DB>, databaseUrl: string): Promise<P3Fixture> {
-  const gatewaySecrets = new Map(SIM_SITES.map(({ gateway }) => [gateway.code, process.env[gateway.secretEnvVar] ?? randomBytes(32).toString('base64url')]));
+  const gatewaySecrets = new Map(SEED_SITES.map(({ gateway }) => [gateway.code, process.env[gateway.secretEnvVar] ?? randomBytes(32).toString('base64url')]));
   await seedDatabase(db, { encryptionKey: testEncryptionKey(), gatewaySecrets });
   await dropP3Fixture(db);
   const site = await db.selectFrom('om.site').select('id').where('code', '=', P3_SITE).executeTakeFirstOrThrow();

@@ -15,7 +15,7 @@ const findingIds = { capacity: '', cellImbalance: '', inverter: '' };
 async function runLoopAnalysis(page: Page, period: Readonly<{ from: string; to: string }>): Promise<Locator> {
   await page.goto('/desk');
   const run = panel(page, '분석 실행');
-  for (const code of ['SIM-B', 'SIM-C']) await run.getByRole('checkbox', { name: new RegExp(code) }).uncheck();
+  for (const code of ['SIM-B', 'SIM-C', 'GP-1']) await run.getByRole('checkbox', { name: new RegExp(code) }).uncheck();
   await expect(run.getByRole('checkbox', { name: new RegExp(LOOP_SITE) })).toBeChecked();
   await run.getByRole('radio', { name: '사용자 지정' }).check();
   await run.getByLabel('시작 (KST)').fill(period.from);

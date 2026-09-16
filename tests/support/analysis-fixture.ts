@@ -2,7 +2,7 @@
 //   하루 두 번 5시간씩 1000 A 정상운전, 셀 전압 = 1.90 V + 30 µV/h × (누적 운전시간 − 2000 h), stepDay 이후 −10 mV(조치 효과)
 import { randomBytes } from 'node:crypto';
 import { sql, type Kysely } from 'kysely';
-import { SIM_SITES } from '@/db/seed/sites';
+import { SEED_SITES } from '@/db/seed/sites';
 import { seedDatabase } from '@/lib/db/seed';
 import type { DB } from '@/lib/db/types';
 import { testEncryptionKey } from './ingest-fixture';
@@ -80,7 +80,7 @@ async function insertMeasurements(db: Kysely<DB>, points: Readonly<Record<string
 
 /** 카탈로그 시드 → 픽스처 사이트·전해조·스택·게이트웨이·포인트 → 합성 원시 days일 */
 export async function createAnalysisFixture(db: Kysely<DB>, days: number, stepDay: number): Promise<AnalysisFixture> {
-  const gatewaySecrets = new Map(SIM_SITES.map(({ gateway }) => [gateway.code, process.env[gateway.secretEnvVar] ?? randomBytes(32).toString('base64url')]));
+  const gatewaySecrets = new Map(SEED_SITES.map(({ gateway }) => [gateway.code, process.env[gateway.secretEnvVar] ?? randomBytes(32).toString('base64url')]));
   await seedDatabase(db, { encryptionKey: testEncryptionKey(), gatewaySecrets });
   await dropAnalysisFixture(db);
   const site = await db.insertInto('om.site').values({ code: ANALYSIS_SITE, name: '분석 테스트 사이트' }).returning('id').executeTakeFirstOrThrow();

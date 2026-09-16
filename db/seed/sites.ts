@@ -1,9 +1,10 @@
-// 가상 사이트 3곳(SIM-A/B/C)과 게이트웨이·포인트·미매핑 태그 정의. 순수 데이터 모듈 ('server-only' 금지).
-// 다음 단계 시뮬레이터(lib/sim)가 이 모듈을 import해 같은 태그로 데이터를 보낸다.
+// 시드가 DB에 넣는 사이트: 가상 3곳(SIM-A/B/C)과 실사이트 1곳(GP-1 가평). 순수 데이터 모듈 ('server-only' 금지).
+// 시뮬레이터(lib/sim)는 SIM_SITES만 본다 — 실사이트에 가짜 데이터를 넣지 않기 위해서다 (simulatorSites 참고).
 import { buildAssets, SLOW_PERIOD_S, type AssetSpec, type SiteContext } from './asset-spec';
+import { GAPYEONG_PLANNED_POINTS, gapyeongAssets } from './templates-gapyeong';
 import { electrolyzerPlant, fuelCellPlant, hydrogenStorage } from './templates-hydrogen';
 import { essPlant, pvPlant, siteCommon } from './templates-solar';
-import type { GatewayDef, SiteDef, UnmappedTagDef } from './types';
+import type { GatewayDef, PlannedPointDef, SiteDef, UnmappedTagDef } from './types';
 
 const SITE_TIMEZONE = 'Asia/Seoul';
 
@@ -34,9 +35,11 @@ interface SiteSpec {
   readonly name: string;
   readonly lat: number;
   readonly lon: number;
-  readonly commissionedAt: string;
+  /** 준공 전이면 null */
+  readonly commissionedAt: string | null;
   readonly attributes: SiteDef['attributes'];
   readonly assets: readonly AssetSpec[];
+  readonly plannedPoints?: readonly PlannedPointDef[];
 }
 
 function buildSite(spec: SiteSpec): SiteDef {
@@ -51,6 +54,7 @@ function buildSite(spec: SiteSpec): SiteDef {
     gateway: devGateway(spec.code),
     assets: buildAssets(ctx, spec.assets),
     unmappedTags: UNMAPPED_SOURCE_TAGS[spec.code] ?? [],
+    plannedPoints: spec.plannedPoints ?? [],
   };
 }
 
@@ -66,7 +70,7 @@ function integratedAssets(): readonly AssetSpec[] {
   ];
 }
 
-export const SIM_SITES: readonly SiteDef[] = [
+const SIMULATED_SITES: readonly SiteDef[] = [
   buildSite({
     code: 'SIM-A',
     name: '영암 태양광·ESS',
@@ -97,3 +101,32 @@ export const SIM_SITES: readonly SiteDef[] = [
     assets: integratedAssets(),
   }),
 ];
+
+/**
+ * 실사이트: 가평 2MW 청정수소발전 (도면 FCND-GP-PID-002 REV.2).
+ * simulated: false가 시뮬레이터 차단 표시다. 설비·명판은 db/seed/templates-gapyeong.ts 참고.
+ */
+const GAPYEONG_SITE: SiteDef = buildSite({
+  code: 'GP-1',
+  name: '가평 2MW 청정수소발전',
+  lat: 37.83,
+  lon: 127.51,
+  commissionedAt: null, // 준공 전 — 기준선 시작일이 없다
+  attributes: { simulated: false, layout: 'integrated', control_group: false, pid_rev: 'FCND-GP-PID-002 REV.2' },
+  assets: gapyeongAssets(),
+  plannedPoints: GAPYEONG_PLANNED_POINTS,
+});
+
+/** npm run db:seed가 DB에 넣는 사이트 전부 */
+export const SEED_SITES: readonly SiteDef[] = [...SIMULATED_SITES, GAPYEONG_SITE];
+
+/** 시뮬레이터가 데이터를 넣어도 되는 사이트 (attributes.simulated) */
+export const SIM_SITES: readonly SiteDef[] = SEED_SITES.filter((site) => site.attributes.simulated === true);
+
+/**
+ * 시뮬레이터 대상 사이트. 실사이트는 기본으로 막고 설정(includeRealSites)으로만 연다 —
+ * 데모 데이터를 넣을 때만 켜고, 평소에는 실사이트에 가짜 값이 들어가지 않게 한다.
+ */
+export function simulatorSites({ includeRealSites = false }: { readonly includeRealSites?: boolean } = {}): readonly SiteDef[] {
+  return includeRealSites ? SEED_SITES : SIM_SITES;
+}

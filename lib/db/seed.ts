@@ -1,9 +1,9 @@
-// 카탈로그·가상 사이트 시드를 DB에 멱등 upsert한다 (npm run db:seed / db:seed:test).
+// 카탈로그·사이트 시드를 DB에 멱등 upsert한다 (npm run db:seed / db:seed:test).
 // 데이터 정의는 db/seed/*의 순수 모듈이고, 이 파일은 DB 쓰기만 담당한다.
 // 'server-only'를 넣지 않는다: tsx 스크립트와 integration 테스트에서 import한다.
 import { sql, type Kysely, type Transaction } from 'kysely';
 import { ASSET_CLASSES, METRIC_DEFS } from '@/db/seed/catalog';
-import { SIM_SITES } from '@/db/seed/sites';
+import { SEED_SITES } from '@/db/seed/sites';
 import type { AssetDef, GatewayDef, SiteDef } from '@/db/seed/types';
 import { decryptGatewaySecret, encryptGatewaySecret } from '@/lib/ingest/key-crypto';
 import type { DB } from './types';
@@ -174,7 +174,7 @@ interface AssetRow {
   readonly nameplate: AssetDef['nameplate'];
   readonly peer_group: string | null;
   readonly criticality: number;
-  readonly commissioned_at: string;
+  readonly commissioned_at: string | null;
 }
 
 /** 정의된 행 중 DB에 이미 있는 행(id를 붙여서)과 없는 행으로 나눈다 */
@@ -255,6 +255,8 @@ interface PointRow {
   readonly scale: number;
   readonly value_offset: number;
   readonly period_s: number;
+  /** 도면 계장 태그 (없으면 null) */
+  readonly instrument_tag: string | null;
 }
 
 const pointKey = (row: Pick<PointRow, 'asset_id' | 'metric_key' | 'qualifier'>) => `${row.asset_id}|${row.metric_key}|${row.qualifier}`;
@@ -264,13 +266,13 @@ async function updatePoints(trx: Trx, rows: readonly (PointRow & { readonly id: 
   await sql`
     UPDATE om.point AS p SET
       gateway_id = v.gateway_id, source_key = v.source_key, source_unit = v.source_unit,
-      scale = v.scale, value_offset = v.value_offset, period_s = v.period_s
+      scale = v.scale, value_offset = v.value_offset, period_s = v.period_s, instrument_tag = v.instrument_tag
     FROM jsonb_to_recordset(${JSON.stringify(rows)}::jsonb) AS v(
-      id int, gateway_id smallint, source_key text, source_unit text, scale float8, value_offset float8, period_s int
+      id int, gateway_id smallint, source_key text, source_unit text, scale float8, value_offset float8, period_s int, instrument_tag text
     )
     WHERE p.id = v.id
-      AND (p.gateway_id, p.source_key, p.source_unit, p.scale, p.value_offset, p.period_s)
-        IS DISTINCT FROM (v.gateway_id, v.source_key, v.source_unit, v.scale, v.value_offset, v.period_s)
+      AND (p.gateway_id, p.source_key, p.source_unit, p.scale, p.value_offset, p.period_s, p.instrument_tag)
+        IS DISTINCT FROM (v.gateway_id, v.source_key, v.source_unit, v.scale, v.value_offset, v.period_s, v.instrument_tag)
   `.execute(trx);
 }
 
@@ -288,6 +290,7 @@ async function upsertPoints(trx: Trx, gatewayId: number, assetIds: ReadonlyMap<s
       scale: point.scale,
       value_offset: point.valueOffset,
       period_s: point.periodS,
+      instrument_tag: point.instrumentTag,
     }));
   });
   if (rows.length === 0) return 0;
@@ -315,7 +318,7 @@ export async function seedDatabase(db: Kysely<DB>, options: SeedOptions): Promis
 
     let assets = 0;
     let points = 0;
-    for (const site of SIM_SITES) {
+    for (const site of SEED_SITES) {
       const siteId = await upsertSite(trx, site);
       const assetIds = await upsertAssets(trx, siteId, site);
       const gatewayId = await upsertGateway(trx, siteId, site.gateway);
@@ -327,9 +330,9 @@ export async function seedDatabase(db: Kysely<DB>, options: SeedOptions): Promis
     return {
       assetClasses: ASSET_CLASSES.length,
       metricDefs: METRIC_DEFS.length,
-      sites: SIM_SITES.length,
+      sites: SEED_SITES.length,
       assets,
-      gateways: SIM_SITES.length,
+      gateways: SEED_SITES.length,
       points,
     };
   });

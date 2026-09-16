@@ -375,6 +375,7 @@ export interface OmPoint {
   created_at: Generated<Timestamp>;
   gateway_id: number;
   id: Generated<number>;
+  instrument_tag: string | null;
   metric_key: string;
   period_s: number | null;
   qualifier: Generated<string>;

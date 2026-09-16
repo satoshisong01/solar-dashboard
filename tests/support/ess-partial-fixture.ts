@@ -4,7 +4,7 @@
 // 휴지 끝 SOC 두 점 사이 순 Ah ÷ ΔSOC(휴지 앵커)만 유효용량을 준다. 유효용량은 stepDay 전후로 바뀐다(용량 회복 조치).
 import { randomBytes } from 'node:crypto';
 import { sql, type Kysely } from 'kysely';
-import { SIM_SITES } from '@/db/seed/sites';
+import { SEED_SITES } from '@/db/seed/sites';
 import { seedDatabase } from '@/lib/db/seed';
 import type { DB } from '@/lib/db/types';
 import { dropAnalysisFixture } from './analysis-fixture';
@@ -76,7 +76,7 @@ async function insertMeasurements(db: Kysely<DB>, points: Readonly<Record<string
 }
 
 export async function createEssPartialFixture(db: Kysely<DB>, o: EssPartialOptions): Promise<EssPartialFixture> {
-  const gatewaySecrets = new Map(SIM_SITES.map(({ gateway }) => [gateway.code, process.env[gateway.secretEnvVar] ?? randomBytes(32).toString('base64url')]));
+  const gatewaySecrets = new Map(SEED_SITES.map(({ gateway }) => [gateway.code, process.env[gateway.secretEnvVar] ?? randomBytes(32).toString('base64url')]));
   await seedDatabase(db, { encryptionKey: testEncryptionKey(), gatewaySecrets });
   await dropAnalysisFixture(db, ESS_PARTIAL_SITE);
   const site = await db.insertInto('om.site').values({ code: ESS_PARTIAL_SITE, name: '부분 사이클 ESS 테스트 사이트' }).returning('id').executeTakeFirstOrThrow();
