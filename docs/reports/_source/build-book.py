@@ -138,7 +138,8 @@ GP_ASSET_NAME = {a["code"]: a["name"] for a in GP_ASSETS}
 GP_PLANNED = []
 for nec, fn in (("필수", "required"), ("권장", "recommended")):
     for pm in re.finditer(
-            rf"^  {fn}\((?:'([^']+)'|null), '([^']+)', '([^']+)', ([\d_]+)(?:, '([^']*)')?\),(?:\s*//\s*(.*))?$",
+            # 주석은 같은 줄 꼬리 주석만 읽는다 — \s*를 쓰면 다음 줄의 절 머리말(// B.x …)까지 붙는다
+            rf"^  {fn}\((?:'([^']+)'|null), '([^']+)', '([^']+)', ([\d_]+)(?:, '([^']*)')?\),(?:[ \t]*//[ \t]*(.*))?$",
             GAPYEONG_TS, re.M):
         GP_PLANNED.append({
             "necessity": nec, "tag": pm.group(1) or "미지정", "asset": pm.group(2),
