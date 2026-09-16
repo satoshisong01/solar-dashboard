@@ -3,8 +3,12 @@
 // 청정수소 인증 공식 산정이 아니다 (설계 §9 체인 원장 리스크).
 
 export const ALLOC_VERSION = 'pool_hourly@1';
-/** @2: 수소 상태식 Lemmon 2008, 저장량 경계가 정지 시간이면 P·T 시간 평균, 생산량은 적산계 증가량 우선 */
-export const LEDGER_CALC_VERSION = 'ledger@2';
+/**
+ * @2: 수소 상태식 Lemmon 2008, 저장량 경계가 정지 시간이면 P·T 시간 평균, 생산량은 적산계 증가량 우선
+ * @3: 수소 잔차식에 외부 반입(delivered)을 넣고 분모를 max(생산 + 반입, 소비, 하한)으로 바꿨다.
+ *     반입 설비가 있는 사이트에서 반입량을 알 수 없는 날은 0이 아니라 null(판정 불능)이다.
+ */
+export const LEDGER_CALC_VERSION = 'ledger@3';
 
 /** 원장 계산에 필요한 설비 (om.asset 한 행) */
 export interface LedgerAsset {
@@ -77,17 +81,22 @@ export interface EnergyTotals {
 /** meter_total = 적산계 증가량, meter = 순시 유량 시간 평균 적산, faraday_estimate = 스택 전류 이론값 */
 export type H2ProducedMethod = 'meter_total' | 'meter' | 'faraday_estimate';
 export type VentedMethod = 'params' | 'not_estimated';
+/** meter = 하역 적산계(h2.delivery.mass.total) 증가량, invoice = 반입 기록(om.h2_delivery) 합계 */
+export type H2DeliveredMethod = 'meter' | 'invoice';
 
 export interface H2Ledger {
   readonly produced: number | null;
+  /** 외부 반입량 [kg]. 반입 설비가 없는 사이트는 0, 반입 설비는 있는데 그날 계량·전표가 없으면 null(판정 불능) */
+  readonly delivered: number | null;
   readonly fc_consumed: number | null;
   readonly stored_delta: number | null;
   readonly vented_est: number | null;
   readonly residual: number | null;
-  /** residual / max(produced, fc_consumed, params.residualFloorKg) × 100 [%] */
+  /** residual / max(produced + delivered, fc_consumed, params.residualFloorKg) × 100 [%] */
   readonly residual_pct: number | null;
   readonly method: {
     readonly produced: H2ProducedMethod | null;
+    readonly delivered: H2DeliveredMethod | null;
     readonly fc_consumed: 'meter' | null;
     readonly stored_delta: string | null;
     readonly vented: VentedMethod;
@@ -131,6 +140,8 @@ export interface SiteEnergyDq {
   readonly h2: {
     readonly completeness: number | null;
     readonly purge_count_missing: boolean;
+    /** 반입 설비가 있는데 그날 하역 계량·반입 기록이 모두 없어 잔차를 낼 수 없었다 */
+    readonly delivered_missing: boolean;
   };
   readonly pv: {
     readonly completeness: number | null;

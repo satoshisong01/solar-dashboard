@@ -59,8 +59,10 @@ function h2Of(value: unknown): H2Ledger {
   const method = asRecord(r.method);
   const aux = asRecord(r.aux);
   const produced = asString(method.produced);
+  const delivered = asString(method.delivered);
   return {
     produced: asNumber(r.produced),
+    delivered: asNumber(r.delivered),
     fc_consumed: asNumber(r.fc_consumed),
     stored_delta: asNumber(r.stored_delta),
     vented_est: asNumber(r.vented_est),
@@ -68,6 +70,7 @@ function h2Of(value: unknown): H2Ledger {
     residual_pct: asNumber(r.residual_pct),
     method: {
       produced: produced === 'meter_total' || produced === 'meter' || produced === 'faraday_estimate' ? produced : null,
+      delivered: delivered === 'meter' || delivered === 'invoice' ? delivered : null,
       fc_consumed: method.fc_consumed === 'meter' ? 'meter' : null,
       stored_delta: asString(method.stored_delta),
       vented: method.vented === 'params' ? 'params' : 'not_estimated',
@@ -112,7 +115,7 @@ function dqOf(value: unknown): SiteEnergyDq {
       elz_flow_basis: basis(energy.elz_flow_basis),
       elz_energy_basis: basis(energy.elz_energy_basis),
     },
-    h2: { completeness: asNumber(h2.completeness), purge_count_missing: h2.purge_count_missing === true },
+    h2: { completeness: asNumber(h2.completeness), purge_count_missing: h2.purge_count_missing === true, delivered_missing: h2.delivered_missing === true },
     pv: {
       completeness: asNumber(pv.completeness),
       pr_ref: asNumber(pv.pr_ref),

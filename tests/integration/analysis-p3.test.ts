@@ -70,7 +70,7 @@ describe('P3 분석 실행 (hysol_test)', () => {
     expect(chain).toHaveLength(1);
     expect(chain[0]).toMatchObject({ asset_id: null, dedup_key: `h2chain.mass_balance_gap|site:${fixture.siteId}|h2chain.mass_balance_gap`, detection_count: 1 });
     const evidence = await db.selectFrom('om.finding_evidence').select('snapshot').where('finding_id', '=', chain[0]?.id ?? '0').executeTakeFirstOrThrow();
-    expect(evidence.snapshot).toMatchObject({ detector: 'h2chain.mass_balance_gap@1', config: { scope: 'code_default', version: null } });
+    expect(evidence.snapshot).toMatchObject({ detector: 'h2chain.mass_balance_gap@2', config: { scope: 'code_default', version: null } });
     expect((evidence.snapshot as { config: { params_hash: string } }).config.params_hash).toMatch(/^[0-9a-f]{16}$/);
     const checks = (evidence.snapshot as { checks: { id: string; status: string }[] }).checks;
     expect(checks.find((c) => c.id === 'storage_leak')?.status).toBe('supports');

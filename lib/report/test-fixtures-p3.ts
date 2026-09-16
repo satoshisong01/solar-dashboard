@@ -59,7 +59,7 @@ export function ledgerDay(day: string, extra: Partial<SiteEnergyDay> = {}): Site
       { from: 'fc', to: 'site_aux', kwh: 60 },
     ],
     energy_kwh: { pv: 3990, ess_discharge: 0, fc: 60, grid_import: 100, site_aux: 60, ess_charge: 0, electrolyzer: 2500, electrolyzer_system: 2600, compressor: 90, grid_export: 1500, unmetered_supply: 0, unmetered_demand: 0 },
-    h2_kg: { produced: 45, fc_consumed: 4, stored_delta: 39.5, vented_est: 0.5, residual: 1, residual_pct: 2.22, method: { produced: 'meter_total', fc_consumed: 'meter', stored_delta: 'lemmon2008@1', vented: 'params' }, aux: { faraday_expected: 46, purge_count: 20, tank_temp_delta_c: 1 } },
+    h2_kg: { produced: 45, delivered: 0, fc_consumed: 4, stored_delta: 39.5, vented_est: 0.5, residual: 1, residual_pct: 2.22, method: { produced: 'meter_total', delivered: null, fc_consumed: 'meter', stored_delta: 'lemmon2008@1', vented: 'params' }, aux: { faraday_expected: 46, purge_count: 20, tank_temp_delta_c: 1 } },
     elz_grid_share: 0.04,
     renewable_share: 0.96,
     elz_sec_kwh_per_kg: 57.8,
@@ -68,7 +68,7 @@ export function ledgerDay(day: string, extra: Partial<SiteEnergyDay> = {}): Site
     pv_loss_kwh: { expected: 4300, actual: 3990, outage: 0, ess_full: 0, curtailment: 120, clipping: 40, derating: 10, soiling_est: 100, unexplained: 40 },
     dq: {
       energy: { completeness: { 'pv.inverter/ac.power': 1 }, aux_basis: 'residual', aux_residual_kwh: 0, unmetered_kwh: 5, unmetered_ratio: 0.0012, elz_flow_basis: 'rectifier_input', elz_energy_basis: 'system_total' },
-      h2: { completeness: 1, purge_count_missing: false },
+      h2: { completeness: 1, purge_count_missing: false, delivered_missing: false },
       pv: { completeness: 1, pr_ref: 0.93, pr_ref_method: 'reference_clear_days', soiling_status: 'estimated', temp_corrected_ratio: 1, no_data_inverter_hours: 0, reason: null },
     },
     alloc_version: ALLOC_VERSION,

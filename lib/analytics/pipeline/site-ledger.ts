@@ -26,6 +26,7 @@ export function massBalanceDays(rows: readonly LedgerDayRow[]): H2LedgerDayInput
   return rows.map(({ dayStart, h2, h2Completeness }) => ({
     day: dayStart,
     produced: h2.produced,
+    delivered: h2.delivered,
     fc_consumed: h2.fc_consumed,
     stored_delta: h2.stored_delta,
     vented_est: h2.vented_est,
@@ -64,6 +65,8 @@ export interface SiteLedgerInput {
   readonly prRef: PrReference | null;
   /** 날짜 0시 → 인버터 id → 오염 손실률 0~1 */
   readonly soilingByDay?: ReadonlyMap<number, ReadonlyMap<number, number>>;
+  /** 날짜 0시 → 그날 반입 기록(om.h2_delivery) 합계 [kg]. 기록이 없는 날은 키가 없다 */
+  readonly deliveredByDay?: ReadonlyMap<number, number>;
   readonly params?: Partial<LedgerParams>;
 }
 
@@ -71,7 +74,15 @@ export interface SiteLedgerInput {
 export function buildLedgerDays(input: SiteLedgerInput): SiteEnergyDay[] {
   const byDay = rowsByDay(input.rows, input.dayStarts);
   return input.dayStarts.filter((dayStart) => (byDay.get(dayStart) ?? []).some((row) => row.hourStart >= dayStart)).map((dayStart) =>
-    buildSiteEnergyDay({ dayStart, assets: input.assets, rows: byDay.get(dayStart) ?? [], prRef: input.prRef, soilingLossByAssetId: input.soilingByDay?.get(dayStart), params: input.params }),
+    buildSiteEnergyDay({
+      dayStart,
+      assets: input.assets,
+      rows: byDay.get(dayStart) ?? [],
+      prRef: input.prRef,
+      soilingLossByAssetId: input.soilingByDay?.get(dayStart),
+      deliveredInvoiceKg: input.deliveredByDay?.get(dayStart) ?? null,
+      params: input.params,
+    }),
   );
 }
 

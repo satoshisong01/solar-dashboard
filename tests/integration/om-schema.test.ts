@@ -8,7 +8,7 @@ const databaseUrl = assertTestDatabaseUrl(process.env.DATABASE_URL);
 const OM_TABLES = [
   'action_verification', 'ai_explanation_setting', 'analysis_run', 'asset', 'asset_class', 'asset_event', 'auth_account', 'auth_rate_limit',
   'auth_session', 'auth_user', 'auth_verification', 'detector_config', 'episode', 'event_log',
-  'finding', 'finding_evidence', 'finding_explanation', 'finding_transition', 'gateway', 'gateway_key', 'ingest_batch', 'kpi_daily', 'm_1h',
+  'finding', 'finding_evidence', 'finding_explanation', 'finding_transition', 'gateway', 'gateway_key', 'h2_delivery', 'ingest_batch', 'kpi_daily', 'm_1h',
   'maintenance_action', 'market_daily', 'measurement', 'metric_def', 'pgmigrations', 'point', 'report', 'rollup_dirty',
   'site', 'site_energy_daily', 'unmapped_source',
 ];

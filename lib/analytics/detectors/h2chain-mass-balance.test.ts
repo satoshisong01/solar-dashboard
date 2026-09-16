@@ -52,7 +52,7 @@ const gapFrom = (day0: number, pct: number) => (day: number) => (day >= day0 ? p
 const run = (input: Partial<H2MassBalanceInput> & { days: readonly H2LedgerDayInput[] }, params = {}) => h2ChainMassBalanceGap.detect({ siteId: 3, ...input }, ctx(params));
 const checksOf = (result: ReturnType<typeof run>) => (result.status === 'ok' ? Object.fromEntries(((result.findings[0]?.evidence.checks ?? []) as { id: string; status: string }[]).map((c) => [c.id, c.status])) : {});
 
-describe('h2chain.mass_balance_gap@1', () => {
+describe('h2chain.mass_balance_gap@2', () => {
   it('계량되지 않은 손실 3.5% 주입을 잔차율 중앙값 3.5% ± 15%로 잡고 사이트 단위 severity 2', () => {
     const result = run({ days: ledger({ seed: 2, lossPct: gapFrom(40, 3.5) }) });
     expect(result.status).toBe('ok');
@@ -61,7 +61,7 @@ describe('h2chain.mass_balance_gap@1', () => {
     expect(finding).toMatchObject({ detectorId: 'h2chain.mass_balance_gap', assetId: null, failureMode: 'h2chain.mass_balance_gap', category: 'performance', severity: 2, effect: { metric: 'h2_residual_pct', unit: '%' } });
     expect(finding?.effect.value).toBeGreaterThan(3.5 * 0.85);
     expect(finding?.effect.value).toBeLessThan(3.5 * 1.15);
-    expect(checksOf(result)).toEqual({ flowmeter_drift: 'refutes', temperature_compensation: 'refutes', purge_vent_estimate: 'refutes', storage_leak: 'no_data', missing_days: 'refutes' });
+    expect(checksOf(result)).toEqual({ flowmeter_drift: 'refutes', temperature_compensation: 'refutes', purge_vent_estimate: 'refutes', storage_leak: 'no_data', missing_days: 'refutes', delivery_record: 'refutes' });
     expect((finding?.evidence.days as unknown[]).length).toBeLessThanOrEqual(120);
   });
 
@@ -91,6 +91,20 @@ describe('h2chain.mass_balance_gap@1', () => {
     expect(run({ days: ledger({ seed: 9, lossPct: () => 0 }) })).toEqual({ status: 'ok', findings: [] });
     expect(run({ days: ledger({ seed: 10, lossPct: () => 0, tempCoupling: 0.4 }) })).toEqual({ status: 'ok', findings: [] });
     expect(run({ days: ledger({ seed: 11, lossPct: () => 2.5 }) })).toEqual({ status: 'ok', findings: [] });
+  });
+
+  it('@2 반입: 반입량을 아는 날은 그대로 판정하고, 모르는 날(잔차 null)은 빼며 반입 기록 체크가 지지로 바뀐다', () => {
+    // 반입이 생산의 2배인 사이트. 잔차율은 (생산 + 반입) 기준이라 반입을 넣지 않으면 매일 −66%가 된다
+    const withDelivery = ledger({ seed: 20, lossPct: gapFrom(40, 3.5) }).map((d) => ({ ...d, delivered: (d.produced ?? 0) * 2 }));
+    const found = run({ days: withDelivery });
+    expect(found.status === 'ok' && found.findings.length).toBe(1);
+    expect(checksOf(found).delivery_record).toBe('refutes');
+    expect((found.status === 'ok' ? (found.findings[0]?.evidence.days as { delivered: number | null }[]) : []).every((d) => d.delivered !== null)).toBe(true);
+    // 최근 7일 중 2일은 하역 계량·전표가 없어 원장이 잔차를 내지 못한 날이다 — 그 날은 판정에서 빠지고 체크가 지지가 된다
+    const unknownDays = withDelivery.map((d, i) => (i >= DAYS - 2 ? { ...d, delivered: null, residual: null, residual_pct: null } : d));
+    const partial = run({ days: unknownDays });
+    expect(partial.status === 'ok' && partial.findings.length).toBe(1);
+    expect(checksOf(partial).delivery_record).toBe('supports');
   });
 
   it('insufficient: 유효일 부족, 결정성·스키마 기본값', () => {

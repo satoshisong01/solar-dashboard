@@ -43,4 +43,5 @@ export const SETTINGS_TABS: readonly SectionTab[] = [
   { href: '/settings/admins', label: '관리자' },
   { href: '/settings/ai', label: 'AI 설명' },
   { href: '/settings/market', label: '시장가격' },
+  { href: '/settings/supply', label: '수소 반입' },
 ];

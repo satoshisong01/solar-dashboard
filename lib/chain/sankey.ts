@@ -78,12 +78,15 @@ export function hydrogenSankey(days: readonly SiteEnergyDay[]): SankeyData {
   const used = days.filter((d) => d.h2_kg.produced !== null && d.h2_kg.fc_consumed !== null && d.h2_kg.stored_delta !== null && d.h2_kg.residual !== null);
   const sum = (pick: (d: SiteEnergyDay) => number | null) => used.reduce((acc, d) => acc + (pick(d) ?? 0), 0);
   const produced = sum((d) => d.h2_kg.produced);
+  const delivered = sum((d) => d.h2_kg.delivered);
   const consumed = sum((d) => d.h2_kg.fc_consumed);
   const stored = sum((d) => d.h2_kg.stored_delta);
   const vented = sum((d) => d.h2_kg.vented_est);
-  const residual = produced - consumed - stored - vented;
+  const residual = produced + delivered - consumed - stored - vented;
+  // 반입이 없는 사이트(합계 0)는 노드를 만들지 않는다 — 기존 사이트 그림이 그대로다
   const sources: readonly (readonly [HydrogenKey, number, boolean])[] = [
     ['produced', produced, false],
+    ...(delivered > 0 ? ([['delivered', delivered, false]] as const) : []),
     ['storageOut', Math.max(0, -stored), false],
     ['residualIn', Math.max(0, -residual), true],
   ];

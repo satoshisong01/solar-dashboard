@@ -8,9 +8,9 @@ import { resolveLedgerParams } from './params';
 import { asset, DAY, HEALTHY_H2, hoursOf, hydrogenScenario, row, type H2DayScenario } from './test-fixtures';
 import type { LedgerAsset, LedgerHourRow } from './types';
 
-const ledgerOf = (assets: readonly LedgerAsset[], rows: readonly LedgerHourRow[], params = {}) => {
+const ledgerOf = (assets: readonly LedgerAsset[], rows: readonly LedgerHourRow[], params = {}, invoiceKg: number | null = null) => {
   const p = resolveLedgerParams(params);
-  return hydrogenLedger(createLedgerContext(DAY, assets, rows, p.fallbackPeriodS), p);
+  return hydrogenLedger(createLedgerContext(DAY, assets, rows, p.fallbackPeriodS), p, invoiceKg);
 };
 
 const runScenario = (scenario: H2DayScenario) => {
@@ -79,7 +79,7 @@ describe('hydrogenLedger', () => {
     expect(ledger.stored_delta).toBeCloseTo(18, 1);
     expect(ledger.vented_est).toBe(0);
     expect(Math.abs(ledger.residual_pct ?? 99)).toBeLessThan(0.5);
-    expect(ledger.method).toEqual({ produced: 'meter', fc_consumed: 'meter', stored_delta: 'lemmon2008@1', vented: 'not_estimated' });
+    expect(ledger.method).toEqual({ produced: 'meter', delivered: null, fc_consumed: 'meter', stored_delta: 'lemmon2008@1', vented: 'not_estimated' });
     expect(dq.completeness).toBe(1);
     expect(dq.purge_count_missing).toBe(false);
     // 판별 체크 보조값: 스택이 없으면 이론 생산량 없음, 탱크 온도 끝 − 시작 평균 (fixture 온도 오프셋 평균 0.025 °C는 상쇄)
@@ -147,7 +147,7 @@ describe('hydrogenLedger', () => {
     const withoutTank = rows.filter((r) => !(r.assetId === 110 && r.metricKey === 'tank.temp'));
     expect(ledgerOf(assets, withoutTank).ledger.stored_delta).toBeNull();
     const pvOnly = ledgerOf([asset(1, 'PV1/INV01', 'pv.inverter')], []);
-    expect(pvOnly.ledger).toEqual({ produced: null, fc_consumed: null, stored_delta: null, vented_est: null, residual: null, residual_pct: null, method: { produced: null, fc_consumed: null, stored_delta: null, vented: 'not_estimated' }, aux: { faraday_expected: null, purge_count: null, tank_temp_delta_c: null } });
+    expect(pvOnly.ledger).toEqual({ produced: null, delivered: 0, fc_consumed: null, stored_delta: null, vented_est: null, residual: null, residual_pct: null, method: { produced: null, delivered: null, fc_consumed: null, stored_delta: null, vented: 'not_estimated' }, aux: { faraday_expected: null, purge_count: null, tank_temp_delta_c: null } });
     expect(pvOnly.dq.completeness).toBeNull();
   });
 
@@ -167,5 +167,65 @@ describe('hydrogenLedger', () => {
     const { ledger } = runScenario(idle);
     expect(ledger.residual).toBeCloseTo(0.5, 1);
     expect(ledger.residual_pct).toBeCloseTo((ledger.residual ?? 0) * 100, 1);
+  });
+});
+
+
+describe('hydrogenLedger — 외부 반입 (delivered)', () => {
+  const DELIVERY_ID = 200;
+  const deliveryAsset = asset(DELIVERY_ID, 'H2DLV1', 'h2.delivery', { design_bar: 200 });
+
+  /** 반입 사이트 하루: 전해조 생산 절반, 나머지 절반은 하역으로 들어온다 (총 공급량은 HEALTHY_H2와 같다) */
+  function importDay(deliveredKg: number | null) {
+    const { assets, rows } = hydrogenScenario(HEALTHY_H2);
+    const halved = rows.map((r) => (r.metricKey === 'h2.flow.mass' ? { ...r, avg: (r.avg ?? 0) / 2, first: (r.first ?? 0) / 2, last: (r.last ?? 0) / 2 } : r));
+    if (deliveredKg === null) return { assets: [...assets, deliveryAsset], rows: halved };
+    // 하역 적산계: 전날 23시 0 kg → 10~16시에 고르게 늘어 하루 끝 deliveredKg
+    const counter = hoursOf(-1, 24).map((h) => {
+      const done = Math.min(Math.max(h + 1 - 10, 0), 6) / 6;
+      return row(DELIVERY_ID, 'h2.delivery.mass.total', h, deliveredKg * done, { periodS: 300, n: 12, nGood: 12, first: (deliveredKg * Math.min(Math.max(h - 10, 0), 6)) / 6, last: deliveredKg * done });
+    });
+    return { assets: [...assets, deliveryAsset], rows: [...halved, ...counter] };
+  }
+
+  it('하역 적산계가 있으면 delivered = 적산 증가량이고 잔차가 0 근처다 — 반입을 빼면 생기던 오경보가 사라진다', () => {
+    const { assets, rows } = importDay(31.5);
+    const { ledger, dq } = ledgerOf(assets, rows);
+    expect(ledger.produced).toBeCloseTo(31.5, 6);
+    expect(ledger.delivered).toBeCloseTo(31.5, 6);
+    expect(ledger.fc_consumed).toBeCloseTo(45, 6);
+    expect(ledger.stored_delta).toBeCloseTo(18, 1);
+    expect(ledger.method.delivered).toBe('meter');
+    expect(Math.abs(ledger.residual_pct ?? 99)).toBeLessThan(0.5);
+    expect(dq.delivered_missing).toBe(false);
+    // 같은 하루를 반입 설비 없이(= 반입 항 없이) 계산하면 잔차가 −40% 아래로 떨어진다 (기존 @1 식의 구조적 오경보)
+    const withoutDelivery = ledgerOf(assets.filter((a) => a.classKey !== 'h2.delivery'), rows.filter((r) => r.metricKey !== 'h2.delivery.mass.total'));
+    expect(withoutDelivery.ledger.delivered).toBe(0);
+    expect(withoutDelivery.ledger.residual_pct ?? 0).toBeLessThan(-40);
+  });
+
+  it('하역 계량이 없으면 반입 기록(전표) 합계를 쓰고 method가 invoice다', () => {
+    const { assets, rows } = importDay(null);
+    const { ledger } = ledgerOf(assets, rows, {}, 31.5);
+    expect(ledger.delivered).toBeCloseTo(31.5, 6);
+    expect(ledger.method.delivered).toBe('invoice');
+    expect(Math.abs(ledger.residual_pct ?? 99)).toBeLessThan(0.5);
+  });
+
+  it('반입 설비가 있는데 계량·기록이 둘 다 없는 날은 0이 아니라 판정 불능이다', () => {
+    const { assets, rows } = importDay(null);
+    const { ledger, dq } = ledgerOf(assets, rows);
+    expect(ledger.delivered).toBeNull();
+    expect(ledger.residual).toBeNull();
+    expect(ledger.residual_pct).toBeNull();
+    expect(ledger.method.delivered).toBeNull();
+    expect(dq.delivered_missing).toBe(true);
+  });
+
+  it('반입 설비가 없는 사이트는 delivered 0·method null로 기존과 같이 계산된다', () => {
+    const { ledger, dq } = runScenario(HEALTHY_H2);
+    expect(ledger.delivered).toBe(0);
+    expect(ledger.method.delivered).toBeNull();
+    expect(dq.delivered_missing).toBe(false);
   });
 });

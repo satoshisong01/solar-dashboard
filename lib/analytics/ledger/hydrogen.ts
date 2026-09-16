@@ -1,21 +1,24 @@
-// 수소 원장 (순수): 생산 − 연료전지 소비 − 저장량 변화 − 배출 추정 = 잔차 (설계 §3 체인 원장, research-system H1~H6 수지식).
+// 수소 원장 (순수): 생산 + 외부 반입 − 연료전지 소비 − 저장량 변화 − 배출 추정 = 잔차 (설계 §3 체인 원장, research-system H1~H6 수지식).
 //
 // 계량점
 //   produced     = 전해조 적산계 h2.mass.total 하루 증가량(method=meter_total). 적산계가 없거나 경계 행이 없거나 그날 값이 줄면(리셋·교체)
 //                  h2.flow.mass 시간 평균 적산(method=meter), 유량계도 없으면 패러데이 추정 N_cell × I × η_F × 3.7608e-5 kg/(A·h) (method=faraday_estimate)
 //                  적산계를 먼저 쓰는 이유: 5분 순시 유량 표본의 시간 평균은 기동·정지가 표본 사이에 걸리면 한 번에 최대 (유량 × 표본 간격)만큼 틀린다.
+//   delivered    = 외부 반입량. 1순위 하역 적산계 h2.delivery.mass.total 하루 증가량(method=meter), 2순위 반입 기록(om.h2_delivery) 그날 합계(method=invoice).
+//                  반입 설비(h2.delivery)가 없는 사이트는 0이다. 반입 설비가 있는데 계량·기록이 둘 다 없는 날은 0이 아니라 null — 판정 불능이다.
+//                  0으로 채우면 반입분이 통째로 음(−)의 잔차가 되어 반입 사이트에서 상시 오경보가 난다 (docs/renewal/research/pid/research-supply.md §2.2).
 //   fc_consumed  = 연료전지 fc.h2.consumption 적산
 //   stored_delta = 저장용기마다 (끝 P·T → 실기체 질량) − (시작 P·T → 질량) 의 합. 상태식 NIST Lemmon 2008 (tank.static_leak 기본과 같다)
 //   vented_est   = purge.count 증가 × params.kgPerPurge + params.dryerLossFraction × produced (기본 0 = 추정 안 함)
-//   residual     = produced − fc_consumed − stored_delta − vented_est
-//   residual_pct = residual / max(produced, fc_consumed, params.residualFloorKg) × 100
+//   residual     = produced + delivered − fc_consumed − stored_delta − vented_est
+//   residual_pct = residual / max(produced + delivered, fc_consumed, params.residualFloorKg) × 100
 // 한계: 시간 평균 × 1 h 적산이다. 유량계 행이 빠진 시간은 0으로 더해지므로 잔차를 보기 전에 dq.h2.completeness를 확인한다. 탱크 압력은 절대압으로 본다(게이지압이면 약 1 bar 해당 질량이 일정하게 편향되지만 차분에서는 대부분 상쇄).
 //       충전·방출 직후 가스 온도와 센서 온도 차이는 재고를 흔든다(하루 끝·시작이 정지 구간일 때 가장 정확하다).
 import { H2_EOS_VERSION, H2_KG_PER_AMP_HOUR_PER_CELL, LEMMON_EOS } from '../detectors/hydrogen-eos';
 import { MS_PER_HOUR } from '../types';
 import { assetsOf, dayBoundary, dayCompleteness, goodAvg, hasDayData, hourIntegral, hourMax, hourMin, meanOrNull, nameplateNumber, round, roundOrNull, type LedgerContext } from './hourly';
 import type { LedgerParams } from './params';
-import type { H2Ledger, H2ProducedMethod, SiteEnergyDq } from './types';
+import type { H2DeliveredMethod, H2Ledger, H2ProducedMethod, SiteEnergyDq } from './types';
 
 // 상태식·패러데이 상수는 tank.static_leak 탐지기와 같은 정의(detectors/hydrogen-eos.ts) 하나만 쓴다.
 export { H2_EOS_VERSION, H2_KG_PER_AMP_HOUR_PER_CELL };
@@ -84,6 +87,29 @@ function produced(ctx: LedgerContext, params: LedgerParams): Produced {
   return kg === null ? { kg: null, method: null, completeness: null } : { kg, method: 'faraday_estimate', completeness: dayCompleteness(ctx, 'h2.elz.stack', 'stack.current') };
 }
 
+export interface Delivered {
+  /** 외부 반입량 [kg]. null = 판정 불능 (반입 설비는 있는데 그날 계량·기록이 없다) */
+  readonly kg: number | null;
+  readonly method: H2DeliveredMethod | null;
+  /** 반입 설비가 있어 반입량을 알아야 하는 사이트인가 */
+  readonly expected: boolean;
+}
+
+/**
+ * 하루 외부 반입량. 1순위 하역 적산계 증가량, 2순위 반입 기록(전표) 합계.
+ * 반입 설비(h2.delivery)가 없고 그날 반입 기록도 없으면 0이다 — 반입이 없는 사이트는 기존과 같이 계산된다.
+ */
+export function deliveredKg(ctx: LedgerContext, invoiceKg: number | null): Delivered {
+  const units = assetsOf(ctx, 'h2.delivery');
+  const expected = units.length > 0;
+  if (units.length > 0 && hasDayData(ctx, 'h2.delivery', 'h2.delivery.mass.total')) {
+    const deltas = units.map((unit) => counterDayDelta(ctx, unit.id, 'h2.delivery.mass.total'));
+    if (deltas.every((d) => d !== null)) return { kg: deltas.reduce<number>((sum, d) => sum + (d ?? 0), 0), method: 'meter', expected };
+  }
+  if (invoiceKg !== null) return { kg: invoiceKg, method: 'invoice', expected };
+  return expected ? { kg: null, method: null, expected } : { kg: 0, method: null, expected };
+}
+
 /** 저장부 유입·유출 신호 (tank.hold 정지 판정과 같은 기준: 유량 0.05 kg/h 이하·압축기 1 kW 이하) */
 const STORAGE_FLOW_SIGNALS: readonly (readonly [classKey: string, metricKey: string, idleMax: number])[] = [
   ['h2.elz', 'h2.flow.mass', 0.05],
@@ -143,22 +169,28 @@ export interface HydrogenDay {
   readonly dq: SiteEnergyDq['h2'];
 }
 
-/** 하루 수소 원장. 수소 설비가 없는 사이트는 모든 값이 null */
-export function hydrogenLedger(ctx: LedgerContext, params: LedgerParams): HydrogenDay {
+/**
+ * 하루 수소 원장. 수소 설비가 없는 사이트는 모든 값이 null.
+ * invoiceKg는 그날(KST) 반입 기록(om.h2_delivery) 합계다 — 기록이 한 건도 없는 날은 null을 넣는다(0이 아니다).
+ */
+export function hydrogenLedger(ctx: LedgerContext, params: LedgerParams, invoiceKg: number | null = null): HydrogenDay {
   const made = produced(ctx, params);
+  const delivery = deliveredKg(ctx, invoiceKg);
   const fcMeasured = hasDayData(ctx, 'fc.plant', 'fc.h2.consumption');
   const fcConsumed = fcMeasured ? sumHours(ctx, 'fc.plant', 'fc.h2.consumption', (v) => Math.max(0, v)) : null;
   const stored = storedDeltaKg(ctx);
   const purges = purgeCount(ctx);
   const ventedEstimated = params.kgPerPurge > 0 || params.dryerLossFraction > 0;
   const vented = (purges ?? 0) * params.kgPerPurge + params.dryerLossFraction * (made.kg ?? 0);
-  const residual = made.kg === null || fcConsumed === null || stored === null ? null : made.kg - fcConsumed - stored - vented;
-  const denominator = Math.max(made.kg ?? 0, fcConsumed ?? 0, params.residualFloorKg);
+  const supplied = made.kg === null || delivery.kg === null ? null : made.kg + delivery.kg;
+  const residual = supplied === null || fcConsumed === null || stored === null ? null : supplied - fcConsumed - stored - vented;
+  const denominator = Math.max(supplied ?? 0, fcConsumed ?? 0, params.residualFloorKg);
   const hasHydrogen = assetsOf(ctx, 'h2.elz').length > 0 || assetsOf(ctx, 'fc.plant').length > 0;
 
   return {
     ledger: {
       produced: roundOrNull(made.kg, 4),
+      delivered: roundOrNull(delivery.kg, 4),
       fc_consumed: roundOrNull(fcConsumed, 4),
       stored_delta: roundOrNull(stored, 4),
       vented_est: hasHydrogen ? round(vented, 4) : null,
@@ -166,6 +198,7 @@ export function hydrogenLedger(ctx: LedgerContext, params: LedgerParams): Hydrog
       residual_pct: residual === null ? null : round((residual / denominator) * 100, 3),
       method: {
         produced: made.method,
+        delivered: delivery.method,
         fc_consumed: fcMeasured ? 'meter' : null,
         stored_delta: stored === null ? null : H2_EOS_VERSION,
         vented: ventedEstimated ? 'params' : 'not_estimated',
@@ -180,6 +213,7 @@ export function hydrogenLedger(ctx: LedgerContext, params: LedgerParams): Hydrog
       completeness: roundOrNull(
         meanOrNull([
           made.completeness,
+          delivery.method === 'meter' ? dayCompleteness(ctx, 'h2.delivery', 'h2.delivery.mass.total') : null,
           fcMeasured ? dayCompleteness(ctx, 'fc.plant', 'fc.h2.consumption') : null,
           dayCompleteness(ctx, 'h2.storage.tank', 'tank.pressure'),
           dayCompleteness(ctx, 'h2.storage.tank', 'tank.temp'),
@@ -187,6 +221,7 @@ export function hydrogenLedger(ctx: LedgerContext, params: LedgerParams): Hydrog
         4,
       ),
       purge_count_missing: params.kgPerPurge > 0 && purges === null,
+      delivered_missing: delivery.expected && delivery.kg === null,
     },
   };
 }

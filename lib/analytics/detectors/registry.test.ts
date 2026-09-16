@@ -26,7 +26,7 @@ describe('탐지기 레지스트리', () => {
     DETECTORS.forEach((d) => {
       expect(d.id).toMatch(/^[a-z][a-z0-9]*\.[a-z0-9_]+$/);
       expect(d.failureMode).toMatch(/^[a-z][a-z0-9]*\.[a-z0-9_]+$/);
-      expect(d.version).toBe('1');
+      expect(d.version).toMatch(/^[1-9]\d*$/);
     });
   });
 

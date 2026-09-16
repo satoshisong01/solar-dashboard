@@ -14,6 +14,7 @@ export const LEDGER_METRICS: ReadonlySet<string> = new Set([
   'h2.mass.total',
   'stack.current',
   'fc.h2.consumption',
+  'h2.delivery.mass.total',
   'tank.pressure',
   'tank.temp',
   'purge.count',

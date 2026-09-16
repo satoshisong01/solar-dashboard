@@ -25,6 +25,8 @@ export interface SiteEnergyDayInput {
   readonly prRef: PrReference | null;
   /** pv.soiling_rate 탐지기 손실률 (인버터 id → 0~1). 비어 있으면 오염 손실은 미추정 */
   readonly soilingLossByAssetId?: ReadonlyMap<number, number>;
+  /** 그날(KST) 외부 수소 반입 기록(om.h2_delivery) 합계 [kg]. 기록이 한 건도 없으면 null(0이 아니다) */
+  readonly deliveredInvoiceKg?: number | null;
   readonly params?: Partial<LedgerParams>;
 }
 
@@ -58,7 +60,7 @@ export function buildSiteEnergyDay(input: SiteEnergyDayInput): SiteEnergyDay {
   const params = resolveLedgerParams(input.params);
   const ctx = createLedgerContext(input.dayStart, input.assets, input.rows, params.fallbackPeriodS);
   const energy = energyPool(ctx, params);
-  const hydrogen = hydrogenLedger(ctx, params);
+  const hydrogen = hydrogenLedger(ctx, params, input.deliveredInvoiceKg ?? null);
   const pv = pvLossDay(ctx, params, input.prRef, input.soilingLossByAssetId ?? new Map());
   const kpis = chainKpis(
     {

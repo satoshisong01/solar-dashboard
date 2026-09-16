@@ -7,6 +7,7 @@ import { buildLedgerDays, completeKstDays, kstDayMs, referencePrOf, referencePrW
 import type { DetectorOutcome, PipelineAsset } from '@/lib/analytics/pipeline/types';
 import { MS_PER_DAY, MS_PER_HOUR, type TimeWindow } from '@/lib/analytics/types';
 import type { DB } from '@/lib/db/types';
+import { loadDeliveredByDay } from '@/lib/ops/h2-delivery';
 import type { PointRow } from './catalog';
 import { firstHourWithData, loadHourly } from './series';
 
@@ -17,6 +18,8 @@ export interface LedgerStats {
   readonly hourRows: number;
   readonly prRef: number | null;
   readonly soilingDays: number;
+  /** 반입 기록이 있는 날 수 */
+  readonly deliveryDays: number;
 }
 
 const ledgerAssets = (assets: readonly PipelineAsset[]): LedgerAsset[] => assets.map((a) => ({ id: a.id, code: a.code, classKey: a.classKey, nameplate: a.nameplate }));
@@ -82,7 +85,7 @@ export interface ComputeLedgerInput {
 export async function computeSiteLedger(db: Kysely<DB>, input: ComputeLedgerInput): Promise<LedgerStats> {
   const dayStarts = completeKstDays(input.window);
   const ledgerPoints = input.points.filter((p) => LEDGER_METRICS.has(p.metricKey));
-  if (dayStarts.length === 0 || ledgerPoints.length === 0) return { days: 0, hourRows: 0, prRef: null, soilingDays: 0 };
+  if (dayStarts.length === 0 || ledgerPoints.length === 0) return { days: 0, hourRows: 0, prRef: null, soilingDays: 0, deliveryDays: 0 };
   const assets = ledgerAssets(input.assets);
   const firstDay = dayStarts[0] as number;
   const rows = await loadHourly(db, ledgerPoints, { start: firstDay - MS_PER_HOUR, end: (dayStarts.at(-1) as number) + MS_PER_DAY });
@@ -93,9 +96,11 @@ export async function computeSiteLedger(db: Kysely<DB>, input: ComputeLedgerInpu
   const prRef = referencePrOf(assets, prRows, firstPv);
   const soiling = input.outcomes.find((o) => o.detectorId === 'pv.soiling_rate' && o.siteId === input.siteId)?.findings[0] ?? null;
   const soilingByDay = soilingFractionsByDay(soiling, input.assets.filter((a) => a.classKey === 'pv.inverter').map((a) => a.id), dayStarts);
-  const days = buildLedgerDays({ assets, rows, dayStarts, prRef, soilingByDay });
+  // 외부 수소 반입 기록(전표). 하역 적산계가 없는 사이트에서 원장 delivered 항의 2순위 소스다
+  const deliveredByDay = await loadDeliveredByDay(db, input.siteId, { start: firstDay, end: (dayStarts.at(-1) as number) + MS_PER_DAY });
+  const days = buildLedgerDays({ assets, rows, dayStarts, prRef, soilingByDay, deliveredByDay });
   await upsertDays(db, input.siteId, input.runId, days, input.computedAt);
-  return { days: days.length, hourRows: rows.length, prRef: prRef?.value ?? null, soilingDays: soilingByDay.size };
+  return { days: days.length, hourRows: rows.length, prRef: prRef?.value ?? null, soilingDays: soilingByDay.size, deliveryDays: deliveredByDay.size };
 }
 
 /** 저장된 원장 일 행 (물질수지 탐지 입력, until 이전에 끝난 날) */

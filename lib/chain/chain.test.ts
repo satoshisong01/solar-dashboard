@@ -8,12 +8,13 @@ import { pvLossView, residualPoints, shareView } from './series';
 
 const H2: H2Ledger = {
   produced: 50,
+  delivered: 0,
   fc_consumed: 40,
   stored_delta: 8,
   vented_est: 0,
   residual: 2,
   residual_pct: 4,
-  method: { produced: 'meter_total', fc_consumed: 'meter', stored_delta: 'lemmon2008@1', vented: 'not_estimated' },
+  method: { produced: 'meter_total', delivered: null, fc_consumed: 'meter', stored_delta: 'lemmon2008@1', vented: 'not_estimated' },
   aux: { faraday_expected: null, purge_count: null, tank_temp_delta_c: null },
 };
 
@@ -41,7 +42,7 @@ function day(dayString: string, extra: Partial<SiteEnergyDay> = {}): SiteEnergyD
     pv_loss_kwh: PV_LOSS,
     dq: {
       energy: { completeness: { 'pv.inverter/ac.power': 1, 'grid.meter/ac.power': 1 }, aux_basis: 'residual', aux_residual_kwh: 0, unmetered_kwh: 10.0001, unmetered_ratio: 0.0099, elz_flow_basis: 'rectifier_input', elz_energy_basis: 'system_total' },
-      h2: { completeness: 1, purge_count_missing: false },
+      h2: { completeness: 1, purge_count_missing: false, delivered_missing: false },
       pv: { completeness: 1, pr_ref: 0.9, pr_ref_method: 'reference_clear_days', soiling_status: 'not_estimated', temp_corrected_ratio: 1, no_data_inverter_hours: 0, reason: null },
     },
     alloc_version: ALLOC_VERSION,
@@ -116,7 +117,7 @@ describe('pvLossView', () => {
 
 describe('잔차·비율·품질 경고', () => {
   it('잔차 점은 잔차가 있는 날만, 완결성 기준 미만은 low', () => {
-    const points = residualPoints([day('2026-09-01'), day('2026-09-02', { h2_kg: { ...H2, residual: null } }), day('2026-09-03', { dq: { ...day('x').dq, h2: { completeness: 0.5, purge_count_missing: false } } })], 0.9);
+    const points = residualPoints([day('2026-09-01'), day('2026-09-02', { h2_kg: { ...H2, residual: null } }), day('2026-09-03', { dq: { ...day('x').dq, h2: { completeness: 0.5, purge_count_missing: false, delivered_missing: false } } })], 0.9);
     expect(points).toEqual([
       { day: '2026-09-01', residualKg: 2, residualPct: 4, completeness: 1, low: false },
       { day: '2026-09-03', residualKg: 2, residualPct: 4, completeness: 0.5, low: true },

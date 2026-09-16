@@ -272,6 +272,24 @@ export interface OmGatewayKey {
   secret_enc: Buffer;
 }
 
+export interface OmH2Delivery {
+  amount_krw: number | null;
+  asset_id: number | null;
+  created_at: Generated<Timestamp>;
+  created_by: string;
+  delivered_at: Timestamp;
+  heel_mass_kg: number | null;
+  id: Generated<Int8>;
+  mass_kg: number;
+  note: string | null;
+  purity_pct: number | null;
+  site_id: number;
+  source: string;
+  supplier: string;
+  unit_price_krw: number | null;
+  vehicle_no: string | null;
+}
+
 export interface OmIngestBatch {
   batch_id: string;
   body_gzip: Buffer;
@@ -502,6 +520,7 @@ export interface DB {
   "om.finding_transition": OmFindingTransition;
   "om.gateway": OmGateway;
   "om.gateway_key": OmGatewayKey;
+  "om.h2_delivery": OmH2Delivery;
   "om.ingest_batch": OmIngestBatch;
   "om.kpi_daily": OmKpiDaily;
   "om.m_1h": OmM1h;

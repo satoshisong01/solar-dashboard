@@ -39,3 +39,8 @@ export const ACTION_NOTE_MAX = 1000;
 export const PERFORMED_BY_MAX = 60;
 /** 조치 수행일은 예정으로 이만큼 앞까지 입력할 수 있다 [일] */
 export const ACTION_FUTURE_DAYS_MAX = 366;
+
+// 외부 수소 반입 기록 (om.h2_delivery)
+export const SUPPLIER_MAX = 60;
+export const VEHICLE_NO_MAX = 40;
+export const DELIVERY_NOTE_MAX = 500;

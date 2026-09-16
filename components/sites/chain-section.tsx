@@ -27,7 +27,7 @@ const ENERGY_TONES: SankeyToneMap = {
   'demand:grid_export': 'neutral',
 };
 
-const HYDROGEN_TONES: SankeyToneMap = { 'h2:produced': 'hydrogen', 'h2:storageOut': 'hydrogen', 'h2:fcConsumed': 'hydrogen', 'h2:storageIn': 'hydrogen', 'h2:vented': 'neutral' };
+const HYDROGEN_TONES: SankeyToneMap = { 'h2:produced': 'hydrogen', 'h2:delivered': 'hydrogen', 'h2:storageOut': 'hydrogen', 'h2:fcConsumed': 'hydrogen', 'h2:storageIn': 'hydrogen', 'h2:vented': 'neutral' };
 
 const pct = (value: number | null, digits = 1): string | null => (value === null ? null : `${formatNumber(value * 100, digits)}`);
 
@@ -174,9 +174,9 @@ export function ChainSection({ siteCode, period, view, maxDay }: Props) {
               {hydrogen.links.length === 0 ? (
                 <EmptyNote>수소 원장 값이 있는 날이 없습니다 (전해조 생산·연료전지 소비·저장용기 계측 필요)</EmptyNote>
               ) : (
-                <ChainSankeyChart data={hydrogen} unit="kg" tones={HYDROGEN_TONES} ariaLabel="수소 흐름 Sankey: 전해조 생산에서 연료전지 소비·저장 증감·배기 추정·잔차로 가는 kg" />
+                <ChainSankeyChart data={hydrogen} unit="kg" tones={HYDROGEN_TONES} ariaLabel="수소 흐름 Sankey: 전해조 생산·외부 반입에서 연료전지 소비·저장 증감·배기 추정·잔차로 가는 kg" />
               )}
-              <p className="text-xs text-muted">생산 = 연료전지 소비 + 저장 증감 + 배기 추정 + 잔차. 저장 인출·음의 잔차는 왼쪽(공급) 노드로 옮겨 그립니다. 옅은 회색은 설명 안 된 잔차입니다.</p>
+              <p className="text-xs text-muted">생산 + 외부 반입 = 연료전지 소비 + 저장 증감 + 배기 추정 + 잔차. 저장 인출·음의 잔차는 왼쪽(공급) 노드로 옮겨 그립니다. 옅은 회색은 설명 안 된 잔차입니다. 반입 설비가 있는데 하역 계량·반입 기록이 없는 날은 잔차를 내지 않아 이 그림에서 빠집니다.</p>
             </Panel>
           </div>
 

@@ -1,9 +1,11 @@
-// h2chain.mass_balance_gap@1 — 사이트 수소 물질수지 잔차 (사이트 단위, assetId null).
-// 입력은 일별 수소 원장(생산 − 연료전지 소비 − 저장량 변화 − 배출 추정 = 잔차). 필드 이름은 체인 원장 H2Ledger(om.site_energy_daily.h2_kg)와 같고,
+// h2chain.mass_balance_gap@2 — 사이트 수소 물질수지 잔차 (사이트 단위, assetId null).
+// 입력은 일별 수소 원장(생산 + 외부 반입 − 연료전지 소비 − 저장량 변화 − 배출 추정 = 잔차). 필드 이름은 체인 원장 H2Ledger(om.site_energy_daily.h2_kg)와 같고,
 // 판별 체크 보조값(faraday_expected·purge_count·tank_temp_delta_c)은 H2Ledger.aux에서 온다.
 // 판정: 최근 recentDays일 잔차율 중앙값의 절댓값 > residualPct 이고, 기준 구간으로 표준화한 일 잔차율 CUSUM(같은 부호 방향)이 경보.
 // 판별 체크: ① 유량계 드리프트(패러데이 기대 생산량 대비 유량계 비율 변화) ② 온도 보정 오차(잔차와 탱크 온도 변화·일교차 상관)
-//           ③ 퍼지·배기 추정 부족(퍼지 횟수와 잔차 상관) ④ 저장부 누설 의심(tank.static_leak 결과와 교차 확인) ⑤ 데이터 결측일.
+//           ③ 퍼지·배기 추정 부족(퍼지 횟수와 잔차 상관) ④ 저장부 누설 의심(tank.static_leak 결과와 교차 확인) ⑤ 데이터 결측일 ⑥ 반입 기록 누락.
+// @2: 원장 식에 외부 반입(delivered)이 들어왔다. 반입 설비가 있는데 하역 계량·반입 기록이 없는 날은 원장이 residual을 null로 내므로
+//     그날은 판정에서 빠진다(0으로 채우지 않는다) — 반입분을 손실로 오인해 상시 발화하던 구조적 오경보가 사라진다.
 // severity 2, 누설 교차 확인이 '지지'면 3. 안전 판단은 tank.static_leak와 현장 안전설비 몫이다.
 import * as z from 'zod';
 import { downsample } from '../episodes/series';
@@ -24,6 +26,8 @@ export interface H2LedgerDayInput {
   /** KST 0시 epoch ms */
   readonly day: number;
   readonly produced: number | null;
+  /** 외부 반입량 [kg]. 반입이 없는 사이트는 0, 반입 설비는 있는데 그날 계량·기록이 없으면 null (그날 residual도 null이다) */
+  readonly delivered?: number | null;
   readonly fc_consumed: number | null;
   readonly stored_delta: number | null;
   readonly vented_est: number | null;
@@ -69,6 +73,8 @@ export interface H2MassBalanceParams {
   readonly leakShare: number;
   /** 최근 기간 결측·품질 미달일이 이 수 이상이면 결측 체크 지지 */
   readonly maxMissingDays: number;
+  /** 최근 기간 중 반입량을 몰라 빠진 날이 이 수 이상이면 반입 기록 체크 지지 */
+  readonly maxUnknownDeliveryDays: number;
   readonly iterations: number;
 }
 
@@ -87,6 +93,7 @@ export const H2_MASS_BALANCE_DEFAULTS: H2MassBalanceParams = Object.freeze({
   trendDays: 30,
   leakShare: 0.3,
   maxMissingDays: 2,
+  maxUnknownDeliveryDays: 1,
   iterations: 1000,
 });
 
@@ -106,10 +113,11 @@ export const H2_MASS_BALANCE_PARAM_SCHEMA = z.object({
   trendDays: intParam(D.trendDays, { label: '상관 계산 기간', unit: '일', min: 7, max: 365, description: '상관계수를 계산하는 최근 일수입니다.' }),
   leakShare: numParam(D.leakShare, { label: '누설 설명 비율', unit: '', min: 0.05, max: 1, description: 'tank.static_leak 누설률이 일 잔차의 이 비율 이상을 설명하면 저장부 누설 체크를 지지로 봅니다.' }),
   maxMissingDays: intParam(D.maxMissingDays, { label: '결측일 기준', unit: '일', min: 0, max: 30, description: '최근 기간 결측·품질 미달일이 이 수 이상이면 데이터 결측 체크를 지지로 봅니다.' }),
+  maxUnknownDeliveryDays: intParam(D.maxUnknownDeliveryDays, { label: '반입 기록 없는 날 기준', unit: '일', min: 0, max: 30, description: '최근 기간 중 하역 계량·반입 기록이 없어 판정에서 빠진 날이 이 수 이상이면 반입 기록 누락 체크를 지지로 봅니다.' }),
   iterations: iterationsParam(D.iterations),
 });
 
-const META = { id: 'h2chain.mass_balance_gap', version: '1', failureMode: 'h2chain.mass_balance_gap', category: 'performance' } as const;
+const META = { id: 'h2chain.mass_balance_gap', version: '2', failureMode: 'h2chain.mass_balance_gap', category: 'performance' } as const;
 
 interface ValidDay extends H2LedgerDayInput {
   readonly residual: number;
@@ -132,7 +140,7 @@ function correlationCheck(id: string, label: string, days: readonly ValidDay[], 
   });
 }
 
-function checksOf(input: H2MassBalanceInput, reference: readonly ValidDay[], recent: readonly ValidDay[], trend: readonly ValidDay[], recentWindowDays: number, p: H2MassBalanceParams): DiagnosticCheck[] {
+function checksOf(input: H2MassBalanceInput, reference: readonly ValidDay[], recent: readonly ValidDay[], trend: readonly ValidDay[], recentWindowDays: number, unknownDeliveryDays: number, p: H2MassBalanceParams): DiagnosticCheck[] {
   const ratio = (items: readonly ValidDay[]) => medianOrNull(items.flatMap((d) => (d.produced !== null && d.faraday_expected && d.faraday_expected > 0 ? [(d.produced / d.faraday_expected) * 100] : [])));
   const refRatio = ratio(reference);
   const curRatio = ratio(recent);
@@ -168,7 +176,13 @@ function checksOf(input: H2MassBalanceInput, reference: readonly ValidDay[], rec
     unknown: '최근 기간에 결측일이 조금 있습니다.',
     no_data: '결측일을 셀 수 없습니다.',
   });
-  return [flowmeter, temperature, purge, storageLeak, gaps];
+  const delivery = levelCheck('delivery_record', '반입 기록 누락 (하역 계량·전표가 없어 뺀 날)', unknownDeliveryDays, [p.maxUnknownDeliveryDays, 0], { unknown_delivery_days: unknownDeliveryDays, window_days: recentWindowDays }, {
+    supports: '최근 기간에 외부 반입량을 알 수 없어 판정에서 뺀 날이 있습니다. 하역 적산계(h2.delivery.mass.total)를 연결하거나 반입 기록을 입력하세요.',
+    refutes: '최근 기간 모든 날의 외부 반입량이 계량 또는 전표로 확인됩니다.',
+    unknown: '최근 기간에 반입량을 모르는 날이 조금 있습니다.',
+    no_data: '반입량을 셀 수 없습니다.',
+  });
+  return [flowmeter, temperature, purge, storageLeak, gaps, delivery];
 }
 
 interface DaySplit {
@@ -221,7 +235,8 @@ function buildFinding(input: H2MassBalanceInput, ctx: DetectorContext<H2MassBala
   const { reference, recent } = split;
   const { currentPct } = alarm;
   const ci = bootstrapCI(recent.map((d) => d.residual_pct), median, { iterations: p.iterations, rng: ctx.rng });
-  const checks = checksOf(input, reference, recent, split.valid.filter((d) => d.day >= ctx.now - p.trendDays * MS_PER_DAY), p.recentDays, p);
+  const unknownDelivery = split.inRange.filter((d) => d.day >= ctx.now - p.recentDays * MS_PER_DAY && (d.delivered ?? null) === null && d.residual === null).length;
+  const checks = checksOf(input, reference, recent, split.valid.filter((d) => d.day >= ctx.now - p.trendDays * MS_PER_DAY), p.recentDays, unknownDelivery, p);
   const severity: Severity = checks.find((c) => c.id === 'storage_leak')?.status === 'supports' ? 3 : 2;
   const referencePct = median(reference.map((d) => d.residual_pct));
   const residualKgDay = median(recent.map((d) => d.residual));
@@ -229,11 +244,11 @@ function buildFinding(input: H2MassBalanceInput, ctx: DetectorContext<H2MassBala
   const supported = checks.filter((c) => c.status === 'supports').map((c) => c.label);
   const evidence: JsonObject = {
     method: 'residual_median_cusum',
-    sign_convention: 'residual = produced − fc_consumed − stored_delta − vented_est (양수 = 계량되지 않은 손실 또는 생산 과다 계량)',
+    sign_convention: 'residual = produced + delivered − fc_consumed − stored_delta − vented_est (양수 = 계량되지 않은 손실 또는 공급 과다 계량). 반입량을 모르는 날은 0으로 채우지 않고 판정에서 뺀다',
     reference: { days: reference.length, from: reference[0]?.day ?? null, median_pct: r(referencePct, 3), sigma_pct: r(Math.max(MAD_TO_SIGMA * mad(reference.map((d) => d.residual_pct)), p.sigmaFloorPct), 3) },
     recent: { days: recent.length, from: recent[0]?.day ?? null, median_pct: r(currentPct, 3), median_kg: r(residualKgDay, 3) },
     cusum: { direction: alarm.direction, alarm_day: alarm.alarmDay === null ? null : kstDateString(alarm.alarmDay), change_start_day: alarm.changeStartDay === null ? null : kstDateString(alarm.changeStartDay), k: p.cusumK, h: p.cusumH, sigma_floor_pct: p.sigmaFloorPct, points: cusumPoints(alarm, p) },
-    days: downsample(split.inRange, 120).map((d) => ({ date: kstDateString(d.day), produced: r(d.produced, 2), fc_consumed: r(d.fc_consumed, 2), stored_delta: r(d.stored_delta, 2), vented_est: r(d.vented_est, 3), residual: r(d.residual, 3), residual_pct: r(d.residual_pct, 2), completeness: r(d.dq.completeness, 3) })),
+    days: downsample(split.inRange, 120).map((d) => ({ date: kstDateString(d.day), produced: r(d.produced, 2), delivered: r(d.delivered ?? null, 2), fc_consumed: r(d.fc_consumed, 2), stored_delta: r(d.stored_delta, 2), vented_est: r(d.vented_est, 3), residual: r(d.residual, 3), residual_pct: r(d.residual_pct, 2), completeness: r(d.dq.completeness, 3) })),
     checks,
     note: `청정수소 인증 공식 산정이 아닙니다. ${SAFETY_DISCLAIMER}`,
   };
@@ -278,6 +293,7 @@ export const h2ChainMassBalanceGap: Detector<H2MassBalanceInput, H2MassBalancePa
       required('tank.temp', SLOW_S), // 재고 온도 보정
       recommended('h2.mass.total', SLOW_S), // 적산계 일 증가량 — 생산량 1순위. 없으면 유량 적산으로 대체(건강 사이트 일 잔차율 p95 0.3% → 2.1%)
       recommended('purge.count', SLOW_S), // 판별 체크 ③ 배출 추정. 없으면 배출을 0으로 둔다
+      recommended('h2.delivery.mass.total', SLOW_S), // 외부 반입 적산 — 반입 설비가 있는 사이트에서 이게 없으면 반입 기록(om.h2_delivery)이 있는 날만 판정한다
     ],
     minHistoryDays: 21,
   },

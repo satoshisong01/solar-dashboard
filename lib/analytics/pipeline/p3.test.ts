@@ -60,7 +60,7 @@ function tankHolds(leakFromDay: number, kgPerDay: number): { episodes: TankHoldE
 function ledgerRow(day: number, residualPct: number): LedgerDayRow {
   const produced = 50;
   const residual = (produced * residualPct) / 100;
-  const h2: H2Ledger = { produced, fc_consumed: 40, stored_delta: 10 - residual, vented_est: 0, residual, residual_pct: residualPct, method: { produced: 'meter', fc_consumed: 'meter', stored_delta: 'lemmon2008@1', vented: 'not_estimated' }, aux: { faraday_expected: 51, purge_count: 20, tank_temp_delta_c: 0.5 } };
+  const h2: H2Ledger = { produced, delivered: 0, fc_consumed: 40, stored_delta: 10 - residual, vented_est: 0, residual, residual_pct: residualPct, method: { produced: 'meter', delivered: null, fc_consumed: 'meter', stored_delta: 'lemmon2008@1', vented: 'not_estimated' }, aux: { faraday_expected: 51, purge_count: 20, tank_temp_delta_c: 0.5 } };
   return { dayStart: FIRST_DAY + day * MS_PER_DAY, h2, h2Completeness: 1 };
 }
 
@@ -135,7 +135,7 @@ describe('체인 원장 조립 (site-ledger)', () => {
     expect(completeKstDays({ start: FIRST_DAY + 3 * MS_PER_HOUR, end: FIRST_DAY + 2 * MS_PER_DAY + MS_PER_HOUR })).toEqual([FIRST_DAY, FIRST_DAY + MS_PER_DAY]);
     expect(kstDayMs('2026-01-01')).toBe(FIRST_DAY);
     const row = ledgerRow(0, 2);
-    expect(massBalanceDays([row])).toEqual([{ day: FIRST_DAY, produced: 50, fc_consumed: 40, stored_delta: 9, vented_est: 0, residual: 1, residual_pct: 2, dq: { completeness: 1 }, faraday_expected: 51, purge_count: 20, tank_temp_delta_c: 0.5 }]);
+    expect(massBalanceDays([row])).toEqual([{ day: FIRST_DAY, produced: 50, delivered: 0, fc_consumed: 40, stored_delta: 9, vented_est: 0, residual: 1, residual_pct: 2, dq: { completeness: 1 }, faraday_expected: 51, purge_count: 20, tank_temp_delta_c: 0.5 }]);
   });
 
   it('데이터가 없는 날은 원장을 만들지 않고, 만든 날은 원장 일 행으로 되돌릴 수 있다', () => {

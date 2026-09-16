@@ -31,6 +31,7 @@ export const PV_LOSS_DISPLAY: readonly (readonly [bucket: PvLossBucket, label: s
 
 export const HYDROGEN_NODE_LABELS = {
   produced: '전해조 생산',
+  delivered: '외부 반입',
   storageOut: '저장 인출',
   residualIn: '잔차(설명 안 된 유입)',
   fcConsumed: '연료전지 소비',
