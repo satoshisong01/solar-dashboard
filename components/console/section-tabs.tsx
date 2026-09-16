@@ -41,5 +41,6 @@ export const SETTINGS_TABS: readonly SectionTab[] = [
   { href: '/settings/detectors', label: '탐지기' },
   { href: '/settings/gateways', label: '게이트웨이·키' },
   { href: '/settings/admins', label: '관리자' },
+  { href: '/settings/ai', label: 'AI 설명' },
   { href: '/settings/market', label: '시장가격' },
 ];

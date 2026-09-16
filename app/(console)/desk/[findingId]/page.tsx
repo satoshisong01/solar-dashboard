@@ -17,6 +17,7 @@ import { TermLink } from '@/components/ui/term-link';
 import scorecardJson from '@/lib/analytics/scorecard.json';
 import { PLAYBOOKS } from '@/lib/analytics/playbooks';
 import { requireAdmin } from '@/lib/auth/dal';
+import { explanationForFinding } from '@/lib/data/finding-explanation';
 import { defaultSeriesSpan, getFindingSeries, isSeriesSpan } from '@/lib/data/finding-series';
 import { getAssetCodes, getFindingDetail, type FindingDetail } from '@/lib/data/finding-workspace';
 import { firstParam, type SearchParamValue } from '@/lib/data/range';
@@ -24,7 +25,6 @@ import { isSimConsoleEnabled } from '@/lib/data/sim-console';
 import { requestTimeMs } from '@/lib/data/time';
 import { expectedEffectDefaults, verificationMetricsFor } from '@/lib/desk/action-defaults';
 import { chargeTimeText, convertedChargeTime } from '@/lib/desk/conditions';
-import { plainSummary } from '@/lib/desk/plain';
 import { isSafetyFinding } from '@/lib/desk/safety';
 import { parseScorecard, trustBadgeFor } from '@/lib/desk/scorecard';
 import { buildTimeline } from '@/lib/desk/timeline';
@@ -102,28 +102,15 @@ export default async function FindingPage({ params, searchParams }: FindingPageP
   const chargeTime = chargeTimeOf(finding);
   const assetLabel = finding.asset ? finding.asset.code : finding.siteCode;
   const basePath = `/desk/${finding.id}`;
-  const plain = plainSummary(
-    {
-      assetName: finding.asset?.name ?? null,
-      assetCode: finding.asset?.code ?? null,
-      siteName: finding.siteName,
-      detectorId: finding.detectorId,
-      failureMode: finding.failureMode,
-      severity: finding.severity,
-      title: finding.title,
-      effect: finding.effect,
-      windowStartMs: finding.windowStartMs,
-      windowEndMs: finding.windowEndMs,
-    },
-    evidence,
-  );
+  // 저장된 AI 문장이 있으면 그것, 없으면 한 번 만들어 저장한다. 실패하면 과제 2의 틀 문장이 그대로 온다
+  const explanation = await explanationForFinding(finding);
 
   return (
     <>
       <Breadcrumb items={[{ label: '분석 데스크', href: '/desk' }, { label: `발견사항 #${finding.id}` }]} />
       <FindingHeader finding={finding} badge={trustBadgeFor(parseScorecard(scorecardJson), finding.detectorId)} simEnabled={isSimConsoleEnabled()} />
       {isSafetyFinding(finding) && <SafetyFindingBanner />}
-      <PlainSummaryCard summary={plain} severity={finding.severity} />
+      <PlainSummaryCard summary={explanation.summary} severity={finding.severity} findingId={finding.id} source={explanation.source} model={explanation.model} />
       {/* 원시 시계열 기간을 고른 뒤 돌아온 요청(?series=)은 그 조작을 이어 쓰도록 펼친 채로 연다 */}
       <TechnicalDetails label="효과·근거·원시 시계열·원인 판별" defaultOpen={spanParam !== undefined}>
         <EffectCard finding={finding} chargeTimeText={chargeTime} />

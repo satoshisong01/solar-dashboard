@@ -43,6 +43,13 @@ export interface OmActionVerification {
   verdict: string;
 }
 
+export interface OmAiExplanationSetting {
+  enabled: boolean;
+  site_id: number | null;
+  updated_at: Generated<Timestamp>;
+  updated_by: string;
+}
+
 export interface OmAnalysisRun {
   error: string | null;
   finished_at: Timestamp | null;
@@ -223,6 +230,17 @@ export interface OmFindingEvidence {
   input_hash: string;
   run_id: Int8;
   snapshot: Json;
+}
+
+export interface OmFindingExplanation {
+  created_at: Generated<Timestamp>;
+  evidence_id: Int8;
+  finding_id: Int8;
+  model: string | null;
+  prompt_version: string;
+  source: string;
+  text: Json;
+  validation: Json;
 }
 
 export interface OmFindingTransition {
@@ -464,6 +482,7 @@ export interface SimRun {
 
 export interface DB {
   "om.action_verification": OmActionVerification;
+  "om.ai_explanation_setting": OmAiExplanationSetting;
   "om.analysis_run": OmAnalysisRun;
   "om.asset": OmAsset;
   "om.asset_class": OmAssetClass;
@@ -478,6 +497,7 @@ export interface DB {
   "om.event_log": OmEventLog;
   "om.finding": OmFinding;
   "om.finding_evidence": OmFindingEvidence;
+  "om.finding_explanation": OmFindingExplanation;
   "om.finding_transition": OmFindingTransition;
   "om.gateway": OmGateway;
   "om.gateway_key": OmGatewayKey;

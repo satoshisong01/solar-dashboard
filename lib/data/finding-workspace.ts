@@ -17,6 +17,8 @@ export interface FindingAsset {
   readonly code: string;
   readonly name: string;
   readonly classKey: string;
+  /** 'SIM-A/ESS1/RACK01' */
+  readonly path: string;
 }
 
 export interface FindingDetail {
@@ -43,6 +45,8 @@ export interface FindingDetail {
   readonly previousFindingId: string | null;
   readonly dismissReason: string | null;
   readonly evidence: EvidenceView;
+  /** 최신 근거 스냅샷 id (om.finding_evidence.id). 근거가 없으면 null */
+  readonly evidenceId: string | null;
   readonly evidenceAtMs: number | null;
   readonly configVersions: readonly string[];
   readonly transitions: readonly TransitionItem[];
@@ -91,9 +95,9 @@ export async function getFindingDetail(findingId: string): Promise<FindingDetail
     .innerJoin('om.site as s', 's.id', 'f.site_id')
     .leftJoin('om.asset as a', 'a.id', 'f.asset_id')
     .leftJoin('om.finding_evidence as e', 'e.id', 'f.latest_evidence_id')
-    .select(['f.id', 'f.site_id', 's.code as site_code', 's.name as site_name', 'f.asset_id', 'a.code as asset_code', 'a.name as asset_name', 'a.class_key'])
+    .select(['f.id', 'f.site_id', 's.code as site_code', 's.name as site_name', 'f.asset_id', 'a.code as asset_code', 'a.name as asset_name', 'a.class_key', 'a.path as asset_path'])
     .select(['f.detector_id', 'f.detector_version', 'f.failure_mode', 'f.category', 'f.severity', 'f.confidence', 'f.status', 'f.title', 'f.summary', 'f.effect'])
-    .select(['f.window_start', 'f.window_end', 'f.first_detected_at', 'f.last_detected_at', 'f.detection_count', 'f.previous_finding_id', 'f.dismiss_reason', 'e.snapshot', 'e.computed_at as evidence_at'])
+    .select(['f.window_start', 'f.window_end', 'f.first_detected_at', 'f.last_detected_at', 'f.detection_count', 'f.previous_finding_id', 'f.dismiss_reason', 'f.latest_evidence_id', 'e.snapshot', 'e.computed_at as evidence_at'])
     .where('f.id', '=', findingId)
     .executeTakeFirst();
   if (!row || !isFindingStatus(row.status) || !isFindingCategory(row.category)) return null;
@@ -104,7 +108,10 @@ export async function getFindingDetail(findingId: string): Promise<FindingDetail
     siteId: row.site_id,
     siteCode: row.site_code,
     siteName: row.site_name,
-    asset: row.asset_id !== null && row.asset_code !== null && row.asset_name !== null && row.class_key !== null ? { id: row.asset_id, code: row.asset_code, name: row.asset_name, classKey: row.class_key } : null,
+    asset:
+      row.asset_id !== null && row.asset_code !== null && row.asset_name !== null && row.class_key !== null && row.asset_path !== null
+        ? { id: row.asset_id, code: row.asset_code, name: row.asset_name, classKey: row.class_key, path: row.asset_path }
+        : null,
     detectorId: row.detector_id,
     detectorVersion: row.detector_version,
     failureMode: isFailureMode(row.failure_mode) ? row.failure_mode : null,
@@ -123,6 +130,7 @@ export async function getFindingDetail(findingId: string): Promise<FindingDetail
     previousFindingId: row.previous_finding_id,
     dismissReason: row.dismiss_reason,
     evidence: parseEvidence(row.snapshot, row.detector_id),
+    evidenceId: row.latest_evidence_id,
     evidenceAtMs: row.evidence_at ? row.evidence_at.getTime() : null,
     configVersions,
     ...history,
