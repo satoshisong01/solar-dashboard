@@ -133,7 +133,7 @@ test('(4) 탐지 준비도: SIM-B 매트릭스·메트릭 확보 순위 → CSV 
   const text = await readFile(await download.path(), 'utf8');
   expect(text.startsWith('﻿')).toBe(true);
   const [header, first] = text.slice(1).split('\r\n');
-  expect(header).toBe('설비 경로 (asset_code),설비 종류 (asset_class),탐지기 (detector_id),고장모드 (failure_mode),심각도 (severity),상태 (status),상태 설명 (status_label),누락 메트릭 (missing_metrics),부족 사유 (reasons)');
+  expect(header).toBe('설비 경로 (asset_code),설비 종류 (asset_class),탐지기 (detector_id),고장모드 (failure_mode),심각도 (severity),상태 (status),상태 설명 (status_label),누락 필수 메트릭 (missing_metrics),누락 권장 메트릭 (recommended_missing),부족 사유 (reasons)');
   expect(first).toMatch(/^\(사이트 전체\),site,[a-z0-9_.]+,[a-z0-9_.]+,\d,(ready|partial|missing|n\/a),(준비됨|부분 준비|필수 메트릭 없음|해당 없음),/);
 
   const [acquisition] = await Promise.all([page.waitForEvent('download'), summary.getByRole('link', { name: '확보 순위 CSV' }).click()]);

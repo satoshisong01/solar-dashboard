@@ -12,7 +12,7 @@ import { DEFAULT_ESS_EXTRACTOR_PARAMS } from '../episodes/ess';
 import type { EssChargeEpisode, EssDischargeEpisode, EssRestEpisode } from '../episodes/ess';
 import type { EpisodeKind } from '../episodes/types';
 import type { ElSteadyEpisode, FcSteadyEpisode } from '../episodes/stack-episodes';
-import { CAPACITY_METHOD_ORDER, CAPACITY_SAMPLE_RULE_DEFAULTS, restPairSamples, sessionSamples, type CapacityMethod, type CapacitySample } from '../detectors/ess-capacity-samples';
+import { CAPACITY_METHOD_LABELS, CAPACITY_METHOD_ORDER, CAPACITY_SAMPLE_RULE_DEFAULTS, restPairSamples, sessionSamples, type CapacityMethod, type CapacitySample } from '../detectors/ess-capacity-samples';
 import type { StoredEpisode } from '../pipeline/types';
 import { resample } from '../stats/bootstrap';
 import { median, quantileSorted, sortedCopy } from '../stats/robust';
@@ -22,6 +22,10 @@ export const VERIFICATION_METHOD = 'matched_before_after@1';
 
 /** 방식이 하나뿐인 지표의 방식 id (에피소드 하나 = 표본 하나) */
 export const SINGLE_SAMPLE_METHOD = 'episode';
+
+/** 표본 방식 표시 이름 (근거·리포트 공용). 모르는 값이면 방식 id를 그대로 보여 준다 */
+export const sampleMethodLabel = (method: string): string =>
+  method === SINGLE_SAMPLE_METHOD ? '에피소드 값' : (CAPACITY_METHOD_LABELS[method as CapacityMethod] ?? method);
 
 export type Verdict = 'improved' | 'no_change' | 'worse' | 'insufficient_data';
 

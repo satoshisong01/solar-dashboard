@@ -1,5 +1,5 @@
 // 팩의 KPI·데이터 품질·검증된 조치·수익 요약 조립 (순수). 입력은 load.ts가 읽은 DB 행.
-import { VERIFICATION_METRICS } from '@/lib/analytics/verification/before-after';
+import { sampleMethodLabel, SINGLE_SAMPLE_METHOD, VERIFICATION_METRICS } from '@/lib/analytics/verification/before-after';
 import { asNumber, asRecord } from '@/lib/desk/json-read';
 import { isMarketKey, MARKET_LABELS } from '@/lib/market/keys';
 import { kpiDisplay } from './kpi-labels';
@@ -109,6 +109,8 @@ export function verifiedActionsOf(rows: readonly VerificationInput[]): PackVerif
       if (!isVerdict(row.verdict)) return [];
       const before = asRecord(row.beforeStats);
       const metric = typeof before.metric === 'string' ? before.metric : '';
+      // report-planner@2 이전에 저장한 검증 행에는 방식이 없다 → 기본 방식으로 본다
+      const method = typeof before.method === 'string' ? before.method : SINGLE_SAMPLE_METHOD;
       const spec = VERIFICATION_METRICS[metric];
       const digits = spec?.unit === 'V' ? 5 : 3;
       return [
@@ -122,6 +124,8 @@ export function verifiedActionsOf(rows: readonly VerificationInput[]): PackVerif
           metric,
           metricLabel: spec?.label ?? metric,
           unit: spec?.unit ?? (typeof before.unit === 'string' ? before.unit : ''),
+          method,
+          methodLabel: sampleMethodLabel(method),
           verdict: row.verdict,
           effect: roundTo(row.effect, digits),
           ciLow: roundTo(row.ciLow, digits),

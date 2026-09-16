@@ -1,6 +1,7 @@
 // templateComposer@1 (설계 §5.4): EvidencePack → ReportDraft. 탐지기별 한국어 메시지 템플릿(messages/)과 플레이북으로 문장을 만든다.
 // 섹션: 요약(안전 발견사항이 있으면 맨 앞 '즉시 확인 필요') / 이번 달·분기 할 일 3개 / 발견사항 / 데이터 품질 요청 / 검증된 조치 효과 / KPI / 에너지·수소 원장 / 안전 고정 문구.
 // 모든 숫자는 팩 경로 토큰이라 validateDraft가 팩 값과 대조한다.
+import { SINGLE_SAMPLE_METHOD } from '@/lib/analytics/verification/before-after';
 import { verdictLabel } from '@/lib/desk/labels';
 import { isSafetyFinding, SAFETY_FINDING_NOTICE } from '@/lib/desk/safety';
 import { SAFETY_NOTICE, URGENT_BLOCK_ID, type DraftBlock, type DraftSection, type ReportComposer, type ReportDraft } from './composer';
@@ -117,7 +118,9 @@ function verifiedActionsSection(pack: EvidencePack, s: Scope): DraftSection {
             as.num('afterN'),
             `회 비교) → ${verdictLabel(action.verdict)}.`,
           );
-    const piece = seq('[', as.label('assetPath'), '] 조치 "', as.label('actionType'), '"(수행 ', as.date('performedAt'), '): ', as.label('metricLabel'), result);
+    // 표본 방식이 여럿인 지표(용량)만 어떤 방식으로 비교했는지 밝힌다 — 방식마다 BMS SOC 의존도가 다르다
+    const method = when(action.method !== SINGLE_SAMPLE_METHOD, () => seq(' 표본 방식: ', as.label('methodLabel'), '.'));
+    const piece = seq('[', as.label('assetPath'), '] 조치 "', as.label('actionType'), '"(수행 ', as.date('performedAt'), '): ', as.label('metricLabel'), result, method);
     // 연결한 발견사항은 팩에 포함했을 때만 인용한다 (고르지 않은 발견사항은 근거 id가 팩에 없다)
     const linked = action.findingId !== null && pack.findings.some((f) => f.id === action.findingId) ? [`finding:${action.findingId}`] : [];
     return block(`action.${action.verificationId}`, piece, [`verification:${action.verificationId}`, ...linked]);

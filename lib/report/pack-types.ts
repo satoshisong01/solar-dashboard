@@ -5,8 +5,12 @@ import type { CapacityMetric } from '@/lib/desk/conditions';
 import type { P3PackEvidence, PackEnergyLedger } from './pack-types-p3';
 
 export const EVIDENCE_PACK_SCHEMA = 'om.evidence-pack.v1';
-/** 팩 조립·우선순위 규칙 버전. 규칙을 바꾸면 올린다 (같은 입력 → 같은 팩 해시) */
-export const REPORT_ENGINE_VERSION = 'report-planner@2';
+/**
+ * 팩 조립·우선순위 규칙 버전. 규칙을 바꾸면 올린다 (같은 입력 → 같은 팩 해시).
+ * @3: 조치 효과 검증 근거에 표본 방식(method·methodLabel)을 넣었다 — 용량은 방식마다 BMS SOC 의존도가 달라
+ *     같은 +Ah라도 앵커와 휴지 앵커의 신뢰도가 다르다. 저장된 팩은 그대로 두고 새 팩부터 @3이 된다.
+ */
+export const REPORT_ENGINE_VERSION = 'report-planner@3';
 /** 근거 요약 시계열 점 수 상한 (finding_evidence 다운샘플과 같다) */
 export const MAX_EVIDENCE_POINTS = 120;
 
@@ -276,6 +280,9 @@ export interface PackVerifiedAction {
   readonly metric: string;
   readonly metricLabel: string;
   readonly unit: string;
+  /** 표본 방식 id (matched_before_after@1). 용량은 앵커·휴지 앵커·CC·SOC 변화 중 하나, 나머지 지표는 'episode' */
+  readonly method: string;
+  readonly methodLabel: string;
   readonly verdict: 'improved' | 'no_change' | 'worse' | 'insufficient_data';
   readonly effect: number | null;
   readonly ciLow: number | null;

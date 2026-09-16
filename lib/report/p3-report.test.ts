@@ -134,7 +134,7 @@ describe('에너지·수소 원장 절', () => {
     expect(textOf(draft, 'ledger.pv_loss')).toContain('출력제어 +240 kWh(+2.79%) · 클리핑 +80 kWh(+0.93%)');
     expect(draft.sections.find((s) => s.kind === 'ledger')?.blocks.every((b) => b.citations.includes('ledger'))).toBe(true);
     expect(JSON.stringify(pack.energyLedger)).not.toContain('flows_kwh');
-    expect(pack.provenance).toMatchObject({ engineVersion: 'report-planner@2', templateVersion: MESSAGE_TEMPLATE_VERSION });
+    expect(pack.provenance).toMatchObject({ engineVersion: 'report-planner@3', templateVersion: MESSAGE_TEMPLATE_VERSION });
   });
 
   it('원장 수치 불일치: 토큰을 바꾸면 token_value, 본문 숫자만 바꾸면 untracked·missing', () => {

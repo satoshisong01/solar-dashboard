@@ -13,7 +13,7 @@ import { dateKo, fixed, hoursKo, insufficient, r, severityByMagnitude, signed, w
 import { capacityChecks, type CapacityCheckParams } from './ess-capacity-checks';
 import { binsEvidence, curveFor, referenceCurrentA, trendEvidence, type CurveInput } from './ess-capacity-evidence';
 import { splitReferenceRecent, type ReferenceSplit } from './ess-capacity-reference';
-import { CAPACITY_METHOD_ORDER, CAPACITY_SAMPLE_RULE_DEFAULTS, restPairSamples, sessionSamples, type CapacityMethod, type CapacitySample } from './ess-capacity-samples';
+import { CAPACITY_METHOD_LABELS, CAPACITY_METHOD_ORDER, CAPACITY_SAMPLE_RULE_DEFAULTS, restPairSamples, sessionSamples, type CapacityMethod, type CapacitySample } from './ess-capacity-samples';
 import { boolParam, completenessParam, intParam, iterationsParam, nullableNumParam, numParam } from './param-schema';
 import { FAST_S, required, SLOW_S } from './requirements';
 import type { AssetEventInput, CandidateFinding, Detector, DetectorContext, DetectorResult } from './types';
@@ -284,7 +284,7 @@ function buildFinding(input: EssCapacityInput, ctx: DetectorContext<EssCapacityP
   };
 }
 
-const METHOD_LABELS: Readonly<Record<CapacityMethod, string>> = { capacity_ah_anchored: '앵커', rest_anchored: '휴지 앵커', capacity_ah_cc: 'CC 구간', capacity_ah_soc: 'SOC 변화' };
+
 
 function detect(input: EssCapacityInput, ctx: DetectorContext<EssCapacityParams>): DetectorResult {
   const p = withDefaults(ESS_CAPACITY_DEFAULTS, ctx.params);
@@ -298,7 +298,7 @@ function detect(input: EssCapacityInput, ctx: DetectorContext<EssCapacityParams>
       return { status: 'ok', findings: finding ? [finding] : [] };
     }
   }
-  const detail = comparisons.map((c) => `${METHOD_LABELS[c.method]} 기준 ${c.split.reference.length}·최근 ${c.split.recent.length}`).join(', ');
+  const detail = comparisons.map((c) => `${CAPACITY_METHOD_LABELS[c.method]} 기준 ${c.split.reference.length}·최근 ${c.split.recent.length}`).join(', ');
   return insufficient(`같은 조건 용량 표본 부족 (${detail}; bin당 ${p.minPerBin}개·최근 합계 ${p.minTotal}개 필요)`);
 }
 

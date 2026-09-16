@@ -11,6 +11,9 @@ export type CapacityMethod = 'capacity_ah_anchored' | 'rest_anchored' | 'capacit
 /** 우선순위: CV 종료 앵커 > 휴지 앵커 > CC 구간 Ah > 부분 충전 SOC 변화 (뒤로 갈수록 BMS 순간 SOC 의존이 크다) */
 export const CAPACITY_METHOD_ORDER: readonly CapacityMethod[] = ['capacity_ah_anchored', 'rest_anchored', 'capacity_ah_cc', 'capacity_ah_soc'];
 
+/** 방식 표시 이름 (탐지기 근거·리포트 공용) */
+export const CAPACITY_METHOD_LABELS: Readonly<Record<CapacityMethod, string>> = Object.freeze({ capacity_ah_anchored: '앵커', rest_anchored: '휴지 앵커', capacity_ah_cc: 'CC 구간', capacity_ah_soc: 'SOC 변화' });
+
 export type SessionMetric = Exclude<CapacityMethod, 'rest_anchored'>;
 
 /** 방식이 같은 용량 표본 하나 (충전 세션 하나 또는 휴지 앵커 한 쌍) */

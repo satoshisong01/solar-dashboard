@@ -146,6 +146,34 @@ describe('탐지기별 메시지 템플릿', () => {
     expect(kpi?.blocks.map((b) => b.text)).toEqual(['태양광 발전량 합계 12,030 kWh(3일, 일평균 4,010 kWh), 데이터 완결성 99%.', 'ESS 왕복효율 평균 90.6%, 설비별 90~91.2%(2대, 최대 3일), 데이터 완결성 100%.', 'SMP (육지) 기간 평균 142.3 원/kWh(2일 입력, 140.1~144.5).']);
   });
 
+  it('표본 방식이 여럿인 지표(용량)는 어떤 방식으로 비교했는지 밝힌다, 옛 검증 행은 방식 없이 그대로', () => {
+    const verification = {
+      id: '11',
+      actionId: '6',
+      findingId: null,
+      assetPath: 'SIM-A/ESS1/RACK01',
+      actionType: '랙 교체',
+      performedAt: KST_2026_09_01 - 40 * DAY,
+      verdict: 'improved' as const,
+      effect: 20,
+      ciLow: 12.5,
+      ciHigh: 27.1,
+      beforeStats: { metric: 'ess.capacity_ah', unit: 'Ah', method: 'rest_anchored', n: 10, bins: [] },
+      afterStats: { method: 'rest_anchored', n: 10, bins: [] },
+      computedAt: KST_2026_09_01 + 13 * DAY,
+    };
+    const pack = buildEvidencePack(packInput({ verifications: [verification] }));
+    expect(pack.verifiedActions[0]).toMatchObject({ metric: 'ess.capacity_ah', method: 'rest_anchored', methodLabel: '휴지 앵커' });
+    const draft = templateComposer.compose(pack);
+    expect(textOf(draft, 'action.11')).toBe('[SIM-A/ESS1/RACK01] 조치 "랙 교체"(수행 2026-07-23): 랙 유효용량 +20 Ah(95% CI +12.5 ~ +27.1, 전 10회·후 10회 비교) → 개선 확인. 표본 방식: 휴지 앵커.');
+    expect(validateDraft(draft, pack)).toMatchObject({ ok: true, issues: [] });
+
+    // report-planner@2 이전 검증 행(방식 없음)은 기본 방식으로 보고 문장에 방식을 붙이지 않는다
+    const legacy = buildEvidencePack(packInput({ verifications: [{ ...verification, beforeStats: { metric: 'ess.capacity_ah', unit: 'Ah', n: 10, bins: [] }, afterStats: { n: 10, bins: [] } }] }));
+    expect(legacy.verifiedActions[0]).toMatchObject({ method: 'episode', methodLabel: '에피소드 값' });
+    expect(textOf(templateComposer.compose(legacy), 'action.11')).not.toContain('표본 방식');
+  });
+
   it('만든 초안은 validateDraft를 통과한다', () => {
     const pack = buildEvidencePack(packInput());
     expect(validateDraft(templateComposer.compose(pack), pack)).toMatchObject({ ok: true, issues: [] });
