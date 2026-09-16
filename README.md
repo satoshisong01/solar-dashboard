@@ -268,6 +268,16 @@ Better Auth(이메일+비밀번호, 가입 비활성, admin 플러그인, DB 세
 npx node-pg-migrate create <이름> -j sql -m db/migrations --migration-filename-format utc
 ```
 
+## 공용 DB 스키마 격리
+
+운영 PostgreSQL은 여러 프로젝트가 한 데이터베이스를 함께 씁니다. `public` 스키마에는 이미 다른 프로젝트의 테이블이 있고, 프로젝트별 스키마도 따로 있습니다. **이 프로젝트가 만드는 것은 전부 `om`(앱)과 `sim`(시뮬레이터 평가) 스키마 안에만 둡니다. `public`에는 테이블·인덱스·함수 등 아무것도 만들지 않습니다.**
+
+- 마이그레이션 SQL은 객체 이름에 `om.`·`sim.`을 직접 붙입니다. Better Auth 테이블(`auth_*`)도 `om` 안에 있습니다.
+- `lib/db/migrate.ts`가 node-pg-migrate에 `schema: 'om'`(마이그레이션 실행 중 `search_path`)과 `migrationsSchema: 'om'`(적용 기록 테이블 `om.pgmigrations`)을 넘깁니다. 스키마를 빠뜨린 DDL이 있어도 `public`이 아니라 `om`에 생깁니다. `createSchema`·`createMigrationsSchema`로 기록 테이블보다 먼저 `om`을 만들므로 빈 DB에서도 첫 실행이 됩니다.
+- 앱 연결 풀(`lib/db/pool.ts`)은 `-c search_path=om,public`으로 연결합니다. Better Auth 어댑터가 테이블 이름을 스키마 없이 쓰기 때문입니다. 도메인 SQL은 `om.`을 직접 붙이므로 영향이 없습니다.
+- `tests/integration/migrations.test.ts`가 마이그레이션 후 `public` 스키마 테이블 수가 0인지 검사합니다.
+- 첫 마이그레이션의 down은 `om` 스키마를 지우지 않습니다(같은 스키마의 `om.pgmigrations`에 기록을 지워야 하기 때문). 로컬에서 완전히 비우려면 `npm run db:reset`을 씁니다.
+
 ## 운영 RDS에 마이그레이션 적용
 
 `npm run db:migrate`는 `.env.development.local`(로컬 DB)을 읽으므로 운영에는 쓰지 않습니다. `.env.local`의 옛 `DB_*` 변수는 읽지 않습니다. 운영용 env 파일을 따로 만들어(`.env*`는 git에 올라가지 않음, 예: `.env.rds.local`) 같은 스크립트를 실행합니다.
