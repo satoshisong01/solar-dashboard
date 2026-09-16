@@ -495,7 +495,7 @@
 
 ## 부록 A. 탐지 준비도 기준 필수·권장 포인트 (P3 구현 반영)
 
-> 2026-09-16 갱신(주기 상한을 메트릭별로 나누고 권장 메트릭을 넣었다). 위 본문(리서치 추출 표)은 고치지 않았다.
+> 2026-09-16 갱신(주기 상한을 메트릭별로 나누고 권장 메트릭을 넣었다. A.2에 주기 상한 등급표를 붙이고 A.6의 시뮬레이터 시드 항목을 현재 규칙에 맞췄다). 위 본문(리서치 추출 표)은 고치지 않았다.
 > 이 부록은 구현된 탐지기 14종의 입력 요건(`requires`)을 코드에서 그대로 옮긴 것이다. 벤더·게이트웨이와 "어떤 포인트를 어떤 주기로 받을지" 협의할 때 본문의 must·should보다 먼저 본다.
 > 메트릭 키는 콘솔 카탈로그 키다(`db/seed/catalog.ts`, 예: `poa.irradiance`). 본문 표의 키(예: `poa_irradiance`)와 이름이 달라서 A.3에 대응 관계를 적었다.
 > 근거 코드: `lib/analytics/detectors/*.ts`(`requires`), `lib/analytics/readiness/`, `lib/analytics/pipeline/sources.ts`·`targets.ts`, `lib/analysis/aux-inputs.ts`, `lib/analytics/ledger/`. 판정 규칙 전체는 [설계 README §13.6](README.md)에 있다.
@@ -515,7 +515,16 @@
 
 ### A.2 탐지기별 필수 메트릭·주기 상한·최소 이력
 
-메트릭 뒤 숫자는 그 메트릭의 주기 상한(`maxPeriodS`, 초)이다. '권장' 열은 없어도 준비 상태가 되는 메트릭이다.
+**주기 상한은 메트릭마다 다르다.** 값은 두 등급뿐이고, 그 메트릭이 판정에 기여하는 **가장 빠른 현상의 시간상수**로 고른다. 협의 자료가 이 값을 그대로 옮기므로 실제로 필요한 것보다 짧게 적지 않는다(근거: `lib/analytics/detectors/requirements.ts`).
+
+| 등급 | 상한 | 해당 메트릭 (전체) | 왜 이 값인가 |
+|---|---|---|---|
+| `FAST_S` | **60초** | `stack.current`, `stack.voltage`(전해조·연료전지 스택) · `batt.current`, `batt.voltage`, `batt.soc`(용량), `cell.voltage.max`, `cell.voltage.min`(ESS 랙) — 7개 | 전기적 순시값이다. 전류 계단(R_step = ΔV/ΔI), CV 전이, 전류밀도 bin 배정이 샘플 간격 안에서 바뀐다. 샘플이 성기면 계단이 깨끗한 계단으로 잡히지 않고, ΔV에 분극·OCV 변화가 섞인다 |
+| `SLOW_S` | **300초** | 나머지 전부 — 적산값(`h2.flow.mass`, `ac.power`, `blower.flow`), 온도(`stack.temp`, `cell.temp.avg`, `ambient.temp`, `module.temp`, `heatsink.temp`, `tank.temp`), 압력(`tank.pressure`, `compressor.*.pressure`, `h2.pressure`), 상태(`op.state`, `valve.open`, `ac.power.limit`), 누적 카운터(`run.hours`, `purge.count`, `h2.mass.total`) | 5분 간격으로도 일 적산 오차와 조건 bin 배정이 달라지지 않는다. 정지 보유 압력·온도, 일 단위 원장, 30일 창 비교가 모두 5분 해상도 안에서 성립한다 |
+
+같은 메트릭이라도 탐지기가 다르면 상한이 다를 수 있다. 예: `batt.soc`는 `ess.capacity_fade`에서 60초(휴지 끝 SOC 앵커와 SOC 변화 방식의 분모 — SOC 점프를 놓치면 용량이 틀린다), `ess.resistance_growth`에서 300초(SOC bin 배정에만 쓴다)다. 포인트를 하나만 받을 때는 **더 엄격한 쪽**(A.3의 값)을 따른다. 각 메트릭에 이 상한을 고른 한 줄 근거는 탐지기 코드의 `requires` 주석에 붙어 있다.
+
+아래 표의 메트릭 뒤 숫자는 그 탐지기가 요구하는 주기 상한(`maxPeriodS`, 초)이다. '권장' 열은 없어도 준비 상태가 되는 메트릭이다.
 
 | 탐지기 | 고장모드 | 준비도 행 | 요구 설비 종류 (`assetClass`) | 필수 메트릭 ≤주기 상한 (출처 설비) | 권장 메트릭 ≤주기 상한 (출처 설비) | 최소 이력 (`minHistoryDays`) |
 |---|---|---|---|---|---|---|
@@ -625,5 +634,5 @@
   - 일 강수량(본문 should `rainfall_daily`): 오염 복원은 맑은 날 PI 1.5% 급상승으로 대신한다.
   - 압축기 흡입 가스 온도(본문 should `suction_temperature`): 외기 온도로 대신한다.
 - **계량점 위치:** 체인 원장 기본값은 수소 유량계가 건조기 뒤(제품)에 있고(`dryerLossFraction` 0), 연료전지 소비 계량이 퍼지를 포함하는 공급 측에 있다고(`kgPerPurge` 0) 본다. 위치가 다르면 원장 파라미터를 바꾼다.
-- **시뮬레이터 시드 참고(SIM-B):** 스택 전압·전류는 60초지만 스택 온도·운전시간, 전해조 유량·AC 전력, 블로워 전력은 300초다. 그래서 주기 상한 60초인 스택 탐지기 셀이 '부분'으로 나온다. 현장 계약에서는 이 포인트들을 60초 이하로 받거나, 주기 상한을 메트릭별로 나누는 규칙 변경을 먼저 정한다.
+- **시뮬레이터 시드 참고(SIM-B·SIM-C):** 스택 전압·전류는 60초, 스택 온도·운전시간·전해조 유량·AC 전력·블로워 전력은 300초로 받는다. 주기 상한을 메트릭별로 나누기 전에는 이 조합이 `el.voltage_rise`·`el.sec_rise`·`fc.voltage_decay` 셀을 '부분'으로 만들어 준비도가 52/55였는데, 지금 규칙에서는 **55/55 준비**다(SIM-A 41/41). 즉 A.2 표의 조합이 현장에서 받아야 할 최소선이고, 그 이상은 계약 부담만 는다.
 
