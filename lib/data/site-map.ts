@@ -7,13 +7,8 @@ import { parseEffect } from '@/lib/desk/effect';
 import { assetCodeOf } from '@/lib/desk/plain/common';
 import { plainHeadline } from '@/lib/desk/plain/headline';
 import { SAFETY_FINDING_MIN_SEVERITY } from '@/lib/desk/safety';
-import { domainOfClass } from './domains';
+import { siteDomainsOf, type SiteDomain } from './domains';
 import { mapLevelOf, sortMapSites, type MapLevel } from './map-status';
-
-/** 지도 마커가 보여 주는 설비 구성 (마커 라벨의 작은 글자) */
-export type SiteDomain = 'pv' | 'ess' | 'h2';
-
-export const SITE_DOMAIN_LABELS: Readonly<Record<SiteDomain, string>> = { pv: '태양광', ess: 'ESS', h2: '수소' };
 
 export interface SiteMapStatus {
   readonly siteId: number;
@@ -61,18 +56,6 @@ interface SiteMapRow {
   readonly worst_effect: unknown;
   readonly worst_asset_name: string | null;
   readonly worst_asset_path: string | null;
-}
-
-/** 설비 종류 키 → 지도 라벨의 도메인 (전해조·저장·연료전지는 '수소' 하나로 묶는다) */
-function domainsOf(classKeys: readonly string[]): readonly SiteDomain[] {
-  const domains = new Set<SiteDomain>();
-  for (const key of classKeys) {
-    const domain = domainOfClass(key);
-    if (domain === 'pv') domains.add('pv');
-    else if (domain === 'ess') domains.add('ess');
-    else if (domain !== null) domains.add('h2');
-  }
-  return (['pv', 'ess', 'h2'] as const).filter((domain) => domains.has(domain));
 }
 
 function categoryCountsOf(raw: unknown): Readonly<Record<string, number>> {
@@ -162,7 +145,7 @@ export async function getSiteMapStatus(nowMs: number): Promise<readonly SiteMapS
         categoryCounts: categoryCountsOf(row.category_counts),
         lastSeenMs: signals.lastSeenMs,
         hasSafetyFinding: signals.hasSafetyFinding,
-        domains: domainsOf(row.class_keys ?? []),
+        domains: siteDomainsOf(row.class_keys ?? []),
         worstFinding: worstFindingOf(row),
       };
     }),

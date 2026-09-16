@@ -44,6 +44,18 @@
   --chart-series-5: #e87ba4;
   --chart-series-6: #008300;
 
+  /* 지도 마커 상태색 (lib/data/map-status.ts). 카카오 지도는 지도 스타일을 바꿀 수 없어 배경이 늘 밝으므로
+     밝은/어두운 테마에서 같은 색을 쓴다. 위에 올리는 글자·아이콘 색은 -on 토큰으로 3:1 이상을 지킨다.
+     색만으로 구분하지 않는다: 마커 옆·목록에 늘 상태 글자를 함께 둔다. */
+  --map-crit: #ef4444;
+  --map-crit-on: #ffffff;
+  --map-warn: #f59e0b;
+  --map-warn-on: #2b1a00;
+  --map-ok: #22c55e;
+  --map-ok-on: #05260f;
+  --map-off: #94a3b8;
+  --map-off-on: #0f1720;
+
   /* Pretendard는 자체 호스팅. 앞의 두 개가 같은 글꼴의 다른 구간이다: var(--font-pretendard)는 preload하는
      [91] 구간(app/layout.tsx), "Pretendard Variable"은 나머지 91개 구간(app/fonts/pretendard.css).
      그 뒤의 "Pretendard"는 OS에 설치된 사본, 그 뒤는 macOS·Windows 기본 한글 글꼴. */
@@ -114,6 +126,15 @@
   --color-warn-fill: var(--warn-fill);
   --color-crit: var(--crit);
   --color-crit-fill: var(--crit-fill);
+
+  --color-map-crit: var(--map-crit);
+  --color-map-crit-on: var(--map-crit-on);
+  --color-map-warn: var(--map-warn);
+  --color-map-warn-on: var(--map-warn-on);
+  --color-map-ok: var(--map-ok);
+  --color-map-ok-on: var(--map-ok-on);
+  --color-map-off: var(--map-off);
+  --color-map-off-on: var(--map-off-on);
 
   --font-sans: var(--font-body);
   --font-mono: var(--font-code);

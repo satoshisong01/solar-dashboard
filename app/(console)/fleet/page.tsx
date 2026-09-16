@@ -6,6 +6,7 @@ import { FleetView } from '@/components/fleet/fleet-view';
 import { Panel } from '@/components/ui/panel';
 import { requireAdmin } from '@/lib/auth/dal';
 import { getFleetMatrix } from '@/lib/data/fleet';
+import { getFleetMapSites } from '@/lib/data/site-map-board';
 import { FLEET_THRESHOLDS, LEDGER_RESIDUAL_RULES } from '@/lib/data/fleet-status';
 import { requestTimeMs } from '@/lib/data/time';
 import { formatDuration, formatKstDateTime } from '@/lib/format';
@@ -15,20 +16,13 @@ export const metadata: Metadata = { title: '플릿' };
 export default async function FleetPage() {
   await requireAdmin();
   const nowMs = requestTimeMs();
-  const rows = await getFleetMatrix(nowMs);
-  const sites = rows.map((row) => ({
-    code: row.site.code,
-    name: row.site.name,
-    lat: row.site.lat,
-    lon: row.site.lon,
-    level: row.overall,
-  }));
+  const [rows, mapBoard] = await Promise.all([getFleetMatrix(nowMs), getFleetMapSites(nowMs)]);
 
   return (
     <>
       <PageHeader title="플릿" purpose="여러 사이트를 도메인별 건강 상태로 관망" guide={SCREEN_GUIDES.fleet} />
       <Panel title="사이트 × 도메인 상태" meta={`기준 시각 ${formatKstDateTime(nowMs)} KST`}>
-        <FleetView matrix={<FleetMatrix rows={rows} />} sites={sites} />
+        <FleetView matrix={<FleetMatrix rows={rows} />} sites={mapBoard.sites} nowMs={nowMs} />
         <details className="text-xs text-muted">
           <summary className="cursor-pointer">상태 판정 규칙</summary>
           <ul className="mt-2 flex list-disc flex-col gap-1 pl-5">

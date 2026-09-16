@@ -26,6 +26,23 @@ export function domainOfClass(classKey: string): EquipmentDomain | null {
   return null;
 }
 
+/** 지도 마커·패널이 보여 주는 사이트 설비 구성 (전해조·저장·연료전지는 '수소' 하나로 묶는다) */
+export type SiteDomain = 'pv' | 'ess' | 'h2';
+
+export const SITE_DOMAIN_LABELS: Readonly<Record<SiteDomain, string>> = { pv: '태양광', ess: 'ESS', h2: '수소' };
+
+/** 사이트가 가진 설비 종류 키 → 지도용 도메인 목록 (pv → ess → h2 순) */
+export function siteDomainsOf(classKeys: readonly string[]): readonly SiteDomain[] {
+  const found = new Set<SiteDomain>();
+  for (const key of classKeys) {
+    const domain = domainOfClass(key);
+    if (domain === 'pv') found.add('pv');
+    else if (domain === 'ess') found.add('ess');
+    else if (domain !== null) found.add('h2');
+  }
+  return (['pv', 'ess', 'h2'] as const).filter((domain) => found.has(domain));
+}
+
 export type ChartTone = 'solar' | 'hydrogen' | 'neutral';
 
 /** 차트 계열 색 계열: 태양광(앰버) · 수소(틸) · 그 밖(중립) */

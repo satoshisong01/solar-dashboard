@@ -2,7 +2,8 @@
 
 import { LayoutGrid, Map as MapIcon } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
-import { FleetMap, type MapSite } from '@/components/map/fleet-map';
+import { FleetMapBoard } from '@/components/map/fleet-map';
+import type { FleetMapSite } from '@/lib/data/site-map-board';
 
 type View = 'matrix' | 'map';
 
@@ -11,7 +12,7 @@ const TOGGLE_CLASS =
   'aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-sm';
 
 /** 매트릭스(서버 렌더)와 지도 보기 전환. 지도 SDK는 지도 보기를 처음 열 때 불러온다 */
-export function FleetView({ matrix, sites }: Readonly<{ matrix: ReactNode; sites: readonly MapSite[] }>) {
+export function FleetView({ matrix, sites, nowMs }: Readonly<{ matrix: ReactNode; sites: readonly FleetMapSite[]; nowMs: number }>) {
   const [view, setView] = useState<View>('matrix');
 
   return (
@@ -26,7 +27,7 @@ export function FleetView({ matrix, sites }: Readonly<{ matrix: ReactNode; sites
           지도
         </button>
       </div>
-      {view === 'matrix' ? matrix : <FleetMap sites={sites} />}
+      {view === 'matrix' ? matrix : <FleetMapBoard sites={sites} nowMs={nowMs} />}
     </div>
   );
 }
