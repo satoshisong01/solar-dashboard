@@ -15,20 +15,40 @@ const REQUIRED_METRIC_KEYS = [
 
 const REQUIRED_ASSET_CLASS_KEYS = ['pv.inverter', 'ess.rack', 'h2.elz.stack', 'h2.compressor', 'h2.storage.bank', 'fc.stack'];
 
+/** 가평 P&ID(FCND-GP-PID-002 REV.2) 반영으로 더한 설비 종류·메트릭 */
+const GAPYEONG_ASSET_CLASS_KEYS = ['o2.plant', 'o2.storage.tank', 'o2.loading', 'hx.recovery', 'h2.elz.water.tank', 'h2.prv', 'h2.delivery', 'fc.pcs'];
+const GAPYEONG_METRIC_KEYS = [
+  'o2.purity', 'o2.flow.mass', 'o2.shipped.mass.total', 'o2.loading.pressure', 'o2.detector.pct', 'o2.dewpoint',
+  'hx.temp.hot.in', 'hx.temp.hot.out', 'hx.temp.cold.in', 'hx.temp.cold.out', 'hx.flow.hot', 'hx.heat.recovered', 'hx.heat.total',
+  'water.flow.feed', 'water.flow.recycle', 'water.volume.total', 'water.tank.level', 'water.level.alarm',
+  'ro.flow.permeate', 'ro.pressure.feed', 'ro.pressure.diff', 'filter.pressure.diff', 'pump.power',
+  'h2.pressure.setpoint', 'h2.pressure.ripple', 'vent.temp',
+  'h2.delivery.flow.mass', 'h2.delivery.mass.total', 'h2.delivery.state', 'h2.trailer.pressure', 'h2.vent.mass.total',
+];
+/** 위치만 다른 같은 물리량은 새 키가 아니라 qualifier로 나눈다 — 이 키들을 다시 만들면 안 된다 */
+const REUSED_NOT_DUPLICATED = ['o2.tank.pressure', 'o2.tank.temp', 'h2.buffer.pressure', 'o2.hto', 'water.conductivity.product', 'valve.position'];
+
 describe('METRIC_DEFS', () => {
-  it('키가 유일하고 명명 규칙을 따르며 60~90개다', () => {
+  it('키가 유일하고 명명 규칙을 따르며 100~140개다', () => {
     const keys = METRIC_DEFS.map((metric) => metric.key);
 
     expect(new Set(keys).size).toBe(keys.length);
     expect(keys.filter((key) => !METRIC_KEY_PATTERN.test(key))).toEqual([]);
-    expect(keys.length).toBeGreaterThanOrEqual(60);
-    expect(keys.length).toBeLessThanOrEqual(90);
+    expect(keys.length).toBeGreaterThanOrEqual(100);
+    expect(keys.length).toBeLessThanOrEqual(140);
   });
 
   it('과제에서 지정한 메트릭을 모두 담는다', () => {
     const keys = new Set(METRIC_DEFS.map((metric) => metric.key));
 
     expect(REQUIRED_METRIC_KEYS.filter((key) => !keys.has(key))).toEqual([]);
+  });
+
+  it('가평 P&ID 메트릭을 담고, 기존 키로 되는 것은 새로 만들지 않는다', () => {
+    const keys = new Set(METRIC_DEFS.map((metric) => metric.key));
+
+    expect(GAPYEONG_METRIC_KEYS.filter((key) => !keys.has(key))).toEqual([]);
+    expect(REUSED_NOT_DUPLICATED.filter((key) => keys.has(key))).toEqual([]);
   });
 
   it('범위는 min ≤ max이고 전형 범위는 물리 한계 안에 있다', () => {
@@ -56,6 +76,16 @@ describe('ASSET_CLASSES', () => {
 
     expect(new Set(keys).size).toBe(keys.length);
     expect(REQUIRED_ASSET_CLASS_KEYS.filter((key) => !ASSET_CLASS_BY_KEY.has(key))).toEqual([]);
+  });
+
+  it('가평 P&ID 설비 종류를 담고 부모가 올바르다', () => {
+    expect(GAPYEONG_ASSET_CLASS_KEYS.filter((key) => !ASSET_CLASS_BY_KEY.has(key))).toEqual([]);
+    expect(ASSET_CLASS_BY_KEY.get('o2.storage.tank')?.parentKey).toBe('o2.plant');
+    expect(ASSET_CLASS_BY_KEY.get('hx.recovery')?.parentKey).toBe('fc.plant');
+    expect(ASSET_CLASS_BY_KEY.get('h2.elz.water.tank')?.parentKey).toBe('h2.elz.water');
+    // 반입·감압은 어느 계통에도 종속되지 않는다 (사이트 직속)
+    expect(ASSET_CLASS_BY_KEY.get('h2.delivery')?.parentKey).toBeNull();
+    expect(ASSET_CLASS_BY_KEY.get('h2.prv')?.parentKey).toBeNull();
   });
 
   it('parent_key는 존재하는 설비 종류를 가리킨다', () => {
