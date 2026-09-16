@@ -77,8 +77,8 @@ describe('seedDatabase (hysol_test)', () => {
   afterAll(() => db.destroy());
 
   it('정의한 카탈로그·사이트·설비·포인트가 모두 들어간다', async () => {
-    expect(first.sites.map((site) => site.code)).toEqual(['GP-1', 'SIM-A', 'SIM-B', 'SIM-C']);
-    expect(first.gateways.map((gateway) => gateway.code)).toEqual(['GW-GP1-01', 'GW-SIMA-01', 'GW-SIMB-01', 'GW-SIMC-01']);
+    expect(first.sites.map((site) => site.code)).toEqual(['GP-1', 'SIM-A', 'SIM-B', 'SIM-C', 'SIM-D']);
+    expect(first.gateways.map((gateway) => gateway.code)).toEqual(['GW-GP1-01', 'GW-SIMA-01', 'GW-SIMB-01', 'GW-SIMC-01', 'GW-SIMD-01']);
     expect(first.counts).toMatchObject({
       assetClasses: ASSET_CLASSES.length,
       metricDefs: METRIC_DEFS.length,
@@ -141,7 +141,7 @@ describe('seedDatabase (hysol_test)', () => {
       .orderBy('g.code')
       .execute();
 
-    expect(keys.map((key) => key.key_id)).toEqual(['gk_sim-a_dev', 'gk_sim-b_dev', 'gk_sim-c_dev']);
+    expect(keys.map((key) => key.key_id)).toEqual(['gk_sim-a_dev', 'gk_sim-b_dev', 'gk_sim-c_dev', 'gk_sim-d_dev']);
     for (const key of keys) {
       const secret = options.gatewaySecrets.get(key.code);
       expect(key.revoked_at).toBeNull();

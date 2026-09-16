@@ -46,6 +46,17 @@ export const DEGRADATION_PARAMS = Object.freeze({
   'compressor.sealLeakBar': { classKey: 'h2.compressor', baseline: 0 },
   /** 공기 필터 막힘 [비율] — 같은 유량에 블로워 전력 × (1 + 값) */
   'blower.filterClog': { classKey: 'fc.blower', baseline: 0 },
+  // 가평 구성 부속 계통 (산소·폐열·수처리·감압·반입)
+  /** 감압밸브 시트 누설에 따른 무유동 하류 압력 상승률 [bar/h] */
+  'prv.seatLeakBarPerH': { classKey: 'h2.prv', baseline: 0 },
+  /** 열교환기 오염 [비율] — 같은 조건에서 UA × (1 − 값) */
+  'hx.fouling': { classKey: 'hx.recovery', baseline: 0 },
+  /** 순수 전도도 상승 [µS/cm] — 수지 파과·교차누설 */
+  'water.conductivityRise': { classKey: 'h2.elz.water', baseline: 0 },
+  /** 애노드 원가스 HTO 추가 상승 [vol%] — 멤브레인 크로스오버 증가 (법정 압축금지선 2%) */
+  'o2.htoRise': { classKey: 'o2.plant', baseline: 0 },
+  /** 하역 계량기 이득 [배] (1 = 정확, 0 = 반입 기록 누락 — 실제로는 들어왔는데 계량이 늘지 않는다) */
+  'delivery.meterGain': { classKey: 'h2.delivery', baseline: 1 },
 });
 
 export type DegradationParam = keyof typeof DEGRADATION_PARAMS;

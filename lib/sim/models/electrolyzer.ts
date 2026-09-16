@@ -116,10 +116,12 @@ export function electrolyzerParams(stack: {
   ratedAcKw: number;
   rectifierRatedDcKw: number;
   outletBar: number;
+  /** 최소 부하율 (정격 대비). 없으면 0.2 */
+  minLoadFraction?: number;
 }): ElectrolyzerParams {
   return {
     ...stack,
-    minLoadFraction: 0.2,
+    minLoadFraction: stack.minLoadFraction ?? 0.2,
     tafelSlopeV: 0.026,
     exchangeCurrentAcm2: 1e-6,
     ohmicOhmCm2At60C: 0.15,

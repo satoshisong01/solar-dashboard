@@ -13,5 +13,7 @@ export function electrolyzerParamsOf(site: SiteDef): ElectrolyzerParams {
     ratedAcKw: nameplateNumber(elz, 'rated_kw'),
     rectifierRatedDcKw: nameplateNumber(singleAsset(site, 'h2.elz.rectifier'), 'rated_dc_kw'),
     outletBar: nameplateNumber(elz, 'outlet_bar'),
+    // PEM 턴다운. 명판에 없으면 모델 기본값(0.2)을 쓴다
+    minLoadFraction: typeof elz.nameplate.min_load_fraction === 'number' ? elz.nameplate.min_load_fraction : undefined,
   });
 }

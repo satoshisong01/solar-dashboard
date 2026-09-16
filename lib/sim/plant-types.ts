@@ -53,3 +53,10 @@ export function nameplateNumber(asset: AssetDef, field: string): number {
 }
 
 export const sumOf = (values: readonly number[]): number => values.reduce((sum, value) => sum + value, 0);
+
+/** 설비 코드가 겹치는 항목을 합친다 (뒤에 온 키가 이긴다). 한 설비에 여러 모듈이 값을 내는 사이트에 필요하다 */
+export function mergeReadings(entries: readonly ReadingEntry[]): Map<string, AssetReadings> {
+  const merged = new Map<string, AssetReadings>();
+  for (const [code, readings] of entries) merged.set(code, { ...merged.get(code), ...readings });
+  return merged;
+}

@@ -34,6 +34,8 @@ export interface StorageFlows {
   readonly inflowKgH: number;
   /** 연료전지 수요 [kg/h] */
   readonly outflowKgH: number;
+  /** 외부 반입 하역 유량 [kg/h] (압축기를 거치지 않고 버퍼로 바로 들어간다) */
+  readonly directInflowKgH?: number;
   readonly suctionBar: number;
 }
 
@@ -41,19 +43,21 @@ function buildParams(site: SiteDef, tankCount: number): StorageParams {
   const compressor = singleAsset(site, 'h2.compressor');
   const tank = assetsOfClass(site, 'h2.storage.tank')[0];
   if (!tank) throw new Error(`${site.code}에 h2.storage.tank 설비가 없습니다`);
+  const bank = singleAsset(site, 'h2.storage.bank');
+  const minOutletBar = bank.nameplate.min_outlet_bar;
   return storageParams(
-    { tankCount, tankWaterVolumeL: nameplateNumber(tank, 'water_volume_l'), maxBar: nameplateNumber(tank, 'max_bar') },
+    { tankCount, tankWaterVolumeL: nameplateNumber(tank, 'water_volume_l'), maxBar: nameplateNumber(tank, 'max_bar'), minBar: typeof minOutletBar === 'number' ? minOutletBar : undefined },
     { ratedKw: nameplateNumber(compressor, 'rated_kw'), capacityKgH: nameplateNumber(compressor, 'capacity_kg_h') },
   );
 }
 
 /** 초기 재고는 220 bar·20 °C. 압축기 누적 운전시간·전력량은 준공 후 추정치 */
-export function createStorage(init: InitContext, compressorHours: number, suctionBar: number): StorageUnit {
+export function createStorage(init: InitContext, compressorHours: number, suctionBar: number, initialBar = INITIAL_STORAGE_BAR): StorageUnit {
   const tanks = assetsOfClass(init.site, 'h2.storage.tank').map((a): TankUnit => ({ code: a.code, pressureOffsetBar: 0.4 * init.rng.gaussian(), tempOffsetC: 0.3 * init.rng.gaussian() }));
   const detectors = assetsOfClass(init.site, 'h2.detector').map((a) => ({ code: a.code, baselinePpm: 6 + 6 * init.rng.next() }));
   const params = buildParams(init.site, tanks.length);
-  const state = initialStorageState(params, INITIAL_STORAGE_BAR, INITIAL_TEMP_C, { runHours: compressorHours, energyKwh: compressorHours * 16 });
-  const idle = { inflowKgH: 0, outflowKgH: 0, suctionBar, ambientC: INITIAL_TEMP_C, envTempC: INITIAL_TEMP_C, tankLeakKgPerDay: tanks.map(() => 0), valveWear: 0, sealLeakBar: 0, dtS: 0 };
+  const state = initialStorageState(params, Math.min(initialBar, params.maxBar), INITIAL_TEMP_C, { runHours: compressorHours, energyKwh: compressorHours * 16 });
+  const idle = { inflowKgH: 0, directInflowKgH: 0, outflowKgH: 0, suctionBar, ambientC: INITIAL_TEMP_C, envTempC: INITIAL_TEMP_C, tankLeakKgPerDay: tanks.map(() => 0), valveWear: 0, sealLeakBar: 0, dtS: 0 };
   return {
     bankCode: singleAsset(init.site, 'h2.storage.bank').code,
     compressorCode: singleAsset(init.site, 'h2.compressor').code,

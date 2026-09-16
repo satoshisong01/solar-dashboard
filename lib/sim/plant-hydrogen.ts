@@ -61,6 +61,8 @@ export interface HydrogenUnit {
 
 export interface HydrogenStepResult {
   readonly unit: HydrogenUnit;
+  /** 이번 스텝에 버퍼로 실제 들어간 반입량 [kg] (용기 여유가 없으면 요청보다 적다) */
+  readonly deliveredKg: number;
   readonly events: readonly SimEvent[];
   readonly elzAcKw: number;
   readonly fcAcKw: number;
@@ -144,6 +146,8 @@ export function hydrogenView(unit: HydrogenUnit): HydrogenView {
     elzRatedKw: unit.elzParams.ratedAcKw,
     elzMinKw: electrolyzerMinKw(unit.elzParams),
     storagePressureBar: unit.storage.step.pressureBar,
+    storageMaxBar: unit.storage.params.maxBar,
+    fcRatedKw: unit.fcParams.ratedAcKw,
     compressorKw: unit.storage.step.compressorKw,
   };
 }
@@ -181,7 +185,7 @@ function electrolyzerFaultsAt(unit: HydrogenUnit, ctx: StepContext): Electrolyze
 /** 압축기 흡입 압력: 대조군(높은 압력비 운전)이 낮추지 않으면 전해조 출구 압력 */
 const suctionBarOf = (unit: HydrogenUnit, ctx: StepContext): number => ctx.p3.suctionBar ?? unit.elzParams.outletBar;
 
-export function stepHydrogen(unit: HydrogenUnit, commands: { readonly elz: UnitCommand; readonly fc: UnitCommand }, ctx: StepContext, lockout: boolean): HydrogenStepResult {
+export function stepHydrogen(unit: HydrogenUnit, commands: { readonly elz: UnitCommand; readonly fc: UnitCommand }, ctx: StepContext, lockout: boolean, deliveryKgH = 0): HydrogenStepResult {
   const { weather, degradation, tMs, dtS } = ctx;
   const elzFaults = electrolyzerFaultsAt(unit, ctx);
   const elz = stepElectrolyzer(unit.elzParams, unit.elz.state, {
@@ -201,12 +205,13 @@ export function stepHydrogen(unit: HydrogenUnit, commands: { readonly elz: UnitC
     dtS,
   });
   const productKgH = elz.h2ProductKg > 0 ? elz.h2KgPerH * (1 - DRYER_LOSS_FRACTION) : 0;
-  const storage = stepStorageUnit(unit.storage, { inflowKgH: productKgH, outflowKgH: fc.h2KgPerH, suctionBar: suctionBarOf(unit, ctx) }, ctx);
+  const storage = stepStorageUnit(unit.storage, { inflowKgH: productKgH, directInflowKgH: deliveryKgH, outflowKgH: fc.h2KgPerH, suctionBar: suctionBarOf(unit, ctx) }, ctx);
   const gain = degradation.value('meter.h2FlowGain', unit.codes.elz, tMs);
   const meter: HydrogenMeter = { totalKg: unit.meter.totalKg + elz.h2ProductKg * (1 - DRYER_LOSS_FRACTION) * gain, gain };
   const next: HydrogenUnit = { ...unit, elz, elzFaults, meter, fc, storage };
   return {
     unit: next,
+    deliveredKg: storage.step.directInKg,
     events: transitionEvents(unit, next, tMs, lockout),
     elzAcKw: elz.totalAcKw,
     fcAcKw: fc.acKw,
@@ -259,7 +264,7 @@ function electrolyzerReadings(unit: HydrogenUnit, ctx: StepContext): ReadingEntr
       'heatsink.temp': ctx.weather.ambientC + 6 + 30 * load + RECTIFIER_EXTRA_LOSS_C_PER_KW * elz.rectifierExtraLossKw,
     }],
     [codes.water, {
-      'water.conductivity#product': 0.07,
+      'water.conductivity#product': 0.07 + ctx.degradation.value('water.conductivityRise', codes.water, ctx.tMs),
       'water.conductivity#loop': 0.25 + 0.5 * sawtooth(elz.state.runHours, 2_000),
       'water.flow': active ? 6.5 * (0.5 + 0.5 * load) : pressurized ? 2 : 0,
     }],

@@ -23,19 +23,20 @@ const FAST_POINTS: Readonly<Record<string, readonly string[]>> = {
 };
 
 describe('SEED_SITES 구성', () => {
-  it('가상 3곳과 실사이트 1곳을 좌표와 함께 정의한다', () => {
+  it('가상 4곳과 실사이트 1곳을 좌표와 함께 정의한다', () => {
     expect(SEED_SITES.map((s) => [s.code, s.name, s.lat, s.lon])).toEqual([
       ['SIM-A', '영암 태양광·ESS', 34.8, 126.7],
       ['SIM-B', '새만금 연계형', 35.85, 126.55],
       ['SIM-C', '제주 연계형(대조군)', 33.36, 126.53],
+      ['SIM-D', '가평 구성 복제(시뮬레이션)', 37.83, 127.51],
       ['GP-1', '가평 2MW 청정수소발전', 37.83, 127.51],
     ]);
   });
 
   it('시뮬레이터 대상은 simulated 사이트뿐이고, 실사이트는 설정으로만 연다', () => {
-    expect(SIM_SITES.map((s) => s.code)).toEqual(['SIM-A', 'SIM-B', 'SIM-C']);
-    expect(simulatorSites().map((s) => s.code)).toEqual(['SIM-A', 'SIM-B', 'SIM-C']);
-    expect(simulatorSites({ includeRealSites: true }).map((s) => s.code)).toEqual(['SIM-A', 'SIM-B', 'SIM-C', 'GP-1']);
+    expect(SIM_SITES.map((s) => s.code)).toEqual(['SIM-A', 'SIM-B', 'SIM-C', 'SIM-D']);
+    expect(simulatorSites().map((s) => s.code)).toEqual(['SIM-A', 'SIM-B', 'SIM-C', 'SIM-D']);
+    expect(simulatorSites({ includeRealSites: true }).map((s) => s.code)).toEqual(['SIM-A', 'SIM-B', 'SIM-C', 'SIM-D', 'GP-1']);
     expect(site('GP-1').attributes.simulated).toBe(false);
   });
 
@@ -67,6 +68,23 @@ describe('SEED_SITES 구성', () => {
     expect(countByClass(simB, 'h2.detector')).toBe(4);
     expect(simB.assets.find((a) => a.classKey === 'h2.elz')?.nameplate.rated_kw).toBe(500);
     expect(simB.assets.find((a) => a.classKey === 'fc.plant')?.nameplate.rated_kw).toBe(200);
+  });
+
+  it('SIM-D: 가평 구성(전해조 2.5 MW · 버퍼 50 m³ · 연료전지 2 MW)과 부속 계통(산소·폐열·감압·반입)을 모두 갖는다', () => {
+    const simD = site('SIM-D');
+
+    expect(simD.assets.find((a) => a.classKey === 'h2.elz')?.nameplate).toMatchObject({ rated_kw: 2_500, h2_rated_kg_h: 44.9, outlet_bar: 30 });
+    expect(simD.assets.find((a) => a.classKey === 'fc.plant')?.nameplate).toMatchObject({ rated_kw: 2_000 });
+    expect(simD.assets.find((a) => a.classKey === 'h2.storage.bank')?.nameplate).toMatchObject({ tank_count: 1, water_volume_l: 50_000, max_bar: 30, min_outlet_bar: 2 });
+    expect(countByClass(simD, 'h2.storage.tank')).toBe(1);
+    // 도면에 승압 압축기가 없다는 사실을 그대로 옮긴다 — 시뮬레이터가 산소를 계속 방출하는 근거다
+    expect(simD.assets.find((a) => a.classKey === 'o2.loading')?.nameplate).toMatchObject({ compressor_present: 'none' });
+    for (const classKey of ['o2.plant', 'o2.storage.tank', 'o2.loading', 'hx.recovery', 'h2.prv', 'h2.delivery', 'h2.elz.water.tank']) {
+      expect(countByClass(simD, classKey), classKey).toBe(1);
+    }
+    // 전해조 패러데이 원단위로 계산한 정격 생산량이 도면의 44.9 kg/h와 맞는다
+    const stack = simD.assets.find((a) => a.classKey === 'h2.elz.stack');
+    expect(Number(stack?.nameplate.cell_count) * Number(stack?.nameplate.rated_current_a) * 3.7608e-5).toBeCloseTo(44.9, 1);
   });
 
   it('SIM-C는 SIM-B와 같은 설비·포인트 구성이고 대조군 표시가 있다', () => {

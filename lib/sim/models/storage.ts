@@ -39,6 +39,8 @@ export interface StorageState {
 export interface StorageInput {
   /** 전해조 제품 수소 [kg/h] */
   readonly inflowKgH: number;
+  /** 압축기를 거치지 않고 바로 들어오는 수소 [kg/h] (외부 반입 하역 — 트레일러 200 bar에서 감압해 받는다). 용기 여유만큼만 들어간다 */
+  readonly directInflowKgH?: number;
   /** 연료전지 수요 [kg/h] */
   readonly outflowKgH: number;
   readonly suctionBar: number;
@@ -59,6 +61,10 @@ export interface StorageStep {
   readonly tankPressureBar: readonly number[];
   /** 용기에 들어간 양 (씰 누설 제외) */
   readonly inKg: number;
+  /** 압축기를 거치지 않고 받은 외부 반입량 [kg] */
+  readonly directInKg: number;
+  /** 용기 여유가 없어 받지 못한 반입량 [kg] */
+  readonly directRejectedKg: number;
   readonly outKg: number;
   readonly leakKg: number;
   readonly tankLeakKg: readonly number[];
@@ -72,13 +78,16 @@ export interface StorageStep {
   readonly dischargeBar: number;
 }
 
-export function storageParams(bank: { tankCount: number; tankWaterVolumeL: number; maxBar: number }, compressor: { ratedKw: number; capacityKgH: number }): StorageParams {
+export function storageParams(bank: { tankCount: number; tankWaterVolumeL: number; maxBar: number; minBar?: number }, compressor: { ratedKw: number; capacityKgH: number }): StorageParams {
   if (!Number.isInteger(bank.tankCount) || bank.tankCount < 1) throw new Error(`저장용기 수는 1 이상의 정수여야 합니다: ${bank.tankCount}`);
+  // minBar는 인출 하한이다. 고압 뱅크(450 bar)는 30 bar, 저압 버퍼(30 bar)는 명판 min_outlet_bar를 쓴다 — 하한이 최고압과 같으면 인출이 원리상 불가능하다
+  const minBar = bank.minBar ?? 30;
+  if (!(minBar >= 0 && minBar < bank.maxBar)) throw new Error(`저장 인출 하한(${minBar} bar)은 0 이상이고 최고 압력(${bank.maxBar} bar)보다 작아야 합니다`);
   return {
     tankCount: bank.tankCount,
     tankVolumeM3: bank.tankWaterVolumeL / 1000,
     maxBar: bank.maxBar,
-    minBar: 30,
+    minBar,
     compressor: compressorParams(compressor),
     gasTauS: 2_700,
     wallTauS: 21_600,
@@ -107,10 +116,14 @@ export const totalMassKg = (state: Pick<StorageState, 'tankMassKg'>): number => 
 interface Transfer {
   readonly compressorOn: boolean;
   readonly inKg: number;
+  /** 압축기를 거치지 않고 받은 외부 반입량 [kg] */
+  readonly directInKg: number;
   readonly outKg: number;
   readonly ventedKg: number;
   readonly sealLossKg: number;
   readonly outflowLimited: boolean;
+  /** 용기 여유가 없어 받지 못한 반입량 [kg] (하역 중단) */
+  readonly directRejectedKg: number;
 }
 
 function transfer(params: StorageParams, state: StorageState, input: StorageInput, bankBar: number): Transfer {
@@ -123,14 +136,18 @@ function transfer(params: StorageParams, state: StorageState, input: StorageInpu
   const availableKg = sum(state.tankMassKg.map((m) => Math.max(0, m - minMassKg)));
   const requestedOutKg = Math.max(0, input.outflowKgH) * dtH;
   const outKg = Math.min(requestedOutKg, availableKg);
-  return { compressorOn, inKg: compressedKg - sealLossKg, outKg, ventedKg: requestedInKg - compressedKg, sealLossKg, outflowLimited: outKg < requestedOutKg };
+  // 외부 반입은 압축기를 거치지 않는다 (트레일러가 버퍼보다 고압). 용기 여유(최고 압력까지)만큼만 받는다
+  const requestedDirectKg = Math.max(0, input.directInflowKgH ?? 0) * dtH;
+  const headroomKg = Math.max(0, h2MassKg(params.maxBar, params.tankVolumeM3, state.gasTempC) * params.tankCount - sum(state.tankMassKg) - (compressedKg - sealLossKg));
+  const directInKg = Math.min(requestedDirectKg, headroomKg);
+  return { compressorOn, inKg: compressedKg - sealLossKg, directInKg, outKg, ventedKg: requestedInKg - compressedKg, sealLossKg, outflowLimited: outKg < requestedOutKg, directRejectedKg: requestedDirectKg - directInKg };
 }
 
 /** 누설을 뺀 뒤, 밸브가 열려 있으면 유입·유출을 더해 용기끼리 고르게 나누고, 닫혀 있으면 용기마다 따로 둔다 */
 function nextMasses(masses: readonly number[], leaks: readonly number[], flow: Transfer, valvesOpen: boolean): number[] {
   const leaked = masses.map((m, i) => m - (leaks[i] ?? 0));
   if (!valvesOpen) return leaked;
-  const each = (sum(leaked) + flow.inKg - flow.outKg) / leaked.length;
+  const each = (sum(leaked) + flow.inKg + flow.directInKg - flow.outKg) / leaked.length;
   return leaked.map(() => each);
 }
 
@@ -151,11 +168,11 @@ export function stepStorage(params: StorageParams, state: StorageState, input: S
     sealLeakBar: input.sealLeakBar,
     dtS: input.dtS,
   });
-  const valvesOpen = flow.compressorOn || flow.outKg > 0;
+  const valvesOpen = flow.compressorOn || flow.outKg > 0 || flow.directInKg > 0;
   const tankLeakKg = state.tankMassKg.map((m, i) => Math.min((Math.max(0, input.tankLeakKgPerDay[i] ?? 0) * input.dtS) / SECONDS_PER_DAY, m));
   const tankMassKg = nextMasses(state.tankMassKg, tankLeakKg, flow, valvesOpen);
 
-  const netHeatingK = (params.fillHeatingKPerKgH * flow.inKg - params.drawCoolingKPerKgH * flow.outKg) / Math.max(dtH, 1e-9);
+  const netHeatingK = (params.fillHeatingKPerKgH * (flow.inKg + flow.directInKg) - params.drawCoolingKPerKgH * flow.outKg) / Math.max(dtH, 1e-9);
   const gasTempC = lagToward(state.gasTempC, state.wallTempC + netHeatingK, input.dtS, params.gasTauS);
   const wallTarget = input.envTempC + params.wallGasCoupling * (state.gasTempC - input.envTempC);
   const wallTempC = lagToward(state.wallTempC, wallTarget, input.dtS, params.wallTauS);
@@ -166,6 +183,8 @@ export function stepStorage(params: StorageParams, state: StorageState, input: S
     pressureBar: sum(tankPressureBar) / params.tankCount,
     tankPressureBar,
     inKg: flow.inKg,
+    directInKg: flow.directInKg,
+    directRejectedKg: flow.directRejectedKg,
     outKg: flow.outKg,
     leakKg: sum(tankLeakKg),
     tankLeakKg,

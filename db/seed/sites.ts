@@ -1,7 +1,8 @@
-// 시드가 DB에 넣는 사이트: 가상 3곳(SIM-A/B/C)과 실사이트 1곳(GP-1 가평). 순수 데이터 모듈 ('server-only' 금지).
+// 시드가 DB에 넣는 사이트: 가상 4곳(SIM-A/B/C/D)과 실사이트 1곳(GP-1 가평). 순수 데이터 모듈 ('server-only' 금지).
 // 시뮬레이터(lib/sim)는 SIM_SITES만 본다 — 실사이트에 가짜 데이터를 넣지 않기 위해서다 (simulatorSites 참고).
 import { buildAssets, SLOW_PERIOD_S, type AssetSpec, type SiteContext } from './asset-spec';
 import { GAPYEONG_PLANNED_POINTS, gapyeongAssets } from './templates-gapyeong';
+import { gapyeongSimAssets } from './templates-gapyeong-sim';
 import { electrolyzerPlant, fuelCellPlant, hydrogenStorage } from './templates-hydrogen';
 import { essPlant, pvPlant, siteCommon } from './templates-solar';
 import type { GatewayDef, PlannedPointDef, SiteDef, UnmappedTagDef } from './types';
@@ -99,6 +100,16 @@ const SIMULATED_SITES: readonly SiteDef[] = [
     // SIM-B와 같은 구성. 시뮬레이터가 고장을 주입하지 않는 음성 대조군이다.
     attributes: { simulated: true, layout: 'integrated', control_group: true },
     assets: integratedAssets(),
+  }),
+  buildSite({
+    code: 'SIM-D',
+    name: '가평 구성 복제(시뮬레이션)',
+    lat: 37.83,
+    lon: 127.51,
+    commissionedAt: '2025-09-01',
+    // GP-1과 같은 규모·계통 구성이지만 가상 사이트다. 실사이트에 추정 명판을 넣지 않으려고 따로 둔다 (templates-gapyeong-sim.ts 참고).
+    attributes: { simulated: true, layout: 'integrated', control_group: false, pid_rev: 'FCND-GP-PID-002 REV.2' },
+    assets: gapyeongSimAssets(),
   }),
 ];
 

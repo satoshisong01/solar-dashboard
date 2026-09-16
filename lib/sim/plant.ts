@@ -7,9 +7,10 @@ import { dispatch, INITIAL_EMS_MEMORY, type EmsMemory, type HydrogenView, type S
 import { EVENT_CODE, safetyAlarm, type SimEvent } from './events';
 import { kstDateToMs, kstHourOfDay, MS_PER_DAY, MS_PER_HOUR, MS_PER_MINUTE, MS_PER_SECOND, SECONDS_PER_DAY } from './math';
 import { batteryRoom, createEss, essReadings, essView, stepEss, type EssUnit, type RoomClimate } from './plant-ess';
+import { createGapyeong, deliveryRateKgH, gapyeongReadings, stepGapyeong, type GapyeongInput, type GapyeongUnit } from './plant-gapyeong';
 import { createHydrogen, hydrogenReadings, hydrogenView, stepHydrogen, type HydrogenUnit } from './plant-hydrogen';
 import { createInverters, createMeter, inverterReadings, siteCommonReadings, stepInverters, stepMeter, type InverterUnit, type MeterUnit } from './plant-pv';
-import { assetsOfClass, readingKey, type AssetReadings, type StepContext } from './plant-types';
+import { assetsOfClass, mergeReadings, readingKey, type AssetReadings, type StepContext } from './plant-types';
 import { deriveRng, type Rng } from './rng';
 import { createDegradationResolver, EMPTY_PLAN, type SiteScenarioPlan } from './scenarios';
 import { addNoise, formatRaw, spikeValue } from './sensors';
@@ -70,8 +71,24 @@ interface PlantState {
   readonly inverters: readonly InverterUnit[];
   readonly ess: EssUnit | null;
   readonly hydrogen: HydrogenUnit | null;
+  /** 가평 구성 부속 계통 (산소·폐열·수처리·감압·반입). 해당 설비가 없는 사이트는 null */
+  readonly gapyeong: GapyeongUnit | null;
   readonly meter: MeterUnit;
   readonly ems: EmsMemory;
+}
+
+/** 가평 부속 계통 입력: 직전 스텝의 수소 설비 상태에서 뽑는다 */
+function gapyeongInput(hydrogen: HydrogenUnit | null): GapyeongInput | null {
+  if (hydrogen === null) return null;
+  return {
+    h2ProductKgH: hydrogen.elz.state.mode === 'running' ? hydrogen.elz.h2KgPerH : 0,
+    elzLoad: hydrogen.elz.loadFraction,
+    elzRunning: hydrogen.elz.state.mode === 'running',
+    fcH2KgH: hydrogen.fc.h2KgPerH,
+    coolantOutC: hydrogen.fc.coolantOutC,
+    fcRunning: hydrogen.fc.currentA > 0,
+    bufferBar: hydrogen.storage.step.pressureBar,
+  };
 }
 
 function metricOf(metricKey: string, where: string): MetricDef {
@@ -189,7 +206,12 @@ function advancePlant(state: PlantState, ctx: StepContext, deps: AdvanceDeps, co
     state.ems,
   );
   const ess = state.ess ? stepEss(state.ess, decision.essAcKw, room, ctx) : null;
-  const h2 = state.hydrogen ? stepHydrogen(state.hydrogen, decision, ctx, lockout) : null;
+  // 하역 유량은 직전 스텝 버퍼 압력으로 정하고, 저장부가 받아 준 만큼만 반입 계량에 올린다
+  const beforeInput = gapyeongInput(state.hydrogen);
+  const deliveryKgH = state.gapyeong && beforeInput ? deliveryRateKgH(state.gapyeong, beforeInput, state.hydrogen?.storage.params.maxBar ?? 0) : 0;
+  const h2 = state.hydrogen ? stepHydrogen(state.hydrogen, decision, ctx, lockout, deliveryKgH) : null;
+  const afterInput = gapyeongInput(h2?.unit ?? null);
+  const gapyeong = state.gapyeong && afterInput ? stepGapyeong(state.gapyeong, afterInput, ctx, h2?.deliveredKg ?? 0) : null;
   const hydrogenNetKw = h2 ? h2.fcAcKw - h2.elzAcKw - h2.compressorKw : 0;
   const netKw = pv.acKw + (ess?.acKw ?? 0) + hydrogenNetKw - auxKw;
   const next: PlantState = {
@@ -197,6 +219,7 @@ function advancePlant(state: PlantState, ctx: StepContext, deps: AdvanceDeps, co
     inverters: pv.units,
     ess,
     hydrogen: h2?.unit ?? null,
+    gapyeong,
     meter: stepMeter(state.meter, netKw, ctx.dtS),
     ems: decision.memory,
   };
@@ -206,10 +229,12 @@ function advancePlant(state: PlantState, ctx: StepContext, deps: AdvanceDeps, co
 function plantReadings(site: SiteDef, plan: SiteScenarioPlan, state: PlantState, ctx: StepContext, room: RoomClimate): ReadonlyMap<string, AssetReadings> {
   const extraPpm = (detector: string) =>
     plan.leakAlarms.filter((a) => a.detector === detector).reduce((sum, a) => sum + leakExtraPpm(ctx.tMs, a.atMs), 0);
-  return new Map([
+  const gapyeongIn = gapyeongInput(state.hydrogen);
+  return mergeReadings([
     ...inverterReadings(state.inverters, ctx),
     ...(state.ess ? essReadings(state.ess, room) : []),
     ...(state.hydrogen ? hydrogenReadings(state.hydrogen, ctx, extraPpm) : []),
+    ...(state.gapyeong && gapyeongIn ? gapyeongReadings(state.gapyeong, gapyeongIn, ctx) : []),
     ...siteCommonReadings(site, state.meter, ctx),
   ]);
 }
@@ -244,6 +269,7 @@ function initialState(site: SiteDef, seed: number, startMs: number): PlantState 
     inverters: createInverters(init),
     ess: createEss(init),
     hydrogen: createHydrogen(init),
+    gapyeong: createGapyeong(init),
     meter: createMeter(site, daysInService),
     ems: INITIAL_EMS_MEMORY,
   };

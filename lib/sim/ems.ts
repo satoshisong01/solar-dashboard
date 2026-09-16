@@ -22,13 +22,15 @@ export const EMS_SETTINGS = Object.freeze({
     /** 여유전력이 최소부하 × 이 배수 이상으로 startHoldS 동안 이어져야 기동 */
     startSurplusFactor: 1.2,
     startHoldS: 600,
-    storageStopBar: 440,
-    storageResumeBar: 400,
+    /** 저장 압력 한계는 뱅크 최고 압력에 대한 비율로 둔다 (450 bar 뱅크 = 440·400·80·50 bar, 30 bar 버퍼도 같은 규칙) */
+    storageStopFraction: 440 / 450,
+    storageResumeFraction: 400 / 450,
     fcStartH: 17,
     fcEndH: 22,
-    fcAcKw: 150,
-    fcStartBar: 80,
-    fcStopBar: 50,
+    /** 연료전지 지령은 정격의 이 비율 (200 kW 설비 = 150 kW) */
+    fcLoadFraction: 0.75,
+    fcStartFraction: 80 / 450,
+    fcStopFraction: 50 / 450,
     /** 잦은 기동·정지 운전: 9~22시 매시 처음 40분만 운전 */
     fcCycling: { startH: 9, endH: 22, onFractionOfHour: 2 / 3 },
   },
@@ -47,6 +49,9 @@ export interface HydrogenView {
   readonly elzRatedKw: number;
   readonly elzMinKw: number;
   readonly storagePressureBar: number;
+  /** 저장뱅크 최고 압력 [bar] (압력 임계를 이 값에 비례해 잡는다) */
+  readonly storageMaxBar: number;
+  readonly fcRatedKw: number;
   readonly compressorKw: number;
 }
 
@@ -158,8 +163,8 @@ function planElectrolyzer(input: EmsInput, h2: HydrogenView, memory: EmsMemory, 
 
 function dispatchIntegrated(input: EmsInput, memory: EmsMemory, h2: HydrogenView): EmsDecision {
   const s = EMS_SETTINGS.integrated;
-  const storageFull = memory.storageFull ? h2.storagePressureBar > s.storageResumeBar : h2.storagePressureBar >= s.storageStopBar;
-  const fcBlocked = memory.fcBlocked ? h2.storagePressureBar < s.fcStartBar : h2.storagePressureBar < s.fcStopBar;
+  const storageFull = memory.storageFull ? h2.storagePressureBar > s.storageResumeFraction * h2.storageMaxBar : h2.storagePressureBar >= s.storageStopFraction * h2.storageMaxBar;
+  const fcBlocked = memory.fcBlocked ? h2.storagePressureBar < s.fcStartFraction * h2.storageMaxBar : h2.storagePressureBar < s.fcStopFraction * h2.storageMaxBar;
   const surplus = input.pvAcKw - input.auxKw - h2.compressorKw;
   const allowed = !storageFull && !input.safetyLockout;
   const elzPlan: ElectrolyzerPlan =
@@ -171,7 +176,7 @@ function dispatchIntegrated(input: EmsInput, memory: EmsMemory, h2: HydrogenView
     ? inWindow(input.localHour, s.fcCycling.startH, s.fcCycling.endH) && input.localHour % 1 < s.fcCycling.onFractionOfHour
     : inWindow(input.localHour, s.fcStartH, s.fcEndH);
   const fcRun = fcScheduled && !fcBlocked && !input.safetyLockout;
-  const fc: UnitCommand = fcRun ? { run: true, acKw: s.fcAcKw } : STOPPED;
+  const fc: UnitCommand = fcRun ? { run: true, acKw: s.fcLoadFraction * h2.fcRatedKw } : STOPPED;
 
   const ess = input.ess;
   let essAcKw = 0;

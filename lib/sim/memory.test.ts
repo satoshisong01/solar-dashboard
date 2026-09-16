@@ -11,6 +11,8 @@ import type { Scenario } from './scenarios';
 const FROM = Date.parse('2026-06-01T00:00:00+09:00');
 const timestamps = (series: IngestSeries): number[] => ('ts' in series ? [...series.ts] : series.v.map((_, i) => series.t0 + i * series.dt));
 const ALL = ['SIM-A', 'SIM-B', 'SIM-C'];
+/** 이 테스트가 도는 사이트만 (SIM-D 가평 복제는 규모가 커서 따로 본다) */
+const TEST_SITES = SIM_SITES.filter((s) => ALL.includes(s.code));
 const SCENARIOS: readonly Scenario[] = [
   { kind: 'fault.inverter_efficiency_drop', site: 'SIM-A', asset: 'PV1/INV02', pctPoints: 3 },
   { kind: 'control.curtailment', site: 'SIM-C', startDay: 0, count: 1 },
@@ -25,7 +27,7 @@ describe('simulateMemory — 하루 3사이트', () => {
   }, 60_000);
 
   it('매핑된 포인트마다 period_s 간격 시계열을 만들고 시각 배열은 주기별로 공유한다', () => {
-    const mappedPoints = SIM_SITES.flatMap((s) => s.assets.flatMap((a) => a.points));
+    const mappedPoints = TEST_SITES.flatMap((s) => s.assets.flatMap((a) => a.points));
     const soc = result.series.get('SIM-A/ESS1/RACK01|batt.soc');
     const tankP = result.series.get(pointKey('SIM-B/H2BANK1/TANK1', 'tank.pressure'));
 
@@ -41,7 +43,7 @@ describe('simulateMemory — 하루 3사이트', () => {
   });
 
   it('값은 simulate()가 보내는 원본값에 scale·offset을 적용한 값(= DB 저장값)과 같다', async () => {
-    const points = new Map(SIM_SITES.flatMap((s) => s.assets.flatMap((a) => a.points.map((p) => [`${s.code}:${p.sourceKey}`, { path: `${s.code}/${a.code}`, point: p }] as const))));
+    const points = new Map(TEST_SITES.flatMap((s) => s.assets.flatMap((a) => a.points.map((p) => [`${s.code}:${p.sourceKey}`, { path: `${s.code}/${a.code}`, point: p }] as const))));
     let compared = 0;
     for await (const batch of simulate({ siteCodes: ALL, from: FROM, to: FROM + MS_PER_DAY, seed: 42, scenarios: SCENARIOS })) {
       for (const series of batch.envelope.series) {

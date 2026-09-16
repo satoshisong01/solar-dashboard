@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { dispatch, EMS_SETTINGS, INITIAL_EMS_MEMORY, type EmsInput, type EmsMemory, type EssView, type HydrogenView } from './ems';
 
 const ESS: EssView = { socFraction: 0.5, chargeLimitKw: 1_000, dischargeLimitKw: 1_000, ratedKw: 1_000, usableEnergyKwh: 2_000 };
-const H2: HydrogenView = { elzMode: 'off', elzRatedKw: 500, elzMinKw: 100, storagePressureBar: 250, compressorKw: 0.3 };
+const H2: HydrogenView = { elzMode: 'off', elzRatedKw: 500, elzMinKw: 100, storagePressureBar: 250, storageMaxBar: 450, fcRatedKw: 200, compressorKw: 0.3 };
 
 const pvEss = (extra: Partial<EmsInput>): EmsInput => ({ layout: 'pv_ess', localHour: 12, dtS: 60, pvAcKw: 600, auxKw: 8, ess: ESS, hydrogen: null, safetyLockout: false, ...extra });
 const integrated = (extra: Partial<EmsInput>, h2: Partial<HydrogenView> = {}): EmsInput => ({

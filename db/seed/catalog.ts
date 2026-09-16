@@ -85,6 +85,7 @@ export const ASSET_CLASSES: readonly AssetClassDef[] = [
     h2_rated_kg_h: [NUM, '정격 수소 생산량 (kg/h)', REQ],
     outlet_bar: [NUM, '수소 출구 압력 (bar)'],
     nm3_reference_c: [NUM, 'Nm³ 기준 온도 (°C)'], // 0/15/20 — 모든 질량 환산이 약 7% 달라진다
+    min_load_fraction: [NUM, '최소 부하율 (정격 대비)'], // PEM 턴다운. 없으면 모델 기본값 0.2
   }, ['ESD', 'H2_IN_O2_HIGH', 'O2_IN_H2_HIGH', 'ENCLOSURE_H2_HIGH', 'VENTILATION_FAULT']),
   assetClass('h2.elz.stack', 'asset', 'h2.elz', '전해 스택', {
     cell_count: [INT, '셀 수', REQ],

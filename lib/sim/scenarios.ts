@@ -5,6 +5,7 @@
 import type { AssetDef, SiteDef } from '@/db/seed/types';
 import { applyControl, EMPTY_CONTROL_PLAN, isControl, type ControlPlan, type ControlScenario } from './control-scenarios';
 import { applyP3Control, EMPTY_P3_CONTROL_PLAN, EMPTY_P3_EVENT_PLAN, isP3Control, type P3ControlPlan, type P3ControlScenario, type P3EventPlan } from './control-scenarios-p3';
+import { isGapyeongFault, resolveGapyeongFault, type GapyeongFaultScenario } from './fault-scenarios-gapyeong';
 import { isP3Fault, resolveP3Fault, type P3FaultScenario } from './fault-scenarios-p3';
 import { DEGRADATION_PARAMS, type FaultScenario } from './degradation';
 import { isTypedFault, resolveFault, type TypedFaultScenario } from './fault-scenarios';
@@ -82,6 +83,7 @@ export type Scenario =
   | TypedFaultScenario
   | ControlScenario
   | P3FaultScenario
+  | GapyeongFaultScenario
   | P3ControlScenario;
 
 export interface SiteScenarioPlan extends ControlPlan, P3ControlPlan, P3EventPlan {
@@ -160,6 +162,10 @@ function applyScenario(plan: SiteScenarioPlan, site: SiteDef, scenario: Exclude<
   }
   if (isControl(scenario)) return applyControl(plan, site, scenario, requireOrigin(originMs, label));
   if (isP3Fault(scenario)) return applyP3Fault(plan, site, scenario, requireOrigin(originMs, label));
+  if (isGapyeongFault(scenario)) {
+    const resolved = resolveGapyeongFault(site, scenario, requireOrigin(originMs, label));
+    return { ...plan, faults: [...plan.faults, ...resolved.hooks.map((hook) => validateFault(site, hook))] };
+  }
   if (isP3Control(scenario)) return applyP3Control(plan, site, scenario, requireOrigin(originMs, label));
   switch (scenario.kind) {
     case 'dq.gateway_outage':
