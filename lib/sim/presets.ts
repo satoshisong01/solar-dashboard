@@ -56,16 +56,19 @@ function dqScenarios(siteCodes: readonly string[], window: PresetWindow): readon
 export const DEMO120_DAYS = 120;
 export const DEMO_DAYS = DEMO120_DAYS;
 const ALL_SIM_SITES = ['SIM-A', 'SIM-B', 'SIM-C'] as const;
+/** demo 프리셋이 요구하는 사이트 (SIM-D는 가평 구성 고장 4종이 들어간다) */
+const DEMO_SITES = [...ALL_SIM_SITES, 'SIM-D'] as const;
 
 /**
  * 개발 DB 데모 프리셋 (120일, 일수는 적재 시작일 기준):
  * - SIM-A: 랙 1 용량 45일째부터 30일간 총 −7%, 인버터 1 효율 60일째부터 −2%p, 랙 3 셀 불균형 30일째부터 월 10 mV
  * - SIM-B: 전해조 스택 30일째부터 25 µV/h, 연료전지 30일째부터 30 µV/h, 90일째 SOC 상한 90% → 80% (대조군)
  * - SIM-C: 고장 없음 + 한파 주간(20일째)·흐린 주(50일째)·출력제어 3회(70·77·84일째)
+ * demo 프리셋은 여기에 P3·가평 구성 고장(presets-demo.ts)을 더하고 SIM-D까지 요구한다.
  */
-function requireDemoWindow(name: string, siteCodes: readonly string[], window: PresetWindow): void {
-  const missing = ALL_SIM_SITES.filter((code) => !siteCodes.includes(code));
-  if (missing.length > 0) throw new Error(`${name} 시나리오에는 ${ALL_SIM_SITES.join('·')}가 필요합니다 (빠진 사이트: ${missing.join(', ')})`);
+function requireDemoWindow(name: string, siteCodes: readonly string[], window: PresetWindow, required: readonly string[] = ALL_SIM_SITES): void {
+  const missing = required.filter((code) => !siteCodes.includes(code));
+  if (missing.length > 0) throw new Error(`${name} 시나리오에는 ${required.join('·')}가 필요합니다 (빠진 사이트: ${missing.join(', ')})`);
   if (window.toMs - window.fromMs < DEMO120_DAYS * MS_PER_DAY) throw new Error(`${name} 시나리오는 ${DEMO120_DAYS}일 이상 적재할 때만 쓸 수 있습니다`);
 }
 
@@ -94,7 +97,7 @@ export function presetScenarios(preset: ScenarioPreset, siteCodes: readonly stri
     case 'demo120':
       return demo120Scenarios(siteCodes, window);
     case 'demo':
-      requireDemoWindow('demo', siteCodes, window);
+      requireDemoWindow('demo', siteCodes, window, DEMO_SITES);
       return [...demo120Scenarios(siteCodes, window), ...demoP3Scenarios()];
   }
 }

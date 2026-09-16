@@ -17,6 +17,11 @@ export const DEMO_P3 = Object.freeze({
   elzSecRise: { mode: 'rectifier', pct: 6, startDay: 45, rampDays: 60 },
   fcAirFilterClog: { pct: 35, startDay: 70, rampDays: 20, cleanedDay: 110 },
   simC: { hotWeekDay: 98, dayNightSwingDay: 110 },
+  // SIM-D (가평 복제): 감압밸브 시트 누설·열교환기 오염·HTO 상승·반입 기록 누락
+  prvSeatLeak: { barPerH: 0.08, startDay: 55, rampDays: 20 },
+  hxFouling: { pct: 45, startDay: 45, rampDays: 40 },
+  o2PurityDrift: { pctPoints: 1.1, startDay: 50, rampDays: 40 },
+  deliveryUnlogged: { startDay: 95, days: 10 },
 } as const);
 
 /**
@@ -24,6 +29,8 @@ export const DEMO_P3 = Object.freeze({
  * - SIM-B: 용기 3 누설 60일째 0.05 kg/일 → 90일째 안전 임계의 2배, 압축기 밸브 마모 +12%(40일째부터 60일 램프),
  *          전해조 비에너지 +6% 정류기 경로(45일째부터 60일 램프), 연료전지 공기 필터 막힘 35%(70일째부터 20일 램프, 110일째 필터 교체)
  * - SIM-C: 고온 주(98일째)·일교차 확대(110일째)
+ * - SIM-D(가평 복제): 감압밸브 시트 누설 80 mbar/h(55일째부터 20일 램프), 열교환기 오염 UA −45%(45일째부터 40일 램프),
+ *          애노드 원가스 HTO +1.1 vol%p(50일째부터 40일 램프 — 법정 압축금지선 2 vol% 접근), 반입 기록 누락 10일(95일째)
  * 120일 적재의 끝(분석 시각)에 탐지되도록 둔 배치:
  * - 오염: 마지막 강한 비 뒤 무세척 구간에 맑은 날이 6일 이상 있어야 판정한다. 85일째 비(8~9월 장마철 35일, 맑은 날 5일)면 판정 불능이라 75일째로 당겼다.
  * - 필터 막힘: 블로워 비교 bin(공기 유량·외기 온도)의 여름 bin 기준이 70일째 무렵 생기므로 그 뒤에 시작하고, 끝 무렵(110일째) 교체해
@@ -48,5 +55,9 @@ export function demoP3Scenarios(): readonly Scenario[] {
     { kind: 'fault.fc_air_filter_clog', site: 'SIM-B', ...d.fcAirFilterClog },
     { kind: 'control.hot_week', site: 'SIM-C', startDay: d.simC.hotWeekDay },
     { kind: 'control.day_night_swing', site: 'SIM-C', startDay: d.simC.dayNightSwingDay },
+    { kind: 'fault.prv_seat_leak', site: 'SIM-D', ...d.prvSeatLeak },
+    { kind: 'fault.hx_fouling', site: 'SIM-D', ...d.hxFouling },
+    { kind: 'fault.o2_purity_drift', site: 'SIM-D', ...d.o2PurityDrift },
+    { kind: 'fault.delivery_unlogged', site: 'SIM-D', ...d.deliveryUnlogged },
   ];
 }

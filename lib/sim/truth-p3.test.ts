@@ -7,7 +7,7 @@ import { buildTruth } from './truth';
 const FROM = Date.parse('2026-05-18T10:00:00+09:00');
 const ORIGIN = Date.parse('2026-05-18T00:00:00+09:00');
 const TO = FROM + 120 * MS_PER_DAY;
-const ALL = ['SIM-A', 'SIM-B', 'SIM-C'];
+const ALL = ['SIM-A', 'SIM-B', 'SIM-C', 'SIM-D'];
 const day = (n: number, hour = 0) => ORIGIN + n * MS_PER_DAY + hour * MS_PER_HOUR;
 
 describe('buildTruth — demo (P3 추가분)', () => {
@@ -23,6 +23,10 @@ describe('buildTruth — demo (P3 추가분)', () => {
       ['SIM-B/COMP1', 'fault.compressor_valve_wear', day(40), TO, ['comp.efficiency_loss'], ['comp.sec_rise'], []],
       ['SIM-B/ELZ1', 'fault.elz_sec_rise', day(45), TO, ['el.system_efficiency_loss'], ['el.sec_rise'], []],
       ['SIM-B/FC1/BLOWER1', 'fault.fc_air_filter_clog', day(70), day(110, 10), ['fc.blower_wear'], ['fc.blower_wear'], []],
+      ['SIM-D/PRV1', 'fault.prv_seat_leak', day(55), TO, ['prv.seat_leak'], ['prv.seat_leak'], []],
+      ['SIM-D/FC1/HX1', 'fault.hx_fouling', day(45), TO, ['hx.heat_recovery_loss'], ['hx.fouling'], []],
+      ['SIM-D/O2P1', 'fault.o2_purity_drift', day(50), TO, ['o2.purity_drift'], ['o2.purity_drift'], []],
+      ['SIM-D/H2DLV1', 'fault.delivery_unlogged', day(95), day(105), ['h2chain.mass_balance_gap'], ['h2chain.mass_balance_gap'], []],
     ]);
   });
 

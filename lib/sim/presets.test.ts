@@ -176,10 +176,10 @@ describe('EVAL_PRESET · evalRunPlans', () => {
 });
 
 describe('presetScenarios — demo (demo120 + P3)', () => {
-  it('demo120 주입을 모두 유지하고 P3 고장(SIM-A 오염·랙 저항·냉각팬, SIM-B 누설·밸브·비에너지·필터)과 SIM-C 고온 주·일교차 확대를 더한다', () => {
+  it('demo120 주입을 모두 유지하고 P3 고장(SIM-A 오염·랙 저항·냉각팬, SIM-B 누설·밸브·비에너지·필터)·SIM-C 대조군·SIM-D 가평 구성 고장을 더한다', () => {
     const { fromMs, toMs } = window(120);
     const demo120 = presetScenarios('demo120', ALL, { fromMs, toMs });
-    const demo = presetScenarios('demo', ALL, { fromMs, toMs });
+    const demo = presetScenarios('demo', [...ALL, 'SIM-D'], { fromMs, toMs });
 
     expect(demo.slice(0, demo120.length)).toEqual(demo120);
     expect(demo.slice(demo120.length).map((s) => ('site' in s ? `${s.site}:${s.kind}` : s.kind))).toEqual([
@@ -192,6 +192,10 @@ describe('presetScenarios — demo (demo120 + P3)', () => {
       'SIM-B:fault.fc_air_filter_clog',
       'SIM-C:control.hot_week',
       'SIM-C:control.day_night_swing',
+      'SIM-D:fault.prv_seat_leak',
+      'SIM-D:fault.hx_fouling',
+      'SIM-D:fault.o2_purity_drift',
+      'SIM-D:fault.delivery_unlogged',
     ]);
     expect(demo.find((s) => s.kind === 'fault.tank_leak')).toMatchObject({ kgPerDay: 0.05, startDay: 60, escalations: [{ day: 90, kgPerDay: 2 * DEMO_TANK_LEAK_SAFETY_KG_PER_DAY }] });
     expect(demo.find((s) => s.kind === 'fault.fc_air_filter_clog')).toMatchObject({ pct: 35, startDay: 70, cleanedDay: 110 });
@@ -199,6 +203,7 @@ describe('presetScenarios — demo (demo120 + P3)', () => {
     expect(() => planScenarios(SIM_SITES, demo, { originMs: scenarioOriginMs(fromMs) })).not.toThrow();
     expect(SCENARIO_PRESETS).toContain('demo');
     expect(() => presetScenarios('demo', ['SIM-A', 'SIM-B'], window(120))).toThrow('SIM-C');
-    expect(() => presetScenarios('demo', ALL, window(119))).toThrow('120일 이상');
+    expect(() => presetScenarios('demo', ALL, window(120))).toThrow('SIM-D');
+    expect(() => presetScenarios('demo', [...ALL, 'SIM-D'], window(119))).toThrow('120일 이상');
   });
 });

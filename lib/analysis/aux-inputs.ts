@@ -81,6 +81,8 @@ async function pvInputs(db: Kysely<DB>, siteId: number, assets: readonly Pipelin
 
 /** 무유동 hold 판정 기준 [kg/h] — tank.hold 정지 판정과 같은 값 */
 const IDLE_MAX_KG_H = 0.05;
+/** 'h2.pressure#fc.inlet' → 'h2.pressure' */
+const baseMetricKey = (key: string): string => key.split('#')[0] ?? key;
 /** 전해조 운전 판정 기준 [kg/h] */
 const ELZ_RUNNING_MIN_KG_H = 0.05;
 
@@ -91,9 +93,15 @@ async function gapyeongInputs(db: Kysely<DB>, assets: readonly PipelineAsset[], 
   const o2s = assets.filter((a) => a.classKey === 'o2.plant');
   if (prvs.length === 0 && hxs.length === 0 && o2s.length === 0) return {};
   const window = { start: 0, end: now };
-  const load = async (metricKeys: readonly string[], assetIds: readonly number[]): Promise<HourRowLike[]> => {
-    const selected = points.filter((p) => assetIds.includes(p.assetId) && metricKeys.includes(p.metricKey));
-    return selected.length === 0 ? [] : loadHourly(db, selected, window);
+  /**
+   * loadSitePoints는 한정자가 있는 포인트를 'metric#qualifier'로 준다. 표본 조립기(gapyeong-samples)는 한정자 없는 기본 키로 찾으므로
+   * 여기서 기본 키로 고르고 행의 metricKey도 기본 키로 되돌린다. 아래 메트릭은 설비마다 한정자가 하나뿐이라 겹치지 않는다.
+   */
+  const load = async (metricKeys: readonly string[], assetIds: readonly number[], include: (p: PointRow) => boolean = () => true): Promise<HourRowLike[]> => {
+    const selected = points.filter((p) => assetIds.includes(p.assetId) && metricKeys.includes(baseMetricKey(p.metricKey)) && include(p));
+    if (selected.length === 0) return [];
+    const rows = await loadHourly(db, selected, window);
+    return rows.map((row) => ({ ...row, metricKey: baseMetricKey(row.metricKey) }));
   };
 
   const fcPlants = assets.filter((a) => a.classKey === 'fc.plant');
@@ -102,7 +110,10 @@ async function gapyeongInputs(db: Kysely<DB>, assets: readonly PipelineAsset[], 
   const elz = assets.find((a) => a.classKey === 'h2.elz') ?? null;
   const stacks = assets.filter((a) => a.classKey === 'h2.elz.stack');
 
-  const prvRows = prvs.length === 0 ? [] : await load(['h2.pressure', 'h2.pressure.setpoint', 'fc.h2.consumption', 'ambient.temp'], [...prvs, ...fcPlants, ...banks, ...stations].map((a) => a.id));
+  // 감압밸브 하류 압력은 스키드(PRV1)에 계기가 있으면 그걸 쓰고, 도면처럼 연료전지 입구에 붙어 있으면 한정자 fc.inlet 포인트만 쓴다
+  const prvIds = new Set(prvs.map((a) => a.id));
+  const isOutletPressure = (p: PointRow) => baseMetricKey(p.metricKey) !== 'h2.pressure' || prvIds.has(p.assetId) || p.metricKey === 'h2.pressure#fc.inlet';
+  const prvRows = prvs.length === 0 ? [] : await load(['h2.pressure', 'h2.pressure.setpoint', 'fc.h2.consumption', 'ambient.temp'], [...prvs, ...fcPlants, ...banks, ...stations].map((a) => a.id), isOutletPressure);
   const hxRows = hxs.length === 0 ? [] : await load(['hx.temp.hot.in', 'hx.temp.hot.out', 'hx.temp.cold.in', 'hx.temp.cold.out', 'hx.flow.cold', 'hx.flow.hot', 'hx.heat.recovered', 'hx.pressure.diff.hot'], hxs.map((a) => a.id));
   const o2Rows = o2s.length === 0 ? [] : await load(['h2.in.o2', 'h2.flow.mass', 'stack.current'], [...o2s, ...(elz === null ? [] : [elz]), ...stacks].map((a) => a.id));
 
