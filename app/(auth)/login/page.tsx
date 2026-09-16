@@ -1,18 +1,9 @@
 import type { Metadata } from 'next';
-import { Hahmlet } from 'next/font/google';
 import { redirect } from 'next/navigation';
 import { BrandMark } from '@/components/console/brand-mark';
 import { getSession } from '@/lib/auth/dal';
 import { BRAND } from '@/lib/brand';
 import { LoginForm } from './login-form';
-
-// 브랜드 워드마크 전용. 이 페이지에서만 불러온다.
-const wordmarkFont = Hahmlet({
-  weight: '600',
-  subsets: ['latin'],
-  display: 'swap',
-  fallback: ['Noto Serif KR', 'Georgia', 'serif'],
-});
 
 const QUERY_ERRORS: Readonly<Record<string, string>> = {
   forbidden: '관리자 권한이 없는 계정입니다.',
@@ -36,7 +27,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <div className="flex w-full max-w-sm flex-col gap-8">
         <div className="flex flex-col items-center gap-2 text-center">
           <BrandMark className="size-11" />
-          <p className={`${wordmarkFont.className} mt-1 text-3xl leading-tight text-ink`}>{BRAND.name}</p>
+          {/* 워드마크. 본문과 같은 Pretendard를 쓰고 굵기·자간으로만 위계를 준다. */}
+          <p className="mt-1 text-3xl leading-tight font-semibold tracking-tight text-ink">{BRAND.name}</p>
           <p className="text-sm text-ink-2">
             {BRAND.nameKo} · {BRAND.tagline}
           </p>

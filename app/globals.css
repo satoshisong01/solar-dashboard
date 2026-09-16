@@ -44,7 +44,8 @@
   --chart-series-5: #e87ba4;
   --chart-series-6: #008300;
 
-  --font-body: var(--font-plex-sans), "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  /* Pretendard는 자체 호스팅(app/layout.tsx). 뒤의 "Pretendard"는 OS에 설치된 사본, 그 뒤는 macOS·Windows 기본 한글 글꼴. */
+  --font-body: var(--font-pretendard), Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   --font-code: var(--font-plex-mono), ui-monospace, "SFMono-Regular", Consolas, monospace;
 }
 
