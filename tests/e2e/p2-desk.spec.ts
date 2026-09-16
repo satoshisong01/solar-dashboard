@@ -6,6 +6,9 @@ import { E2E_INGEST_SITE } from './e2e-env';
 
 const panel = (page: Page, title: string) => page.locator('section', { has: page.getByRole('heading', { level: 2, name: title, exact: true }) }).last();
 
+/** 기술 근거는 기본으로 접혀 있다 */
+const openDetails = (page: Page) => page.locator('summary', { hasText: '자세히 보기' }).click();
+
 test('분석 데스크: SIM-B 최근 30일 분석 실행 → 결과 요약·실행 이력 → 인박스 또는 빈 상태 → 워크스페이스', async ({ page }) => {
   test.slow(); // 분석 실행은 롤업·에피소드 추출·탐지를 모두 한다
   await page.goto('/desk');
@@ -33,9 +36,21 @@ test('분석 데스크: SIM-B 최근 30일 분석 실행 → 결과 요약·실�
     await expect(inbox.getByText('아직 발견사항이 없습니다')).toBeVisible();
     return;
   }
+  // 인박스 행에 쉬운 말 한 줄 요약과 급함을 말로 쓴 칩이 있다
+  const firstRow = inbox.getByRole('region', { name: '발견사항 인박스 표' }).locator('tbody tr').first();
+  await expect(firstRow).toContainText('니다.');
+  await expect(firstRow).toContainText(/바로 확인|이번 주 확인|지켜보기|참고/);
+
   await links.first().click();
   await expect(page).toHaveURL(/\/desk\/\d+$/);
-  for (const title of ['효과', '원시 시계열', '원인 후보 판별', '활동 타임라인']) await expect(panel(page, title)).toBeVisible();
+  // 맨 위는 쉬운 요약 4줄, 기술 근거는 '자세히 보기'를 열어야 보인다
+  const plain = page.getByRole('region', { name: '쉬운 요약' });
+  await expect(plain).toBeVisible();
+  for (const label of ['어떻게 확인했나', '왜 문제인가', '지금 할 일']) await expect(plain).toContainText(label);
+  await expect(panel(page, '활동 타임라인')).toBeVisible();
+  await expect(panel(page, '효과')).toBeHidden();
+  await openDetails(page);
+  for (const title of ['효과', '원시 시계열', '원인 후보 판별']) await expect(panel(page, title)).toBeVisible();
   await expect(page.getByLabel('탐지기 신뢰 배지')).toBeVisible();
   await expect(panel(page, '활동 타임라인')).toContainText('발견사항 생성');
 });

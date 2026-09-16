@@ -1,6 +1,7 @@
 // 발견사항 쉬운 말 요약 (순수, 서버·클라이언트 공용).
 //   1) 무엇이 어떻게 됐는지  2) 왜 믿을 만한지  3) 왜 문제인지·언제까지 괜찮은지  4) 지금 할 일
 // 수치와 판정은 분석 엔진 값(finding.effect · 근거 스냅샷)을 그대로 쓰고 표현만 바꾼다.
+// 클라이언트 컴포넌트는 이 배럴 대신 잎 모듈(./headline · ./common)에서 바로 가져온다 — 여기는 근거 파서·리포트 계획 규칙까지 끌어온다.
 import type { EvidenceView } from '../evidence-types';
 import { plainBasis } from './basis';
 import { plainHeadline } from './headline';

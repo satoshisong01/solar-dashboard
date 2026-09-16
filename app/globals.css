@@ -195,4 +195,9 @@
   .print-section-title {
     break-after: avoid;
   }
+  /* 접어 둔 기술 근거(details)도 인쇄에는 펼쳐 나오게 한다 (찾기는 브라우저가 알아서 펼친다) */
+  details::details-content {
+    content-visibility: visible;
+    block-size: auto;
+  }
 }

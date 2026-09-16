@@ -8,8 +8,10 @@ import { ChecksTable, PlaybookDetails } from '@/components/desk/checks-panel';
 import { EffectCard } from '@/components/desk/effect-card';
 import { EvidenceCanvas } from '@/components/desk/evidence-canvas';
 import { FindingHeader } from '@/components/desk/finding-header';
+import { PlainSummaryCard } from '@/components/desk/plain-summary-card';
 import { RawSeriesPanel } from '@/components/desk/raw-series-panel';
 import { SafetyFindingBanner } from '@/components/desk/safety-finding-banner';
+import { TechnicalDetails } from '@/components/desk/technical-details';
 import { EmptyNote, Panel } from '@/components/ui/panel';
 import scorecardJson from '@/lib/analytics/scorecard.json';
 import { PLAYBOOKS } from '@/lib/analytics/playbooks';
@@ -21,6 +23,7 @@ import { isSimConsoleEnabled } from '@/lib/data/sim-console';
 import { requestTimeMs } from '@/lib/data/time';
 import { expectedEffectDefaults, verificationMetricsFor } from '@/lib/desk/action-defaults';
 import { chargeTimeText, convertedChargeTime } from '@/lib/desk/conditions';
+import { plainSummary } from '@/lib/desk/plain';
 import { isSafetyFinding } from '@/lib/desk/safety';
 import { parseScorecard, trustBadgeFor } from '@/lib/desk/scorecard';
 import { buildTimeline } from '@/lib/desk/timeline';
@@ -98,21 +101,40 @@ export default async function FindingPage({ params, searchParams }: FindingPageP
   const chargeTime = chargeTimeOf(finding);
   const assetLabel = finding.asset ? finding.asset.code : finding.siteCode;
   const basePath = `/desk/${finding.id}`;
+  const plain = plainSummary(
+    {
+      assetName: finding.asset?.name ?? null,
+      assetCode: finding.asset?.code ?? null,
+      siteName: finding.siteName,
+      detectorId: finding.detectorId,
+      failureMode: finding.failureMode,
+      severity: finding.severity,
+      title: finding.title,
+      effect: finding.effect,
+      windowStartMs: finding.windowStartMs,
+      windowEndMs: finding.windowEndMs,
+    },
+    evidence,
+  );
 
   return (
     <>
       <Breadcrumb items={[{ label: '분석 데스크', href: '/desk' }, { label: `발견사항 #${finding.id}` }]} />
       <FindingHeader finding={finding} badge={trustBadgeFor(parseScorecard(scorecardJson), finding.detectorId)} simEnabled={isSimConsoleEnabled()} />
       {isSafetyFinding(finding) && <SafetyFindingBanner />}
-      <EffectCard finding={finding} chargeTimeText={chargeTime} />
-      <EvidenceCanvas evidence={evidence} chargeTimeText={chargeTime} assetLabel={assetLabel} siteCode={finding.siteCode} peerCodes={peerCodes} />
-      <section id="raw-series" className="scroll-mt-20">
-        <RawSeriesPanel series={series} span={span} basePath={basePath} exploreHref={finding.asset ? `/sites/${encodeURIComponent(finding.siteCode)}/assets/${finding.asset.id}` : null} />
-      </section>
-      <Panel title="원인 후보 판별" meta={playbook ? playbook.title : undefined}>
-        <ChecksTable checks={checks} />
-        {playbook && <PlaybookDetails playbook={playbook} />}
-      </Panel>
+      <PlainSummaryCard summary={plain} severity={finding.severity} />
+      {/* 원시 시계열 기간을 고른 뒤 돌아온 요청(?series=)은 그 조작을 이어 쓰도록 펼친 채로 연다 */}
+      <TechnicalDetails label="효과·근거·원시 시계열·원인 판별" defaultOpen={spanParam !== undefined}>
+        <EffectCard finding={finding} chargeTimeText={chargeTime} />
+        <EvidenceCanvas evidence={evidence} chargeTimeText={chargeTime} assetLabel={assetLabel} siteCode={finding.siteCode} peerCodes={peerCodes} />
+        <section id="raw-series" className="scroll-mt-20">
+          <RawSeriesPanel series={series} span={span} basePath={basePath} exploreHref={finding.asset ? `/sites/${encodeURIComponent(finding.siteCode)}/assets/${finding.asset.id}` : null} />
+        </section>
+        <Panel title="원인 후보 판별" meta={playbook ? playbook.title : undefined}>
+          <ChecksTable checks={checks} />
+          {playbook && <PlaybookDetails playbook={playbook} />}
+        </Panel>
+      </TechnicalDetails>
       <ActionPanel finding={finding} />
       <Panel title="활동 타임라인" meta="상태 전이 · 근거 갱신 · 조치 · 효과 검증">
         <ActivityTimeline entries={buildTimeline(finding, nowMs)} />

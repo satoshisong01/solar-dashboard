@@ -4,6 +4,7 @@ import { statusLabel } from '@/lib/analysis/transition-rules';
 import { FLEET_COLUMNS } from '@/lib/data/domains';
 import { STATUS_FILTER_OPTIONS, type InboxFilter, type StatusFilter } from '@/lib/desk/inbox';
 import { CATEGORY_LABELS, FINDING_CATEGORIES, SEVERITY_LEVELS, severityLabel } from '@/lib/desk/labels';
+import { severityAction } from '@/lib/desk/plain/common';
 
 const statusFilterLabel = (value: StatusFilter): string => (value === 'open' ? '열린 건 (기각·효과 확인 제외)' : value === 'all' ? '전체' : statusLabel(value));
 
@@ -49,12 +50,12 @@ export function InboxFilters({ filter, siteCodes }: InboxFiltersProps) {
         </select>
       </label>
       <label className="flex flex-col gap-1 text-xs font-medium text-ink-2">
-        심각도
+        급함(심각도)
         <select name="severity" defaultValue={filter.minSeverity === null ? '' : String(filter.minSeverity)} className={SELECT_CLASS}>
           <option value="">전체</option>
           {SEVERITY_LEVELS.map((level) => (
             <option key={level} value={level}>
-              {severityLabel(level)} 이상
+              {severityAction(level)}({severityLabel(level)}) 이상
             </option>
           ))}
         </select>

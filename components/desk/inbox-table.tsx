@@ -9,6 +9,8 @@ import { NUM_CLASS, TABLE_CLASS, TD_CLASS, TH_CLASS, TableScroll } from '@/compo
 import { formatEffectWithCi } from '@/lib/desk/effect';
 import type { InboxRow } from '@/lib/desk/inbox';
 import { CATEGORY_LABELS, detectorLabel } from '@/lib/desk/labels';
+import { assetCodeOf } from '@/lib/desk/plain/common';
+import { plainHeadline } from '@/lib/desk/plain/headline';
 import { IDLE_STATE, type ActionState } from '@/lib/forms/action-state';
 import { formatKstDateTime } from '@/lib/format';
 import { DismissFields } from './dismiss-fields';
@@ -40,11 +42,12 @@ function FindingCells({ row }: Readonly<{ row: InboxRow }>) {
           <ConfidenceBar confidence={row.confidence} />
         </span>
       </td>
-      <td className={`${TD_CLASS} min-w-64`}>
+      <td className={`${TD_CLASS} min-w-64 max-w-md`}>
         <Link href={`/desk/${row.id}`} className="font-medium text-ink hover:underline">
           {row.title}
         </Link>
-        <span className="block text-xs text-ink-2">
+        <span className="mt-0.5 block text-sm text-pretty text-ink-2">{plainHeadline({ ...row, assetCode: assetCodeOf(row.assetPath) })}</span>
+        <span className="mt-0.5 block text-xs text-muted">
           {row.siteCode}
           {row.assetPath ? ` · ${row.assetPath.replace(`${row.siteCode}/`, '')}` : ' · 사이트 단위'} · {detectorLabel(row.detectorId)} · {CATEGORY_LABELS[row.category]}
         </span>
@@ -120,7 +123,7 @@ function InboxTable({ rows, triage, dismiss, dismissState, pending }: TableProps
                   <span className="sr-only">모두 선택</span>
                 </label>
               </th>
-              <th scope="col" className={TH_CLASS}>심각도·신뢰도</th>
+              <th scope="col" className={TH_CLASS}>급함·신뢰도</th>
               <th scope="col" className={TH_CLASS}>발견사항</th>
               <th scope="col" className={TH_CLASS}>효과 크기</th>
               <th scope="col" className={TH_CLASS}>상태</th>

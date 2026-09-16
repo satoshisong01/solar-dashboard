@@ -72,6 +72,10 @@ test('(2) 워크스페이스: 용량 감소 효과·95% CI·같은 조건 비교
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(/배터리 유효용량 \d+\.\d% 감소/);
   await expect(page.getByLabel('탐지기 신뢰 배지')).toBeVisible();
 
+  // 쉬운 요약이 먼저, 기술 근거는 접혀 있다
+  await expect(page.getByRole('region', { name: '쉬운 요약' })).toContainText(/담기는 전기의 양이 처음 재던 때보다 \d+(\.\d)?% 줄었습니다\./);
+  await page.locator('summary', { hasText: '자세히 보기' }).click();
+
   const effect = panel(page, '효과');
   await expect(effect).toContainText(/−\d+\.\d{2}%/);
   await expect(effect).toContainText(/95% CI −\d+\.\d{2} ~ −\d+\.\d{2}/);

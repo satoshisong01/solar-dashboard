@@ -1,5 +1,6 @@
 import { statusLabel, type FindingStatus } from '@/lib/analysis/transition-rules';
 import { severityLabel } from '@/lib/desk/labels';
+import { severityAction } from '@/lib/desk/plain/common';
 
 const SEVERITY_TONE: readonly string[] = [
   'border-rule bg-surface text-muted',
@@ -10,12 +11,16 @@ const SEVERITY_TONE: readonly string[] = [
   'border-crit bg-crit-fill text-crit',
 ];
 
-/** 심각도 1~5 칩. 숫자와 이름을 함께 쓴다 (색만으로 구분하지 않음) */
+/** 심각도 1~5 칩. 보이는 글자는 할 일의 급함('바로 확인')이고 숫자는 작게 병기한다 (색만으로 구분하지 않음).
+ *  화면 낭독기에는 원래 이름('심각도 4 · 높음')을 먼저 읽힌다 */
 export function FindingSeverityChip({ severity }: Readonly<{ severity: number }>) {
   return (
-    <span className={`inline-flex items-center rounded border px-1.5 py-px text-xs font-medium whitespace-nowrap ${SEVERITY_TONE[severity] ?? SEVERITY_TONE[0]}`}>
-      <span className="sr-only">심각도 </span>
-      {severityLabel(severity)}
+    <span className={`inline-flex items-center gap-1 rounded border px-1.5 py-px text-xs font-medium whitespace-nowrap ${SEVERITY_TONE[severity] ?? SEVERITY_TONE[0]}`}>
+      <span className="sr-only">심각도 {severityLabel(severity)} · </span>
+      {severityAction(severity)}
+      <span aria-hidden="true" className="font-mono text-[0.625rem] opacity-70 tabular-nums">
+        {severity}
+      </span>
     </span>
   );
 }

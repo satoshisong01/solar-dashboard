@@ -86,6 +86,8 @@ test('(2) 누설 워크스페이스: 안전 배너·대체 불가 문구, 정지
   const safety = page.getByRole('region', { name: /^안전 발견사항 — 현장 안전책임자 판단/ });
   await expect(safety).toBeVisible();
   await expect(safety).toContainText(SAFETY_NOTICE);
+  await expect(page.getByRole('region', { name: '쉬운 요약' })).toContainText('수소를 넣지도 빼지도 않는 동안');
+  await page.locator('summary', { hasText: '자세히 보기' }).click();
 
   const holdsPanel = panel(page, '정지 보유 구간');
   await expect(holdsPanel).toContainText(/결합 누설률[\d.]+ kg\/일 \(95% CI [\d.]+ ~ [\d.]+\)/);
@@ -162,6 +164,7 @@ test('(5) 탐지기 설정: 운영 버전 v1 → 새 버전 v2 저장 → 범위
 
   await runChainAnalysis(page);
   await page.goto(`/desk/${ids.massBalance}`);
+  await page.locator('summary', { hasText: '자세히 보기' }).click();
   await expect(panel(page, '효과')).toContainText('적용한 탐지기 설정: default@2');
   await page.goto(`/sites/${P3_SITE}?chain=custom&from=${P3_INPUTS.chain.from}&to=${P3_INPUTS.chain.to}`);
   await expect(panel(page, '수소 물질수지 잔차')).toContainText('기준 ±3% (설정 default@2)');

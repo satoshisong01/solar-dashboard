@@ -5,6 +5,8 @@ import { EmptyNote, Panel } from '@/components/ui/panel';
 import { VERIFICATION_ARRIVAL_MS, type FindingWorkCounts } from '@/lib/data/findings';
 import { formatEffectValue } from '@/lib/desk/effect';
 import type { InboxRow } from '@/lib/desk/inbox';
+import { assetCodeOf } from '@/lib/desk/plain/common';
+import { plainHeadline } from '@/lib/desk/plain/headline';
 import { formatAgo, formatDuration } from '@/lib/format';
 
 const LINK_CLASS = 'inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline';
@@ -12,10 +14,10 @@ const LINK_CLASS = 'inline-flex items-center gap-1 text-sm font-medium text-acce
 /** 할 일 카운터: 새 발견사항 · 조사 중 · 리포트 승인 대기 · 조치 후 검증 대기 · 검증 결과 도착 */
 export function WorkCountersPanel({ counts }: Readonly<{ counts: FindingWorkCounts }>) {
   const items = [
-    { label: '새 발견사항', value: counts.newCount, href: '/desk?status=new#inbox', note: '분류 전' },
-    { label: '조사 중', value: counts.triaged, href: '/desk?status=triaged#inbox', note: '분류됨' },
-    { label: '리포트 승인 대기', value: counts.reportsAwaitingApproval, href: '/reports', note: '검토 중인 초안' },
-    { label: '조치 후 검증 대기', value: counts.awaitingVerification, href: '/desk?status=action_taken#inbox', note: '조치 완료' },
+    { label: '새 발견사항', value: counts.newCount, href: '/desk?status=new#inbox', note: '아직 안 본 것' },
+    { label: '조사 중', value: counts.triaged, href: '/desk?status=triaged#inbox', note: '보고 있는 것' },
+    { label: '리포트 승인 대기', value: counts.reportsAwaitingApproval, href: '/reports', note: '읽고 승인할 초안' },
+    { label: '조치 후 검증 대기', value: counts.awaitingVerification, href: '/desk?status=action_taken#inbox', note: '고친 뒤 결과 기다리는 중' },
     { label: '검증 결과 도착', value: counts.verificationsArrived, href: '/desk?status=all#inbox', note: `최근 ${formatDuration(VERIFICATION_ARRIVAL_MS)} 계산` },
   ];
   return (
@@ -59,7 +61,8 @@ export function TopFindingsPanel({ rows, nowMs, limit }: Readonly<{ rows: readon
                 <Link href={`/desk/${row.id}`} className="font-medium text-ink hover:underline">
                   {row.title}
                 </Link>
-                <span className="text-xs text-ink-2">
+                <span className="text-sm text-pretty text-ink-2">{plainHeadline({ ...row, assetCode: assetCodeOf(row.assetPath) })}</span>
+                <span className="text-xs text-muted">
                   {row.siteCode}
                   {row.assetPath ? ` · ${row.assetPath.replace(`${row.siteCode}/`, '')}` : ''} · 최근 탐지 {formatAgo(row.lastDetectedMs, nowMs)}
                   {row.previousFindingId && (
