@@ -3,6 +3,7 @@
 // DB 경로는 정지 구간·열 저감 원시를 필요한 구간만 읽는다(lib/analysis). 여기서는 전체를 만들고 점검 시각마다 같은 규칙의 창으로 자른다.
 import type { TimedNumber } from '@/lib/analytics/detectors/common';
 import { INV_THERMAL_DERATING_DEFAULTS } from '@/lib/analytics/detectors/inv-thermal-derating';
+import { htoDays, hxSamples, prvHolds, type HourRowLike, type HtoDay, type HxSample, type PrvHold } from '@/lib/analytics/episodes/gapyeong-samples';
 import { inverterThermalSamples, type InverterThermalSample } from '@/lib/analytics/episodes/inverter-thermal';
 import { tankHoldPointsMany, type TankHoldPoint } from '@/lib/analytics/episodes/tank-hold';
 import { LEDGER_METRICS } from '@/lib/analytics/ledger/hourly';
@@ -23,6 +24,10 @@ export interface PreparedP3 {
   readonly thermalSamples: readonly InverterThermalSample[];
   readonly rectifierEfficiency: readonly (readonly [stackId: number, days: readonly TimedNumber[]])[];
   readonly ledgerDays: readonly LedgerDayRow[];
+  /** 가평 구성 탐지기 3종 입력 (부속 계통이 없는 사이트는 빈 배열) */
+  readonly prvHolds: readonly (readonly [assetId: number, holds: readonly PrvHold[]])[];
+  readonly hxSamples: readonly (readonly [assetId: number, samples: readonly HxSample[]])[];
+  readonly htoDays: readonly (readonly [assetId: number, days: readonly HtoDay[]])[];
 }
 
 type Memory = ReadonlyMap<string, MemorySeries>;
@@ -71,8 +76,49 @@ function ledger(site: EvalSite, memory: Memory, window: TimeWindow): LedgerDayRo
   return buildLedgerDays({ assets, rows, dayStarts: completeKstDays(window), prRef: null }).map(ledgerDayRowOf);
 }
 
+const IDLE_MAX_KG_H = 0.05;
+const ELZ_RUNNING_MIN_KG_H = 0.05;
+
+/** 가평 구성 부속 계통 표본 (DB 경로 lib/analysis/aux-inputs.ts와 같은 순수 함수를 쓴다) */
+function gapyeong(site: EvalSite, memory: Memory): Pick<PreparedP3, 'prvHolds' | 'hxSamples' | 'htoDays'> {
+  const prvs = site.assets.filter((a) => a.classKey === 'h2.prv');
+  const hxs = site.assets.filter((a) => a.classKey === 'hx.recovery');
+  const o2s = site.assets.filter((a) => a.classKey === 'o2.plant');
+  if (prvs.length === 0 && hxs.length === 0 && o2s.length === 0) return { prvHolds: [], hxSamples: [], htoDays: [] };
+  const fcPlants = site.assets.filter((a) => a.classKey === 'fc.plant');
+  const banks = site.assets.filter((a) => a.classKey === 'h2.storage.bank');
+  const stations = site.assets.filter((a) => a.classKey === 'wx.station');
+  const elz = site.assets.find((a) => a.classKey === 'h2.elz') ?? null;
+  const stacks = site.assets.filter((a) => a.classKey === 'h2.elz.stack');
+  const rows = (pairs: readonly (readonly [asset: PipelineAsset, metricKey: string, qualifier?: string])[]): HourRowLike[] =>
+    pairs.flatMap(([asset, metricKey, qualifier]) => {
+      const series = memory.get(pointKey(`${site.site.code}/${asset.code}`, metricKey, qualifier ?? ''));
+      return series ? hourlyRows(series, asset.id, metricKey) : [];
+    });
+
+  const prvRows = rows([
+    ...prvs.flatMap((prv) => [[prv, 'h2.pressure', 'fc.inlet'] as const, [prv, 'h2.pressure.setpoint'] as const]),
+    ...fcPlants.map((fc) => [fc, 'fc.h2.consumption'] as const),
+    ...banks.map((bank) => [bank, 'h2.pressure', 'buffer'] as const),
+    ...stations.map((wx) => [wx, 'ambient.temp'] as const),
+  ]);
+  const hxMetrics = ['hx.temp.hot.in', 'hx.temp.hot.out', 'hx.temp.cold.in', 'hx.temp.cold.out', 'hx.flow.cold', 'hx.flow.hot', 'hx.heat.recovered', 'hx.pressure.diff.hot'] as const;
+  const hxRows = rows(hxs.flatMap((hx) => hxMetrics.map((metricKey) => [hx, metricKey] as const)));
+  const o2Rows = rows([
+    ...o2s.map((plant) => [plant, 'h2.in.o2', 'o2.product'] as const),
+    ...(elz === null ? [] : [[elz, 'h2.flow.mass', 'elz.out'] as const, [elz, 'h2.flow.mass'] as const]),
+    ...stacks.map((stack) => [stack, 'stack.current'] as const),
+  ]);
+  const ratedCurrentA = stacks[0] ? Number(stacks[0].nameplate.rated_current_a) || null : null;
+  return {
+    prvHolds: prvs.map((prv) => [prv.id, prvHolds(prvRows, { prvAssetId: prv.id, outletAssetIds: [prv.id, ...fcPlants.map((a) => a.id)], fcAssetIds: fcPlants.map((a) => a.id), bufferAssetIds: banks.map((a) => a.id), wxAssetId: stations[0]?.id ?? null, idleMaxKgH: IDLE_MAX_KG_H })] as const),
+    hxSamples: hxs.map((hx) => [hx.id, hxSamples(hxRows, hx.id)] as const),
+    htoDays: o2s.map((plant) => [plant.id, htoDays(o2Rows, { htoAssetId: plant.id, elzAssetId: elz?.id ?? null, elzStackAssetIds: stacks.map((a) => a.id), ratedCurrentA, runningMinKgH: ELZ_RUNNING_MIN_KG_H })] as const),
+  };
+}
+
 export function prepareP3(site: EvalSite, memory: Memory, window: TimeWindow, episodes: readonly StoredEpisode[]): PreparedP3 {
-  return { tankHoldPoints: tankPoints(site, memory, episodes), thermalSamples: thermal(site, memory, window), rectifierEfficiency: rectifier(site, memory), ledgerDays: ledger(site, memory, window) };
+  return { tankHoldPoints: tankPoints(site, memory, episodes), thermalSamples: thermal(site, memory, window), rectifierEfficiency: rectifier(site, memory), ledgerDays: ledger(site, memory, window), ...gapyeong(site, memory) };
 }
 
 /** 첫 표본 인덱스 (ts 오름차순 이진 탐색) */
@@ -95,5 +141,8 @@ export function auxAt(prepared: PreparedP3, now: number): SiteAuxInputs {
     thermalSamples: prepared.thermalSamples.slice(lowerBound(prepared.thermalSamples, window.start), lowerBound(prepared.thermalSamples, window.end)),
     rectifierEfficiency: new Map(prepared.rectifierEfficiency),
     ledgerDays: prepared.ledgerDays,
+    prvHolds: new Map(prepared.prvHolds),
+    hxSamples: new Map(prepared.hxSamples),
+    htoDays: new Map(prepared.htoDays),
   };
 }

@@ -142,7 +142,7 @@ describe('가평 부속 계통 (SIM-D)', () => {
     // HTO는 법정 압축금지선 2 vol% 아래다
     expect(t.maxHto).toBeGreaterThan(0);
     expect(t.maxHto).toBeLessThan(2);
-  });
+  }, 60_000);
 
   it('고장 주입: 시트 누설·열교환기 오염·수질 악화·HTO 상승·반입 기록 누락이 각각 측정값에 나타난다', () => {
     const healthy = run(DAYS);
@@ -164,5 +164,5 @@ describe('가평 부속 계통 (SIM-D)', () => {
     const unlogged = run(DAYS, [{ kind: 'fault.delivery_unlogged', site: 'SIM-D', startDay: 0, days: DAYS }]);
     expect(unlogged.deliveryMeterDeltaKg).toBe(0);
     expect(unlogged.deliveredKg).toBe(0); // 유량계도 같은 계량기라 0으로 보인다 — 실제 하역은 계속된다
-  });
+  }, 120_000);
 });

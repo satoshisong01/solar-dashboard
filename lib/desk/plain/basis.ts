@@ -1,7 +1,7 @@
 // 2) 왜 믿을 만한지 — 무엇과 무엇을 같은 조건에서 견줬는지 한 문장. 근거 스냅샷(EvidenceView)의 표본 수·조건 범위를 그대로 쓴다.
 import { parseCapacityBinKey, tempRangeText } from '../conditions';
 import type { CapacityEvidence, CellImbalanceEvidence, DqEvidence, EvidenceView, PvPeerEvidence, StackEvidence } from '../evidence-types';
-import type { MassBalanceEvidence, RiseEvidence, SoilingEvidence, TankLeakEvidence, ThermalEvidence } from '../p3-evidence-types';
+import type { GapyeongEvidence, MassBalanceEvidence, RiseEvidence, SoilingEvidence, TankLeakEvidence, ThermalEvidence } from '../p3-evidence-types';
 import { RISE_META } from '../rise-meta';
 import { amount, withParticle } from './common';
 
@@ -91,6 +91,12 @@ function thermalBasis(e: ThermalEvidence): string {
   return `최근 ${e.days.length}일을 바깥 기온이 비슷한 날끼리 묶어 같은 사이트의 다른 인버터들과 견줬고, 출력을 일부러 줄인 시간은 뺐습니다`;
 }
 
+const GAPYEONG_BASIS: Readonly<Record<GapyeongEvidence['detectorId'], (e: GapyeongEvidence) => string>> = {
+  'prv.seat_leak': (e) => `연료전지가 멈춰 수소가 흐르지 않은 구간 최근 ${amount(e.recentCount)}개와 예전 ${amount(e.referenceCount)}개에서, 압력이 시간당 얼마씩 오르는지 쟀습니다`,
+  'hx.fouling': (e) => `들어오는 물 온도가 비슷했던 때끼리만 골라 ${comparedCounts(e.referenceCount, e.recentCount, '시간')}`,
+  'o2.purity_drift': (e) => `수전해가 실제로 돌던 시간만 모아, 예전 ${amount(e.referenceCount)}일과 최근 ${amount(e.recentCount)}일의 하루 중앙값을 견줬습니다`,
+};
+
 /** 근거 스냅샷을 읽을 수 없으면 null (문장을 지어내지 않는다) */
 export function plainBasis(evidence: EvidenceView): string | null {
   switch (evidence.kind) {
@@ -114,6 +120,8 @@ export function plainBasis(evidence: EvidenceView): string | null {
       return `${soilingBasis(evidence)}.`;
     case 'thermal':
       return `${thermalBasis(evidence)}.`;
+    case 'gapyeong':
+      return `${GAPYEONG_BASIS[evidence.detectorId](evidence)}.`;
     default:
       return null;
   }

@@ -2,10 +2,10 @@ import { expect, test, type Page } from '@playwright/test';
 import { installKakaoMapStub } from './kakao-stub';
 
 // 지도 SDK는 tests/e2e/kakao-stub.ts로 대신한다 (playwright.config.ts가 카카오 CDN을 막는다).
-// 데이터는 globalSetup이 만든 사이트 4곳(가상 SIM-A/B/C + 실사이트 GP-1)이고, 열린 발견사항 수는 앞선 테스트에 따라 달라지므로
+// 데이터는 globalSetup이 만든 사이트 5곳(가상 SIM-A/B/C/D + 실사이트 GP-1)이고, 열린 발견사항 수는 앞선 테스트에 따라 달라지므로
 // 건수 자체가 아니라 "상태대로 그려지는가·고르면 따라오는가"를 본다.
 
-const SITE_COUNT = 4;
+const SITE_COUNT = 5;
 /** 시드한 사이트 코드 (가상 3곳 + 가평) */
 const SITE_CODE = /(GP-1|SIM-[A-Z])/;
 /** 마커 링크의 접근성 이름은 '… · 사이트 화면 열기'로 끝난다 (상세 패널의 같은 이름 버튼과 구분된다) */
@@ -26,7 +26,7 @@ test.describe('지도', () => {
     await page.addInitScript(installKakaoMapStub);
   });
 
-  test('플릿 지도에 사이트 4곳이 마커로 그려지고, 상단 요약이 수준별 건수를 보여 준다', async ({ page }) => {
+  test('플릿 지도에 사이트 5곳이 마커로 그려지고, 상단 요약이 수준별 건수를 보여 준다', async ({ page }) => {
     await openFleetMap(page);
 
     // 왼쪽 위 상태 칩
@@ -41,7 +41,7 @@ test.describe('지도', () => {
     const sum = totals.map((text) => Number(text.replace(/\D/g, ''))).reduce((total, value) => total + value, 0);
     expect(sum).toBe(SITE_COUNT);
 
-    // 목록도 같은 4곳이고, 각 항목에 상태와 마지막 수신이 적혀 있다
+    // 목록도 같은 5곳이고, 각 항목에 상태와 마지막 수신이 적혀 있다
     await expect(siteList(page)).toHaveCount(SITE_COUNT);
   });
 

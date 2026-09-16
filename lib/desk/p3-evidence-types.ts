@@ -161,4 +161,39 @@ export interface ThermalEvidence {
   readonly checks: readonly CheckView[];
 }
 
-export type P3EvidenceView = RiseEvidence | TankLeakEvidence | MassBalanceEvidence | SoilingEvidence | ThermalEvidence;
+export type GapyeongEvidenceDetectorId = 'prv.seat_leak' | 'hx.fouling' | 'o2.purity_drift';
+
+/**
+ * 가평 구성 탐지기 3종 공용 표시 모델: 기준 구간 값 → 최근 구간 값 (+ 한계선까지 남은 여유).
+ * 셋 다 '같은 조건에서 어떤 값이 얼마나 움직였는가'라는 뼈대가 같아 한 타입으로 읽는다.
+ */
+export interface GapyeongEvidence {
+  readonly kind: 'gapyeong';
+  readonly detectorId: GapyeongEvidenceDetectorId;
+  /** 비교 지표 이름 ('접근온도 (1차측 입구 − 2차측 출구)') */
+  readonly subject: string;
+  readonly unit: string;
+  readonly referenceCount: number;
+  readonly recentCount: number;
+  readonly referenceLevel: number | null;
+  readonly recentLevel: number | null;
+  /** 한계선 (압축금지 2 vol% · 크리프 경고 기준). 없으면 null */
+  readonly limit: number | null;
+  readonly limitLabel: string | null;
+  /** 한계선까지 남은 여유 */
+  readonly margin: number | null;
+  readonly extra: {
+    readonly alarmHolds: number | null;
+    readonly minAlarmHolds: number | null;
+    readonly leakNlPerMin: number | null;
+    readonly downstreamVolumeM3: number | null;
+    readonly uaDropPct: number | null;
+    readonly marginPctPoints: number | null;
+  };
+  /** 날짜별 값 (추세 차트) */
+  readonly points: readonly { readonly date: string; readonly value: number | null }[];
+  readonly note: string | null;
+  readonly checks: readonly CheckView[];
+}
+
+export type P3EvidenceView = RiseEvidence | TankLeakEvidence | MassBalanceEvidence | SoilingEvidence | ThermalEvidence | GapyeongEvidence;

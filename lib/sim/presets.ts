@@ -3,6 +3,7 @@
 // - 평가(sim:eval)용: EVAL_PRESET 크기 스윕과 evalRunPlans (P2 순번 뒤에 P3 순번, presets-eval-p3.ts)
 import { KST_OFFSET_MS, MS_PER_DAY, MS_PER_HOUR, MS_PER_MINUTE } from './math';
 import { demoP3Scenarios } from './presets-demo';
+import { EVAL_GAPYEONG_PRESET, gapyeongRunCount, gapyeongRunScenarios, type GapyeongEvalMagnitudes } from './presets-eval-gapyeong';
 import { EVAL_P3_PRESET, p3RunScenarios, type P3EvalMagnitudes } from './presets-eval-p3';
 import type { Scenario } from './scenarios';
 
@@ -131,6 +132,8 @@ export const EVAL_PRESET = Object.freeze({
   ] satisfies readonly Scenario[],
   /** P3 고장 스윕·대조군 (P2 순번 뒤에 붙는다) */
   p3: EVAL_P3_PRESET,
+  /** 가평 구성 고장 스윕 (P3 순번 뒤에 붙는다, SIM-D) */
+  gapyeong: EVAL_GAPYEONG_PRESET,
 });
 
 export type EvalPreset = typeof EVAL_PRESET;
@@ -145,6 +148,8 @@ export interface EvalMagnitudes {
   readonly inverterDropPctPoints: number | null;
   /** P3 실행이면 P3 크기 (P2 크기는 모두 null) */
   readonly p3: P3EvalMagnitudes | null;
+  /** 가평 구성 실행이면 그 크기 (P2·P3 크기는 모두 null) */
+  readonly gapyeong?: GapyeongEvalMagnitudes | null;
 }
 
 export interface EvalRunPlan {
@@ -195,7 +200,18 @@ function p3RunPlans(preset: EvalPreset, seed: number): EvalRunPlan[] {
  * (동종 비교 기준이 남도록 랙·인버터는 1대씩 — SIM-A 랙 1 용량·랙 3 셀 불균형, SIM-B 랙 1 용량 — 목록이 짧은 스윕은 그 순번에 고장 없음).
  */
 export function evalRunPlans(preset: EvalPreset = EVAL_PRESET): readonly EvalRunPlan[] {
-  return preset.seeds.flatMap((seed) => [...p2RunPlans(preset, seed), ...p3RunPlans(preset, seed)]);
+  return preset.seeds.flatMap((seed) => [...p2RunPlans(preset, seed), ...p3RunPlans(preset, seed), ...gapyeongRunPlans(preset, seed)]);
+}
+
+/** 가평 구성 순번 (SIM-D 한 사이트. 고장이 없는 순번은 계획을 만들지 않는다) */
+function gapyeongRunPlans(preset: EvalPreset, seed: number): EvalRunPlan[] {
+  return Array.from({ length: gapyeongRunCount(preset.gapyeong) }, (_, i) => gapyeongRunScenarios(preset.gapyeong, i))
+    .map((run, i): EvalRunPlan | null =>
+      run.siteCodes.length === 0
+        ? null
+        : { id: `eval-s${seed}-gp-${i + 1}`, seed, from: preset.from, days: preset.days, siteCodes: run.siteCodes, magnitudes: { ...NO_P2_MAGNITUDES, p3: null, gapyeong: run.magnitudes }, scenarios: run.scenarios },
+    )
+    .filter((plan): plan is EvalRunPlan => plan !== null);
 }
 
 function p2RunPlans(preset: EvalPreset, seed: number): EvalRunPlan[] {

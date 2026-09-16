@@ -1,4 +1,4 @@
-// P3 게이트와 부가 지표 (설계 §8 P3 완료 기준 + 탐지기별 기준 크기). 순수 모듈.
+// P3·가평 구성 게이트와 부가 지표 (설계 §8 P3 완료 기준 + 탐지기별 기준 크기). 순수 모듈.
 //   건강한 사이트 물질수지: 대조군 SIM-C 일별 |잔차율| 중앙값 < 1% · 95퍼센타일 < 2% (수소 원장 완결성 0.9 이상인 날)
 //   저장용기 미세누설 최소 탐지 크기: 재현율 0.9 이상인 가장 작은 누설률 ≤ TANK_MIN_DETECTABLE_GATE (곡선은 detectors 항목)
 //   PV 대조군: 출력제어·흐린 주·비 오는 주 구간(+7일)에 PV 탐지기 finding 0건
@@ -62,6 +62,23 @@ function referenceGates(jobs: readonly SiteJobResult[]): GateResult[] {
   ];
 }
 
+/**
+ * 가평 구성 탐지기 3종 재현율 게이트 (기준 크기는 조사 문서의 '주의' 단계).
+ *   prv.seat_leak   60 mbar/h 이상 (경고 13 · 주의 130 — research-pressure)
+ *   hx.fouling      UA 35% 이상 저하 (경고 15 · 주의 25 — research-heat)
+ *   o2.purity_drift HTO +0.8 vol%p 이상 (법정 압축금지선 2 vol% — research-oxygen)
+ */
+export function gapyeongGates(jobs: readonly SiteJobResult[]): GateResult[] {
+  const prv = scoreAtLeast(jobs, 'prv.seat_leak', 60);
+  const hx = scoreAtLeast(jobs, 'hx.fouling', 35);
+  const o2 = scoreAtLeast(jobs, 'o2.purity_drift', 0.8);
+  return [
+    gate('prv.seat_leak.recall_60mbar_h', `prv.seat_leak 무유동 크리프 60 mbar/h 이상 재현율 (주입 ${prv.injections}건)`, prv.recall, '>=', REFERENCE_RECALL),
+    gate('hx.fouling.recall_35pct', `hx.fouling UA 35% 이상 저하 재현율 (주입 ${hx.injections}건)`, hx.recall, '>=', REFERENCE_RECALL),
+    gate('o2.purity_drift.recall_0_8pct_points', `o2.purity_drift HTO +0.8 vol%p 이상 재현율 (주입 ${o2.injections}건)`, o2.recall, '>=', REFERENCE_RECALL),
+  ];
+}
+
 export function p3Gates(jobs: readonly SiteJobResult[], scores: readonly DetectorScore[]): GateResult[] {
   const residuals = healthyResiduals(jobs);
   const leak = scores.find((s) => s.detectorId === 'tank.static_leak');
@@ -71,6 +88,7 @@ export function p3Gates(jobs: readonly SiteJobResult[], scores: readonly Detecto
     gate('tank.static_leak.min_detectable_kg_per_day', 'tank.static_leak 재현율 0.9 이상 최소 누설률 [kg/일] (측정값 0.15 + 스윕 한 단계 여유)', leak?.minDetectableMagnitude ?? null, '<=', TANK_MIN_DETECTABLE_GATE),
     gate('pv.control_findings', 'PV 대조군(출력제어·흐린 주·비 오는 주) 구간 PV 탐지기 finding 수', jobs.some((j) => j.controls.some((c) => PV_CONTROLS.includes(c.kind))) ? pvControlFindings(jobs) : null, '<=', 0),
     ...referenceGates(jobs),
+    ...gapyeongGates(jobs),
   ];
 }
 

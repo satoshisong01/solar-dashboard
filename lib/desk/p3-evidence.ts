@@ -3,6 +3,7 @@
 // 탐지기 스냅샷 형식은 lib/analytics/detectors/{tank-static-leak-checks,h2chain-mass-balance,matched-rise,pv-soiling-rate,inv-thermal-samples}.ts의 evidence를 따른다.
 import * as z from 'zod';
 import { parseChecks } from './evidence-checks';
+import { GAPYEONG_EVIDENCE_METHODS, isGapyeongEvidenceDetector, parseGapyeongEvidence } from './gapyeong-evidence';
 import type { MassBalanceEvidence, P3EvidenceView, SoilingEvidence, TankLeakEvidence, ThermalEvidence } from './p3-evidence-types';
 import { parseRiseEvidence, riseDetectorOfMetric } from './p3-rise-evidence';
 import { isRiseDetector } from './rise-meta';
@@ -158,7 +159,10 @@ export function parseP3Evidence(snapshot: unknown, detectorId?: string | null): 
   const s = asRecord(snapshot);
   const id = detectorId ?? detectorIdOf(snapshot);
   if (id !== null && isRiseDetector(id)) return parseRiseEvidence(s, id);
+  if (id !== null && isGapyeongEvidenceDetector(id)) return parseGapyeongEvidence(s, id);
   const method = (id !== null ? DETECTOR_METHODS[id] : undefined) ?? (typeof s.method === 'string' ? s.method : '');
+  const gapyeong = GAPYEONG_EVIDENCE_METHODS[method];
+  if (gapyeong !== undefined) return parseGapyeongEvidence(s, gapyeong);
   const parser = METHOD_PARSERS[method];
   if (parser) return parser(s);
   const rise = method === 'matched_ratio' && (id === null || isRiseDetector(id)) ? riseDetectorOfMetric(s.metric) : null;

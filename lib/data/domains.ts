@@ -22,7 +22,10 @@ export function domainOfClass(classKey: string): EquipmentDomain | null {
   if (classKey.startsWith('ess.')) return 'ess';
   if (classKey === 'h2.elz' || classKey.startsWith('h2.elz.')) return 'electrolyzer';
   if (classKey === 'h2.compressor' || classKey === 'h2.detector' || classKey.startsWith('h2.storage.')) return 'storage';
-  if (classKey.startsWith('fc.')) return 'fuelcell';
+  // 감압밸브·외부 반입은 저장·공급 쪽, 폐열회수 열교환기는 연료전지 부속, 부산물 산소는 전해조 부속으로 본다
+  if (classKey === 'h2.prv' || classKey === 'h2.delivery' || classKey === 'h2.trailer') return 'storage';
+  if (classKey.startsWith('o2.')) return 'electrolyzer';
+  if (classKey.startsWith('fc.') || classKey.startsWith('hx.')) return 'fuelcell';
   return null;
 }
 

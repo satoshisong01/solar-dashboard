@@ -90,6 +90,16 @@ export function injectionMagnitude(injection: InjectionTruth): { magnitude: numb
       return { magnitude: num('pctPerDay'), unit: '%/일' };
     case 'fault.inverter_fan_failure':
       return { magnitude: num('coolingLoss'), unit: '냉각 저하 배율' };
+    case 'fault.prv_seat_leak':
+      return { magnitude: num('mbarPerH'), unit: 'mbar/h' };
+    case 'fault.hx_fouling':
+      return { magnitude: num('pct'), unit: '%' };
+    case 'fault.o2_purity_drift':
+      return { magnitude: num('pctPoints'), unit: 'vol%p' };
+    case 'fault.water_quality':
+      return { magnitude: num('uScmRise'), unit: 'µS/cm' };
+    case 'fault.delivery_unlogged':
+      return { magnitude: num('days'), unit: '일' };
     default:
       return { magnitude: Number.NaN, unit: '' };
   }

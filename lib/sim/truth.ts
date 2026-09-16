@@ -4,11 +4,13 @@ import { SIM_SITES } from '@/db/seed/sites';
 import type { SiteDef } from '@/db/seed/types';
 import { socMaxAt, type ControlKind, type ControlPlan } from './control-scenarios';
 import type { P3ControlKind } from './control-scenarios-p3';
+import { isGapyeongFault } from './fault-scenarios-gapyeong';
 import { isP3Fault } from './fault-scenarios-p3';
 import { DEGRADATION_PARAMS, type DegradationParam, type FaultScenario } from './degradation';
 import { isTypedFault, resolveFault, type TypedFaultKind } from './fault-scenarios';
 import { toEpochMs, type TimeInput } from './math';
 import { planScenarios, scenarioOriginMs, type Scenario, type SiteScenarioPlan } from './scenarios';
+import { gapyeongFaultTruths } from './truth-gapyeong';
 import { p3AssetEventTruths, p3ControlTruths, p3FaultTruths, P3_PARAM_EXPECTATION } from './truth-p3';
 
 export type TruthParams = Readonly<Record<string, number | string>>;
@@ -151,6 +153,7 @@ function faultTruths(sites: readonly SiteDef[], plans: ReadonlyMap<string, SiteS
     if (!site || !plan) return [];
     if (scenario.kind === 'fault') return rawFaultTruth(site, scenario, run);
     if (isP3Fault(scenario)) return p3FaultTruths(site, plan, scenario, run);
+    if (isGapyeongFault(scenario)) return gapyeongFaultTruths(site, scenario, run);
     if (!isTypedFault(scenario)) return [];
     const resolved = resolveFault(site, scenario, run.originMs);
     const expectation = TYPED_FAULT_EXPECTATION[scenario.kind];

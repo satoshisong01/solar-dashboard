@@ -116,6 +116,11 @@ export function p3ConditionText(evidence: P3EvidenceView): string | null {
       const last = evidence.resets.at(-1);
       return `맑은 날 온도 보정 성능지수${current ? ` ${current.clearDays}일(${current.from} ~ ${current.to})` : ''}, ${last ? `마지막 복원 ${last.date} ${resetKindLabel(last.kind)} 이후` : '데이터 시작 이후'} 구간 Theil–Sen 기울기`;
     }
+    case 'gapyeong': {
+      const level = evidence.referenceLevel === null || evidence.recentLevel === null ? '' : ` ${formatNumber(evidence.referenceLevel, 2)} → ${formatNumber(evidence.recentLevel, 2)} ${evidence.unit}`;
+      const limit = evidence.limit === null ? '' : `, ${evidence.limitLabel ?? '한계'} ${formatNumber(evidence.limit, 2)} ${evidence.unit}${evidence.margin === null ? '' : `(여유 ${formatNumber(evidence.margin, 2)})`}`;
+      return `${evidence.subject} 기준 ${evidence.referenceCount}·최근 ${evidence.recentCount} 구간 비교${level}${limit}`;
+    }
     case 'thermal':
       return `최근 ${evidence.days.length}일, 방열판 ${formatNumber(evidence.derateStartC === null || evidence.marginC === null ? null : evidence.derateStartC - evidence.marginC, 0)} °C 이상에서 동종 중앙값보다 ${formatNumber(evidence.gapPct, 0)}% 이상 낮은 시간(출력제한 제외)${evidence.binShift === null ? '' : `, 같은 외기 bin 일 저감 ${formatNumber(evidence.binShift.ref, 2)} h → ${formatNumber(evidence.binShift.cur, 2)} h`}`;
   }

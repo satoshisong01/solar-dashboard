@@ -3,8 +3,8 @@ import { DETECTORS, P2_DETECTORS } from '../detectors';
 import { PLAYBOOKS, playbookFor } from './index';
 
 describe('PLAYBOOKS', () => {
-  it('P2 6종 + P3 8종 탐지기의 고장모드마다 플레이북이 하나씩 있고 카테고리가 같다', () => {
-    expect(Object.keys(PLAYBOOKS)).toHaveLength(14);
+  it('탐지기 17종의 고장모드마다 플레이북이 하나씩 있고 카테고리가 같다', () => {
+    expect(Object.keys(PLAYBOOKS)).toHaveLength(17);
     for (const detector of DETECTORS) {
       const playbook = playbookFor(detector.failureMode);
       expect(playbook.failureMode).toBe(detector.failureMode);
@@ -25,7 +25,7 @@ describe('PLAYBOOKS', () => {
 
   it('안전 카테고리 플레이북은 현장 안전책임자 판단과 콘솔이 안전설비를 대체하지 않는다는 원칙을 담는다', () => {
     const safety = Object.values(PLAYBOOKS).filter((playbook) => playbook.category === 'safety');
-    expect(safety.map((playbook) => playbook.failureMode)).toEqual(['h2.storage_leak']);
+    expect(safety.map((playbook) => playbook.failureMode).sort()).toEqual(['h2.storage_leak', 'o2.purity_drift']);
     for (const playbook of safety) {
       const text = playbook.actions.join(' ');
       expect(text).toContain('현장 안전책임자');

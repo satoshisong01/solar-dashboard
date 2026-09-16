@@ -10,12 +10,13 @@ import { elVoltageRise, fcVoltageDecay } from '../detectors/stack-detectors';
 import { median } from '../stats/robust';
 import { MS_PER_DAY } from '../types';
 import { resolveDetectorConfig } from './config';
-import { assetTarget, isTarget, latestReset, PIPELINE_DETECTOR_IDS, runOne, targetsOfClass, type DetectOptions, type P3PipelineDetectorId, type PipelineDetectorId, type Runner } from './detect-common';
+import { assetTarget, isTarget, latestReset, PIPELINE_DETECTOR_IDS, runOne, targetsOfClass, type DetectOptions, type GapyeongPipelineDetectorId, type P3PipelineDetectorId, type PipelineDetectorId, type Runner } from './detect-common';
+import { GAPYEONG_RUNNERS } from './detect-gapyeong';
 import { P3_RUNNERS } from './detect-p3';
 import { indexSnapshot, type SiteSnapshot, type SnapshotIndex } from './snapshot';
 import type { DetectorOutcome, PipelineAsset } from './types';
 
-export { P2_PIPELINE_DETECTOR_IDS, P3_PIPELINE_DETECTOR_IDS, PIPELINE_DETECTOR_IDS, type DetectOptions, type PipelineDetectorId } from './detect-common';
+export { GAPYEONG_PIPELINE_DETECTOR_IDS, P2_PIPELINE_DETECTOR_IDS, P3_PIPELINE_DETECTOR_IDS, PIPELINE_DETECTOR_IDS, type DetectOptions, type PipelineDetectorId } from './detect-common';
 
 function ratedCapacityAh(asset: PipelineAsset): number {
   const value = Number(asset.nameplate.capacity_ah);
@@ -117,6 +118,7 @@ const RUNNERS: Readonly<Record<PipelineDetectorId, Runner>> = {
   'el.voltage_rise': (index, options) => stackRuns(index, options, 'el'),
   'fc.voltage_decay': (index, options) => stackRuns(index, options, 'fc'),
   ...(P3_RUNNERS satisfies Readonly<Record<P3PipelineDetectorId, Runner>>),
+  ...(GAPYEONG_RUNNERS satisfies Readonly<Record<GapyeongPipelineDetectorId, Runner>>),
 };
 
 /** 스냅샷에서 탐지기를 실행한다. 탐지기 예외는 status 'error' 결과로 바꿔 다른 탐지기를 막지 않는다 */

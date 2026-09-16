@@ -2,9 +2,11 @@
 //   inv.thermal_derating  최근 recentDays + 기준 60일 원시 → 5분 버킷 표본, 인버터 event_log 코드
 //   el.sec_rise           형제 정류기 rectifier.efficiency 1시간 롤업 → 일 중앙값, 전해조 purge.count 누적 카운터 → 일 증가분
 //   pv.soiling_rate       세척 조치(maintenance_action), 최근 SMP(market_daily smp_land)
+//   prv.seat_leak · hx.fouling · o2.purity_drift  1시간 롤업 → 무유동 hold 구간 · 정상상태 표본 · 운전일 HTO (gapyeong-samples)
 import { sql, type Kysely } from 'kysely';
 import { invThermalDerating } from '@/lib/analytics/detectors/inv-thermal-derating';
 import type { TimedNumber } from '@/lib/analytics/detectors/common';
+import { htoDays, hxSamples, prvHolds, type HourRowLike } from '@/lib/analytics/episodes/gapyeong-samples';
 import { inverterThermalSamples, type InverterThermalSample } from '@/lib/analytics/episodes/inverter-thermal';
 import { resolveDetectorConfig } from '@/lib/analytics/pipeline/config';
 import { counterDailyDeltas, rectifierEfficiencyDays, thermalSampleWindow } from '@/lib/analytics/pipeline/load-plans';
@@ -77,8 +79,53 @@ async function pvInputs(db: Kysely<DB>, siteId: number, assets: readonly Pipelin
   return { cleaningTs: rows.map((r) => r.performed_ms), smpKrwPerKwh: smp ? Number(smp.value) : null };
 }
 
+/** 무유동 hold 판정 기준 [kg/h] — tank.hold 정지 판정과 같은 값 */
+const IDLE_MAX_KG_H = 0.05;
+/** 전해조 운전 판정 기준 [kg/h] */
+const ELZ_RUNNING_MIN_KG_H = 0.05;
+
+/** 가평 구성 탐지기 3종 보조 입력. 해당 설비가 없는 사이트는 빈 맵이다 */
+async function gapyeongInputs(db: Kysely<DB>, assets: readonly PipelineAsset[], points: readonly PointRow[], now: number): Promise<Pick<SiteAuxInputs, 'prvHolds' | 'hxSamples' | 'htoDays'>> {
+  const prvs = assets.filter((a) => a.classKey === 'h2.prv');
+  const hxs = assets.filter((a) => a.classKey === 'hx.recovery');
+  const o2s = assets.filter((a) => a.classKey === 'o2.plant');
+  if (prvs.length === 0 && hxs.length === 0 && o2s.length === 0) return {};
+  const window = { start: 0, end: now };
+  const load = async (metricKeys: readonly string[], assetIds: readonly number[]): Promise<HourRowLike[]> => {
+    const selected = points.filter((p) => assetIds.includes(p.assetId) && metricKeys.includes(p.metricKey));
+    return selected.length === 0 ? [] : loadHourly(db, selected, window);
+  };
+
+  const fcPlants = assets.filter((a) => a.classKey === 'fc.plant');
+  const banks = assets.filter((a) => a.classKey === 'h2.storage.bank');
+  const stations = assets.filter((a) => a.classKey === 'wx.station');
+  const elz = assets.find((a) => a.classKey === 'h2.elz') ?? null;
+  const stacks = assets.filter((a) => a.classKey === 'h2.elz.stack');
+
+  const prvRows = prvs.length === 0 ? [] : await load(['h2.pressure', 'h2.pressure.setpoint', 'fc.h2.consumption', 'ambient.temp'], [...prvs, ...fcPlants, ...banks, ...stations].map((a) => a.id));
+  const hxRows = hxs.length === 0 ? [] : await load(['hx.temp.hot.in', 'hx.temp.hot.out', 'hx.temp.cold.in', 'hx.temp.cold.out', 'hx.flow.cold', 'hx.flow.hot', 'hx.heat.recovered', 'hx.pressure.diff.hot'], hxs.map((a) => a.id));
+  const o2Rows = o2s.length === 0 ? [] : await load(['h2.in.o2', 'h2.flow.mass', 'stack.current'], [...o2s, ...(elz === null ? [] : [elz]), ...stacks].map((a) => a.id));
+
+  return {
+    prvHolds: new Map(prvs.map((prv) => [prv.id, prvHolds(prvRows, { prvAssetId: prv.id, outletAssetIds: [prv.id, ...fcPlants.map((a) => a.id)], fcAssetIds: fcPlants.map((a) => a.id), bufferAssetIds: banks.map((a) => a.id), wxAssetId: stations[0]?.id ?? null, idleMaxKgH: IDLE_MAX_KG_H })])),
+    hxSamples: new Map(hxs.map((hx) => [hx.id, hxSamples(hxRows, hx.id)])),
+    htoDays: new Map(
+      o2s.map((plant) => [
+        plant.id,
+        htoDays(o2Rows, { htoAssetId: plant.id, elzAssetId: elz?.id ?? null, elzStackAssetIds: stacks.map((a) => a.id), ratedCurrentA: stacks[0] ? nameplateNumber(stacks[0], 'rated_current_a') || null : null, runningMinKgH: ELZ_RUNNING_MIN_KG_H }),
+      ]),
+    ),
+  };
+}
+
 /** 사이트 P3 보조 입력 (정지 구간 원시 점·원장 일 행은 따로 채운다) */
 export async function loadAuxInputs(db: Kysely<DB>, siteId: number, assets: readonly PipelineAsset[], points: readonly PointRow[], configs: readonly DetectorConfigRow[], now: number): Promise<SiteAuxInputs> {
-  const [thermal, rectifierEfficiency, purgeCounts, pv] = [await thermalInputs(db, assets, points, configs, now), await rectifierInputs(db, assets, points, now), await purgeInputs(db, assets, points, now), await pvInputs(db, siteId, assets, now)];
-  return { ...thermal, rectifierEfficiency, purgeCounts, ...pv };
+  const [thermal, rectifierEfficiency, purgeCounts, pv, gapyeong] = [
+    await thermalInputs(db, assets, points, configs, now),
+    await rectifierInputs(db, assets, points, now),
+    await purgeInputs(db, assets, points, now),
+    await pvInputs(db, siteId, assets, now),
+    await gapyeongInputs(db, assets, points, now),
+  ];
+  return { ...thermal, rectifierEfficiency, purgeCounts, ...pv, ...gapyeong };
 }

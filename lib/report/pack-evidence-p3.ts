@@ -2,7 +2,7 @@
 import { DAYS_PER_MONTH } from '@/lib/analytics/types';
 import { formatNumber } from '@/lib/format';
 import type { CheckView } from '@/lib/desk/evidence-types';
-import type { MassBalanceEvidence, P3EvidenceView, RiseEvidence, SoilingEvidence, TankLeakEvidence, ThermalEvidence } from '@/lib/desk/p3-evidence-types';
+import type { GapyeongEvidence, MassBalanceEvidence, P3EvidenceView, RiseEvidence, SoilingEvidence, TankLeakEvidence, ThermalEvidence } from '@/lib/desk/p3-evidence-types';
 import { cleaningEconomics, kstNoonMs, resetKindLabel } from '@/lib/desk/p3-view';
 import type { TrendView } from '@/lib/desk/trend';
 import { downsamplePoints, roundTo } from './pack-evidence-shared';
@@ -134,8 +134,28 @@ function thermal(e: ThermalEvidence): P3PackEvidence {
   };
 }
 
+function gapyeong(e: GapyeongEvidence): P3PackEvidence {
+  return {
+    kind: 'gapyeong',
+    detectorId: e.detectorId,
+    subject: e.subject,
+    unit: e.unit,
+    referenceCount: e.referenceCount,
+    recentCount: e.recentCount,
+    referenceLevel: roundTo(e.referenceLevel, 3),
+    recentLevel: roundTo(e.recentLevel, 3),
+    limit: roundTo(e.limit, 3),
+    limitLabel: e.limitLabel,
+    margin: roundTo(e.margin, 3),
+    series: timeSeries(e.points.flatMap((p) => { const x = kstMidnight(p.date); return x === null || p.value === null ? [] : [[x, p.value] as const]; }), `${e.subject} (${e.unit})`, 3),
+    checks: checksOf(e.checks),
+  };
+}
+
 export function summarizeP3Evidence(view: P3EvidenceView): P3PackEvidence {
   switch (view.kind) {
+    case 'gapyeong':
+      return gapyeong(view);
     case 'rise':
       return rise(view);
     case 'tank_leak':

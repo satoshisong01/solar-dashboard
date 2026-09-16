@@ -2,7 +2,7 @@
 import * as z from 'zod';
 import { describe, expect, it } from 'vitest';
 import { ASSET_CLASS_BY_KEY, METRIC_DEF_BY_KEY } from '@/db/seed/catalog';
-import { DETECTORS, elSecRise, essResistanceGrowth, FAST_S, P2_DETECTORS, P3_DETECTORS, SLOW_S } from './index';
+import { DETECTORS, elSecRise, essResistanceGrowth, FAST_S, GAPYEONG_DETECTORS, P2_DETECTORS, P3_DETECTORS, SLOW_S } from './index';
 
 interface JsonProperty {
   readonly type?: string | readonly string[];
@@ -18,11 +18,12 @@ interface JsonProperty {
 const propertiesOf = (schema: z.ZodType): Record<string, JsonProperty> => (z.toJSONSchema(schema, { io: 'input' }) as { properties: Record<string, JsonProperty> }).properties;
 
 describe('탐지기 레지스트리', () => {
-  it('P2 6종 + P3 8종, id·고장모드가 겹치지 않고 DB 형식이다', () => {
+  it('P2 6종 + P3 8종 + 가평 3종, id·고장모드가 겹치지 않고 DB 형식이다', () => {
     expect(P2_DETECTORS).toHaveLength(6);
     expect(P3_DETECTORS.map((d) => d.id)).toEqual(['el.sec_rise', 'h2chain.mass_balance_gap', 'tank.static_leak', 'comp.sec_rise', 'fc.blower_wear', 'pv.soiling_rate', 'ess.resistance_growth', 'inv.thermal_derating']);
-    expect(new Set(DETECTORS.map((d) => d.id)).size).toBe(14);
-    expect(new Set(DETECTORS.map((d) => d.failureMode)).size).toBe(14);
+    expect(GAPYEONG_DETECTORS.map((d) => d.id)).toEqual(['prv.seat_leak', 'hx.fouling', 'o2.purity_drift']);
+    expect(new Set(DETECTORS.map((d) => d.id)).size).toBe(17);
+    expect(new Set(DETECTORS.map((d) => d.failureMode)).size).toBe(17);
     DETECTORS.forEach((d) => {
       expect(d.id).toMatch(/^[a-z][a-z0-9]*\.[a-z0-9_]+$/);
       expect(d.failureMode).toMatch(/^[a-z][a-z0-9]*\.[a-z0-9_]+$/);

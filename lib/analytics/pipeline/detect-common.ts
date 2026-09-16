@@ -8,9 +8,11 @@ import type { DetectorOutcome, PipelineAsset } from './types';
 /** 파이프라인 탐지기 id (실행 순서) */
 export const P2_PIPELINE_DETECTOR_IDS = ['dq.gap_flatline', 'ess.capacity_fade', 'ess.cell_imbalance', 'pv.inverter_peer', 'el.voltage_rise', 'fc.voltage_decay'] as const;
 export const P3_PIPELINE_DETECTOR_IDS = ['el.sec_rise', 'tank.static_leak', 'comp.sec_rise', 'fc.blower_wear', 'pv.soiling_rate', 'ess.resistance_growth', 'inv.thermal_derating', 'h2chain.mass_balance_gap'] as const;
-export const PIPELINE_DETECTOR_IDS = [...P2_PIPELINE_DETECTOR_IDS, ...P3_PIPELINE_DETECTOR_IDS] as const;
+export const GAPYEONG_PIPELINE_DETECTOR_IDS = ['prv.seat_leak', 'hx.fouling', 'o2.purity_drift'] as const;
+export const PIPELINE_DETECTOR_IDS = [...P2_PIPELINE_DETECTOR_IDS, ...P3_PIPELINE_DETECTOR_IDS, ...GAPYEONG_PIPELINE_DETECTOR_IDS] as const;
 export type PipelineDetectorId = (typeof PIPELINE_DETECTOR_IDS)[number];
 export type P3PipelineDetectorId = (typeof P3_PIPELINE_DETECTOR_IDS)[number];
+export type GapyeongPipelineDetectorId = (typeof GAPYEONG_PIPELINE_DETECTOR_IDS)[number];
 
 export interface DetectOptions {
   /** 분석 시각 (보통 분석 기간 끝) */

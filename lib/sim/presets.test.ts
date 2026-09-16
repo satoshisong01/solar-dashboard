@@ -94,12 +94,13 @@ describe('presetScenarios — demo120', () => {
 
 describe('EVAL_PRESET · evalRunPlans', () => {
   const allPlans = evalRunPlans();
-  const plans = allPlans.filter((p) => p.magnitudes.p3 === null);
+  const plans = allPlans.filter((p) => p.magnitudes.p3 === null && (p.magnitudes.gapyeong ?? null) === null);
+  const gapyeongRuns = allPlans.filter((p) => (p.magnitudes.gapyeong ?? null) !== null);
 
   it('시드 × (P2 가장 긴 스윕 길이 + P3 순번)만큼 실행을 만들고, 시드마다 P2 스윕의 모든 크기를 한 번씩 쓴다', () => {
     expect(EVAL_PRESET.days).toBe(365);
     expect(EVAL_PRESET.seeds.length).toBeGreaterThanOrEqual(3);
-    expect(allPlans).toHaveLength(EVAL_PRESET.seeds.length * (5 + EVAL_PRESET.p3.runs));
+    expect(allPlans).toHaveLength(EVAL_PRESET.seeds.length * (5 + EVAL_PRESET.p3.runs) + gapyeongRuns.length);
     expect(plans).toHaveLength(EVAL_PRESET.seeds.length * 5);
     expect(allPlans.slice(0, 5).every((p) => p.magnitudes.p3 === null)).toBe(true);
     for (const seed of EVAL_PRESET.seeds) {
@@ -132,6 +133,23 @@ describe('EVAL_PRESET · evalRunPlans', () => {
       expect(() => planScenarios(SIM_SITES, plan.scenarios, { originMs: scenarioOriginMs(plan.from) })).not.toThrow();
     }
     expect(plans.at(-1)?.scenarios.filter((s) => s.kind.startsWith('fault.')).map((s) => ('site' in s ? s.site : ''))).toEqual(['SIM-A', 'SIM-B']);
+  });
+
+  it('가평 구성 순번: SIM-D 한 사이트에 고장을 넣고, 수질·열교환기·반입 누락은 같은 순번에 겹치지 않는다', () => {
+    const gp = gapyeongRuns.filter((p) => p.seed === 101);
+    expect(gp.length).toBeGreaterThan(0);
+    for (const plan of gp) {
+      expect(plan.siteCodes).toEqual(['SIM-D']);
+      const kinds = plan.scenarios.map((s) => s.kind);
+      expect(kinds.every((k) => k.startsWith('fault.'))).toBe(true);
+      expect(plan.scenarios.every((s) => 'site' in s && s.site === 'SIM-D')).toBe(true);
+      expect(kinds.includes('fault.hx_fouling') && kinds.includes('fault.delivery_unlogged')).toBe(false);
+      expect(() => planScenarios(SIM_SITES, plan.scenarios, { originMs: scenarioOriginMs(plan.from) })).not.toThrow();
+    }
+    // 세 탐지기 각각 적어도 한 순번에서 기준 크기 이상 주입이 있다
+    expect(gp.some((p) => (p.magnitudes.gapyeong?.prvSeatLeakMbarPerH ?? 0) >= 60)).toBe(true);
+    expect(gp.some((p) => (p.magnitudes.gapyeong?.hxFoulingPct ?? 0) >= 35)).toBe(true);
+    expect(gp.some((p) => (p.magnitudes.gapyeong?.o2HtoPctPoints ?? 0) >= 0.8)).toBe(true);
   });
 
   it('P3 순번: 스윕 크기를 순번마다 넣고, 헷갈리게 하는 고장(누설·비에너지↔유량계 드리프트, 밸브↔씰, 블로워 마모↔필터)은 같은 순번에 두지 않는다', () => {

@@ -359,6 +359,7 @@ export const METRIC_DEFS: readonly MetricDef[] = [
   metric('hx.temp.cold.in', '열교환기 2차측 입구 온도', 'temperature', '°C', G, 'avg', { hard: [-40, 150], expected: [0, 45], flatlineS: SIX_HOURS_S }),
   metric('hx.temp.cold.out', '열교환기 2차측 출구 온도', 'temperature', '°C', G, 'avg', { hard: [-40, 150], expected: [5, 80], flatlineS: SIX_HOURS_S }),
   metric('hx.flow.hot', '열교환기 1차측 유량', 'volume_flow', 'm³/h', G, 'avg', { hard: [-1, 1000], expected: [0, 40] }),
+  metric('hx.flow.cold', '열교환기 2차측 유량', 'volume_flow', 'm³/h', G, 'avg', { hard: [-1, 1000], expected: [0, 3] }),
   metric('hx.pressure.diff.hot', '열교환기 1차측 차압', 'pressure', 'kPa', G, 'avg', { hard: [-500, 2000], expected: [0, 150] }),
   metric('hx.pressure.diff.cold', '열교환기 2차측 차압', 'pressure', 'kPa', G, 'avg', { hard: [-500, 2000], expected: [0, 150] }),
   metric('hx.heat.recovered', '회수 열출력', 'power', 'kW', G, 'avg', { hard: [-100, 20000], expected: [0, 400] }),

@@ -88,7 +88,24 @@ export interface ThermalPackEvidence {
   readonly checks: readonly PackCheck[];
 }
 
-export type P3PackEvidence = RisePackEvidence | TankLeakPackEvidence | MassBalancePackEvidence | SoilingPackEvidence | ThermalPackEvidence;
+/** 가평 구성 탐지기 3종 공용: 기준 → 최근 수준 + 한계선 여유 */
+export interface GapyeongPackEvidence {
+  readonly kind: 'gapyeong';
+  readonly detectorId: string;
+  readonly subject: string;
+  readonly unit: string;
+  readonly referenceCount: number;
+  readonly recentCount: number;
+  readonly referenceLevel: number | null;
+  readonly recentLevel: number | null;
+  readonly limit: number | null;
+  readonly limitLabel: string | null;
+  readonly margin: number | null;
+  readonly series: PackSeries | null;
+  readonly checks: readonly PackCheck[];
+}
+
+export type P3PackEvidence = RisePackEvidence | TankLeakPackEvidence | MassBalancePackEvidence | SoilingPackEvidence | ThermalPackEvidence | GapyeongPackEvidence;
 
 export interface PackLedgerEnergy {
   readonly pvKwh: number;

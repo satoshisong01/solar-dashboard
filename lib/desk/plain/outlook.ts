@@ -4,7 +4,7 @@ import { formatKstDate, formatNumber } from '@/lib/format';
 import { convertedChargeTime, formatHoursMinutes } from '../conditions';
 import type { EffectView } from '../effect';
 import type { CapacityEvidence, CellImbalanceEvidence, DqEvidence, EvidenceView, PvPeerEvidence } from '../evidence-types';
-import type { MassBalanceEvidence, RiseEvidence, SoilingEvidence, TankLeakEvidence, ThermalEvidence } from '../p3-evidence-types';
+import type { GapyeongEvidence, MassBalanceEvidence, RiseEvidence, SoilingEvidence, TankLeakEvidence, ThermalEvidence } from '../p3-evidence-types';
 import { cleaningEconomics } from '../p3-view';
 import { RISE_META } from '../rise-meta';
 import { amount, LEAK_DIGITS, size } from './common';
@@ -100,6 +100,24 @@ function thermalOutlook(e: ThermalEvidence): string {
   return `최근 ${e.days.length}일 동안 ${formatNumber(derateH, 1)}시간을 줄여 돌면서 약 ${amount(lossKwh)} kWh를 못 만들었습니다.${shift}`;
 }
 
+function gapyeongOutlook(e: GapyeongEvidence): string {
+  switch (e.detectorId) {
+    case 'prv.seat_leak': {
+      const leak = e.extra.leakNlPerMin === null ? '' : ` 새는 양으로 치면 1분에 약 ${size(e.extra.leakNlPerMin, 2)} L입니다.`;
+      const holds = e.extra.alarmHolds === null ? '' : ` 세워 둔 구간 ${amount(e.extra.alarmHolds)}번에서 같은 일이 있었습니다.`;
+      return `밸브가 완전히 닫히지 않아 뒤쪽 압력이 계속 오릅니다. 연료전지 앞단 과압으로 이어질 수 있습니다.${leak}${holds} ${SAFETY_DECISION_NOTICE}`;
+    }
+    case 'hx.fouling': {
+      const ua = e.extra.uaDropPct === null ? '' : ` 열이 넘어가는 성능은 ${size(e.extra.uaDropPct)}% 떨어졌습니다.`;
+      return `버려지는 열이 늘어 수전해 급수를 데우는 데 쓰는 몫이 줄어듭니다.${ua} 판을 씻거나 세정할 시점인지 확인하세요.`;
+    }
+    case 'o2.purity_drift': {
+      const margin = e.margin === null || e.limit === null ? '' : ` 압축을 멈춰야 하는 선(${size(e.limit, 1)}%)까지 ${size(e.margin, 2)}%포인트 남았습니다.`;
+      return `산소에 수소가 섞이는 양이 늘고 있습니다. 이 값이 한계를 넘으면 법으로 산소를 압축할 수 없습니다.${margin} ${SAFETY_DECISION_NOTICE}`;
+    }
+  }
+}
+
 /** 근거로 말할 수 있는 게 없으면 null */
 export function plainOutlook(finding: PlainFinding, evidence: EvidenceView): string | null {
   switch (evidence.kind) {
@@ -123,6 +141,8 @@ export function plainOutlook(finding: PlainFinding, evidence: EvidenceView): str
       return soilingOutlook(evidence);
     case 'thermal':
       return thermalOutlook(evidence);
+    case 'gapyeong':
+      return gapyeongOutlook(evidence);
     default:
       return null;
   }

@@ -10,7 +10,7 @@ import { indexSnapshot, type SnapshotIndex } from '@/lib/analytics/pipeline/snap
 import { seriesRequests } from '@/lib/analytics/pipeline/sources';
 import type { DetectorConfigRow, DetectorOutcome, StoredEpisode } from '@/lib/analytics/pipeline/types';
 import { MS_PER_DAY, MS_PER_HOUR } from '@/lib/analytics/types';
-import { detectorPointFilter, p3DetectorPointFilter, simulateMemory, type MemoryPoint, type MemorySeries } from '../memory';
+import { detectorPointFilter, gapyeongDetectorPointFilter, p3DetectorPointFilter, simulateMemory, type MemoryPoint, type MemorySeries } from '../memory';
 import type { SimulationTruth } from '../truth';
 import { assetEventsOf, evalSite, type EvalSite } from './assets';
 import type { SiteJob } from './jobs';
@@ -56,7 +56,7 @@ const DEFAULT_STEP_DAYS = 7;
 const LEDGER_EXTRA: Readonly<Record<string, readonly string[]>> = { 'ess.pcs': ['ac.power'], 'grid.meter': ['ac.power'] };
 
 const pointFilter = (point: MemoryPoint): boolean =>
-  detectorPointFilter(point) || p3DetectorPointFilter(point) || (LEDGER_EXTRA[point.classKey]?.includes(point.metricKey) ?? false) || (point.classKey === 'ess.rack' && point.metricKey === 'batt.soh');
+  detectorPointFilter(point) || p3DetectorPointFilter(point) || gapyeongDetectorPointFilter(point) || (LEDGER_EXTRA[point.classKey]?.includes(point.metricKey) ?? false) || (point.classKey === 'ess.rack' && point.metricKey === 'batt.soh');
 
 function extractAll(site: EvalSite, memory: ReadonlyMap<string, MemorySeries>, window: { start: number; end: number }): StoredEpisode[] {
   const assetById = new Map(site.assets.map((a) => [a.id, a]));

@@ -23,6 +23,9 @@ const SITE: readonly PipelineAsset[] = [
   asset(60, 'FC1', 'fc.plant'),
   asset(61, 'FC1/STACK1', 'fc.stack', { parentId: 60 }),
   asset(62, 'FC1/BLOWER1', 'fc.blower', { parentId: 60 }),
+  asset(63, 'FC1/HX1', 'hx.recovery', { parentId: 60 }),
+  asset(70, 'PRV1', 'h2.prv'),
+  asset(80, 'O2P1', 'o2.plant'),
 ];
 
 /** 모든 탐지기에 모든 범위(default · 사이트 설비 종류 전부 · 설비 전부) 설정 행을 둔다 */

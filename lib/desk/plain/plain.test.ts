@@ -24,8 +24,8 @@ const JARGON = ['비에너지', '물질수지', '수정 z', '신뢰구간', '95%
 /** C-rate는 약어가 아니라 '0.10~0.20C'처럼 숫자 뒤 C로 나타난다 (°C는 앞이 숫자가 아니라 걸리지 않는다) */
 const C_RATE_NOTATION = /\d\s*C(?![a-zA-Z])/;
 
-describe('쉬운 말 요약 (탐지기 14종)', () => {
-  it('탐지기 14종 전부 한 줄 요약 문장을 가진다', () => {
+describe('쉬운 말 요약 (탐지기 17종)', () => {
+  it('탐지기 17종 전부 한 줄 요약 문장을 가진다', () => {
     expect([...PLAIN_HEADLINE_DETECTORS].sort()).toEqual(DETECTORS.map((detector) => detector.id).sort());
     expect(CASES.map((item) => item.detectorId).sort()).toEqual(DETECTORS.map((detector) => detector.id).sort());
   });

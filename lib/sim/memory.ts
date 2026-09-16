@@ -118,6 +118,17 @@ export const P3_DETECTOR_METRICS: Readonly<Record<string, readonly string[]>> = 
 
 export const p3DetectorPointFilter = (point: MemoryPoint): boolean => P3_DETECTOR_METRICS[point.classKey]?.includes(point.metricKey) ?? false;
 
+/** 가평 구성 탐지기 3종(prv.seat_leak·hx.fouling·o2.purity_drift)이 읽는 설비 종류별 메트릭 */
+export const GAPYEONG_DETECTOR_METRICS: Readonly<Record<string, readonly string[]>> = {
+  'h2.prv': ['h2.pressure', 'h2.pressure.setpoint'],
+  'hx.recovery': ['hx.temp.hot.in', 'hx.temp.hot.out', 'hx.temp.cold.in', 'hx.temp.cold.out', 'hx.flow.cold', 'hx.flow.hot', 'hx.heat.recovered', 'hx.pressure.diff.hot'],
+  'o2.plant': ['h2.in.o2'],
+  // 외부 반입은 원장 delivered 항의 1순위 소스다 (반입 기록 누락 고장이 물질수지 잔차로 나타난다)
+  'h2.delivery': ['h2.delivery.mass.total'],
+};
+
+export const gapyeongDetectorPointFilter = (point: MemoryPoint): boolean => GAPYEONG_DETECTOR_METRICS[point.classKey]?.includes(point.metricKey) ?? false;
+
 interface SeriesWriter {
   readonly series: MemorySeries;
   readonly scale: number;

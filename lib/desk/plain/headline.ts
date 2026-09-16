@@ -1,4 +1,4 @@
-// 1) 무엇이 어떻게 됐는지 — 탐지기 14종별 한 줄. 근거 스냅샷 없이 발견사항 행(설비 이름 + effect)만으로 만든다.
+// 1) 무엇이 어떻게 됐는지 — 탐지기 17종별 한 줄. 근거 스냅샷 없이 발견사항 행(설비 이름 + effect)만으로 만든다.
 // 수치는 분석 엔진이 낸 effect 값 그대로이고, 전문 용어 대신 현장에서 쓰는 말로 바꾼다.
 import type { EffectView } from '../effect';
 import { grewOrShrank, LEAK_DIGITS, size, subjectText, withParticle } from './common';
@@ -41,6 +41,17 @@ const HEADLINES: Readonly<Record<string, Headline>> = {
   'h2chain.mass_balance_gap': (subject, e) =>
     has(e.value) ? `${subject}에서 만든 수소와 쓴 수소를 맞춰 보면 하루 ${size(e.value)}%가 ${e.value > 0 ? '모자랍니다' : '더 나옵니다'}` : null,
 
+  'prv.seat_leak': (subject, e) =>
+    has(e.value) ? `연료전지를 세워 둔 동안 ${subject} 뒤쪽 수소 압력이 한 시간에 ${size(e.value)} mbar씩 올라갑니다` : null,
+
+  'hx.fouling': (subject, e) =>
+    has(e.baseline) && has(e.current)
+      ? `${subject}에서 뜨거운 물과 데워진 물의 온도 차이가 ${size(e.baseline)}도에서 ${size(e.current)}도로 벌어졌습니다 — 열이 예전만큼 넘어가지 않습니다`
+      : null,
+
+  'o2.purity_drift': (subject, e) =>
+    has(e.current) ? `${subject}에서 나오는 산소에 섞인 수소가 ${size(e.current, 2)}%까지 올랐습니다` : null,
+
   'dq.gap_flatline': (subject, e) => {
     if (e.metric === 'dq.flatline_hours') return has(e.value) ? `${subject}의 계측값이 최대 ${size(e.value)}시간 동안 같은 값에 멈춰 있었습니다` : null;
     return has(e.value) ? `${subject}의 계측 데이터가 들어와야 할 양의 ${size(e.value)}%만 들어왔습니다` : null;
@@ -54,5 +65,5 @@ export function plainHeadline(input: PlainHeadlineInput): string {
   return sentence === null || sentence === undefined ? `${subject}: ${input.title}` : `${sentence}.`;
 }
 
-/** 탐지기별 문장이 있는지 (테스트가 14종을 모두 덮는지 확인할 때 쓴다) */
+/** 탐지기별 문장이 있는지 (테스트가 17종을 모두 덮는지 확인할 때 쓴다) */
 export const PLAIN_HEADLINE_DETECTORS: readonly string[] = Object.keys(HEADLINES);

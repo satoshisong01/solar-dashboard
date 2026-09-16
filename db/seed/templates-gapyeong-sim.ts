@@ -110,6 +110,7 @@ function gapyeongSubsystems(): readonly AssetSpec[] {
         ['hx.temp.cold.in', 'T_COLD_IN'],
         ['hx.temp.cold.out', 'T_COLD_OUT'],
         ['hx.flow.hot', 'F_HOT'],
+        ['hx.flow.cold', 'F_COLD'],
         ['hx.heat.recovered', 'Q'],
         ['hx.heat.total', 'Q_TOTAL'],
         ['hx.pressure.diff.hot', 'DP_HOT'],

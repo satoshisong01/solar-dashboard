@@ -7,7 +7,7 @@ export type FindingCategory = 'performance' | 'degradation' | 'data_quality' | '
 
 export type Severity = 1 | 2 | 3 | 4 | 5;
 
-/** P2 탐지기 6종 + P3 탐지기 8종이 내는 고장모드 (플레이북 키) */
+/** P2 탐지기 6종 + P3 탐지기 8종 + 가평 구성 탐지기 3종이 내는 고장모드 (플레이북 키) */
 export type FailureMode =
   | 'ess.capacity_fade'
   | 'ess.cell_imbalance'
@@ -22,7 +22,10 @@ export type FailureMode =
   | 'fc.blower_wear'
   | 'pv.soiling'
   | 'ess.resistance_growth'
-  | 'pv.inverter_thermal_derating';
+  | 'pv.inverter_thermal_derating'
+  | 'prv.seat_leak'
+  | 'hx.heat_recovery_loss'
+  | 'o2.purity_drift';
 
 /** om.asset_event (kind CHECK와 같은 값) */
 export interface AssetEventInput {

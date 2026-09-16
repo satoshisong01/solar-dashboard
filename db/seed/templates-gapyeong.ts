@@ -188,7 +188,7 @@ const recommended = (instrumentTag: string | null, assetCode: string, metricKey:
  */
 export const GAPYEONG_PLANNED_POINTS: readonly PlannedPointDef[] = [
   // B.1 부산물 산소 — 산소 재고·회수율·법정 품질검사 확인에 필요하다
-  required('AT-401', 'ELZ1', 'h2.in.o2', 60, 'o2.product'), // 법정 압축금지선 2 vol% 감시
+  required('AT-401', 'O2P1', 'h2.in.o2', 60, 'o2.product'), // 법정 압축금지선 2 vol% 감시 (애노드 원가스 = 산소 계통 쪽에 붙는다)
   required('AT-402', 'O2P1', 'o2.purity', 300), // 법정 1일 1회 99.5% 이상 확인
   required('AT-403', 'O2P1', 'o2.detector.pct', 5, 'vent'),
   recommended('FT-401', 'O2P1', 'o2.flow.mass', 10, 'production'),
@@ -208,6 +208,7 @@ export const GAPYEONG_PLANNED_POINTS: readonly PlannedPointDef[] = [
   required(null, 'FC1/HX1', 'water.volume.total', 300, 'hx.makeup'), // 보충수 카운터가 없으면 누설·용출 판별 자체가 불가능
   required('TT-304', 'FC1/HX1', 'hx.temp.cold.in', 10), // 도면에 없다. 회수 열량·UA 계산 전체가 이 값에 걸린다
   required('FT-302', 'FC1/HX1', 'hx.flow.hot', 10),
+  required(null, 'FC1/HX1', 'hx.flow.cold', 10), // UA 판정의 2차측 유량 (FT-101과 같은 지점일 수 있다 — 확인 필요)
   recommended('FQ-301', 'FC1/HX1', 'hx.heat.recovered', 10),
   recommended('FQ-301', 'FC1/HX1', 'hx.heat.total', 60),
   recommended('PDT-301', 'FC1/HX1', 'hx.pressure.diff.hot', 10),

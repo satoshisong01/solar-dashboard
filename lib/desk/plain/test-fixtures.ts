@@ -1,7 +1,9 @@
-// 쉬운 말 요약 unit 테스트 입력: 탐지기 14종 각각의 실제 근거.
+// 쉬운 말 요약 unit 테스트 입력: 탐지기 17종 각각의 실제 근거.
 //   P2 6종 — 탐지기를 픽스처 입력으로 돌려 나온 발견사항과 근거 스냅샷 (탐지기 출력 형식이 바뀌면 여기서 깨진다)
 //   P3 8종 — 개발 DB demo 분석(2026-09-15)이 저장한 스냅샷(p3-evidence-fixtures)과 그때 om.finding.effect에 저장된 값
-import { dqGapFlatline, essCapacityFade, essCellImbalance, pvInverterPeer, type DqPointSummary } from '@/lib/analytics/detectors';
+//   가평 3종 — 합성 입력(gapyeong-fixtures)으로 탐지기를 돌려 나온 발견사항과 근거 스냅샷
+import { dqGapFlatline, essCapacityFade, essCellImbalance, hxFouling, o2PurityDrift, prvSeatLeak, pvInverterPeer, type DqPointSummary } from '@/lib/analytics/detectors';
+import { GP_DAY0, htoDaysFixture, hxSamplesFixture, prvHoldsFixture } from '@/lib/analytics/detectors/gapyeong-fixtures';
 import { elVoltageRise, fcVoltageDecay } from '@/lib/analytics/detectors/stack-detectors';
 import { capacityHistory, DAY0, elRuns, fcRuns, pvDay } from '@/lib/analytics/detectors/test-fixtures';
 import type { CandidateFinding, DetectorResult, FailureMode } from '@/lib/analytics/detectors/types';
@@ -143,7 +145,31 @@ const elVoltageCase = (): PlainCase =>
 const fcVoltageCase = (): PlainCase =>
   fromDetector(fcVoltageDecay.detect({ assetId: 41, episodes: fcRuns({ ...STACK_OPTIONS, rateUvPerH: -25 }) }, { now: DAY0 + 400 * MS_PER_DAY, rng: createRng(1), params: {} }), { siteName: H2_SITE, assetName: '연료전지 스택 1', assetCode: 'STACK1' });
 
-/** 탐지기 14종 각각 하나씩 (P2 6종 → P3 8종) */
+const GP_DAYS = 40;
+const GP_NOW = GP_DAY0 + GP_DAYS * MS_PER_DAY;
+const GP_SITE = '가평 구성 복제(시뮬레이션)';
+const gpCtx = { now: GP_NOW, rng: createRng(1), params: {} };
+const gpFrom = (day0: number, value: number) => (day: number) => (day >= day0 ? value : 0);
+
+const prvSeatLeakCase = (): PlainCase =>
+  fromDetector(
+    prvSeatLeak.detect({ assetId: 70, outletSetBar: 0.8, downstreamVolumeM3: 0.5, holds: prvHoldsFixture({ seed: 31, holds: GP_DAYS, creepBarPerH: gpFrom(30, 0.06) }) }, gpCtx),
+    { siteName: GP_SITE, assetName: '수소 감압밸브 스키드', assetCode: 'PRV1' },
+  );
+
+const hxFoulingCase = (): PlainCase =>
+  fromDetector(
+    hxFouling.detect({ assetId: 63, designApproachK: 20, designUaKwK: 0.76, samples: hxSamplesFixture({ seed: 32, days: GP_DAYS, fouling: gpFrom(GP_DAYS - 7, 0.5) }) }, gpCtx),
+    { siteName: GP_SITE, assetName: '폐열회수 열교환기 HX-301', assetCode: 'HX1' },
+  );
+
+const o2PurityDriftCase = (): PlainCase =>
+  fromDetector(
+    o2PurityDrift.detect({ assetId: 80, days: htoDaysFixture({ seed: 33, days: GP_DAYS, htoPct: (d) => (d >= GP_DAYS - 7 ? 1.3 : 0.6) }), calibrationTs: [] }, gpCtx),
+    { siteName: GP_SITE, assetName: '부산물 산소 계통', assetCode: 'O2P1' },
+  );
+
+/** 탐지기 17종 각각 하나씩 (P2 6종 → P3 8종 → 가평 3종) */
 export const plainCases = (): readonly PlainCase[] => [
   capacityCase(),
   cellImbalanceCase(),
@@ -224,4 +250,7 @@ export const plainCases = (): readonly PlainCase[] => [
     THERMAL_SNAPSHOT,
     { siteName: SOLAR_SITE, assetName: '인버터 2', assetCode: 'INV02' },
   ),
+  prvSeatLeakCase(),
+  hxFoulingCase(),
+  o2PurityDriftCase(),
 ];

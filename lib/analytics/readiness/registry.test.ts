@@ -6,8 +6,8 @@ import { requirementsFromDetectors } from './registry';
 describe('레지스트리 → 준비도 요구 조건', () => {
   const requirements = requirementsFromDetectors(DETECTORS);
 
-  it('탐지기 14종의 id·고장모드·requires를 그대로 옮기고 심각도는 카테고리로 정한다', () => {
-    expect(requirements).toHaveLength(14);
+  it('탐지기 17종의 id·고장모드·requires를 그대로 옮기고 심각도는 카테고리로 정한다', () => {
+    expect(requirements).toHaveLength(17);
     requirements.forEach((req, i) => {
       const detector = DETECTORS[i];
       expect(req).toMatchObject({ detectorId: detector?.id, failureMode: detector?.failureMode, metrics: detector?.requires.metrics, minHistoryDays: detector?.requires.minHistoryDays });

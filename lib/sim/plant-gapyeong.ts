@@ -85,6 +85,8 @@ export interface GapyeongState {
   readonly waterMakeupOn: boolean;
   /** 감압밸브 하류 압력 [bar] */
   readonly prvOutletBar: number;
+  /** 무유동 동안 시트 누설로 쌓인 하류 압력 상승분 [bar] (유동이 시작되면 밀려 나가 0이 된다) */
+  readonly prvCreepBar: number;
   /** 하역 계량 적산 [kg] (계량기 이득 반영 — 기록 누락 고장이면 늘지 않는다) */
   readonly deliveryMeterKg: number;
   /** 하역으로 실제 들어온 양 [kg] (참값) */
@@ -166,6 +168,7 @@ export function createGapyeong(init: InitContext): GapyeongUnit | null {
       waterTankLevelPct: 70,
       waterMakeupOn: true,
       prvOutletBar: params.prvOutletSetBar,
+      prvCreepBar: 0,
       deliveryMeterKg: days * 800,
       deliveredTrueKg: days * 800,
       trailerRemainingKg: 0,
@@ -278,12 +281,14 @@ export function stepGapyeong(unit: GapyeongUnit, input: GapyeongInput, ctx: Step
 
   // ── 감압밸브: 유동이 있으면 설정압 부근, 무유동이면 락업(설정압 + SG 여유) + 시트 누설에 따른 크리프
   const flowing = input.fcH2KgH > 0.05;
-  const lockupBar = params.prvOutletSetBar * 1.1; // EN 334 SG 10 등급 가정 (명판 미확인)
-  const supplyEffect = 0.02 * Math.max(0, input.bufferBar - params.prvInletMaxBar * 0.5); // 공급압이 높을수록 락업압이 조금 올라간다
-  const creepBar = deg.value('prv.seatLeakBarPerH', codes.prv, ctx.tMs) * dtH;
+  const lockupBar = params.prvOutletSetBar * 1.1; // 무유동 락업 (EN 334 SG 10 등급 가정 — 명판 미확인)
+  // 공급압 효과: 상류가 떨어질수록 설정압이 오른다 (EN 334 AC 등급). 이 방향이 시트 누설과 신호를 헷갈리게 하는 최대 오탐원이다
+  const supplyEffect = params.prvOutletSetBar * 0.25 * (1 - clamp(input.bufferBar / Math.max(params.prvInletMaxBar, 1e-6), 0, 1));
+  // 시트 누설은 무유동 동안만 쌓이고, 연료전지가 다시 수소를 뽑으면 밀려 나간다
+  const prvCreepBar = flowing ? 0 : state.prvCreepBar + deg.value('prv.seatLeakBarPerH', codes.prv, ctx.tMs) * dtH;
   const prvOutletBar = flowing
     ? params.prvOutletSetBar - 0.05 * clamp(input.fcH2KgH / 120, 0, 1)
-    : Math.min(params.prvInletMaxBar, Math.max(state.prvOutletBar, lockupBar + supplyEffect) + creepBar);
+    : Math.min(params.prvInletMaxBar, lockupBar + supplyEffect + prvCreepBar);
 
   // ── 외부 반입: 트레일러 한 대를 다 내리면 다음 호출까지 쉰다. 계량기 이득 0 = 반입 기록 누락 고장
   const meterGain = deg.value('delivery.meterGain', codes.delivery, ctx.tMs);
@@ -304,6 +309,7 @@ export function stepGapyeong(unit: GapyeongUnit, input: GapyeongInput, ctx: Step
       waterTankLevelPct,
       waterMakeupOn: makeupOn,
       prvOutletBar,
+      prvCreepBar,
       deliveryMeterKg: state.deliveryMeterKg + deliveredKg * meterGain,
       deliveredTrueKg: state.deliveredTrueKg + deliveredKg,
       trailerRemainingKg,
@@ -358,6 +364,7 @@ export function gapyeongReadings(unit: GapyeongUnit, input: GapyeongInput, ctx: 
       'hx.temp.cold.in': coldInC,
       'hx.temp.cold.out': state.hxColdOutC,
       'hx.flow.hot': input.fcRunning ? params.hxDutyKw / 15 / ((1000 / SECONDS_PER_HOUR) * CP_WATER) : 0,
+      'hx.flow.cold': coldFlowM3H,
       'hx.heat.recovered': unit.hxHeatKw,
       'hx.heat.total': state.hxHeatTotalKwh,
       'hx.pressure.diff.hot': input.fcRunning ? 45 : 0,

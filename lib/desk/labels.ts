@@ -30,6 +30,9 @@ const DETECTOR_LABELS: Readonly<Record<string, string>> = {
   'pv.soiling_rate': '태양광 오염 손실',
   'ess.resistance_growth': '배터리 랙 내부저항 증가',
   'inv.thermal_derating': '인버터 열 출력저감',
+  'prv.seat_leak': '감압밸브 시트 누설',
+  'hx.fouling': '폐열회수 열교환기 성능 저하',
+  'o2.purity_drift': '산소 중 수소(HTO) 상승',
 };
 
 export function detectorLabel(detectorId: string): string {

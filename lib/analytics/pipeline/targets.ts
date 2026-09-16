@@ -34,6 +34,9 @@ export const DETECTOR_TARGETING: Readonly<Record<PipelineDetectorId, DetectorTar
   'ess.resistance_growth': perAsset('ess.rack'),
   'inv.thermal_derating': { findingUnit: 'asset', targetClass: 'pv.inverter', configClass: 'pv.inverter', assetScope: false },
   'h2chain.mass_balance_gap': { findingUnit: 'site', targetClass: null, configClass: null, assetScope: false },
+  'prv.seat_leak': perAsset('h2.prv'),
+  'hx.fouling': perAsset('hx.recovery'),
+  'o2.purity_drift': perAsset('o2.plant'),
 });
 
 const isPipelineDetectorId = (id: string): id is PipelineDetectorId => Object.hasOwn(DETECTOR_TARGETING, id);

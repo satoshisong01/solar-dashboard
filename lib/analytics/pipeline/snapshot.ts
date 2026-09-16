@@ -5,6 +5,7 @@ import type { EssCapacityInput } from '../detectors/ess-capacity-fade';
 import type { InverterFaultEvent } from '../detectors/inv-thermal-derating';
 import type { PressureCrossCheck } from '../detectors/tank-peer-pressure';
 import type { AssetEventInput } from '../detectors/types';
+import type { HtoDay, HxSample, PrvHold } from '../episodes/gapyeong-samples';
 import type { InverterThermalSample } from '../episodes/inverter-thermal';
 import type { TankHoldPoint } from '../episodes/tank-hold';
 import type { EpisodeKind } from '../episodes/types';
@@ -33,6 +34,12 @@ export interface SiteAuxInputs {
   readonly cleaningTs?: readonly number[];
   /** 최근 SMP [원/kWh] (market_daily) */
   readonly smpKrwPerKwh?: number | null;
+  /** 감압밸브 id → 무유동 hold 구간 (prv.seat_leak) */
+  readonly prvHolds?: ReadonlyMap<number, readonly PrvHold[]>;
+  /** 폐열회수 열교환기 id → 정상상태 시간 표본 (hx.fouling) */
+  readonly hxSamples?: ReadonlyMap<number, readonly HxSample[]>;
+  /** 산소 계통 id → 전해조 운전일 HTO (o2.purity_drift) */
+  readonly htoDays?: ReadonlyMap<number, readonly HtoDay[]>;
 }
 
 export interface SiteSnapshot {
