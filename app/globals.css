@@ -44,6 +44,17 @@
   --chart-series-5: #e87ba4;
   --chart-series-6: #008300;
 
+  /* 공정도 흐름선 색 (lib/diagram/flow-kinds.ts). 도면 FCND-GP-PID-002 REV.2의 LINE LEGEND 색을 옮기되,
+     경보색(--crit)과 구분되지 않는 AC 적색만 보라로 바꿨다. 흐름선은 물질만 나타내고 상태는 나타내지 않는다 —
+     상태는 설비 상자 테두리·배지로만 쓴다. 색과 선 모양(실선/파선) 둘 다로 구분되므로 흑백 인쇄에서도 읽힌다. */
+  --flow-water: #1d6fe0;
+  --flow-recycle: #2c7fa8;
+  --flow-h2: #0f7a44;
+  --flow-o2: #0c7a8c;
+  --flow-dc: #9a5c00;
+  --flow-ac: #6b4bb8;
+  --flow-heat: #b0315f;
+
   /* 지도 마커 상태색 (lib/data/map-status.ts). 카카오 지도는 지도 스타일을 바꿀 수 없어 배경이 늘 밝으므로
      밝은/어두운 테마에서 같은 색을 쓴다. 위에 올리는 글자·아이콘 색은 -on 토큰으로 3:1 이상을 지킨다.
      색만으로 구분하지 않는다: 마커 옆·목록에 늘 상태 글자를 함께 둔다. */
@@ -97,6 +108,14 @@
     --chart-series-4: #c98500;
     --chart-series-5: #d55181;
     --chart-series-6: #008300;
+
+    --flow-water: #7fb3f2;
+    --flow-recycle: #79bcd8;
+    --flow-h2: #5fc48e;
+    --flow-o2: #5cc3d6;
+    --flow-dc: #f0b54a;
+    --flow-ac: #b9a3ee;
+    --flow-heat: #ef8fae;
   }
 }
 

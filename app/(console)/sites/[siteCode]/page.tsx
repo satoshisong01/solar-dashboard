@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AssetTree } from '@/components/assets/asset-tree';
 import { Breadcrumb } from '@/components/console/breadcrumb';
@@ -53,6 +54,15 @@ export default async function SitePage({ params, searchParams }: SitePageProps) 
         title={`${site.code} · ${site.name}`}
         purpose={[layout, site.simulated ? '가상 사이트' : null, site.controlGroup ? '고장 없는 대조군' : null].filter(Boolean).join(' · ') || '사이트 상세'}
       />
+
+      <nav aria-label="사이트 하위 화면">
+        <Link
+          href={`/sites/${encodeURIComponent(site.code)}/diagram`}
+          className="inline-flex items-center gap-1 rounded-md border border-accent px-2.5 py-1 text-sm font-medium whitespace-nowrap text-accent hover:bg-hydrogen-fill"
+        >
+          공정도 (P&amp;ID)
+        </Link>
+      </nav>
 
       <Panel title="오늘 KPI" meta={`KST 0시 ~ ${formatKstDateTime(nowMs)}`}>
         <SiteKpiCards kpis={kpis} />
