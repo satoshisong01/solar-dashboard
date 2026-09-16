@@ -31,6 +31,7 @@ const elSecRuns: Runner = (index, options) =>
         nameplate: { cellCount: num(stack, 'cell_count') ?? 0, activeAreaCm2: num(stack, 'active_area_cm2') ?? 0, ratedCurrentA: num(stack, 'rated_current_a') ?? 0 },
         episodes: index.episodesOf(stack.id, 'el.steady_run'),
         rectifierEfficiency: index.snapshot.aux?.rectifierEfficiency?.get(stack.id),
+        purgeCounts: index.snapshot.aux?.purgeCounts?.get(stack.id),
       },
     }),
   );
@@ -46,7 +47,11 @@ function holdsOf(index: SnapshotIndex, tank: PipelineAsset): TankHoldInput[] {
 
 const tankLeakRuns: Runner = (index, options) =>
   targetsOfClass(index, options, 'h2.storage.tank').map((tank) =>
-    runOne(index, options, { ...common(index, options, tank), detector: tankStaticLeak, input: { assetId: tank.id, waterVolumeL: num(tank, 'water_volume_l') ?? 0, holds: holdsOf(index, tank) } }),
+    runOne(index, options, {
+      ...common(index, options, tank),
+      detector: tankStaticLeak,
+      input: { assetId: tank.id, waterVolumeL: num(tank, 'water_volume_l') ?? 0, holds: holdsOf(index, tank), pressureCrossChecks: index.snapshot.aux?.tankCrossChecks?.get(tank.id) },
+    }),
   );
 
 const compRuns: Runner = (index, options) =>

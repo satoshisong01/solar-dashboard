@@ -2,12 +2,12 @@
 import { downsample } from '../episodes/series';
 import type { BootstrapResult } from '../stats/bootstrap';
 import { median } from '../stats/robust';
-import { theilSen } from '../stats/trend';
-import { MS_PER_DAY, type JsonObject } from '../types';
+import type { JsonObject } from '../types';
 import { levelCheck, makeCheck, pearson, SAFETY_DISCLAIMER } from './check-helpers';
 import { r } from './common';
 import type { H2Eos } from './hydrogen-eos';
-import type { PressureCrossCheck, TankHoldInput, TankStaticLeakParams } from './tank-static-leak';
+import type { PressureCrossCheck } from './tank-peer-pressure';
+import type { TankHoldInput, TankStaticLeakParams } from './tank-static-leak';
 import type { CheckStatus, DiagnosticCheck } from './types';
 
 /** 정지 보유 구간 하나의 온도 보정 질량 기울기 */
@@ -20,6 +20,8 @@ export interface HoldFit {
   readonly ciHighKgPerDay: number;
   /** 구간 안 온도 변화율 [°C/일] */
   readonly tempRateCPerDay: number;
+  /** 구간 안 원 압력 기울기 [bar/일] (온도 보정 전, 교차 확인용) */
+  readonly pressureRateBarPerDay: number;
   readonly tempMeanC: number;
   readonly pressureMeanBar: number;
   readonly massMeanKg: number;
@@ -45,21 +47,42 @@ function temperatureCheck({ fits, p }: TankCheckInput): DiagnosticCheck {
   });
 }
 
-function driftCheck({ crossChecks, recent, leak, volumeM3, eos }: TankCheckInput): DiagnosticCheck {
-  const label = '압력 센서 드리프트 (같은 뱅크 용기·압축기 토출 압력 비교)';
-  const points = [...(crossChecks ?? [])].sort((a, b) => a.ts - b.ts);
-  const spanDays = points.length < 2 ? 0 : ((points.at(-1)?.ts ?? 0) - (points[0]?.ts ?? 0)) / MS_PER_DAY;
-  if (points.length < 3 || spanDays < 1) return makeCheck('pressure_drift', label, 'no_data', { n: points.length }, '비교할 다른 압력 계측값이 부족합니다 (3회 이상, 1일 이상 필요).');
-  const t0 = points[0]?.ts ?? 0;
-  const fit = theilSen(points.map((pt) => (pt.ts - t0) / MS_PER_DAY), points.map((pt) => pt.offsetBar));
-  const perBar = eos.densityPerBar(median(recent.map((f) => f.pressureMeanBar)), median(recent.map((f) => f.tempMeanC))) * volumeM3;
-  const apparentLoss = -fit.slope * perBar;
-  const share = leak > 0 ? apparentLoss / leak : null;
-  return levelCheck('pressure_drift', label, share, [0.5, 0.2], { n: points.length, offset_slope_bar_per_day: r(fit.slope, 5), apparent_loss_kg_per_day: r(apparentLoss, 4), share_of_leak: r(share, 3), sources: [...new Set(points.map((pt) => pt.source))] }, {
-    supports: '이 용기 압력만 비교 대상보다 점점 낮게 읽힙니다. 누설 대신 압력 전송기 드리프트일 수 있으니 교정 후 다시 확인하세요 (용기가 서로 연결돼 균압될 때만 유효한 비교입니다).',
-    refutes: '비교 압력과의 차이는 그대로입니다. 압력 센서 드리프트로 설명하기 어렵습니다.',
-    unknown: '비교 압력과의 차이가 조금 변했습니다.',
-    no_data: '비교할 압력 계측값이 없습니다.',
+/** 비교 대상도 함께 떨어졌는지 짝지어 볼 최소 구간 수 */
+const MIN_CROSS_HOLDS = 3;
+
+/**
+ * 압력 교차 확인: 같은 정지 구간에서 비교 대상(같은 뱅크 다른 용기, 없으면 압축기 토출)과 이 용기의 원 압력 기울기 차이를
+ * 이 용기 질량으로 환산한다. 두 기울기 모두 온도 보정을 하지 않았으므로 같은 뱅크가 함께 겪는 야간 냉각은 빼기에서 상쇄되고,
+ * 남는 것이 이 용기에만 있는 손실이다. 정지 중에는 용기별 차단밸브가 닫혀 있으므로
+ *   이 용기에만 있는 손실 비율 = (비교 대상 기울기 − 이 용기 기울기) × ∂ρ/∂P × 내용적 ÷ 결합 누설률
+ * 이 크면 누설을 지지하고, 뱅크가 함께 떨어졌으면(비율이 작으면) 공용 소비·압력 기준 이동을 뜻한다.
+ */
+function peerCheck({ crossChecks, recent, leak, volumeM3, eos }: TankCheckInput): DiagnosticCheck {
+  const label = '뱅크 교차 확인 (같은 뱅크 다른 용기·압축기 토출 압력 대비)';
+  const byStart = new Map((crossChecks ?? []).map((c) => [c.holdStart, c]));
+  const matched = recent.flatMap((f) => {
+    const cross = byStart.get(f.hold.start);
+    return cross === undefined ? [] : [{ fit: f, cross }];
+  });
+  if (matched.length < MIN_CROSS_HOLDS) {
+    return makeCheck('peer_pressure', label, 'no_data', { holds_with_peer: matched.length, min_holds: MIN_CROSS_HOLDS }, `같은 구간에 비교할 다른 압력 계측값이 부족합니다 (${MIN_CROSS_HOLDS}구간 이상 필요).`);
+  }
+  const specific = median(matched.map(({ fit, cross }) => (cross.slopeBarPerDay - fit.pressureRateBarPerDay) * eos.densityPerBar(fit.pressureMeanBar, fit.tempMeanC) * volumeM3));
+  const share = leak > 0 ? specific / leak : null;
+  const measured = {
+    holds_with_peer: matched.length,
+    peers: Math.max(...matched.map(({ cross }) => cross.n)),
+    tank_pressure_rate_bar_per_day: r(median(matched.map(({ fit }) => fit.pressureRateBarPerDay)), 4),
+    peer_pressure_rate_bar_per_day: r(median(matched.map(({ cross }) => cross.slopeBarPerDay)), 4),
+    tank_specific_loss_kg_per_day: r(specific, 4),
+    tank_specific_share: r(share, 3),
+    sources: [...new Set(matched.map(({ cross }) => cross.source))],
+  };
+  return levelCheck('peer_pressure', label, share, [0.5, 0.2], measured, {
+    supports: '같은 정지 구간에서 이 용기만 떨어졌습니다. 다른 용기는 유지됐으므로 이 용기 쪽 누설로 볼 근거가 됩니다.',
+    refutes: '같은 구간에 뱅크 전체가 비슷하게 떨어졌습니다. 정지 판정이 놓친 공용 소비나 압력 기준 이동일 수 있으니 인출 이력·압력 전송기 교정을 먼저 확인하세요.',
+    unknown: '다른 용기도 일부 함께 떨어졌습니다.',
+    no_data: '같은 구간에 비교할 압력 계측값이 없습니다.',
   });
 }
 
@@ -90,15 +113,21 @@ function sufficiencyCheck({ recent, p }: TankCheckInput): DiagnosticCheck {
 }
 
 export function tankChecks(input: TankCheckInput): DiagnosticCheck[] {
-  return [temperatureCheck(input), driftCheck(input), valveCheck(input), sufficiencyCheck(input)];
+  return [temperatureCheck(input), peerCheck(input), valveCheck(input), sufficiencyCheck(input)];
 }
 
 export interface HoldEvidenceInput {
   readonly reference: readonly HoldFit[];
   readonly recent: readonly HoldFit[];
   readonly leak: number;
-  readonly ci: BootstrapResult;
+  readonly ci: { readonly ciLow: number; readonly ciHigh: number };
   readonly noise: number;
+  /** 검정 통계량의 표준오차 [kg/일] */
+  readonly se: number;
+  readonly nEffRecent: number;
+  readonly nReference: number;
+  /** 최근 구간만 복원추출한 부트스트랩 (참고: CI 반폭은 이것과 1.96×SE 중 넓은 쪽) */
+  readonly bootstrap: BootstrapResult;
   readonly threshold: number;
   readonly pctPerDay: number | null;
   readonly safety: boolean;
@@ -128,7 +157,16 @@ export function holdEvidence(e: HoldEvidenceInput): JsonObject {
     method: 'static_hold_theil_sen_weighted_median',
     eos: e.eos.model === 'abel_noble' ? { model: 'abel_noble', specific_gas_constant: e.p.specificGasConstant, co_volume_m3_per_kg: e.p.coVolume, volume_m3: r(e.volumeM3, 4) } : { model: e.eos.model, volume_m3: r(e.volumeM3, 4) },
     combined: { leak_kg_per_day: r(e.leak, 4), ci_low: r(e.ci.ciLow, 4), ci_high: r(e.ci.ciHigh, 4), pct_per_day: r(e.pctPerDay, 3) },
-    significance: { noise_sigma_kg_per_day: r(e.noise, 4), z_sigma: e.p.zSigma, threshold_kg_per_day: r(e.threshold, 4) },
+    significance: {
+      noise_sigma_kg_per_day: r(e.noise, 4),
+      z_sigma: e.p.zSigma,
+      threshold_kg_per_day: r(e.threshold, 4),
+      se_kg_per_day: r(e.se, 4),
+      se_formula: '√(π/2)·σ·√(1/n_eff최근 + 1/n기준)',
+      n_eff_recent: r(e.nEffRecent, 2),
+      n_reference: e.nReference,
+      bootstrap_half_width_kg_per_day: r((e.bootstrap.ciHigh - e.bootstrap.ciLow) / 2, 4),
+    },
     safety: { category_safety: e.safety, safety_kg_per_day: e.p.safetyKgPerDay, rule: '누설률 95% CI 하한 > 안전 기준일 때만 safety(severity 4)' },
     holds: [...e.reference.map(holdRow('reference')), ...e.recent.map(holdRow('recent'))].slice(-40),
     representative: representative ? { start: representative.hold.start, end: representative.hold.end, points: curve } : null,

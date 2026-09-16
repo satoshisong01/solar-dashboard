@@ -12,7 +12,7 @@ import { loadAssetEvents, type PointRow, type SiteRow } from './catalog';
 import { loadDqInput } from './dq-summary';
 import { computeSiteLedger, loadLedgerDays, type LedgerStats } from './ledger';
 import { loadChargeCurves } from './series';
-import { loadTankHoldPoints } from './tank-holds';
+import { loadTankHoldInputs } from './tank-holds';
 
 const MASS_BALANCE = 'h2chain.mass_balance_gap';
 
@@ -86,8 +86,8 @@ async function snapshotOf(ctx: DetectStageContext, data: DetectStageData): Promi
   const base: SiteSnapshot = { siteId: data.site.id, assets: data.assets, episodes: data.history, events, configs: ctx.configs, dq };
   return ctx.time('aux', async () => {
     const aux = await loadAuxInputs(ctx.db, data.site.id, data.assets, data.points, ctx.configs, ctx.window.end);
-    const tankHoldPoints = await loadTankHoldPoints(ctx.db, indexSnapshot(base), data.points, ctx.window.end, ctx.assetIds);
-    return { ...base, aux: { ...aux, tankHoldPoints } };
+    const tank = await loadTankHoldInputs(ctx.db, indexSnapshot(base), data.points, ctx.window.end, ctx.assetIds);
+    return { ...base, aux: { ...aux, tankHoldPoints: tank.points, tankCrossChecks: tank.crossChecks } };
   });
 }
 

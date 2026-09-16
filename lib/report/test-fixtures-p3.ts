@@ -22,7 +22,7 @@ const p3 = (id: string, detectorId: string, failureMode: string, effect: Effect,
   });
 
 export const tankFinding = (o: Partial<FindingInput> = {}) =>
-  p3('10', 'tank.static_leak', 'h2.storage_leak', ['tank_leak_kg_per_day', 1.0328, 0.9812, 1.0711, -0.0046, 1.0328, 'kg/일', 'kg/일'], { assetPath: 'SIM-B/H2BANK1/TANK3', category: 'safety', severity: 4, confidence: 0.7, detectionCount: 3, title: '저장용기 누설 의심 1.03 kg/일 — 즉시 현장 확인', snapshot: TANK_LEAK_SNAPSHOT, ...o });
+  p3('10', 'tank.static_leak', 'h2.storage_leak', ['tank_leak_kg_per_day', 1.0328, 0.9481, 1.1175, -0.0046, 1.0328, 'kg/일', 'kg/일'], { assetPath: 'SIM-B/H2BANK1/TANK3', category: 'safety', severity: 4, confidence: 0.7, detectionCount: 3, title: '저장용기 누설 의심 1.03 kg/일 — 즉시 현장 확인', snapshot: TANK_LEAK_SNAPSHOT, ...o });
 
 export const massBalanceFinding = (o: Partial<FindingInput> = {}) =>
   p3('13', 'h2chain.mass_balance_gap', 'h2chain.mass_balance_gap', ['h2_residual_pct', 2.284, 2.265, 2.345, 0.022, 2.284, '%'], { assetId: null, assetPath: null, category: 'performance', severity: 3, confidence: 0.71, detectionCount: 3, title: '수소 물질수지 잔차 +2.3%', snapshot: MASS_BALANCE_SNAPSHOT_V1, ...o });

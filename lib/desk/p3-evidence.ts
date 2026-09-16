@@ -15,7 +15,7 @@ const lineOf = (points: readonly { date: string; pi: number }[]) => (points.leng
 const TANK = z.object({
   eos: z.object({ model: str, volume_m3: num }).catch({ model: null, volume_m3: null }),
   combined: z.object({ leak_kg_per_day: num, ci_low: num, ci_high: num, pct_per_day: num }).catch({ leak_kg_per_day: null, ci_low: null, ci_high: null, pct_per_day: null }),
-  significance: z.object({ noise_sigma_kg_per_day: num, z_sigma: num, threshold_kg_per_day: num }).catch({ noise_sigma_kg_per_day: null, z_sigma: null, threshold_kg_per_day: null }),
+  significance: z.object({ noise_sigma_kg_per_day: num, z_sigma: num, threshold_kg_per_day: num, se_kg_per_day: num }).catch({ noise_sigma_kg_per_day: null, z_sigma: null, threshold_kg_per_day: null, se_kg_per_day: null }),
   baseline_bias: z.object({ kg_per_day: num }).catch({ kg_per_day: null }),
   safety: z.object({ category_safety: bool, safety_kg_per_day: num }).catch({ category_safety: false, safety_kg_per_day: null }),
   holds: listOf(z.object({ role: z.enum(['reference', 'recent']), start: z.number(), hours: num, loss_kg_per_day: num, ci_low: num, ci_high: num, t_mean_c: num, t_rate_c_per_day: num, p_mean_bar: num })),
@@ -38,6 +38,7 @@ export function parseTankLeak(snapshot: unknown): TankLeakEvidence {
     noiseSigma: s.significance.noise_sigma_kg_per_day,
     zSigma: s.significance.z_sigma,
     thresholdKgPerDay: s.significance.threshold_kg_per_day,
+    seKgPerDay: s.significance.se_kg_per_day,
     biasKgPerDay: s.baseline_bias.kg_per_day,
     safetyCategory: s.safety.category_safety,
     safetyKgPerDay: s.safety.safety_kg_per_day,

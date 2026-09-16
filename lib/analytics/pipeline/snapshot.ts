@@ -3,6 +3,7 @@ import type { TimedNumber } from '../detectors/common';
 import type { DqGapFlatlineInput } from '../detectors/dq-gap-flatline';
 import type { EssCapacityInput } from '../detectors/ess-capacity-fade';
 import type { InverterFaultEvent } from '../detectors/inv-thermal-derating';
+import type { PressureCrossCheck } from '../detectors/tank-peer-pressure';
 import type { AssetEventInput } from '../detectors/types';
 import type { InverterThermalSample } from '../episodes/inverter-thermal';
 import type { TankHoldPoint } from '../episodes/tank-hold';
@@ -16,12 +17,16 @@ import type { AssetEventRow, DetectorConfigRow, PipelineAsset, StoredEpisode } f
 export interface SiteAuxInputs {
   /** 저장용기 id → 정지 보유 구간 시작 시각 → 압력·온도 짝 (tank.static_leak). 점이 없는 구간은 입력에서 뺀다 */
   readonly tankHoldPoints?: ReadonlyMap<number, ReadonlyMap<number, readonly TankHoldPoint[]>>;
+  /** 저장용기 id → 최근 정지 구간별 비교 대상 압력 기울기 (tank.static_leak 압력 교차 확인). 없으면 그 체크는 데이터없음 */
+  readonly tankCrossChecks?: ReadonlyMap<number, readonly PressureCrossCheck[]>;
   /** 인버터 열 저감 버킷 표본 (inv.thermal_derating, thermalSampleWindow 기간) */
   readonly thermalSamples?: readonly InverterThermalSample[];
   /** 인버터 고장·경보 코드 (event_log). 없으면 냉각팬 체크는 데이터없음 */
   readonly inverterFaultEvents?: readonly InverterFaultEvent[];
   /** 전해조 스택 id → 정류기 효율 일 중앙값 [%] (el.sec_rise) */
   readonly rectifierEfficiency?: ReadonlyMap<number, readonly TimedNumber[]>;
+  /** 전해조 스택 id → 일 퍼지 횟수 증가분 [회] (el.sec_rise 퍼지 체크). 전해조에 퍼지 카운터 포인트가 없으면 비어 있다 */
+  readonly purgeCounts?: ReadonlyMap<number, readonly TimedNumber[]>;
   /** 사이트 체인 원장 일 행 (h2chain.mass_balance_gap) */
   readonly ledgerDays?: readonly LedgerDayRow[];
   /** 태양광 세척 시각 (maintenance_action 등 asset_event 밖의 기록. asset_event 세척은 탐지기 실행기가 따로 고른다) */

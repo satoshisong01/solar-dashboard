@@ -64,7 +64,7 @@ describe('상승 탐지기 4종 (matched_ratio)', () => {
 describe('tank.static_leak', () => {
   it('정상: 결합 누설률·유의 기준·안전 기준·구간 표·대표 곡선', () => {
     const view = kindOf(parseP3Evidence(TANK_LEAK_SNAPSHOT), 'tank_leak');
-    expect(view).toMatchObject({ eosModel: 'lemmon2008', volumeM3: 1.85, leakKgPerDay: 1.0328, safetyCategory: true, safetyKgPerDay: 0.5, thresholdKgPerDay: 0.0839 });
+    expect(view).toMatchObject({ eosModel: 'lemmon2008', volumeM3: 1.85, leakKgPerDay: 1.0328, safetyCategory: true, safetyKgPerDay: 0.5, thresholdKgPerDay: 0.1296, seKgPerDay: 0.0432 });
     expect(view.holds.length).toBeGreaterThan(0);
     expect(view.holds[0]).toMatchObject({ role: 'reference', hours: 8.08 });
     expect(view.representative?.points[0]).toEqual({ ts: 1789048800000, pBar: 313.34, tC: 22.09, massKg: 39.7258 });

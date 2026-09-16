@@ -77,6 +77,8 @@ export interface TankLeakEvidence {
   readonly noiseSigma: number | null;
   readonly zSigma: number | null;
   readonly thresholdKgPerDay: number | null;
+  /** 검정 통계량의 표준오차 [kg/일] (옛 스냅샷에는 없다) */
+  readonly seKgPerDay: number | null;
   readonly biasKgPerDay: number | null;
   readonly safetyCategory: boolean;
   readonly safetyKgPerDay: number | null;

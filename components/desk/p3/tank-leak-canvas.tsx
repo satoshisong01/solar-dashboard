@@ -11,7 +11,8 @@ function Summary({ evidence }: Readonly<{ evidence: TankLeakEvidence }>) {
   const items = [
     ['결합 누설률', `${formatNumber(evidence.leakKgPerDay, 3)} kg/일 (95% CI ${formatNumber(evidence.ciLow, 3)} ~ ${formatNumber(evidence.ciHigh, 3)})`],
     ['저장량 대비', evidence.pctPerDay === null ? '—' : `${formatNumber(evidence.pctPerDay, 2)}%/일`],
-    ['센서 잡음 σ · 유의 기준', `${formatNumber(evidence.noiseSigma, 3)} · ${formatNumber(evidence.thresholdKgPerDay, 3)} kg/일 (${formatNumber(evidence.zSigma, 1)}σ ÷ √구간 수)`],
+    ['센서 잡음 σ · 표준오차', `${formatNumber(evidence.noiseSigma, 3)} · ${evidence.seKgPerDay === null ? '—' : `${formatNumber(evidence.seKgPerDay, 3)} kg/일`} (SE = √(π/2)·σ·√(1/n_eff최근 + 1/n기준))`],
+    ['유의 기준', `${formatNumber(evidence.thresholdKgPerDay, 3)} kg/일 (${formatNumber(evidence.zSigma, 1)}σ × SE)`],
     ['기준 겉보기 손실 편향 (뺌)', evidence.biasKgPerDay === null ? '—' : `${formatSigned(evidence.biasKgPerDay, 4)} kg/일`],
     ['안전 카테고리 기준', evidence.safetyKgPerDay === null ? '—' : `CI 하한 > ${formatNumber(evidence.safetyKgPerDay, 2)} kg/일 → ${evidence.safetyCategory ? '해당 (severity 4)' : '미해당'}`],
     ['상태식 · 내용적', `${EOS_LABELS[evidence.eosModel ?? ''] ?? evidence.eosModel ?? '—'} · ${formatNumber(evidence.volumeM3, 3)} m³`],

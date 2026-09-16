@@ -10,6 +10,7 @@ import { INV_THERMAL_DERATING_DEFAULTS } from './inv-thermal-derating';
 import { soilingChecks, type SoilingCheckInput } from './pv-soiling-checks';
 import type { PiDay, Segment } from './pv-soiling-days';
 import { PV_SOILING_DEFAULTS } from './pv-soiling-rate';
+import type { PressureCrossCheck } from './tank-peer-pressure';
 import { tankChecks, type HoldFit, type TankCheckInput } from './tank-static-leak-checks';
 import { TANK_STATIC_LEAK_DEFAULTS } from './tank-static-leak';
 import { LEMMON_EOS } from './hydrogen-eos';
@@ -89,22 +90,37 @@ describe('tankChecks 경계', () => {
     ciLowKgPerDay: loss - 0.05,
     ciHighKgPerDay: loss + 0.05,
     tempRateCPerDay: tempRate,
+    pressureRateBarPerDay: 0,
     tempMeanC: 20,
     pressureMeanBar: 300,
     massMeanKg: 40,
   });
   const input = (fits: HoldFit[], extra: Partial<TankCheckInput> = {}): TankCheckInput => ({ fits, recent: fits.slice(-6), leak: 0.3, volumeM3: 1.85, eos: LEMMON_EOS, p: TANK_STATIC_LEAK_DEFAULTS, ...extra });
 
-  it('손실률이 온도 변화율을 따라가면 온도 보정 지지, 하류 상승 일부 → 불명, 짧은 구간 → 충분성 지지', () => {
+  // 구간 압력 기울기가 0인 fit과 비교하므로, 비교 대상 기울기를 올리면 그만큼이 이 용기에만 있는 손실이 된다
+  const PER_BAR = LEMMON_EOS.densityPerBar(300, 20) * 1.85;
+  const cross = (i: number, tankSpecificKgPerDay: number): PressureCrossCheck => ({ holdStart: DAY0 + i * MS_PER_DAY, slopeBarPerDay: tankSpecificKgPerDay / PER_BAR, source: 'peer_tank', n: 3 });
+
+  it('손실률이 온도 변화율을 따라가면 온도 보정 지지, 하류 상승 일부 → 불명, 짧은 구간 → 충분성 지지, 최근 구간과 짝이 안 맞는 교차 압력 → 데이터없음', () => {
     const fits = Array.from({ length: 8 }, (_, i) => fit(i, 0.3 + 0.05 * (i % 4), -2 - 5 * (i % 4), 5, i % 3 === 0 ? 2 : 0));
-    const checks = statusOf(tankChecks(input(fits, { crossChecks: [{ ts: DAY0, offsetBar: 0, source: 'compressor_discharge' }] })));
-    expect(checks).toEqual({ temperature_compensation: 'supports', pressure_drift: 'no_data', valve_passing: 'unknown', hold_sufficiency: 'supports' });
+    // 최근 6구간은 i = 2~7이라 i = 0 교차값은 짝이 없다
+    const checks = statusOf(tankChecks(input(fits, { crossChecks: [{ holdStart: DAY0, slopeBarPerDay: 0, source: 'compressor_discharge', n: 1 }] })));
+    expect(checks).toEqual({ temperature_compensation: 'supports', peer_pressure: 'no_data', valve_passing: 'unknown', hold_sufficiency: 'supports' });
   });
 
-  it('구간 수는 채웠고 길이가 기준의 1.5~2배면 충분성 불명, 비교 압력 차이가 그대로면 드리프트 반박, 하류 데이터 없음 → 데이터없음', () => {
+  it('구간 수는 채웠고 길이가 기준의 1.5~2배면 충분성 불명, 뱅크가 함께 떨어지면 교차 확인 반박, 하류 데이터 없음 → 데이터없음', () => {
     const fits = Array.from({ length: 6 }, (_, i) => fit(i, 0.3, -3, 7, null));
-    const cross = Array.from({ length: 5 }, (_, i) => ({ ts: DAY0 + i * MS_PER_DAY, offsetBar: 0.2, source: 'peer_tank' as const }));
-    expect(statusOf(tankChecks(input(fits, { crossChecks: cross })))).toMatchObject({ temperature_compensation: 'no_data', pressure_drift: 'refutes', valve_passing: 'no_data', hold_sufficiency: 'unknown' });
+    const together = Array.from({ length: 5 }, (_, i) => cross(i, 0));
+    expect(statusOf(tankChecks(input(fits, { crossChecks: together })))).toMatchObject({ temperature_compensation: 'no_data', peer_pressure: 'refutes', valve_passing: 'no_data', hold_sufficiency: 'unknown' });
+  });
+
+  it('대상 용기만 떨어지면 교차 확인 지지, 절반쯤 함께 떨어지면 불명', () => {
+    const fits = Array.from({ length: 6 }, (_, i) => fit(i, 0.3, -3));
+    const only = statusOf(tankChecks(input(fits, { crossChecks: Array.from({ length: 6 }, (_, i) => cross(i, 0.3)) })));
+    expect(only).toMatchObject({ peer_pressure: 'supports' });
+    const partly = tankChecks(input(fits, { crossChecks: Array.from({ length: 6 }, (_, i) => cross(i, 0.3 * 0.35)) })).find((c) => c.id === 'peer_pressure');
+    expect(partly?.status).toBe('unknown');
+    expect(partly?.measured).toMatchObject({ holds_with_peer: 6, peers: 3 });
   });
 });
 

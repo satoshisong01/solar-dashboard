@@ -43,5 +43,6 @@ export type { ParamMeta } from './param-schema';
 export { pvInverterPeer, PV_INVERTER_PEER_DEFAULTS, PV_INVERTER_PEER_PARAM_SCHEMA, type PvInverterPeerInput, type PvInverterPeerParams } from './pv-inverter-peer';
 export { PV_SOILING_DEFAULTS, PV_SOILING_PARAM_SCHEMA, pvSoilingRate, type PvSoilingInput, type PvSoilingParams } from './pv-soiling-rate';
 export { EL_VOLTAGE_RISE_DEFAULTS, EL_VOLTAGE_RISE_PARAM_SCHEMA, elVoltageRise, FC_VOLTAGE_DECAY_DEFAULTS, FC_VOLTAGE_DECAY_PARAM_SCHEMA, fcVoltageDecay, type StackDetectorParams, type StackVoltageInput } from './stack-detectors';
-export { TANK_STATIC_LEAK_DEFAULTS, TANK_STATIC_LEAK_PARAM_SCHEMA, tankStaticLeak, type PressureCrossCheck, type TankHoldInput, type TankStaticLeakInput, type TankStaticLeakParams } from './tank-static-leak';
+export { pressureCrossChecks, type PressureCrossCheck, type PressureCrossSource } from './tank-peer-pressure';
+export { TANK_STATIC_LEAK_DEFAULTS, TANK_STATIC_LEAK_PARAM_SCHEMA, tankStaticLeak, type TankHoldInput, type TankStaticLeakInput, type TankStaticLeakParams } from './tank-static-leak';
 export type * from './types';

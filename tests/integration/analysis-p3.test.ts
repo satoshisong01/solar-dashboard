@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { loadSiteAssets, loadSitePoints } from '@/lib/analysis/catalog';
 import { DEFAULT_OVERLAP_HOURS, runAnalysis, type AnalysisRequest } from '@/lib/analysis/run';
 import { loadAssetSeries } from '@/lib/analysis/series';
-import { extractTankHoldsWindowed, loadTankHoldPoints } from '@/lib/analysis/tank-holds';
+import { extractTankHoldsWindowed, loadTankHoldInputs } from '@/lib/analysis/tank-holds';
 import { loadEpisodes } from '@/lib/analysis/episodes';
 import { registerMaintenanceAction } from '@/lib/analysis/transitions';
 import { isSafetyFinding } from '@/lib/desk/safety';
@@ -203,8 +203,12 @@ describe('P3 분석 실행 (hysol_test)', () => {
 
     const history = await loadEpisodes(db, assets.map((a) => a.id), p3At(P3_DAYS).getTime());
     const index = indexSnapshot({ siteId: fixture.siteId, assets, episodes: history, events: [], configs: [] });
-    const loaded = await loadTankHoldPoints(db, index, points, p3At(P3_DAYS).getTime(), new Set([tank.id]));
-    const byStart = loaded.get(tank.id);
+    const loaded = await loadTankHoldInputs(db, index, points, p3At(P3_DAYS).getTime(), new Set([tank.id]));
+    const byStart = loaded.points.get(tank.id);
+    // 압력 교차 확인: 최근 구간마다 같은 뱅크 다른 용기 압력 기울기가 실린다
+    const cross = loaded.crossChecks.get(tank.id) ?? [];
+    expect(cross.length).toBeGreaterThan(0);
+    expect(cross.every((c) => c.source === 'peer_tank' && c.n === 3 && Number.isFinite(c.slopeBarPerDay))).toBe(true);
     const holds = index.episodesOf(tank.id, 'tank.hold').filter((e) => e.valid);
     expect(byStart?.size).toBeLessThan(holds.length);
     expect(byStart?.size).toBeLessThanOrEqual(TANK_STATIC_LEAK_DEFAULTS.referenceHolds + TANK_STATIC_LEAK_DEFAULTS.recentHolds);
