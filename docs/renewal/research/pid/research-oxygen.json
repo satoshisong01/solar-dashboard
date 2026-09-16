@@ -1,0 +1,451 @@
+{
+  "area": "byproduct_oxygen",
+  "scope": "가평 2MW 청정수소발전 시스템 P&ID(FCND-GP-PID-002 REV.2, 2026-07-17)의 PEM 수전해 부산물 산소 계통 — 애노드 산소 250 Nm³/h 생산, O₂ 저장탱크 15 bar·30 m³, 이송트럭 출하·판매. 순도 등급·국내 법규·계측·고장모드·수익 모델·콘솔 KPI를 다룬다. 수소측(HTO/OTH 크로스오버 물리, 스택 열화, 고압 수소 저장)은 기존 파일이 이미 다루므로 중복하지 않고 참조만 한다.",
+  "existingCoverage": {
+    "note": "아래 주제는 기존 리서치에 이미 있으므로 본 문서에서 재서술하지 않는다.",
+    "refs": [
+      { "topic": "PEM 막 가스 크로스오버 물리(HTO/OTH), 부하·압력 의존성, 산소 중 수소 LFL 4 vol% 근거", "file": "docs/renewal/research/deep/research-electrolyzer.json" },
+      { "topic": "수소측 기액분리기 압력·수위 균형, 퍼지, 정제·건조(TSA) 일반", "file": "docs/renewal/research/research-electrolyzer.json" },
+      { "topic": "고압가스 안전관리법 제조허가(KGS FP112)·특정고압가스 사용신고(50 m³)·안전관리규정 기록 5년 보존", "file": "docs/renewal/research/deep/research-storage.json, docs/renewal/research/deep/verify-hydrogen.json" },
+      { "topic": "고압 저장탱크 정압 누설 탐지, 수소 체인 물질수지 탐지기 구현", "file": "lib/analytics/detectors/tank-static-leak.ts, lib/analytics/detectors/h2chain-mass-balance.ts, lib/analytics/detectors/hydrogen-eos.ts" },
+      { "topic": "메트릭 키 h2.in.o2(HTO, %)·o2.in.h2(OTH, ppm)는 이미 카탈로그에 존재 — 새로 만들지 말 것", "file": "db/seed/catalog.ts:254-255" }
+    ]
+  },
+  "equipment": [
+    {
+      "id": "O2-GLS",
+      "name_ko": "산소측 기액분리기 (수전해 애노드)",
+      "role": "애노드 배출 습윤 산소에서 순환수를 분리. 기존 카탈로그 h2.elz.gls(separator.level, qualifier=o2)로 이미 표현되어 있다.",
+      "note": "본 영역의 산소 품질 출발점. 분리기 출구 산소는 운전압력에서 수증기 포화 상태다."
+    },
+    {
+      "id": "O2-DEOXO",
+      "name_ko": "산소 탈수소(디옥소) 촉매층",
+      "role": "산소 중 잔류 수소(HTO)를 촉매 재결합(2H₂+O₂→2H₂O, 244.9 kJ/mol 발열)으로 물로 전환. Pt-Co 계열 패킹베드, 촉매층 온도가 150 ℃까지 상승한다.",
+      "status": "도면에 없음 — 판매용 산소를 만들려면 신설 필요(권고). 문헌상 수소 4 vol%까지 99.5% 전환 실적.",
+      "source": 1
+    },
+    {
+      "id": "O2-DRYER",
+      "name_ko": "산소 건조기 (응축 + 흡착 2탑 TSA)",
+      "role": "25~30 ℃ 응축 후 Zeolite 13X 흡착으로 수분을 5 ppm 수준까지 제거. 2탑 교번(건조/재생).",
+      "status": "도면에 없음 — 신설 필요(권고). 문헌 사례에서 탈수소+건조 후 산소 순도 99.87 vol% 달성.",
+      "source": 1
+    },
+    {
+      "id": "O2-TANK",
+      "name_ko": "산소 저장탱크 (T-401 상당)",
+      "spec": "15 bar · 30 m³ (도면). 압력용기, 기체 저장(액화 저장 아님 → 액화면 수위 계측은 해당 없음).",
+      "role": "생산-출하 시차 완충. 계산상 만재 재고 약 637 kg(≈445 Nm³)이며, 정격 생산 357 kg/h 기준 약 1.8시간분에 불과하다.",
+      "source": 12
+    },
+    {
+      "id": "O2-PCV/PSV",
+      "name_ko": "산소 압력조절밸브 및 안전밸브·방출관",
+      "role": "수전해 애노드 배압 유지, 탱크 만재 시 대기 방출(vent). 안전밸브는 압축기 최종단 1년 1회, 그 밖 2년 1회 기능검사 대상.",
+      "source": 6
+    },
+    {
+      "id": "O2-COMP",
+      "name_ko": "산소 압축기 (튜브트레일러 충전용)",
+      "role": "15 bar → 150~200 bar 승압. 국내법상 석유류·유지류·글리세린을 산소압축기 내부윤활제로 사용할 수 없다(무급유 또는 산소 전용 윤활).",
+      "status": "도면에 없음 — 15 bar 탱크에서 트럭으로 '출하'하려면 튜브트레일러 충전용 압축기 또는 저압 전용 트레일러 중 하나가 반드시 필요하다. 도면의 최대 미해결 사항.",
+      "source": 6
+    },
+    {
+      "id": "O2-LOADING",
+      "name_ko": "산소 출하(충전) 설비",
+      "role": "이송트럭(튜브트레일러 또는 차량에 고정된 탱크) 충전·계량·출하 전표. 충전용 주관 압력계는 매월 1회, 그 밖의 압력계는 3개월 1회 표준압력계로 기능검사.",
+      "source": 6
+    },
+    {
+      "id": "O2-DET",
+      "name_ko": "산소 농도 검지기 (방출관·탱크실·출하장)",
+      "role": "산소 농축(>23.5 vol%)·결핍(<18 vol%) 감시. 국내 산업안전보건기준상 '적정공기'는 산소 18% 이상 23.5% 미만이다.",
+      "status": "도면에 없음 — 방출관 주변·탱크실·출하장에 신설 권고.",
+      "source": 9
+    }
+  ],
+  "instruments": [
+    { "tag": "PT-401", "name_ko": "산소 저장탱크 압력", "exists_in_pid": true, "note": "도면 기재. 재고·누설·방출 판정의 기준 신호." },
+    { "tag": "TT-401", "name_ko": "산소 저장탱크 가스 온도", "exists_in_pid": false, "note": "신설 필수. 온도 없이는 압력→질량 환산도, 온도 기인 압력변동과 누설의 구분도 불가능하다." },
+    { "tag": "FT-401", "name_ko": "산소 생산 유량 (애노드 출구)", "exists_in_pid": false, "note": "신설 권고. 없으면 FT-201(수소 생산 유량)×0.5로 이론 추정만 가능하며 실측 회수율을 낼 수 없다." },
+    { "tag": "FT-402", "name_ko": "산소 출하 유량 / 적산", "exists_in_pid": false, "note": "신설 권고. 출하 계량의 1차 근거. 코리올리(질량계)를 우선하고, 차선책은 차압식 + PT/TT 보정." },
+    { "tag": "AT-401", "name_ko": "산소 중 수소 농도(HTO) 분석기", "exists_in_pid": false, "note": "신설 필수. 열전도도식(TCD)이 O₂ 중 H₂ 이원혼합의 표준 방식. 법정 압축금지선 2%·4% 감시용." },
+    { "tag": "AT-402", "name_ko": "산소 순도(O₂ vol%) 분석기", "exists_in_pid": false, "note": "신설 권고. 상자성(paramagnetic) 방식. 법정 품질검사(99.5%) 근거이자 판매 등급 증빙." },
+    { "tag": "MT-401", "name_ko": "산소 이슬점계", "exists_in_pid": false, "note": "건조기 신설 시 필요. 수분이 산소 '순도' 계산의 최대 변수다." },
+    { "tag": "AT-403", "name_ko": "대기 산소 농도 검지기 (방출관·탱크실·출하장)", "exists_in_pid": false, "note": "신설 권고. 23.5 vol% 초과 시 경보." },
+    { "tag": "WT-401", "name_ko": "출하 차량 계량 (지상계량대 또는 트레일러 자중 차이)", "exists_in_pid": false, "note": "상거래 계량의 독립 검증축. FT-402와 교차검증해 계량 편차를 탐지한다." }
+  ],
+  "metrics": [
+    { "key": "tank.pressure", "qualifier": "o2", "unit": "bar", "samplingS": 10, "range": [0, 20], "why": "PT-401. 재고 환산·정압 누설·만재 방출 판정의 1차 신호. 기존 카탈로그 키 재사용(hard [-1,1100]).", "source": 12, "status": "기존 키 재사용" },
+    { "key": "tank.temp", "qualifier": "o2", "unit": "°C", "samplingS": 10, "range": [-20, 60], "why": "TT-401. 압력→질량 환산과 온도 기인 압력변동 보정에 필수. 충전용기 40 ℃ 이하 유지 규정 감시에도 쓴다.", "source": 6, "status": "기존 키 재사용" },
+    { "key": "h2.in.o2", "qualifier": "o2.product", "unit": "%", "samplingS": 60, "range": [0, 5], "why": "AT-401. 산소 중 수소(HTO). 국내법상 산소 중 아세틸렌·에틸렌·수소 합계 2% 이상 또는 가연성가스 4% 이상이면 압축이 금지된다. 판매 품질과 폭발 안전의 공통 지표.", "source": 6, "status": "기존 키 재사용(catalog.ts:254)" },
+    { "key": "o2.flow.mass", "qualifier": "production|loading|vent", "unit": "kg/h", "samplingS": 10, "range": [0, 600], "why": "FT-401/402. 생산·출하·방출 3지점 유량을 qualifier로 구분(기존 separator.level qualifier 패턴과 동일). 정격 생산 357 kg/h.", "source": 12, "status": "신규 제안" },
+    { "key": "o2.mass.total", "unit": "kg", "samplingS": 60, "range": [0, 1000000000], "why": "누적 산소 생산량 카운터. h2.mass.total과 대칭. 회수율·수익 KPI의 분모.", "source": 12, "status": "신규 제안" },
+    { "key": "o2.shipped.mass.total", "unit": "kg", "samplingS": 60, "range": [0, 1000000000], "why": "누적 출하량 카운터. 매출 계산과 계량 편차 탐지의 기준값.", "source": 2, "status": "신규 제안" },
+    { "key": "o2.vent.mass.total", "unit": "kg", "samplingS": 60, "range": [0, 1000000000], "why": "누적 방출량. 방출 손실률 KPI의 분자. 직접 계측이 없으면 물질수지 잔차로 추정하되 '추정' 플래그를 붙인다.", "source": 2, "status": "신규 제안" },
+    { "key": "o2.inventory", "unit": "kg", "samplingS": 60, "range": [0, 1000], "why": "저장탱크 재고(P·T·Z 보정). h2.inventory와 대칭이며, 기존 hydrogen-eos.ts와 같은 방식으로 산소 EOS를 적용한다.", "source": 15, "status": "신규 제안" },
+    { "key": "o2.purity", "unit": "%", "samplingS": 300, "range": [90, 100], "why": "AT-402. 건조 기준 산소 농도. 국내법상 산소 제조자는 1일 1회 이상 품질검사로 99.5% 이상을 확인하고 기록해야 한다.", "source": 6, "status": "신규 제안" },
+    { "key": "o2.dewpoint", "unit": "°C", "samplingS": 300, "range": [-80, 30], "why": "MT-401. 수분은 산소 순도의 최대 변수이며 의료용 규격은 H₂O ≤ 67 ppm이다. 건조기 파과 조기 탐지에도 쓴다.", "source": 1, "status": "신규 제안" },
+    { "key": "o2.detector.pct", "qualifier": "vent|tankroom|loading", "unit": "%", "samplingS": 5, "range": [0, 100], "why": "AT-403. 대기 산소 농도. 23.5% 초과는 산소 농축 대기(화재 위험), 18% 미만은 질식 위험. gas.detector.ppm(수소)과 대칭 구조.", "source": 4, "status": "신규 제안" },
+    { "key": "o2.loading.pressure", "unit": "bar", "samplingS": 10, "range": [0, 250], "why": "출하 헤더·트레일러 충전 압력. 충전 완료 판정과 잔압(heel) 계상에 필요하다.", "source": 6, "status": "신규 제안" },
+    { "key": "valve.open", "qualifier": "o2.vent|o2.loading", "unit": "", "samplingS": 5, "range": [0, 1], "why": "방출밸브·출하밸브 개도 상태. 정압 누설 탐지의 게이트 신호(밸브 닫힘 구간만 유효).", "source": 12, "status": "기존 키 재사용" },
+    { "key": "op.state", "qualifier": "o2", "unit": "", "samplingS": 10, "range": null, "why": "산소 계통 운전상태(정지/생산/출하/방출/정비). 모든 탐지기의 구간 분할 기준.", "source": 12, "status": "기존 키 재사용" }
+  ],
+  "failureModes": [
+    {
+      "mode": "산소 저장탱크·배관 정압 누설",
+      "signal": "출하·방출이 없는 구간에서 온도보정 압력이 지속 하강. 물질수지 잔차가 한 방향으로 누적. 탱크실 산소 농도의 완만한 상승.",
+      "detectionMethod": "밸브 전폐 + 생산 정지 구간(≥30분)을 골라 밀도 ρ(P,T,Z)로 환산한 재고 m(t)에 Theil-Sen 회귀를 건다. |dm/dt| > 만재 재고의 0.5%/h가 서로 다른 3개 정지구간에서 반복되면 경보. 기존 tank-static-leak.ts를 산소 EOS로 파라미터화해 재사용한다.",
+      "falsePositiveTraps": "① 온도 하강만으로도 압력은 떨어진다 — TT-401 없이 PT만으로 판정하면 야간마다 오경보가 난다. ② 안전밸브 심(seat) 미세 누출은 배관 누설과 신호가 동일하다 — 방출관 산소 농도로 구분한다. ③ 분석·계측 샘플링 라인의 정상 소모(purge)를 누설로 오인. ④ 출하 직후 잔류 압력평형(20~30분)을 누설로 오인.",
+      "recommendedAction_ko": "정지 구간 압력강하율을 보전 이력에 기록하고 0.5%/h를 넘으면 비눗물·초음파 누설점검 작업지시를 발행한다. 방출관 산소농도가 동시에 오르면 안전밸브 심 누출을 우선 의심하고 기능검사(압축기 최종단 1년, 그 밖 2년) 주기를 앞당긴다.",
+      "severityHint": "high",
+      "source": 6
+    },
+    {
+      "mode": "버퍼 용량 부족에 의한 상시 방출(vent) 손실",
+      "signal": "탱크 압력이 상한에 붙어 있는 시간 비율이 높음. 생산량 대비 출하량의 누적 격차 확대. 방출밸브 개도 시간 증가.",
+      "detectionMethod": "일 단위 물질수지로 방출량 ≈ 이론생산(FT-201×0.5×1.429) − 출하량 − 재고증가를 산출하고, 방출 손실률 = 방출/이론생산으로 정의한다. 동시에 '탱크 압력 ≥ 상한 95%'인 시간비율(만재율)을 추적해, 만재율과 방출 손실률의 상관이 0.7 이상이면 구조적 버퍼 부족으로 분류한다.",
+      "falsePositiveTraps": "① 유량계 없이 이론생산으로 대체하면 수전해 부하변동 시 오차가 커진다 — FT-401이 없을 때는 결과에 '추정' 플래그가 반드시 필요하다. ② 출하 계량 누락(전표 미입력)을 방출로 오인. ③ 정비 목적의 계획 방출(퍼지)을 손실로 집계.",
+      "recommendedAction_ko": "단기로는 수전해 운전 스케줄을 트럭 도착 시각에 맞춰 조정한다(출하 직전 증산, 만재 임박 시 감발). 중기로는 압축기+튜브트레일러 도입으로 실질 버퍼를 10배 이상 확보하거나 탱크를 증설한다. 방출이 구조적으로 불가피하면 산소 판매를 포기하고 방출 설계를 안전 기준에만 맞추는 편이 총비용이 낮다 — 경제성 재검토 안건으로 올린다.",
+      "severityHint": "high",
+      "source": 12
+    },
+    {
+      "mode": "산소 순도 저하 (수소 크로스오버 증가)",
+      "signal": "h2.in.o2(HTO) 상승. 저부하·고압 운전 구간에서 특히 두드러짐. 막 손상 시 계단형 상승.",
+      "detectionMethod": "부하 bin(전류밀도 구간)별로 HTO를 정규화한 뒤 월 단위 Theil-Sen 기울기를 본다. 법정 압축금지선(산소 중 수소 합계 2%)까지의 마진을 '남은 여유 %'로 상시 표시하고 50% 미만이면 경보. 단기적으로는 15분 이동중앙값이 1%를 넘으면 주의, 2%에서 압축·출하를 차단한다.",
+      "falsePositiveTraps": "① 분석기 교정 드리프트 — 영점·스팬 교정 이력과 겹쳐 보지 않으면 막 열화로 오진한다. ② 샘플링 라인 응축수에 의한 농도 왜곡(습윤 산소를 건조 없이 분석). ③ 기동 직후·저부하 과도구간의 정상적 HTO 상승을 열화로 오인 — 부하 정규화가 필수다. ④ 배압 설정 변경(압력이 오르면 크로스오버가 커진다)을 열화로 오인.",
+      "recommendedAction_ko": "부하 정규화 후에도 상승 추세가 3개월 지속되면 제조사에 막 건전성 진단을 요청한다. 단기로는 저부하 장시간 운전을 줄이고(최소부하 상향) 애노드 배압을 낮춘다. HTO 2% 도달 시 압축·출하 자동 차단은 선택이 아니라 법 준수 요건이다.",
+      "severityHint": "high",
+      "source": 6
+    },
+    {
+      "mode": "압력 조절 이상 (PCV 헌팅 / 과압 / 안전밸브 반복 작동)",
+      "signal": "탱크 압력의 단주기 진동 진폭 확대, 설정압 초과 스파이크, 안전밸브 작동 횟수 증가.",
+      "detectionMethod": "압력 시계열의 이동 표준편차와 제로크로싱 횟수를 기준구간과 비교한다. 설정압 초과 이벤트를 카운트하고, 안전밸브 작동 추정(압력 급락 + 방출관 산소농도 급등 동시 발생)을 별도 이벤트로 적재한다.",
+      "falsePositiveTraps": "① 태양광 변동에 따른 수전해 부하 급변으로 생기는 정상적 압력 요동 — PV 출력 변동률로 게이트한다. ② 출하 중 압력 변동을 제어 이상으로 오인. ③ 압력계 자체 노이즈·접지 불량.",
+      "recommendedAction_ko": "PCV 정비·튜닝 작업지시를 낸다. 안전밸브가 반복 작동하면 설정압을 재확인하고 기능검사를 앞당기며, 작동 이력을 안전관리규정 기록(5년 보존)에 남긴다.",
+      "severityHint": "medium",
+      "source": 6
+    },
+    {
+      "mode": "출하 계량 오차 (상거래 분쟁 위험)",
+      "signal": "출하 유량 적산값과 탱크 재고 감소 환산값의 지속적 편차, 또는 차량 계량대 실측 질량과의 편차.",
+      "detectionMethod": "출하 건별로 (a) FT-402 적산 질량, (b) Δ재고 = ρ(P₁,T₁,Z₁)V − ρ(P₂,T₂,Z₂)V, (c) 차량 계량 차이 세 값을 비교한다. (a)-(b), (a)-(c) 편차의 부호 있는 이동평균이 ±2%를 지속 초과하면 계량계 바이어스로 분류한다.",
+      "falsePositiveTraps": "① 압축계수 Z를 1로 두고 환산하면 15 bar에서도 약 1%의 계통오차가 생긴다 — 반드시 실가스 EOS를 쓴다. ② 충전 중 단열압축에 의한 가스 온도 상승을 무시하면 (b)가 과소평가된다 — 충전 종료 후 온도 평형(30~60분) 뒤 값으로 계산한다. ③ 트레일러 잔압(heel) 미계상. ④ Nm³와 m³ 혼용(기준온도 0 ℃ / 15 ℃ / 20 ℃) — 계약서상 기준상태를 시스템 상수로 고정해야 한다.",
+      "recommendedAction_ko": "계약서의 기준상태(0 ℃·101.325 kPa)와 환산계수 1.429 kg/Nm³를 시스템 상수로 고정하고 출하 전표에 기준상태를 명시한다. 편차가 2%를 넘으면 유량계 교정을 의뢰하고, 그 사이 출하량은 차량 계량대 값을 정본으로 삼는다.",
+      "severityHint": "medium",
+      "source": 15
+    },
+    {
+      "mode": "산소 농축 대기 형성 (방출관·탱크실·출하장)",
+      "signal": "국소 산소 농도 23.5 vol% 초과. 방출 직후와 출하 중에 집중된다.",
+      "detectionMethod": "AT-403 5초 샘플링. 23.5% 초과가 60초 이상 지속되면 1차 경보, 25% 초과 시 즉시 경보 + 출하 중단 연동. 방출 이벤트와의 시간 상관을 함께 표시해 원인을 특정한다.",
+      "falsePositiveTraps": "① 검지기 드리프트(전기화학식 수명 1~2년) — 교정 이력 없는 검지기의 단독 경보는 신뢰하지 않는다. ② 질소 퍼지 후 잔류로 인한 저농도 표시를 정상으로 오인(반대 방향 위험). ③ 통풍이 좋은 옥외에서는 국소 고농도가 검지기에 도달하지 않아 '음성 오탐'이 더 위험하다 — 검지기가 방출구 풍하측에 있는지 확인한다.",
+      "recommendedAction_ko": "방출관 높이·방향을 재검토해 사람 접근 구역 밖으로 상향 방출시키고, 밀폐·반밀폐 공간은 시간당 6회 이상 환기를 확보한다. 작업복에 산소가 스며든 상태에서는 15분 이상 정상 대기에서 환기한 뒤 화기에 접근하도록 작업절차에 명시한다.",
+      "severityHint": "critical",
+      "source": 4
+    },
+    {
+      "mode": "유분·이물 오염에 의한 산소 발화",
+      "signal": "압축기 토출 온도 이상 상승, 필터 차압 급증, 배관 내면 검사에서 유막·스케일 확인.",
+      "detectionMethod": "온라인 직접 탐지는 불가능하다. 압축기 토출온도(기존 compressor.discharge.temp 패턴)와 필터 차압의 동시 상승을 대리지표로 삼고, 정기 유분시험·청정도 검사 기록의 만기를 준수 캘린더로 관리한다.",
+      "falsePositiveTraps": "① 외기온 상승에 따른 토출온도 상승을 오염으로 오인 — 외기온 보정이 필요하다. ② 압축기 부하율 변화. ③ 대리지표가 '음성'이라고 해서 안전하다는 뜻이 아니다 — 이 한계를 화면에 명시해야 한다.",
+      "recommendedAction_ko": "산소 계통은 무급유(oil-free) 또는 산소 전용 윤활제만 쓴다(국내법상 석유류·유지류·글리세린의 산소압축기 내부윤활제 사용 금지). 배관·밸브는 산소 서비스 세정(탈지) 후 봉인 상태로 설치하고 세정 인증서를 자산 문서로 콘솔에 등록한다.",
+      "severityHint": "critical",
+      "source": 6
+    },
+    {
+      "mode": "분석기·계측기 고착(flatline) 및 결측",
+      "signal": "HTO·순도·이슬점 값이 장시간 동일값 유지, 또는 샘플 누락.",
+      "detectionMethod": "기존 dq-gap-flatline.ts를 재사용한다. 분석기는 응답이 느리므로 flatline 임계를 압력·온도보다 길게(예: 6시간) 잡되 운전 중(op.state=생산)에만 적용한다.",
+      "falsePositiveTraps": "① 안정된 정상 운전에서 분석기 값이 실제로 거의 변하지 않는 구간 — 분해능 이하의 변동은 flatline이 아니다. ② 정지 구간의 동결값을 고장으로 오인.",
+      "recommendedAction_ko": "분석기 flatline이 확인되면 해당 기간의 순도·HTO 데이터를 KPI 계산에서 제외하고 '측정 불가' 구간으로 표시한다. 법정 1일 1회 품질검사는 온라인 분석기와 별개로 수동 채취·분석 기록이 있어야 하므로 기록 누락 여부를 준수 체크리스트로 관리한다.",
+      "severityHint": "medium",
+      "source": 6
+    },
+    {
+      "mode": "건조기 파과(breakthrough) — 수분 혼입",
+      "signal": "이슬점 상승, 건조 기준 순도 하락, 흡착탑 재생 온도·시간 이상.",
+      "detectionMethod": "탑 교번 주기별로 사이클 내 최고 이슬점을 추적한다. 연속 3사이클에서 최고 이슬점이 상승하면 흡착제 열화 또는 재생 부족으로 분류한다.",
+      "falsePositiveTraps": "① 여름철 입구 가스 온도 상승에 의한 일시적 부하 증가. ② 재생 히터 제어 문제와 흡착제 수명 저하는 신호가 유사하다 — 재생 온도 곡선으로 구분한다.",
+      "recommendedAction_ko": "재생 온도·시간 설정을 먼저 확인하고 정상이면 흡착제 교체를 계획한다. 의료·식품 등급으로 판매 중이면 이슬점 초과 구간의 출하분을 추적할 수 있도록 로트 기록을 남긴다.",
+      "severityHint": "medium",
+      "source": 1
+    },
+    {
+      "mode": "출하 지연에 의한 수전해 감발 (기회손실)",
+      "signal": "탱크 만재 + 트럭 미도착 상태에서 수전해 부하 지령이 강제 하향.",
+      "detectionMethod": "탱크 만재율과 수전해 부하 지령 하향 이벤트의 동시 발생을 집계한다. 월별 '산소 병목으로 잃은 수소 생산량(Nm³)'을 계산해 기회손실로 환산한다.",
+      "falsePositiveTraps": "① 태양광 부족에 의한 정상 감발과 구분해야 한다 — PV 발전량이 충분한데도 감발했는지 확인한다. ② 연료전지 수소 수요 변동에 의한 감발.",
+      "recommendedAction_ko": "산소가 수소 생산의 제약이 된 시간 비율을 월간 리포트 상단에 노출한다. 5%를 넘으면 방출 허용(= 산소 판매 포기)과 버퍼 증설 중 하나를 의사결정 안건으로 올린다.",
+      "severityHint": "medium",
+      "source": 12
+    }
+  ],
+  "kpis": [
+    {
+      "key": "o2.recovery.ratio",
+      "name_ko": "산소 회수율",
+      "formula": "출하 질량 합계(kg) ÷ 이론 생산 질량(kg), 이론 = Σ(수소 생산 Nm³) × 0.5 × 1.429",
+      "unit": "%",
+      "target": "1단계 60% 이상, 목표 85% 이상 — 근거 없는 목표가 아니라 버퍼 체류시간과 출하 빈도로 역산해 사이트별로 정할 것",
+      "source": 12
+    },
+    {
+      "key": "o2.vent.loss.ratio",
+      "name_ko": "방출 손실률",
+      "formula": "(이론 생산 − 출하 − Δ재고) ÷ 이론 생산",
+      "unit": "%",
+      "target": "회수율의 여집합. 15% 이하를 관리 목표로 두되, 계측 없이 잔차로 추정한 값에는 '추정' 플래그를 붙여 표시한다",
+      "source": 12
+    },
+    {
+      "key": "o2.tank.full.time.ratio",
+      "name_ko": "저장탱크 만재율",
+      "formula": "탱크 압력 ≥ 상한의 95%인 시간 ÷ 수전해 운전 시간",
+      "unit": "%",
+      "target": "10% 이하. 방출 손실률의 선행지표다",
+      "source": 12
+    },
+    {
+      "key": "o2.purity.margin",
+      "name_ko": "법정 압축금지선까지의 순도 여유",
+      "formula": "(2.0 − HTO[%]) ÷ 2.0, HTO는 15분 이동중앙값",
+      "unit": "%",
+      "target": "50% 이상 유지. 0%는 곧 압축·출하의 법적 금지를 뜻한다",
+      "source": 6
+    },
+    {
+      "key": "o2.quality.check.compliance",
+      "name_ko": "법정 품질검사 이행률",
+      "formula": "품질검사 기록이 있는 날 ÷ 산소 제조일수. 순도 99.5% 이상 여부를 함께 기록",
+      "unit": "%",
+      "target": "100% (법정 의무: 1일 1회 이상, 순도 99.5% 이상, 결과 기록)",
+      "source": 6
+    },
+    {
+      "key": "o2.shipment.revenue",
+      "name_ko": "산소 판매액 / 순마진",
+      "formula": "매출 = Σ(출하 질량 kg × 계약 단가 원/kg). 순마진 = 매출 − 압축 전력비(kWh/kg × 전력단가) − 정제·건조 OPEX − 물류비(공급자 부담 시)",
+      "unit": "원",
+      "target": "순마진 > 0. 판매가 120원/kg·전력 150원/kWh 기준으로 압축 전력비만 매출의 25%(E_comp 0.2 kWh/kg 가정)~39%(문헌 0.31 kWh/kg)를 잠식하므로 매출 단독 표시를 금지하고 순마진을 병기한다. E_comp와 전력단가는 모두 가정치이므로 사이트 설정값으로 둔다",
+      "source": 1
+    },
+    {
+      "key": "o2.meter.bias",
+      "name_ko": "출하 계량 편차",
+      "formula": "(FT 적산 질량 − 재고감소 환산 질량) ÷ 재고감소 환산 질량, 출하 건별 부호 있는 값의 30일 이동평균",
+      "unit": "%",
+      "target": "|편차| ≤ 2%",
+      "source": 15
+    },
+    {
+      "key": "o2.specific.energy",
+      "name_ko": "산소 단위 에너지 (압축·정제)",
+      "formula": "(압축기 전력량 + 건조기 재생 전력량) ÷ 출하 질량",
+      "unit": "kWh/kg",
+      "target": "0.31 kWh/kg 이하 — 문헌의 2→200 bar 기준값이며, 본 사이트는 15 bar에서 출발하므로 더 낮아야 정상이다. 초과하면 압축기 효율 저하를 의심한다",
+      "source": 1
+    }
+  ],
+  "typicalValues": [
+    { "label": "수전해 화학량론 (부피)", "value": "H₂ : O₂ = 2 : 1", "unit": "Nm³/Nm³", "source": 1, "note": "도면의 500 Nm³/h H₂ : 250 Nm³/h O₂와 정확히 일치한다." },
+    { "label": "수전해 화학량론 (질량)", "value": 7.94, "unit": "kg O₂ / kg H₂", "source": 2, "assumption": "32.00 g/mol ÷ (2×2.016 g/mol) 계산값. 출처는 '약 8톤 O₂ / 톤 H₂'로 표현." },
+    { "label": "산소 표준상태 밀도", "value": 1.429, "unit": "kg/Nm³ (0 ℃, 101.325 kPa)", "source": 15, "note": "peacesoftware 계산기는 1.428 kg/m³로 표기. 계약 환산계수로 1.429를 시스템 상수화할 것을 권고." },
+    { "label": "정격 산소 질량유량 (도면 250 Nm³/h)", "value": 357.3, "unit": "kg/h", "source": 12, "assumption": "250 Nm³/h × 1.429 kg/Nm³ 계산값." },
+    { "label": "동급 상용기 스펙 대조 (Sungrow PEM 500 Nm³/h)", "value": "H₂ 500 Nm³/h @30 barg, O₂ 250 Nm³/h, 순수 0.90 L/Nm³ H₂(=450 L/h), 시스템 AC 4.50 kWh/Nm³, 운전범위 5~110%", "unit": "-", "source": 13, "note": "도면의 500 Nm³/h·30 bar·급수 0.5 m³/h와 거의 일치한다. 다만 이 데이터시트에도 O₂ 순도는 기재되어 있지 않다." },
+    { "label": "산소 저장탱크 기체 밀도 (15 barg, 20 ℃)", "value": 21.2, "unit": "kg/m³", "source": 15, "assumption": "ρ = PM/(ZRT), P=16 bar abs, M=0.032 kg/mol, Z=0.99(가정), T=293.15 K. Z는 문헌 밀도값(10 bara·300 K에서 12.91 kg/m³)에서 역산한 0.994를 15 bar로 외삽한 추정치." },
+    { "label": "산소 저장탱크 만재 재고 (30 m³)", "value": "약 637 kg ≈ 445 Nm³", "unit": "kg", "source": 12, "assumption": "21.2 kg/m³ × 30 m³. 15 bar를 절대압으로 해석하면 597 kg ≈ 418 Nm³. 도면의 게이지/절대 표기 확인이 필요하다." },
+    { "label": "저장탱크 버퍼 체류시간 (정격 생산 시)", "value": "만재 기준 1.8 h, 잔압 2 bar까지 뽑는 실사용 기준 약 1.6 h", "unit": "h", "source": 12, "assumption": "637 kg ÷ 357.3 kg/h 계산값. 본 영역에서 가장 중요한 한 줄이다." },
+    { "label": "법정 저장능력 환산 (압축가스)", "value": "Q = (10P+1)·V₁ = (10×1.5+1)×30 = 480 m³", "unit": "m³", "source": 7, "assumption": "35 ℃ 최고충전압력 P=1.5 MPa 가정. 최고충전압력이 1.567 MPa를 넘으면 Q>500 m³가 되어 '저장소' 기준에 걸린다 — 설계 여유압 설정에 따라 인허가 구분이 바뀌는 경계값이다." },
+    { "label": "고압가스 '저장소' 기준", "value": "압축가스 500 m³ (독성 100 m³), 액화가스 5톤", "unit": "-", "source": 8 },
+    { "label": "특정고압가스 사용신고 기준(압축가스)", "value": "저장능력 50 m³ 이상", "unit": "-", "source": 19, "note": "480 m³는 이 기준을 크게 넘는다. 기존 수소측 리서치에서 이미 다룬 항목." },
+    { "label": "산소 제조자 법정 품질기준", "value": "1일 1회 이상 품질검사, 순도 99.5% 이상, 결과 기록", "unit": "%", "source": 6 },
+    { "label": "법정 압축 금지 조성", "value": "산소 중 가연성가스 4% 이상 / 산소 중 아세틸렌·에틸렌·수소 합계 2% 이상", "unit": "vol%", "source": 6 },
+    { "label": "의료용 / 식품용 산소 순도 (국내)", "value": "의료용 99.5% 이상(약사법), 식품용 99.0% 이상(식품위생법)", "unit": "%", "source": 14 },
+    { "label": "의료용 산소 불순물 한도 (WHO 2022)", "value": "O₂ >99.5% 등급: H₂O ≤67 ppm, CO₂ ≤300 ppm, CO ≤5 ppm / 93% 등급: 추가로 NO·NO₂ ≤2 ppm, 오일 ≤0.1 mg/m³, SO₂ ≤1 ppm", "unit": "ppm", "source": 1 },
+    { "label": "알칼라인 수전해 산소 순도(문헌)", "value": "99.0 ~ 99.5 vol%", "unit": "%", "source": 1, "note": "애노드에서 물이 생성되고 수소가 크로스오버하기 때문. 압력이 높을수록, 전류밀도가 낮을수록 불순물이 늘어난다." },
+    { "label": "PEM 수전해 산소 순도(문헌 주장)", "value": "99.999%", "unit": "%", "source": 1, "note": "상충 항목: 같은 문헌이 PEM 제품가스 99.999%를 서술하면서도 정제·건조 후 사례는 99.87%로 계산한다. 99.999%는 건조·정제를 거친 값이거나 수소측 값으로 읽어야 하며, 애노드 원가스(습윤·수소 함유)에 그대로 적용하면 안 된다. 사이트 실측이 필요한 대표적 항목." },
+    { "label": "탈수소+건조 후 달성 순도(공정설계 사례)", "value": "99.87 vol% (H₂ 0.01%, H₂O 0.12%)", "unit": "%", "source": 1, "note": "100 MW AWE 기준 물질수지. 촉매 재결합은 수소 4 vol%까지 99.5% 전환, 흡착건조 수분 제거효율 95%, 파과 임계 5 ppm." },
+    { "label": "촉매 재결합 반응열", "value": 244.9, "unit": "kJ/mol", "source": 1, "note": "발열로 촉매층이 150 ℃까지 상승한다 — 디옥소 앞단에 버퍼탱크를 두어 유량·농도를 완충하라는 설계 권고의 근거." },
+    { "label": "산소 배관 재료 면제압력 (304/304L, 316/316L, 321, 347)", "value": "두께 3.18 mm에서 1.38 MPa, 두께 6.35 mm에서 2.58 MPa", "unit": "MPa", "source": 5, "note": "본 사이트 운전압 1.5~1.6 MPa abs는 3.18 mm 스테인리스의 면제압력을 넘는다 → 두께 6.35 mm 이상을 쓰거나 속도 제한을 적용해야 한다. 구리·모넬·니켈은 20.68 MPa까지 면제." },
+    { "label": "산소 배관 충돌부 속도 한계", "value": "0.3 MPa < P < 1.5 MPa이면 30 m/s, 1.5 MPa < P < 10 MPa이면 P·V = 45 MPa·m/s (1.6 MPa abs에서 약 28 m/s)", "unit": "m/s", "source": 5 },
+    { "label": "산소 농축 대기 정의", "value": "산소 23.5 vol% 초과 (또는 산소 분압 175 torr 초과)", "unit": "vol%", "source": 4 },
+    { "label": "국내 '적정공기' 기준", "value": "산소 18% 이상 23.5% 미만", "unit": "vol%", "source": 9 },
+    { "label": "산소 농축 위험구역 환기 요건", "value": "자연환기가 불가하면 시간당 6회 이상 환기", "unit": "회/h", "source": 4 },
+    { "label": "산소 오염 작업복 환기 시간", "value": "15분 이상 (팔·다리를 움직이며)", "unit": "min", "source": 4 },
+    { "label": "화기 취급 장소와의 우회거리(산소 가스설비·저장설비)", "value": 8, "unit": "m", "source": 6, "note": "일반 고압가스는 2 m, 가연성가스·산소는 8 m." },
+    { "label": "가연성가스 제조시설 ↔ 산소 제조시설 고압가스설비 이격", "value": 10, "unit": "m", "source": 6 },
+    { "label": "가연성가스 저장탱크 ↔ 산소 저장탱크 이격", "value": "두 탱크 최대지름 합의 1/4 이상 (가연성가스 저장탱크가 300 m³ 또는 3톤 이상인 경우)", "unit": "m", "source": 6, "note": "물분무장치를 설치하면 이 이격거리 적용이 제외되도록 개정되었다는 업계 보도가 있다 — 최신 개정본 확인 필요." },
+    { "label": "충전용기 온도 상한", "value": 40, "unit": "℃", "source": 6, "note": "직사광선 차단 조치 포함. 옥외 산소탱크의 여름철 온도 감시 근거." },
+    { "label": "촉매 재결합 반응열 — 표준 생성엔탈피와의 대조(검증 메모)", "value": "문헌값 244.9 vs 표준 ΔH(H₂+½O₂→H₂O(g)) 241.8 / H₂O(l) 285.8", "unit": "kJ/mol", "source": 1, "note": "출처[1]의 244.9 kJ/mol은 25 ℃ 표준 기체생성 엔탈피 241.8과 3.1 kJ/mol(1.3%) 차이가 난다 — 반응온도·기준상태 차이로 보이나 원문에서 근거를 확인하지 못했다. 자릿수는 같으므로 디옥소 반응기 열설계의 개략 산정에는 쓸 수 있으나 상세 열수지는 표준 엔탈피로 다시 계산할 것." },
+    { "label": "압력계·안전밸브 검사 주기", "value": "충전용 주관 압력계 매월 1회 이상, 그 밖의 압력계 3개월 1회 이상 / 압축기 최종단 안전밸브 1년 1회 이상, 그 밖의 안전밸브 2년 1회 이상", "unit": "-", "source": 6 },
+    { "label": "국제 벌크 산소 시장가", "value": "US$ 75 ~ 100 /ton (지역 편차, 소형 용기는 훨씬 비쌈)", "unit": "USD/t", "source": 2, "assumption": "환율 1,400원/USD 가정 시 약 105 ~ 140 원/kg." },
+    { "label": "크라이오제닉 ASU 산소 원가 추정", "value": "US$ 100/ton = 0.131 €/Nm³", "unit": "-", "source": 1 },
+    { "label": "산소 평균 판매가(Energiforsk)", "value": "0.08 ~ 0.1 €/kg (= 0.114 ~ 0.142 €/Nm³)", "unit": "EUR/kg", "source": 1 },
+    { "label": "VPSA 산소 판매가(1994년 값의 2024년 인플레 환산)", "value": "US$ 60 ~ 72 /ton (= 0.08 ~ 0.095 €/Nm³), 순도 93~95%", "unit": "USD/t", "source": 1 },
+    { "label": "부산물 산소 정제·압축 LCOO(문헌 사례)", "value": "0.304 €/Nm³ (의료용, 200 bar 용기충전 기준, 1년차)", "unit": "EUR/Nm³", "source": 1, "note": "같은 문헌의 병원 압축산소 판매가 약 0.92 €/Nm³와 비교. 단 용기·충전·배송비는 제외된 값이라고 저자가 명시했다." },
+    { "label": "국내 액화산소 벌크 가격 (물가자료 2024년 1월호, 서울)", "value": "LO₂ 탱크로리 570 원/ℓ (1.14 kg/ℓ → 약 500 원/kg), 리콘 160 ℓ 750 원/ℓ", "unit": "원/ℓ", "source": 10, "note": "부가세 별도, 수요자지정장소도 기준. 국제 벌크가(105~140원/kg)의 3~5배 — revenueModel.priceConflict 참조." },
+    { "label": "국내 기체산소 용기 가격 (물가자료 2024년 1월호, 서울)", "value": "O₂ 99% / 120 kg/cm² 이상 / 40 ℓ 용기 6 m³ 기준 9,000 ~ 18,200 원/병 (= 1,500 ~ 3,033 원/m³)", "unit": "원/병", "source": 10 },
+    { "label": "국내 용기 산소 적정가 분석(가스신문 2024)", "value": "원료 액화가스 매입가와 충전비 반영 시 고압용기 1병당 20,000 ~ 30,000원이 적정", "unit": "원/병", "source": 11, "note": "2023년 11월 분석. 운반비를 포함한 유통 원가 관점." },
+    { "label": "국내 산업용가스 유통가격(2010년 조사)", "value": "액화산소·액화질소 탱크로리 430 원/ℓ, 40 ℓ 용기 6,500 ~ 14,000 원/병, 분석용 고순도 산소 47 ℓ 135,000 원/병", "unit": "-", "source": 16, "note": "2010년 자료 — 추세 비교용으로만 사용." },
+    { "label": "압축 소요 전력 (2 bar → 200 bar)", "value": 0.31, "unit": "kWh/kg O₂", "source": 1, "assumption": "왕복동 2단, 압축효율 70%, 모터효율 90% 가정. 본 사이트는 15 bar에서 출발하므로 이보다 낮아야 정상이다." },
+    { "label": "산소 압축기 계산용 압축계수 Z (문헌 가정)", "value": 0.308, "unit": "-", "source": 1, "note": "고압 압축 일량 계산식에 쓰인 값으로, 저장탱크 재고 환산용 Z(≈0.99)와 혼동하면 안 된다." },
+    { "label": "용기 배송 상업권 반경", "value": "약 200 km", "unit": "km", "source": 1, "note": "50 ℓ 용기 ≈ 11 kg O₂(200 bar), 트레일러 1대 ≈ 200병 ≈ 2,200 kg." },
+    { "label": "부산물 산소의 대체 활용 — 하수처리장 폭기", "value": "폭기 비용 최대 68% 절감, 수소 공급원가 최대 0.39 EUR/kg H₂ 절감", "unit": "-", "source": 17, "assumption": "검색 요약 기반(원문 HTTP 403). 인용 전 원문 확인 필요. 폭기는 활성슬러지 처리장 에너지의 45~75%를 차지한다." },
+    { "label": "수소 운송비 참고(산소 물류비 자릿수 추정용)", "value": "부생수소 파이프라인 200만원/톤, 튜브트레일러 600만원/톤", "unit": "원/t", "source": 20, "note": "산소가 아니라 수소 값이다. 산소는 밀도가 훨씬 높아 톤당 물류비는 더 낮다." }
+  ],
+  "standards": [
+    { "code": "고압가스 안전관리법 시행규칙 [별표 4]", "title": "고압가스 제조(특정제조·일반제조 또는 용기 및 차량에 고정된 탱크 충전)의 시설·기술·검사·감리 및 정밀안전검진 기준", "scope": "산소 설비 8 m 우회거리, 산소 제조시설 10 m 이격, 산소 저장탱크 이격, 압축 금지 조성(4%·2%), 산소압축기 윤활제 금지, 1일 1회 품질검사 순도 99.5%, 압력계·안전밸브 검사 주기, 충전용기 40 ℃ 이하", "url": "https://www.law.go.kr/LSW/flDownload.do?flSeq=51958249" },
+    { "code": "고압가스 안전관리법 시행규칙 [별표 1]", "title": "저장능력 산정기준", "scope": "압축가스 Q=(10P+1)V₁ (P: 35 ℃ 최고충전압력 MPa, V₁: 내용적 m³), 액화산소 정수 C=1.04", "url": "https://www.law.go.kr/LSW//flDownload.do?gubun=&flSeq=116031027&bylClsCd=110201" },
+    { "code": "고압가스 안전관리법 시행규칙 제2조", "title": "정의 — 저장소", "scope": "압축가스 500 m³(독성 100 m³), 액화가스 5톤 이상이면 '저장소'", "url": "https://www.law.go.kr/LSW/lsInfoP.do?urlMode=lsInfoP&lsId=006285" },
+    { "code": "고압가스 안전관리법 시행규칙 [별표 8]", "title": "고압가스 저장·사용의 시설·기술·검사 기준", "scope": "산소 용기 구분 보관, 보관실 불연재료, 충전용기 40 ℃ 이하, 특정고압가스 사용신고", "url": "https://www.law.go.kr/flDownload.do?flSeq=115991791" },
+    { "code": "산업안전보건기준에 관한 규칙 제618조", "title": "정의 — 적정공기", "scope": "산소 18% 이상 23.5% 미만", "url": "https://www.law.go.kr/%EB%B2%95%EB%A0%B9/%EC%82%B0%EC%97%85%EC%95%88%EC%A0%84%EB%B3%B4%EA%B1%B4%EA%B8%B0%EC%A4%80%EC%97%90%EA%B4%80%ED%95%9C%EA%B7%9C%EC%B9%99/%EC%A0%9C618%EC%A1%B0" },
+    { "code": "AIGA 021/20 (= EIGA Doc 13/20, CGA G-4.4 대응)", "title": "Oxygen Pipeline and Piping Systems", "scope": "재료 면제압력표, 충돌부·비충돌부 속도곡선, 산소 세정 기준, 밸브 급개방·단열압축 위험", "url": "https://asiaiga.org/uploaded_docs/en_AIGA_21_20_Oxygen_Pipeline_and_Piping_Systems.pdf" },
+    { "code": "EIGA Doc 04/26", "title": "Fire Hazards of Oxygen and Oxygen-Enriched Atmospheres", "scope": "산소 농축 대기 정의(23.5%), 점화원, 의복 포화, 환기 6회/h, 소화 방법", "url": "https://www.eiga.eu/uploads/documents/DOC004.pdf" },
+    { "code": "AIGA 012 / CGA G-4.1 / EIGA Doc 33", "title": "Cleaning of Equipment for Oxygen Service", "scope": "산소 농도 23.5% 초과 접촉면의 세정(탈지) 요구. 저장탱크·탱크로리·압축기·배관·밸브·계장 포함", "url": "https://files.caireinc.com/Docs/Cleaning_of_Equipment_for_Oxygen_Service.pdf" },
+    { "code": "약사법 / 식품위생법 (국내 산소 용도별 규제)", "title": "의료용 산소 99.5% 이상, 식품용 산소 99.0% 이상", "scope": "같은 ASU 제품이라도 법령별로 분석·출하가 구분된다. 의료용 판매는 순도만이 아니라 의약품 제조·품질관리 체계가 별도로 필요하다", "url": "http://www.gasnews.com/news/articleView.html?idxno=95397" },
+    { "code": "WHO 2022 medicinal oxygen quality", "title": "Quality requirements for medicinal oxygen", "scope": "99.5% 등급 및 93% 등급의 H₂O·CO₂·CO·NOx·oil·SO₂ 한도", "url": "http://www.diva-portal.org/smash/get/diva2:1901182/FULLTEXT01.pdf" },
+    { "code": "KGS FP211", "title": "고압가스 용기 및 차량에 고정된 탱크 충전의 시설·기술·검사·안전성평가 기준", "scope": "튜브트레일러·차량 고정탱크 충전 상세기준. 원문 확보 실패(HTTP 400) — 인허가 단계에서 KGS 코드 원문 대조 필요", "url": "https://h2hub.or.kr/main/info/regulation_info.do?mode=view&articleNo=2632" },
+    { "code": "KGS FP112 / FU211", "title": "고압가스 일반제조 / 고압가스 사용", "scope": "기존 수소측 리서치(deep/research-storage.json)에서 이미 정리됨 — 산소 계통에도 동일하게 적용된다", "url": "https://cyber.kgs.or.kr/kgscode.Index.do" }
+  ],
+  "detectorProposals": [
+    {
+      "id": "o2-tank-static-leak",
+      "failureMode": "산소 저장탱크·배관 정압 누설",
+      "inputs": ["tank.pressure(o2)", "tank.temp(o2)", "valve.open(o2.vent)", "valve.open(o2.loading)", "op.state(o2)"],
+      "method": "밸브 전폐·무생산 구간을 추출해 ρ(P,T,Z) 기반 재고 m(t)를 만들고 Theil-Sen 기울기를 구한다. 서로 다른 3개 구간에서 |dm/dt| > 만재 재고의 0.5%/h이면 발화한다. 기존 tank-static-leak.ts를 산소 EOS로 파라미터화해 재사용한다.",
+      "thresholds": { "minWindowMin": 30, "maxTempDriftK": 2, "leakRatePctPerHour": 0.5, "minWindows": 3 },
+      "gateIdea": "구간 내 tank.pressure·tank.temp 커버리지 ≥ 95%, flatline 아님, valve.open 두 개 모두 0, op.state ∈ {정지, 대기}. 하나라도 불만족이면 구간을 폐기한다(경보가 아니라 무판정)."
+    },
+    {
+      "id": "o2-mass-balance",
+      "failureMode": "버퍼 용량 부족에 의한 상시 방출 손실 / 계량 누락",
+      "inputs": ["h2.flow.mass (또는 FT-201)", "o2.flow.mass(production|loading|vent)", "o2.inventory", "o2.shipped.mass.total"],
+      "method": "일 단위 수지 이론생산 − 출하 − Δ재고 = 방출 + 누설. 잔차의 부호·크기와 만재율의 상관을 본다. 기존 h2chain-mass-balance.ts와 동일 구조로 구현한다.",
+      "thresholds": { "residualWarnPct": 15, "residualAlarmPct": 30, "fullTimeRatioWarnPct": 10 },
+      "gateIdea": "수소 유량 커버리지 ≥ 90%인 날만 계산한다. FT-401이 없으면 결과에 estimated=true를 붙여 UI에서 점선으로 표시한다. 계획 퍼지·정비 방출은 이벤트로 제외한다."
+    },
+    {
+      "id": "o2-purity-drift",
+      "failureMode": "산소 순도 저하(수소 크로스오버 증가)",
+      "inputs": ["h2.in.o2(o2.product)", "stack.current", "tank.pressure(o2)", "op.state"],
+      "method": "전류밀도 bin별 HTO 중앙값으로 부하 정규화한 뒤 월별 Theil-Sen 기울기를 본다. 동시에 법정선(2%)까지의 여유를 실시간 표시한다.",
+      "thresholds": { "hotWarnPct": 1.0, "hotTripPct": 2.0, "driftMonths": 3, "marginWarnPct": 50 },
+      "gateIdea": "분석기 교정 이벤트 전후 24시간 제외, flatline 구간 제외, 기동 후 30분 과도구간 제외, 부하 bin당 표본 ≥ 200점."
+    },
+    {
+      "id": "o2-vent-loss",
+      "failureMode": "방출 손실 증가",
+      "inputs": ["tank.pressure(o2)", "valve.open(o2.vent)", "o2.detector.pct(vent)", "이론생산"],
+      "method": "탱크 압력이 상한 95%에 붙은 시간비율(만재율)과 방출밸브 개도시간을 집계해 월 추세를 본다. 방출 질량은 수지 잔차로 추정하고 방출관 산소농도 상승과의 시간 상관으로 검증한다.",
+      "thresholds": { "fullTimeRatioPct": 10, "ventTimeRatioPct": 5 },
+      "gateIdea": "수전해 운전 시간이 일 2시간 미만인 날은 표본 부족으로 제외한다. 방출관 검지기가 없으면 상관 검증 항목을 비활성화하고 신뢰도 등급을 낮춘다."
+    },
+    {
+      "id": "o2-shipment-meter-bias",
+      "failureMode": "출하 계량 오차",
+      "inputs": ["o2.flow.mass(loading)", "tank.pressure(o2)", "tank.temp(o2)", "o2.loading.pressure", "출하 전표(차량 계량)"],
+      "method": "출하 건별로 (a) 유량 적산, (b) 재고감소 EOS 환산, (c) 차량 계량 세 값을 비교하고 (a)-(b), (a)-(c)의 부호 있는 편차를 30일 이동평균한다.",
+      "thresholds": { "biasWarnPct": 2, "biasAlarmPct": 5, "settleMin": 30 },
+      "gateIdea": "충전 종료 후 settleMin이 지난 안정 P·T만 사용한다. 온도 미계측이면 이 탐지기는 비활성(경보가 아니라 '계측 부족' 표시)이다. Z=1 근사는 금지한다."
+    },
+    {
+      "id": "o2-enrichment-guard",
+      "failureMode": "산소 농축 대기 형성",
+      "inputs": ["o2.detector.pct(vent|tankroom|loading)", "valve.open(o2.vent)", "wind.speed"],
+      "method": "23.5% 초과가 60초 지속되면 1차 경보, 25% 초과면 즉시 경보 및 출하 연동 차단. 방출 이벤트와의 시간 상관을 함께 기록한다.",
+      "thresholds": { "warnPct": 23.5, "alarmPct": 25.0, "dwellS": 60 },
+      "gateIdea": "검지기 교정 만기가 지났으면 경보는 유지하되 신뢰도를 '낮음'으로 표기한다. 검지기 flatline은 그 자체로 별도 경보다 — 안전 계측의 무응답은 정상이 아니다."
+    },
+    {
+      "id": "o2-compliance-calendar",
+      "failureMode": "법정 품질검사·검사주기 미이행",
+      "inputs": ["o2.purity 수동기록", "h2.in.o2 일별 요약", "안전밸브·압력계 검사 이력"],
+      "method": "제조일마다 품질검사 기록 존재 여부와 99.5% 충족 여부를 체크한다. 압력계(주관 월 1회, 기타 3개월 1회)·안전밸브(압축기 최종단 1년, 기타 2년) 만기 캘린더를 D-30/D-7로 알린다.",
+      "thresholds": { "qualityCheckPerDay": 1, "purityMinPct": 99.5, "reminderDays": [30, 7] },
+      "gateIdea": "온라인 분석기 값만으로 법정 품질검사를 대체했다고 표시하지 않는다 — 수동 채취·분석 기록이 별도로 있어야 '이행'으로 계산한다."
+    }
+  ],
+  "revenueModel": {
+    "formula_mass": "연간 출하 질량 M[kg/y] = Σ(수소 생산 Nm³) × 0.5 × 1.429 × η_recovery",
+    "formula_margin": "순마진[원/y] = M × P_sale[원/kg] − M × E_comp[kWh/kg] × P_elec[원/kWh] − OPEX_정제건조 − 물류비(공급자 부담 시)",
+  "assumptionsNote_ko": "아래 시나리오 표의 압축 전력비 열은 E_comp = 0.2 kWh/kg, P_elec = 150 원/kWh를 쓴다. 두 값 모두 출처가 없는 가정치다(unknown). typicalValues와 KPI o2.specific.energy에 실린 0.31 kWh/kg은 문헌[1]의 2→200 bar 기준값이라 값이 다르다. 전력단가와 실제 압축 원단위가 확정되기 전에는 두 숫자를 섞어 쓰지 말고 시나리오별 가정을 화면에 명시해 표시할 것.",
+    "scenarios": [
+      {
+        "name": "A. 태양광 발전량만으로 수전해 운전",
+        "assumptions": ["PV 1.5 MWp, 국내 고정식 이용률 15% (가정 — 실측 발전량으로 대체 필요, 출처 미확보)", "연 발전량 약 2,020 MWh를 전량 수전해에 투입", "시스템 소비 4.5 kWh/Nm³ H₂ → H₂ 약 449,000 Nm³/y", "η_recovery 0.7"],
+        "o2_t_per_year": 321,
+        "o2_shipped_t_per_year": 225,
+        "revenue_at_120_won_kg": "약 2,700만원/년",
+        "revenue_at_500_won_kg": "약 1억 1,250만원/년",
+        "compression_cost_at_0_2kWh_kg_150won": "약 675만원/년 (assumption: 압축 0.2 kWh/kg·전력 150원/kWh 모두 출처 없는 가정값. 문헌값 0.31 kWh/kg 적용 시 약 1,045만원/년)"
+      },
+      {
+        "name": "B. 계통 전력 병용, 수전해 연 4,000 h 전부하 등가",
+        "assumptions": ["500 Nm³/h × 4,000 h = 2,000,000 Nm³ H₂/y", "η_recovery 0.85 (압축기·튜브트레일러 도입 전제)"],
+        "o2_t_per_year": 1429,
+        "o2_shipped_t_per_year": 1215,
+        "revenue_at_120_won_kg": "약 1억 4,580만원/년",
+        "revenue_at_500_won_kg": "약 6억 750만원/년",
+        "compression_cost_at_0_2kWh_kg_150won": "약 3,645만원/년 (assumption: 압축 0.2 kWh/kg·전력 150원/kWh 모두 출처 없는 가정값. 문헌값 0.31 kWh/kg 적용 시 약 5,648만원/년)"
+      },
+      {
+        "name": "C. 현 도면 그대로 (압축기 없음, 15 bar 탱크만)",
+        "assumptions": ["버퍼 1.8시간, 트럭 1일 1~2회 도착 가정", "η_recovery 0.2~0.3 — 나머지는 방출"],
+        "note": "이 시나리오에서는 산소 판매가 사실상 성립하지 않는다. 판매 사업으로 가려면 압축·정제 설비 투자가 선행 조건이며, 그 판단을 뒷받침할 지표가 위 KPI(만재율·방출 손실률)다."
+      }
+    ],
+    "priceConflict": {
+      "issue": "국내 유통가(액화산소 약 500원/kg, 물가자료 2024.1)와 국제 벌크가(105~140원/kg)가 3~5배 차이난다.",
+      "explanation": "① 물가자료는 부가세 별도·수요자지정장소도 기준의 소량 유통가이고, 국제 벌크가는 대형 ASU의 공장도·파이프라인 기준이다. ② 부산물 산소 생산자는 통상 기존 가스사에 원료가로 넘기므로 실제 수취가는 국제 벌크가에 가깝거나 그 이하다. ③ 최종수요자에 직접 배송하면 유통가에 근접하지만 용기·차량·영업·인증 투자가 필요하다.",
+      "recommendation": "콘솔에는 '계약 단가'를 사이트 설정값으로 두고 시나리오 A/B/C를 함께 보여준다. 단일 시세를 하드코딩하지 않는다."
+    },
+    "alternativeValorisation": [
+      { "path": "하수처리장 폭기 산소 공급", "note": "폭기 비용 최대 68% 절감, 수소 공급원가 0.39 EUR/kg H₂ 절감 사례(원문 재확인 필요). 배관 거리가 짧아야 성립한다.", "source": 17 },
+      { "path": "양식장 용존산소 공급", "note": "가평 입지 특성상 검토 가치가 있으나 국내 사례·수요 규모는 미확인.", "source": 1 },
+      { "path": "판매 포기 + 안전 방출", "note": "압축·정제 투자 대비 회수가 안 되면 합리적 선택이다. 이 경우에도 농축 대기 방지 설계와 검지기는 필요하다.", "source": 4 }
+    ]
+  },
+  "openQuestions": [
+    "도면의 'O₂ 저장탱크 15 bar'가 게이지압인지 절대압인지 — 재고(637 kg vs 597 kg)와 법정 저장능력(480 m³ vs 451 m³) 계산이 모두 여기서 갈린다.",
+    "35 ℃ 최고충전압력 설정값 — 1.567 MPa를 넘으면 Q>500 m³로 '저장소' 기준에 걸려 인허가 구분이 바뀐다. 설계 여유압을 확인해야 한다.",
+    "15 bar 저장탱크에서 트럭으로 어떻게 출하하는가 — 압축기가 도면에 없다. 튜브트레일러(150~200 bar) 충전이면 압축기 신설이 필수이고, 저압 트레일러면 1회 수송량이 극히 작다. 이 공백이 산소 판매 사업의 성립 여부를 좌우한다.",
+    "애노드 원가스의 실제 순도와 HTO 수준 — Sungrow 등 상용 데이터시트에도 O₂ 순도는 기재되지 않는다. 문헌값은 AWE 99.0~99.5%와 PEM 99.999%가 상충하므로, 시운전 시 실측(건조 기준 O₂ vol%, H₂ ppm, 이슬점)이 반드시 필요하다.",
+    "판매 대상 등급 — 공업용(99.0% 이상)인가 의료용(99.5% 이상, 약사법)인가. 의료용은 순도만이 아니라 제조·품질관리 체계 전체가 다르다.",
+    "가평 인근 산소 수요처와 거리 — 상업권 반경이 약 200 km라지만 실제 오프테이커 후보와 왕복 물류비는 미확인이다. 오프테이커 없이 설비만 지으면 결국 방출이 된다.",
+    "출하 계량의 상거래 기준 — 질량(kg)인가 부피(Nm³)인가, 기준온도는 0 ℃인가 15 ℃인가, 잔압(heel) 계상 방식은 무엇인가. 계약서 확인 전에는 KPI 숫자를 확정할 수 없다.",
+    "KGS FP211(용기·차량 고정탱크 충전) 원문 — cyber.kgs.or.kr PDF가 HTTP 400으로 열리지 않았다. 인허가 단계에서 원문 대조가 필요하다.",
+    "가연성가스 저장탱크와 산소 저장탱크 이격거리에 대한 물분무장치 예외 규정의 최신 개정 여부 — 업계 보도만 확인했고 개정 조문 원문은 미확인이다.",
+    "산소 압축기 도입 시 적용할 실제 압축 전력 원단위 — 문헌값 0.31 kWh/kg은 2→200 bar 기준이다. 15→200 bar의 실제 값은 제조사 견적으로 확정해야 한다.",
+    "액화(LOX) 저장으로 설계를 바꿀 가능성 — 그 경우 수위(LT) 계측이 새로 필요하고 법정 저장능력은 W=V₂/C(액화산소 정수 C=1.04)로 계산식이 바뀐다.",
+    "부산물 산소 판매 시 사업자 지위 — 고압가스 제조자(일반제조)로서 산소에도 1일 1회 품질검사·기록 의무가 발생하는지, 수소만 제조 신고했을 때 산소 출하가 별도 허가 대상인지 가스안전공사 유권해석이 필요하다.",
+    "산소 분석기(상자성 O₂, TCD H₂)의 정확도·T90 응답시간 — 제조사 데이터시트를 확보하지 못했다. samplingS 60s/300s 제안값은 응답시간 확인 후 재조정해야 한다."
+  ],
+  "sources": [
+    { "n": 1, "title": "Panchawadkar, D. — Review of Opportunities to Valorise the Oxygen Generated from Water Electrolysis (KTH 석사논문, 2024)", "url": "http://www.diva-portal.org/smash/get/diva2:1901182/FULLTEXT01.pdf", "note": "본 영역의 핵심 1차 문헌. AWE 산소 순도 99.0~99.5%, 탈수소(Pt-Co) 244.9 kJ/mol, 흡착건조 후 99.87%, WHO 의료용 규격표, 산소 시세 비교(0.08~0.142 €/Nm³), LCOO 0.304 €/Nm³, 압축 0.31 kWh/kg, 용기 배송 반경 200 km." },
+    { "n": 2, "title": "NexantECA — Making money out of thin air: Valorizing the oxygen byproduct of green hydrogen production", "url": "https://www.nexanteca.com/blog/making-money-out-thin-air-valorizing-oxygen-byproduct-green-hydrogen-production", "note": "수소 1톤당 산소 약 8톤, 벌크 산소 US$75~100/ton, 20,000 t/y 수소플랜트의 부산물 매출 규모." },
+    { "n": 3, "title": "IRENA — Sale of electrolysis by-products (oxygen and heat), Innovation Landscape for Smart Electrification", "url": "https://www.irena.org/Innovation-landscape-for-smart-electrification/Power-to-hydrogen/30-Sale-of-electrolysis-by-products-oxygen-and-heat", "note": "원문 직접 열람 실패(HTTP 403), 검색 요약만 확보. ASU 대비 가격 열위와 지리적 수요 분산이 부산물 산소 판매의 구조적 장벽이라는 정성적 근거로만 사용." },
+    { "n": 4, "title": "EIGA Doc 04/26 — Fire Hazards of Oxygen and Oxygen-Enriched Atmospheres", "url": "https://www.eiga.eu/uploads/documents/DOC004.pdf", "note": "산소 농축 대기 23.5 vol% 초과(또는 산소 분압 175 torr 초과), 환기 6회/h, 의복 15분 환기, 불타는 의복은 물로 소화." },
+    { "n": 5, "title": "AIGA 021/20 — Oxygen Pipeline and Piping Systems (EIGA Doc 13/20 · CGA G-4.4 국제공통본)", "url": "https://asiaiga.org/uploaded_docs/en_AIGA_21_20_Oxygen_Pipeline_and_Piping_Systems.pdf", "note": "Appendix B 면제압력표(304/316 스테인리스 3.18 mm 1.38 MPa, 6.35 mm 2.58 MPa, 구리·모넬 20.68 MPa), 충돌부 속도곡선(0.3~1.5 MPa에서 30 m/s, 1.5~10 MPa에서 P·V=45 MPa·m/s), 산소 세정 요구." },
+    { "n": 6, "title": "고압가스 안전관리법 시행규칙 [별표 4] — 고압가스 제조의 시설·기술·검사·감리 및 정밀안전검진 기준", "url": "https://www.law.go.kr/LSW/flDownload.do?flSeq=51958249", "note": "본 영역에서 가장 구속력 있는 근거. 산소 설비 8 m 우회거리, 산소 제조시설 10 m 이격, 가연성 저장탱크-산소 저장탱크 이격(지름 합 1/4), 압축 금지(산소 중 가연성 4%, 산소 중 아세틸렌·에틸렌·수소 합계 2%), 석유류·유지류·글리세린의 산소압축기 내부윤활제 금지, 발생·정제·저장탱크 출구 1일 1회 이상 분석, 산소 순도 99.5% 이상 1일 1회 품질검사·기록, 압력계(주관 월 1회, 기타 3개월 1회)·안전밸브(압축기 최종단 1년, 기타 2년) 검사 주기, 충전용기 40 ℃ 이하." },
+    { "n": 7, "title": "고압가스 안전관리법 시행규칙 [별표 1] — 저장능력 산정기준", "url": "https://www.law.go.kr/LSW//flDownload.do?gubun=&flSeq=116031027&bylClsCd=110201", "note": "압축가스 Q=(10P+1)V₁ (Q: m³, P: 35 ℃ 최고충전압력 MPa, V₁: 내용적 m³). 액화산소 정수 C=1.04." },
+    { "n": 8, "title": "고압가스 안전관리법 시행규칙 제2조 (정의) — 국가법령정보센터", "url": "https://www.law.go.kr/LSW/lsInfoP.do?urlMode=lsInfoP&lsId=006285", "note": "'저장소' 기준: 압축가스 500 m³(독성 100 m³), 액화가스 5톤. 검색 요약 기반이므로 인허가 전 조문 원문 재확인 권고." },
+    { "n": 9, "title": "산업안전보건기준에 관한 규칙 제618조 (정의)", "url": "https://www.law.go.kr/%EB%B2%95%EB%A0%B9/%EC%82%B0%EC%97%85%EC%95%88%EC%A0%84%EB%B3%B4%EA%B1%B4%EA%B8%B0%EC%A4%80%EC%97%90%EA%B4%80%ED%95%9C%EA%B7%9C%EC%B9%99/%EC%A0%9C618%EC%A1%B0", "note": "적정공기 = 산소 18% 이상 23.5% 미만, CO₂ 1.5% 미만, CO 30 ppm 미만, H₂S 10 ppm 미만." },
+    { "n": 10, "title": "물가자료 2024년 1월호 — 가스(공업실험용) 가격표 (조사기간 2023.12.1~12.10)", "url": "https://files-scs.pstatic.net/2024/01/19/u5Kz1gEmxH/%EC%82%B0%EC%86%8C.pdf", "note": "서울 기준: LO₂ 탱크로리 570원/ℓ(1.14 kg/ℓ), 리콘 160 ℓ 750원/ℓ, 기체 O₂ 99%·120 kg/cm² 이상·40 ℓ(6 m³) 9,000~18,200원/병. 부가세 별도, 수요자지정장소도." },
+    { "n": 11, "title": "가스신문 — [초점] 용기에 충전된 산소·질소가격 어느 정도가 적정한가 (2024.1.8)", "url": "https://www.gasnews.com/news/articleView.html?idxno=113645", "note": "2023년 11월 분석. 배송량 가정별 원가 7,700~15,500원/병, 원료·충전비 반영 시 적정가 20,000~30,000원/병." },
+    { "n": 12, "title": "가평 2MW 청정수소발전 시스템 P&ID — FCND-GP-PID-002 REV.2 (2026-07-17)", "url": "internal://drawing/FCND-GP-PID-002-REV2", "note": "고객사 제공 도면. 산소 250 Nm³/h, O₂ 저장탱크 15 bar·30 m³, PT-401, 이송트럭 출하. 본 문서의 모든 사이트 고유 수치의 출처." },
+    { "n": 13, "title": "Sungrow — PEM Water Electrolysis Equipment 데이터시트 (DS_20250226)", "url": "https://info-support.sungrowpower.com/application/pdf/2025/02/28/DS_20250226_PEM%20Electrolyzer_Datasheet_EN.pdf", "note": "500 Nm³/h H₂ @30 barg 모델의 O₂ 정격 250 Nm³/h, 순수 0.90 L/Nm³ H₂, 시스템 AC 4.50 kWh/Nm³, 운전범위 5~110%, ISO 22734. 도면 사양과 거의 일치하는 상용 대조군이며 O₂ 순도는 미기재." },
+    { "n": 14, "title": "가스신문 — [분석] 식품용산소와 의료용산소, 무엇이 어떻게 다른가", "url": "http://www.gasnews.com/news/articleView.html?idxno=95397", "note": "의료용 99.5% 이상(약사법), 식품용 99.0% 이상(식품위생법). 같은 ASU 제품이라도 법령별로 분석·출하가 구분된다." },
+    { "n": 15, "title": "peacesoftware — Online calculation: properties of oxygen / Engineering ToolBox — Oxygen density vs temperature and pressure", "url": "https://www.peacesoftware.de/einigewerte/o2_e.html", "note": "표준상태(0 ℃, 1013.25 mbar) 산소 밀도 1.428 kg/m³. Engineering ToolBox 표의 10 bara·300 K 12.91 kg/m³에서 Z≈0.994를 역산했고, 15 bar의 Z≈0.99는 외삽 추정치(가정)다. 보조 URL: https://www.engineeringtoolbox.com/oxygen-O2-density-specific-weight-temperature-pressure-d_2082.html" },
+    { "n": 16, "title": "온라인가스저널 — [진단] 산업용가스 유통가격 현황 (2010.3.4)", "url": "https://www.igasnet.com/news/articleView.html?idxno=5121", "note": "액화산소·질소 탱크로리 430원/ℓ, 40 ℓ 용기 6,500~14,000원/병, 분석용 고순도 산소 47 ℓ 135,000원/병. 오래된 자료로 추세 비교용." },
+    { "n": 17, "title": "Utilizing oxygen from green hydrogen production in wastewater treatment plant aeration: A techno-economic analysis (ScienceDirect, 2025)", "url": "https://www.sciencedirect.com/science/article/pii/S2666792425000484", "note": "원문 직접 열람 실패(HTTP 403), 검색 요약 기반. 폭기 비용 최대 68% 절감, 수소 공급원가 최대 0.39 EUR/kg H₂ 절감. 인용 전 원문 확인 필요." },
+    { "n": 18, "title": "Process Sensing Technologies — Paramagnetic oxygen analyzer / electrolyser gas analysis (XPM601, XHE601)", "url": "https://www.processsensing.com/en-us/products/paramagnetic-oxygen-analyzer-XPM601.htm", "note": "산소 %농도는 상자성(paramagnetic), 산소 중 수소는 열전도도(TCD)가 표준 계측 방식이라는 근거. 구체적 정확도·T90은 데이터시트 미확보(공백)." },
+    { "n": 19, "title": "가스신문 — [2023년 가스기술사 제언] 특정고압가스 신고대상은 몇 병인가", "url": "https://www.gasnews.com/news/articleView.html?idxno=110558", "note": "압축가스 저장능력 50 m³ 이상이면 특정고압가스 사용신고 대상(산소 포함). 2025.10.1자로 액화가스 기준이 250 kg→500 kg로 상향." },
+    { "n": 20, "title": "가스신문 — [기고] 부생 수소 현황과 활용", "url": "http://www.gasnews.com/news/articleView.html?idxno=73661", "note": "국내 고압가스 물류비 자릿수 참고: 부생수소 파이프라인 200만원/톤, 튜브트레일러 600만원/톤. 산소가 아닌 수소 값임에 주의." },
+    { "n": 21, "title": "가스신문 — 물분무장치 설치하면 저장탱크간 이격거리 적용 제외", "url": "https://www.gasnews.com/news/articleView.html?idxno=115366", "note": "가연성가스 저장탱크와 산소 저장탱크 이격거리 예외 규정 관련 업계 보도. 개정 조문 원문은 미확인." }
+  ]
+}

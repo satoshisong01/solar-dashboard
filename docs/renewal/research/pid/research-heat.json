@@ -1,0 +1,570 @@
+{
+  "area": "연료전지 폐열 회수(열병합)와 열교환기 성능 — 가평 2MW 청정수소발전 P&ID (FCND-GP-PID-002 REV.2) HX-301 계통",
+  "scope": "PEM 연료전지(2.0 MW) 냉각수 75 °C → 판형 열교환기 HX-301 → PEM 수전해(2.5 MW) 정제수 급수 예열(55 °C, 환수 60 °C) 구간. 다루는 것: 폐열 등급·회수 가능량, 판형 열교환기 성능저하(스케일·오염·유로막힘)와 UA/접근온도/차압 감시, 급수 예열의 전력절감 물리 근거와 도면의 '수전해 소비전력 약 3% 저감' 주장 검증, 감시 계측(열량계·차압), 고장모드·권고조치, KPI. 다루지 않는 것: 연료전지 스택 자체 열화, 수전해 스택 열화, 냉각수 전도도 관리 일반론 — 기존 파일 참조(docs/renewal/research/research-fuelcell_storage.json의 fc_thermal_subsystem·chp_heat_recovery, deep/research-fuelcell.json의 components[9]·[11], deep/research-electrolyzer.json).",
+  "priorCoverage": [
+    {
+      "file": "docs/renewal/research/research-fuelcell_storage.json",
+      "covered": "chp_heat_recovery 자산 정의, hot_water_supply/return_temperature·hot_water_flow·heat_output 텔레메트리, derivedIndicators[18] chp_heat_recovery_performance(UA·LMTD 산식), failureModes[36] 열회수 열교환기 파울링(−15%/14일), failureModes[33] 라디에이터 방열 저하, failureModes[3] 압축기 인터쿨러 approach 상승",
+      "thisFileAdds": "HX-301 도면 수치의 열수지 검증, 3% 절감 주장의 정량 반증, 교차누설(전도도) 고장모드, 차압 정규화 산식, 열량계 오차 게이트, 이중벽 요구, 세정·분해 점검 국내 기준"
+    },
+    {
+      "file": "docs/renewal/research/deep/research-fuelcell.json",
+      "covered": "components[9] 열관리 계통 제어로직(Q ≈ N·I·(1.253 − V_cell)), components[11] 열회수(CHP) 계통 역할·열화, aiAnalyses[5] 열·전기 최적 디스패치, HPS 열활용 가점",
+      "thisFileAdds": "제품 데이터시트 기준 냉각수 온도 상한(65/82 °C)과 도면 75 °C의 정합성 검토, 회수열/전기출력비의 도면값(0.175) 대 문헌값(0.7~1.0) 격차"
+    },
+    {
+      "file": "docs/renewal/research/deep/research-electrolyzer.json",
+      "covered": "수전해 열교환·냉각 일반, 순수 수질",
+      "thisFileAdds": "열중성 전압 관점의 급수 예열 효과 산식, 외부 열 투입이 PEM 수전해에서 전력을 못 줄이는 이유(발열 운전영역), 급수 상한온도와 스택 입구 제약"
+    }
+  ],
+  "equipment": [
+    {
+      "tag": "HX-301",
+      "name_ko": "폐열 회수 판형 열교환기",
+      "role": "FC 냉각수(1차, 75→60 °C)와 수전해 정제수 급수(2차, →55 °C) 사이 열전달",
+      "designNote": "도면상 1차측 350 kWth. 2차측 급수 0.5 m³/h로는 최대 약 23 kW만 흡수 가능(typicalValues 참조) → 1차/2차 열량 불일치가 도면 자체에 존재한다. 판 재질·개스킷·이중벽 여부가 도면에 없다.",
+      "criticality": 3
+    },
+    {
+      "tag": "FC 냉각계통(도면 TT-301 계열)",
+      "name_ko": "PEM 연료전지 스택 냉각 루프",
+      "role": "스택 발열 제거, HX-301에 열 공급",
+      "designNote": "도면 75 °C는 상용 패키지 모듈 상한(Ballard FCwave 최대 냉각수 출구 65 °C)보다 높고 스택 단품 상한(FCgen-LCS 82 °C) 아래다. 75 °C 공급이 성립하려면 스택 출구가 78~82 °C여야 한다.",
+      "criticality": 4
+    },
+    {
+      "tag": "미표기 — 덤프쿨러/라디에이터",
+      "name_ko": "잉여 열 방열 설비",
+      "role": "HX-301이 못 받는 잔여 폐열 방출",
+      "designNote": "도면 수치로 계산한 FC 총 발열은 약 2,014 kWth인데 회수는 350 kWth뿐이다. 나머지 약 1,664 kWth를 버릴 설비가 P&ID에 보이지 않는다. 없으면 하절기 FC 감발(derate)이 난다. openQuestions 3번.",
+      "criticality": 4
+    },
+    {
+      "tag": "DI 물탱크 20 m³ (LT-101)",
+      "name_ko": "정제수 저장탱크",
+      "role": "HX-301 2차측 공급원",
+      "designNote": "탱크 수온이 HX-301 2차측 입구 온도이며, 이 값이 도면에 없다. 절감량 계산의 최대 불확실 인자다.",
+      "criticality": 3
+    },
+    {
+      "tag": "미표기 — 열회수 순환펌프",
+      "name_ko": "1차측 순환펌프",
+      "role": "FC 냉각수 → HX-301 순환",
+      "designNote": "유량 제어(정속/VFD) 방식이 도면에 없다. 정속이면 UA 추세 해석이 쉽고, VFD면 유량 정규화가 반드시 필요하다.",
+      "criticality": 3
+    },
+    {
+      "tag": "미표기 — 바이패스/3방 밸브",
+      "name_ko": "HX 바이패스 밸브",
+      "role": "열수요 없을 때 HX 우회, 급수 과열 방지",
+      "designNote": "2차측 출구 55 °C 제어를 위해 반드시 있어야 하는데 도면 태그가 없다. 고착 시 회수열 0 또는 급수 과열이 된다.",
+      "criticality": 3
+    }
+  ],
+  "instruments": [
+    { "tag": "TT-301", "existing": true, "type": "온도(FC 냉각수)", "note": "도면 존재. HX-301 1차측 입구로 쓸 수 있으나 '스택 출구'인지 'HX 입구'인지 구분이 필요하다." },
+    { "tag": "TT-302", "existing": true, "type": "온도(열교환기)", "note": "도면 존재. 1차측 출구(환수 60 °C)로 추정. 설치 위치 확인 필요." },
+    { "tag": "TT-303", "existing": true, "type": "온도(급수)", "note": "도면 존재. 2차측 출구(예열 급수 55 °C)로 추정." },
+    { "tag": "FT-101", "existing": true, "type": "유량(급수 0.5 m³/h)", "note": "도면 존재. 2차측 유량. 2차측 열량 Q_cold 산출에 쓴다." },
+    { "tag": "TT-304 (신설 권고)", "existing": false, "type": "온도(2차측 입구 = DI 탱크 출구)", "note": "없으면 Q_cold도 접근온도도 못 구한다. 최우선 신설." },
+    { "tag": "FT-302 (신설 권고)", "existing": false, "type": "유량(1차측 FC 냉각수)", "note": "없으면 Q_hot을 못 구해 양측 열수지 교차검증이 불가하다. 센서 드리프트와 누설을 구분할 수 없게 된다." },
+    { "tag": "CT-301 (신설 권고)", "existing": false, "type": "전도도(2차측 출구 급수)", "note": "판 미세균열 교차누설의 유일한 조기 지표이자 수전해 스택 보호선. ASTM Type II(<1 μS/cm) 기준. 도면 계장 목록에 없다." },
+    { "tag": "PDT-301/302 (신설 권고)", "existing": false, "type": "차압(1차·2차측 각각)", "note": "유로 막힘·스트레이너 막힘 조기 지표. 열적 지표(UA)보다 먼저 움직이는 경우가 많다." },
+    { "tag": "적산열량계 (신설 권고)", "existing": false, "type": "열량(1차측 또는 2차측)", "note": "온도센서 쌍 + 유량 + 연산부 일체. 2등급 이상. 열 판매가 없어도 '3% 절감' 주장 검증에 필요하다. 산업통상자원부 적산열량계 기술기준 적용." }
+  ],
+  "metrics": [
+    {
+      "key": "hx.temp.hot.in",
+      "unit": "°C",
+      "samplingS": 10,
+      "range": "40~85 (설계 75)",
+      "why": "HX-301 1차측 입구. LMTD·접근온도·Q_hot의 기준점. FC 스택 출구 온도 상한 감시와 겸한다.",
+      "source": "도면 TT-301; Ballard FCwave 냉각수 출구 상한 65 °C(s4), FCgen-LCS 스택 상한 82 °C(s5)"
+    },
+    {
+      "key": "hx.temp.hot.out",
+      "unit": "°C",
+      "samplingS": 10,
+      "range": "30~75 (설계 60)",
+      "why": "1차측 출구(환수). Q_hot = ṁ_hot·cp·(T_hot_in − T_hot_out) 산출.",
+      "source": "도면 TT-302; Alfa Laval 계산법(s9)"
+    },
+    {
+      "key": "hx.temp.cold.in",
+      "unit": "°C",
+      "samplingS": 10,
+      "range": "0~40 (미확인)",
+      "why": "2차측(정제수) 입구 = DI 물탱크 출구. Q_cold와 접근온도 계산에 필수인데 도면에 계기가 없다. 이 값의 계절 변동이 절감량 변동의 주원인이다.",
+      "source": "신설 권고(TT-304). 도면 미표기 — unknown"
+    },
+    {
+      "key": "hx.temp.cold.out",
+      "unit": "°C",
+      "samplingS": 10,
+      "range": "0~80 (설계 55)",
+      "why": "2차측 출구 = 수전해 급수 온도. 수전해 스택 입구 상한(Nafion 막 제약, 통상 80 °C) 초과 감시를 겸한다.",
+      "source": "도면 TT-303; PEM 수전해 운전온도 50~80 °C(s2)"
+    },
+    {
+      "key": "hx.flow.hot",
+      "unit": "m³/h",
+      "samplingS": 10,
+      "range": "0~30 (350 kW·ΔT 15 K 기준 약 20)",
+      "why": "Q_hot 산출. 양측 열수지 교차검증으로 센서 드리프트와 교차누설을 분리하는 유일한 수단.",
+      "source": "신설 권고(FT-302). 유량값은 Q=ṁ·cp·ΔT 역산(계산값)"
+    },
+    {
+      "key": "hx.flow.cold",
+      "unit": "m³/h",
+      "samplingS": 10,
+      "range": "0~2 (설계 0.5)",
+      "why": "2차측 급수 유량. Q_cold 산출과 차압 정규화의 분모.",
+      "source": "도면 FT-101"
+    },
+    {
+      "key": "hx.pressure.diff.hot",
+      "unit": "kPa",
+      "samplingS": 10,
+      "range": "0~200",
+      "why": "1차측 유로 막힘·스트레이너 막힘. ΔP ∝ 유량^1.7이므로 유량 정규화 후 추세를 본다.",
+      "source": "판형 열교환기 압력손실 지수 1.7(제조사별 1.5~2.0)(s17)"
+    },
+    {
+      "key": "hx.pressure.diff.cold",
+      "unit": "kPa",
+      "samplingS": 10,
+      "range": "0~200",
+      "why": "2차측 유로 막힘. 급수량이 0.5 m³/h로 작아 유로가 막히면 수전해 급수 부족으로 바로 이어진다.",
+      "source": "s17"
+    },
+    {
+      "key": "hx.heat.recovered",
+      "unit": "kW",
+      "samplingS": 10,
+      "range": "0~400",
+      "why": "회수 열출력. 도면 350 kWth 대비 실적. 파생값(Q_cold 우선, Q_hot 교차검증).",
+      "source": "Alfa Laval P = m·cp·δt(s9)"
+    },
+    {
+      "key": "hx.heat.total",
+      "unit": "kWh",
+      "samplingS": 60,
+      "range": "0~1e9 (counter)",
+      "why": "누적 회수 열량. 절감 금액·HPS 열활용 증빙의 원장. 적산열량계 연산부 출력을 그대로 받는다.",
+      "source": "적산열량계 기술기준(s7); EN 1434 Class 2(s8)"
+    },
+    {
+      "key": "hx.ua",
+      "unit": "kW/K",
+      "samplingS": 300,
+      "range": "0~5 (설계 추정 0.76)",
+      "why": "총괄열전달계수×면적. 파울링·유로막힘의 통합 지표. UA = Q / LMTD.",
+      "source": "Alfa Laval k = P/(A·LMTD)(s9); 기존 파일 derivedIndicators[18] 참조"
+    },
+    {
+      "key": "hx.temp.approach",
+      "unit": "K",
+      "samplingS": 300,
+      "range": "5~50 (설계 20 = 75−55)",
+      "why": "접근온도 = T_hot_in − T_cold_out. UA보다 계산이 단순해 1차측 유량계가 없어도 쓸 수 있는 대체 지표.",
+      "source": "s14(정유 예열열교환기 파울링 탐지); 기존 파일 failureModes[3] approach 기준과 정합"
+    },
+    {
+      "key": "water.conductivity",
+      "unit": "μS/cm",
+      "samplingS": 10,
+      "range": "0~5 (목표 <1)",
+      "why": "qualifier 'feed'. HX-301 2차측 출구 급수 전도도. 판 핀홀 교차누설의 조기 지표이자 수전해 스택 보호선. 기존 키 재사용(qualifier: 'product'/'loop' 패턴과 동일).",
+      "source": "PEM 수전해 급수는 ASTM Type II(<1 μS/cm) 최소, Type I(<0.056 μS/cm) 권장(s12)"
+    },
+    {
+      "key": "pump.power",
+      "unit": "kW",
+      "samplingS": 10,
+      "range": "0~15",
+      "why": "1차측 순환펌프 소비전력. 회수열의 기생손실을 빼야 순 절감량이 나온다. 유량 대비 전력 상승은 임펠러 마모·공동현상 신호.",
+      "source": "기존 카탈로그 blower.power / compressor.power 명명 패턴 준용"
+    },
+    {
+      "key": "hx.heat.dump",
+      "unit": "kW",
+      "samplingS": 60,
+      "range": "0~2000",
+      "why": "덤프쿨러/라디에이터로 버린 열. 회수 가능했는데 버린 양을 정량화한다. 도면 수치상 정상 운전에서도 약 1,664 kWth를 버리게 된다.",
+      "source": "도면 수치 기반 계산(FC 총발열 2,014 kWth − 회수 350 kWth)"
+    },
+    {
+      "key": "tank.temp",
+      "unit": "°C",
+      "samplingS": 60,
+      "range": "0~40",
+      "why": "qualifier 'di_water'. DI 물탱크 수온. hx.temp.cold.in의 대용 또는 교차검증. 동절기 동결 위험 감시 겸용(가평 소재).",
+      "source": "기존 키 재사용(h2.storage.tank의 tank.temp와 동일 키, qualifier로 분리)"
+    }
+  ],
+  "failureModes": [
+    {
+      "mode": "판 미세균열(핀홀)에 의한 1차→2차 교차누설 — 수전해 스택 즉시 손상",
+      "signal": "2차측 급수 전도도 급등(<1 → 수 μS/cm), 1차측 팽창탱크 수위 서서히 감소·보충수 빈도 증가, 양측 압력차 축소, 수전해 스택 셀전압 동반 상승",
+      "detectionMethod": "water.conductivity(qualifier 'feed') 1 μS/cm 초과가 3회 연속 샘플 지속 → 즉시 경보 + 급수 차단 권고. 동시에 1차측 보충수 카운트 주간 증가율과 상관을 본다. 단독 전도도 상승은 DI 수지 소진일 수 있으므로 HX 상류 전도도와 동시 비교가 필수다.",
+      "falsePositiveTraps": "① 상류 DI 수지 소진(HX 상류 전도도도 같이 오르면 HX 문제 아님). ② 전도도계 온도보정 미적용 — 급수가 15 °C에서 55 °C로 오르면 같은 이온농도에서도 측정값이 크게 오른다(순수에서 약 2%/K 수준). 25 °C 환산값을 써야 한다. ③ 배관 신설·정비 직후 잔류물. ④ 316L 스테인리스 판에서의 금속이온 용출 — 초순수는 '배고픈 물'이라 316 SS에서 Ni·Fe를 뽑아낼 수 있어 누설이 없어도 전도도가 오른다.",
+      "recommendedAction_ko": "즉시 HX-301 2차측을 차단하고 수전해 급수를 바이패스(예열 없이 직공급)로 돌린다. 1차측을 가압한 채 2차측을 개방해 누설 여부를 확인하고, 판 침투탐상 또는 EDA(Testex 계열) 검사를 한다. 항구 대책은 이중벽(double-wall, 벤트형) 열교환기로 교체하는 것이다. FC 냉각수에 글리콜이 들어 있으면 스택은 회복 불가이므로 교체 전제로 대응한다.",
+      "severityHint": "critical",
+      "source": "ASTM Type II <1 μS/cm(s12); 이중벽 열교환기 요구 IPC 608.16.3 계열(s18); 초순수의 316 SS 이온 용출(s19)"
+    },
+    {
+      "mode": "판 표면 스케일·오염에 의한 UA 저하",
+      "signal": "동일 유량·동일 입구온도 bin에서 UA 7일 중앙값이 기준 대비 하락, 접근온도 상승, 2차측 출구온도가 설정치(55 °C)에 못 미침",
+      "detectionMethod": "UA = Q / LMTD를 정상상태 창에서만 계산하고(게이트는 detectorProposals 참조), 유량 bin·1차측 입구온도 bin별로 기준 UA를 잡는다. 7일 중앙값이 기준 대비 −15% → 경고, −25% → 주의. 접근온도 +3 K(7일 중앙값) 동시 상승이면 확증. 차압이 같이 오르면 스케일/막힘, 차압이 그대로면 판 표면 막(생물막·유막) 또는 유량 저하다.",
+      "falsePositiveTraps": "① 2차측 입구온도(DI 탱크 수온) 계절 변동 — 겨울에 입구가 차가우면 LMTD가 커져 같은 Q에서 UA가 낮아 보인다. 반드시 LMTD로 정규화하고 bin을 나눠야 한다. ② 순환펌프 VFD 감속 — 유량 저하는 UA도 함께 떨어뜨린다(파울링 아님). ③ 작은 온도차 구간의 오차 폭증 — 적산열량계 기술기준의 감온부 오차 Et=±(0.5+3ΔΘmin/ΔΘ)%는 ΔΘ가 작을수록 커진다. ΔΘ 10 K 미만 구간은 판정에서 제외한다. ④ 열수요(급수)가 없는 시간대의 0 유량.",
+      "recommendedAction_ko": "먼저 차압·유량·스트레이너를 확인해 유량 저하가 원인인지 가른다. 유량이 정상인데 UA만 떨어지면 CIP 세정을 계획한다. 세정액은 스케일에 질산 1.5% 이하·65 °C 이하, 유기물에 가성소다(NaOH) 1.5% 이하·85 °C 이하를 쓰고, 칼슘 침전물에는 질산 10% + 인산나트륨계 2%를 쓴다. 염산은 판의 Cr₂O₃ 부동태 피막을 깨므로 절대 금지다. 세정 후 UA를 재측정해 기준선을 갱신한다.",
+      "severityHint": "medium",
+      "source": "지역난방 판형 열교환기 유지관리(s10); Alfa Laval 계산법(s9); 적산열량계 기술기준 Et 산식(s7); 미처리 계통 U값 5년 후 30~50% 저하(s16, 상업자료)"
+    },
+    {
+      "mode": "유로 막힘·스트레이너 막힘에 의한 차압 상승",
+      "signal": "동일 유량에서 ΔP 상승, 유량 저하(정속펌프) 또는 펌프 전력 상승(VFD 정유량 제어), UA 동반 하락",
+      "detectionMethod": "정규화 차압 R_dp = ΔP_meas / (ΔP_ref × (Q/Q_ref)^1.75)를 쓴다. R_dp 7일 중앙값 ≥ 1.20 → 경고, ≥ 1.50 → 주의. 지수 1.75는 판형 제조사 범위 1.5~2.0의 중앙값이며, 세정 직후 같은 유량 2~3점으로 현장에서 지수를 회귀해 확정하는 것이 좋다.",
+      "falsePositiveTraps": "① 유체 점도 변화 — 1차측 온도가 낮은 기동 직후에는 점도가 높아 ΔP가 정상보다 크다. 온도 bin이 필요하다. ② 글리콜 농도 변경(점도·비열이 동시에 바뀌어 Q 계산도 틀어진다). ③ 차압계 영점 드리프트 — 정지·무유량 구간에서 ΔP가 0이 아니면 영점 재교정. ④ 밸브 개도 변경(운전 변경이지 막힘 아님).",
+      "recommendedAction_ko": "스트레이너를 먼저 청소하고 유량계·차압계 영점을 확인한다. 유로 내부 막힘이 의심되면 역세(backflush)를 시도하고, 회복되지 않으면 분해 점검한다. 파울링 방지를 위해 판 사이 최소 유속 0.5 m/s(물 기준)를 유지하도록 유량 설정을 재검토한다. 2차측은 급수량이 0.5 m³/h로 작아 유속이 낮을 가능성이 높으므로, 판 매수를 줄이거나 저유량 전용 판형(좁은 유로)으로 재선정하는 것을 검토한다.",
+      "severityHint": "medium",
+      "source": "판형 압력손실 지수·최소 유속 0.5 m/s(s17); s14"
+    },
+    {
+      "mode": "바이패스/3방 밸브 고착 — 회수열 상실 또는 급수 과열",
+      "signal": "(고착-우회) 1차측 입출구 온도차 ≈ 0인데 FC는 정상 발열, 회수열 0, 덤프쿨러 가동 증가. (고착-전개) 2차측 출구온도가 설정 55 °C를 넘어 상승, 수전해 스택 입구 온도 상한 접근",
+      "detectionMethod": "FC 출력 ≥ 정격의 30%이고 급수 유량 > 0인 구간에서 hx.heat.recovered 15분 중앙값이 설계 열량의 10% 미만이면 '회수 상실'로 경고. 반대로 hx.temp.cold.out이 설정치 +5 K를 15분 초과하면 '과열'로 경고하고 수전해 스택 입구 온도와 함께 본다.",
+      "falsePositiveTraps": "① 정상적인 열수요 소실 — 수전해가 정지 중이면 회수열 0이 맞다. 반드시 수전해 op.state로 게이트한다. ② 기동 중 밸브 램프 구간. ③ 급수 온도 설정 변경(운전자가 바꿨을 수 있어 설정값 변경 이력과 대조해야 한다).",
+      "recommendedAction_ko": "밸브 액추에이터 피드백(개도)과 지령을 대조해 고착 여부를 확인하고, 고착이면 스템 청소·구동부 점검·교체를 한다. 과열 쪽 고착은 수전해 스택을 직접 위협하므로 급수 온도 상한 인터록(하드와이어)이 있는지 먼저 확인한다. 도면에 바이패스 밸브 태그가 없으므로 실제 존재 여부를 설계사에 확인해야 한다.",
+      "severityHint": "high",
+      "source": "기존 파일 deep/research-fuelcell.json components[9] 3방향밸브 고착 참조. 급수 과열 방향은 본 파일에서 추가"
+    },
+    {
+      "mode": "열회수 부하 소실로 인한 FC 냉각수 온도 상승과 감발(derate)",
+      "signal": "동일 FC 출력·동일 외기에서 냉각수 입구온도 상승, 팬/덤프쿨러 100% 지령 빈도 증가, 하절기 FC 출력 상한 하락",
+      "detectionMethod": "(hx.temp.hot.in − ambient.temp)를 FC 출력 bin별로 기준 대비 비교. 7일 중앙값 +5 K 초과 → 경고. 덤프쿨러 100% 운전시간 비율의 월간 추세를 함께 본다.",
+      "falsePositiveTraps": "① 폭염일 외기 급상승 자체 — 외기로 정규화해야 한다. ② 팬 제어로직 변경. ③ 열회수량이 총 발열의 17%뿐이므로 열회수 유무가 냉각계통에 주는 영향은 작다 — 이 모드의 주원인은 덤프쿨러 쪽이지 HX-301이 아닐 가능성이 높다.",
+      "recommendedAction_ko": "덤프쿨러/라디에이터 핀 청소와 팬 점검이 우선이다. 도면 수치상 FC 총 발열 약 2,014 kWth 중 350 kWth만 회수되므로, 잔여 약 1,664 kWth를 처리할 방열설비 용량이 실제로 확보되어 있는지 설계 검토를 요청한다(openQuestions 3번).",
+      "severityHint": "high",
+      "source": "도면 수치 계산(H₂ 1,340 Nm³/h × 3.00 kWh/Nm³ LHV = 4,014 kW → 전기 2,000 kW → 발열 2,014 kW); 기존 파일 failureModes[33] 참조"
+    },
+    {
+      "mode": "열량계·온도센서 쌍 드리프트로 인한 회수열량 오계상",
+      "signal": "1차측 열량 Q_hot과 2차측 열량 Q_cold의 비가 서서히 변화, 정지 중(무유량) ΔT가 0이 아님, 누적 회수열량이 물리적으로 불가능한 값(설계 열량 초과)",
+      "detectionMethod": "① 무유량 영점 검사: 양측 유량 ≈ 0이고 온도가 안정된 구간에서 |T_in − T_out|의 24시간 중앙값이 0.3 K를 넘으면 센서 쌍 불일치. ② 열수지 비 검사: Q_hot/Q_cold의 장기 추세를 본다 — 절대값이 아니라 '비의 변화'를 본다(이 계통은 설계상 비가 1이 아니다).",
+      "falsePositiveTraps": "① 배관 방열 손실 — 보온이 나쁘면 Q_hot > Q_cold가 정상적으로 나온다. ② 이 계통에서는 설계상 Q_cold가 Q_hot의 약 7%이므로 '열수지 불일치' 절대값 판정을 쓰면 안 된다(openQuestions 2번 해결 전까지). ③ 비정상상태 구간(기동·정지 램프). ④ 글리콜 농도에 따른 cp 오차.",
+      "recommendedAction_ko": "온도센서 쌍은 EN 1434 Class 2 기준으로 0.1 °C 이내 정합된 쌍을 쓰고, 정기검사 주기를 지킨다. 국내에서 열량을 거래·정산에 쓰면 적산열량계는 법정계량기이며 산업통상자원부 적산열량계 기술기준의 형식승인·검정 대상이다. ΔΘmin은 계통 설계 ΔT(15 K)의 1/5 이하(3 K 이하)로 지정해 정상 운전 구간의 감온부 오차가 Et=±(0.5+3×3/15)=±1.1% 수준에 머물게 한다.",
+      "severityHint": "medium",
+      "source": "적산열량계 기술기준 2등급 산식(s7); EN 1434 온도센서 쌍 0.1 °C(s8, 2차자료)"
+    },
+    {
+      "mode": "초순수 측 금속 이온 용출로 인한 급수 전도도 상승(누설 아님)",
+      "signal": "급수 전도도가 예열 후 상류보다 높아지나 1차측 보충수 증가는 없음, 신설·세정 직후 특히 두드러지고 시간이 지나며 서서히 감소",
+      "detectionMethod": "HX 상류 전도도와 하류 전도도를 동시에 측정해 차이 Δσ를 본다. Δσ > 0.3 μS/cm가 지속되면서 1차측 보충수 카운트가 증가하지 않으면 용출로 분류한다(누설이면 보충수가 반드시 는다).",
+      "falsePositiveTraps": "① 전도도계 온도보정 미적용. ② 실제 누설의 초기 단계와 구별이 어렵다 — 보충수 카운트가 유일한 결정적 증거이므로 1차측 보충수 유량계·카운터가 없으면 이 판별이 불가능하다.",
+      "recommendedAction_ko": "판 재질을 확인한다. 양측이 모두 초순수/저전도도 냉각수인 계통에서는 316L 대신 티타늄 판이나 부동태 처리·코팅 판을 검토한다. 신설·세정 직후에는 일정 시간 순환 세척(flushing) 후 전도도가 안정된 다음 수전해에 연결한다. HX 하류에 폴리셔(혼상 이온교환)를 두면 근본 해결이 되지만 압력손실과 유지비가 는다.",
+      "severityHint": "medium",
+      "source": "초순수의 316 SS 이온 용출(s19); ASTM Type II/I 기준(s12)"
+    },
+    {
+      "mode": "개스킷 열화·외부 누설",
+      "signal": "프레임 주변 육안 누수, 1차측 보충수 증가, 체결 치수(tightening dimension) 변화, 압력 유지 시험 실패",
+      "detectionMethod": "텔레메트리만으로는 잡기 어렵다. 1차측 보충수 카운터의 주간 증가율과 정지 중 계통 압력 감소율(정압 유지 시험)을 보조지표로 쓴다.",
+      "falsePositiveTraps": "① 팽창탱크 질소 압력 저하(개스킷 문제 아님). ② 계절적 열팽창에 따른 정상적 압력 변동.",
+      "recommendedAction_ko": "분해 점검 시 30~40 °C까지 식힌 뒤 대각선 방향으로 판을 분리하고, 판마다 핀홀·균열·변형을 확인한다. 개스킷은 경화·영구변형이 보이면 교체한다. 재조립 시 제조사 지정 체결 치수를 반드시 지킨다(과체결은 판 변형, 부족 체결은 누설).",
+      "severityHint": "medium",
+      "source": "지역난방 판형 열교환기 분해 점검 절차(s10)"
+    },
+    {
+      "mode": "동시운전 미성립으로 인한 회수열 상시 0 (설계·운영 리스크)",
+      "signal": "수전해 운전시간 중 FC가 도는 시간 비율이 낮음. 회수 열량 누적이 설계 기대치의 수분의 일에 머묾",
+      "detectionMethod": "가용률 KPI로 본다. chp.availability = (FC 운전 ∩ 수전해 운전 시간) / 수전해 운전 시간. 월간 값이 30% 미만이면 열회수 설비의 경제성 재검토 신호다.",
+      "falsePositiveTraps": "① 축열조가 있으면 동시운전이 아니어도 열을 나중에 쓸 수 있다 — 도면에 축열조가 없어 보이므로 확인이 필요하다. ② 계절성(겨울 태양광 부족 → 수전해 가동 감소)을 월간이 아닌 연간으로 봐야 한다.",
+      "recommendedAction_ko": "태양광 1.5 MWp로 수전해 2.5 MW를 돌리는 구조라 수전해는 주간에, FC는 야간·피크에 도는 것이 경제적 기본형이다. 두 설비가 실제로 겹치는 시간을 먼저 실측하고, 겹침이 적으면 축열조(온수 버퍼)를 넣거나 회수열의 용도를 급수 예열이 아닌 상시 부하(동결 방지, 건물 난방, DI 제조설비 RO 급수 예열)로 돌리는 것이 낫다.",
+      "severityHint": "high",
+      "source": "도면 계통 구성(태양광→ESS→수전해, FC→PCS→계통)에서 유도한 운영 추론 — assumption. 외부 수소 반입 전제 주석 참조"
+    },
+    {
+      "mode": "동절기 동결 (정지 중 HX·급수 배관)",
+      "signal": "외기 0 °C 이하 + 계통 정지 + 순환 정지가 겹치는 구간. 재기동 시 유량 0, 차압 이상, 판 변형·누설",
+      "detectionMethod": "ambient.temp < 2 °C이고 hx.flow.hot ≈ 0이 30분 이상 지속되며 tank.temp(di_water)가 5 °C 미만이면 동결 위험 경보.",
+      "falsePositiveTraps": "① 계획 정비 중 배수 완료 상태(정상) — 정비 모드 플래그로 억제해야 한다. ② 온도계가 실내 설치라 외기를 대표하지 못하는 경우.",
+      "recommendedAction_ko": "가평은 동절기 최저기온이 낮은 내륙 지역이므로, 2차측 정제수 라인은 동결 시 배수하거나 트레이싱(전열선) + 보온을 적용한다. 1차측에 글리콜이 들어간다면 교차누설 시 수전해 스택이 즉사하므로, 글리콜 대신 순수 + 트레이싱 조합을 우선 검토한다. 이 판단은 도면에 냉각수 조성이 없어 확정할 수 없다(openQuestions 9번).",
+      "severityHint": "medium",
+      "source": "도면 소재지(가평); 기존 파일 fc_thermal_subsystem 동결 방지 참조. 가평 설계 최저기온은 unknown"
+    }
+  ],
+  "kpis": [
+    {
+      "key": "chp.heat.recovery.ratio",
+      "formula": "Σ hx.heat.total [kWh_th] / Σ fc.ac.energy [kWh_e] (월간)",
+      "unit": "kWh_th/kWh_e",
+      "target": "도면 설계치 0.175 (350 kWth / 2,000 kW). 비교선은 두 가지를 구분해야 한다 — (a) 실제 '유효 회수' 기준: 두산 M400 H2 35%/50% = 0.70(s6), M400 NG 47%/43% = 1.09. (b) '총 폐열/전기출력' 기준: PEMFC는 약 1.0(s11)이며 이는 폐열을 전량 회수했을 때의 이론 상한이지 통상 회수율이 아니다. 따라서 '문헌 CHP 회수율 0.7~1.0'처럼 (a)와 (b)를 한 범위로 묶어 쓰면 안 된다. 유효 회수 기준 0.70과 비교하면 이 설비는 약 1/4 수준이다. 실적이 0.15 미만이면 조사.",
+      "source": "도면; 유효 회수 비교선 = 두산 M400 H2 전기50%/열35% = 0.70(s6); 총 폐열 상한 ≈ 1.0(s11) — 두 값의 정의가 다름에 주의"
+    },
+    {
+      "key": "hx.ua.health",
+      "formula": "median_7d(hx.ua) / UA_baseline × 100, bin(유량, T_hot_in)별",
+      "unit": "%",
+      "target": "≥ 85% 정상, 75~85% 경고, < 75% 세정 계획. 세정 직후 UA를 기준선으로 갱신한다.",
+      "source": "기존 파일 failureModes[36] −15% 기준과 정합; 유효도 10% 하락 ≈ U 15~18% 하락(s14 계열 요약)"
+    },
+    {
+      "key": "hx.approach.rise",
+      "formula": "median_7d(hx.temp.approach) − approach_baseline",
+      "unit": "K",
+      "target": "≤ +3 K 정상, > +3 K 경고, > +5 K 주의. 1차측 유량계가 없어 UA를 못 구할 때의 대체 지표.",
+      "source": "s14; 기존 파일 failureModes[3] approach +5 °C 기준과 정합"
+    },
+    {
+      "key": "hx.dp.normalized",
+      "formula": "ΔP_meas / (ΔP_ref × (Q/Q_ref)^1.75)",
+      "unit": "-",
+      "target": "≤ 1.20 정상, 1.20~1.50 경고, > 1.50 세정·역세. 지수 1.75는 기본값이며 현장 회귀로 확정 권고.",
+      "source": "판형 ΔP 유량 지수 1.7, 범위 1.5~2.0(s17)"
+    },
+    {
+      "key": "hx.preheat.thermal.kwh",
+      "formula": "Σ [ṁ_cold · cp · (hx.temp.cold.out − hx.temp.cold.in)] dt",
+      "unit": "kWh_th",
+      "target": "급수 0.5 m³/h·ΔT 40 K 기준 23.3 kW_th가 물리적 상한. 동시운전 시간만 적산된다.",
+      "source": "계산: 0.5 m³/h = 0.1389 kg/s × 4.187 kJ/kg·K × 40 K = 23.3 kW"
+    },
+    {
+      "key": "elz.preheat.power.saved",
+      "formula": "median(P_elz | 예열 OFF, bin) − median(P_elz | 예열 ON, bin), bin = (수소 생산유량 FT-201, 스택 온도, 출구압력, 외기온도)",
+      "unit": "kW",
+      "target": "도면 주장 75 kW(=2.5 MW의 3%). 본 파일 검증 결과 물리적 상한은 23.3 kW_th(=0.93%)이며 그마저 열 기준이라 전력 절감으로 1:1 환산되지 않는다. 실측 기대값 0~5 kW. 이 KPI는 '주장 검증기'로 쓴다.",
+      "source": "본 파일 검증 계산; PEM은 발열 운전영역이라 외부 열을 반응에 직접 못 쓴다(s3)"
+    },
+    {
+      "key": "elz.preheat.savings.krw",
+      "formula": "Σ elz.preheat.power.saved [kWh] × 전력단가 [KRW/kWh]",
+      "unit": "KRW",
+      "target": "unknown — 국내 산업용 전력단가(계약종별·시간대별)를 확인하지 못했다. 단가가 확정되기 전에는 kWh로만 보고한다.",
+      "source": "unknown"
+    },
+    {
+      "key": "chp.availability",
+      "formula": "(FC 운전 ∩ 수전해 운전 시간) / 수전해 운전 시간 × 100 (월간)",
+      "unit": "%",
+      "target": "낮으면 열회수 설비가 대부분 놀고 있다는 뜻이다. 30% 미만이면 용도 재설계 검토. 목표치는 사업 운전계획 확정 후 결정.",
+      "source": "도면 계통 구성에서 유도 — assumption"
+    },
+    {
+      "key": "hx.heat.dumped.ratio",
+      "formula": "Σ hx.heat.dump / (Σ hx.heat.dump + Σ hx.heat.total) × 100",
+      "unit": "%",
+      "target": "도면 수치대로면 정상 운전에서도 약 82.6%(1,664 / 2,014)를 버린다. 이 값 자체가 설계 개선 여지를 보여주는 지표다.",
+      "source": "도면 수치 계산"
+    },
+    {
+      "key": "hx.leak.margin",
+      "formula": "1 − water.conductivity(feed) / 1.0 μS/cm",
+      "unit": "-",
+      "target": "> 0 유지. 0 이하(전도도 1 μS/cm 초과)면 수전해 급수 차단.",
+      "source": "ASTM Type II(s12)"
+    }
+  ],
+  "typicalValues": [
+    { "label": "LT-PEMFC 운전온도", "value": "60~80", "unit": "°C", "source": "s11" },
+    { "label": "PEMFC 폐열량 대 전기출력 비", "value": "약 1.0 (전기와 거의 같은 양의 폐열)", "unit": "kWth/kWe", "source": "s11" },
+    { "label": "PEMFC 폐열 중 외부 냉각계통이 처리해야 하는 비율", "value": "약 80", "unit": "%", "source": "s11" },
+    { "label": "Ballard FCwave 200 kW 모듈 최대 냉각수 출구온도", "value": "65", "unit": "°C", "source": "s4" },
+    { "label": "Ballard FCwave 최고 효율 / 수명", "value": "53 / >15,000", "unit": "% / h", "source": "s4" },
+    { "label": "Ballard FCgen-LCS 스택 최대 냉각수 온도", "value": "82", "unit": "°C", "source": "s5 (2차자료 요약 — 원 데이터시트 재확인 필요)" },
+    { "label": "두산 PureCell M400 Hydrogen 전기효율 / 열효율", "value": "50 / 35", "unit": "%", "source": "s6" },
+    { "label": "두산 PureCell M400 온수 공급온도 (수소·도시가스 공통 표기)", "value": "HG 120 / LG 60", "unit": "°C", "source": "s6 (수소 모델 페이지) 및 두산 M400 NG 페이지(https://www.doosanfuelcell.com/kr/prod/prod-0101/) — 2026-09-16 재확인. 앞서 기재했던 '도시가스 110 °C'는 오기였다. PAFC라 열등급이 PEM보다 높다. 본 사이트(PEM)에 직접 적용 불가." },
+    { "label": "물 전기분해 열중성 전압(25 °C)", "value": "1.481", "unit": "V", "source": "s22" },
+    { "label": "물 전기분해 ΔH° / ΔG° / TΔS° (25 °C)", "value": "285.8 / 237.1 / 48.7", "unit": "kJ/mol", "source": "s22" },
+    { "label": "물 전기분해 가역전압(25 °C)", "value": "1.229", "unit": "V", "source": "s22" },
+    { "label": "가역전압 온도계수 dE_rev/dT = ΔS°/(nF)", "value": "-0.846", "unit": "mV/K", "source": "계산 — ΔS° 163.2 J/mol·K, n=2, F=96485 C/mol. assumption: 표준상태 기준이며 실제 운전압력·농도에서 값이 달라진다." },
+    { "label": "DOE PEM 수전해 2022 현황 — 시스템 전력소비", "value": "55 (61% LHV)", "unit": "kWh/kg H₂", "source": "s1" },
+    { "label": "DOE PEM 수전해 2022 현황 — 스택 전력소비", "value": "51 (65% LHV)", "unit": "kWh/kg H₂", "source": "s1" },
+    { "label": "DOE PEM 수전해 2022 현황 — 운전점", "value": "2.0 A/cm² @ 1.9 V/cell", "unit": "-", "source": "s1 (2026 목표 3.0 A/cm² @ 1.8 V, 최종 3.0 A/cm² @ 1.6 V)" },
+    { "label": "셀전압 1.9 V 기준 스택 발열 비율 = (1.9 − 1.48)/1.9", "value": "22.1", "unit": "%", "source": "계산 — s1의 1.9 V/cell과 s22의 열중성 1.481 V" },
+    { "label": "PEM 수전해 40→80 °C 전압효율 개선", "value": "약 7 (3.0 A/cm² 기준)", "unit": "%p", "source": "s15 (초록 요약 — 본문 페이월). assumption: K당 환산 시 약 0.175 %p/K." },
+    { "label": "PEM 수전해 폐열 중 열수요처가 실제로 쓸 수 있는 양 (2.5 MWel 사례)", "value": "스택 투입 전력의 14~15", "unit": "%", "source": "s2 — 우리 수전해와 같은 2.5 MWel 급 사례다." },
+    { "label": "PEM 수전해 폐열 활용 시 총 시스템 효율", "value": "최대 90 (HHV)", "unit": "%", "source": "s2" },
+    { "label": "PEM 수전해 폐열 온도대 (오스트리아 1 MW / 2 MW 실증)", "value": "50~80 / 50~60", "unit": "°C", "source": "s2" },
+    { "label": "PEM 수전해에 외부 열을 통합했을 때 수익 개선", "value": "1.83~0.44", "unit": "%", "source": "s3 Table II — 수소가격 2.5~5.5 EUR/kg 구간에서 1.83 %(2.5 EUR/kg) → 0.44 %(5.5 EUR/kg)로 감소한다. 2026-09-16 원문(arXiv:2507.06796v1) 재확인. 같은 표에서 SOE는 저온열 17.1~4.0%, 고온열 23.3~5.4%. PEM이 낮은 이유는 '본질적으로 발열 운전영역이라 외부 열을 전기분해 반응에 직접 쓸 수 없고 급수 예열 같은 보조 공정에만 쓸 수 있기' 때문이다." },
+    { "label": "SOE 외부 열 통합 시 시스템 효율", "value": "77.77 → 88.73", "unit": "%", "source": "s3 — 참고용. 우리 설비는 PEM이라 해당 없음." },
+    { "label": "PEM 수전해 급수 수질 최소 기준 / 권장", "value": "ASTM Type II <1 / Type I <0.056", "unit": "μS/cm", "source": "s12" },
+    { "label": "지역난방 판형 열교환기 세정 주기", "value": "난방 2년 1회(또는 연 1회 비수기), 급탕 매년, 최소 2년 1회", "unit": "-", "source": "s10" },
+    { "label": "판형 열교환기 세정액 — 스케일", "value": "질산(HNO₃) 농도 1.5% 이하, 온도 65 °C 이하", "unit": "-", "source": "s10" },
+    { "label": "판형 열교환기 세정액 — 유기물·유지", "value": "가성소다(NaOH) 농도 1.5% 이하, 온도 85 °C 이하", "unit": "-", "source": "s10" },
+    { "label": "판형 열교환기 세정액 — 칼슘 침전물", "value": "질산 10% + 인산나트륨계 2%", "unit": "-", "source": "s10" },
+    { "label": "판형 열교환기 분해 전 냉각 온도", "value": "30~40", "unit": "°C", "source": "s10 — 대각선 방향으로 판을 분리하고 판마다 핀홀·균열·변형을 점검한다. 염산은 Cr₂O₃ 부동태 피막을 손상시켜 사용 금지." },
+    { "label": "판형 열교환기 압력손실의 유량 지수", "value": "1.7 (제조사별 1.5~2.0)", "unit": "-", "source": "s17 (상업자료 — 현장 회귀로 확정 권고)" },
+    { "label": "파울링 억제 최소 유속 (물 / 열매유)", "value": "0.5 / 1.0", "unit": "m/s", "source": "s17 (상업자료)" },
+    { "label": "미처리 계통 U값 저하 (가동 5년 후)", "value": "30~50", "unit": "%", "source": "s16 (상업자료 — 1차 출처 미확인, 참고값)" },
+    { "label": "적산열량계 2등급 허용오차", "value": "연산부 Ec=±(0.5+ΔΘmin/ΔΘ), 감온부 Et=±(0.5+3ΔΘmin/ΔΘ), 유량부 Ef=±(2+0.02 qp/q) 단 ±5.0% 이하", "unit": "%", "source": "s7 (산업통상자원부고시 적산열량계 기술기준). 3등급 유량부는 Ef=±(3+0.05 qp/q), 1등급 일체형은 E=±(2+4ΔΘmin/ΔΘ+0.01qp/q)." },
+    { "label": "적산열량계 ΔΘmin 선택지 / 최대·최소 온도차 비 / 유량비", "value": "1, 2, 3, 5, 10 K 중 선택 / 10 이상 / 10·25·50·100·250", "unit": "-", "source": "s7" },
+    { "label": "EN 1434 Class 2 열량 정확도 / 온도센서 쌍 편차", "value": "±2 / 0.1", "unit": "% / °C", "source": "s8 (2차자료 — 원표준 본문 미확인)" },
+    { "label": "흡수식 냉동기 구동 온수 하한", "value": "80 °C 이하로 내려가면 냉동능력 절반 이하 (흡착식은 90% 수준 유지)", "unit": "°C", "source": "s20 — 본 사이트 75 °C는 단효용 흡수식 구동에 부족하다." },
+    { "label": "수소 LHV / HHV (0 °C, 1 atm 기준)", "value": "3.00 / 3.54", "unit": "kWh/Nm³", "source": "계산 — LHV 241.8 kJ/mol, HHV 285.8 kJ/mol(s22), 22.414 L/mol" },
+    { "label": "도면 역산 — FC LHV 전기효율", "value": "49.8", "unit": "%", "source": "계산: 2,000 kW / (1,340 Nm³/h × 3.00 kWh/Nm³ = 4,014 kW). Ballard 53%(s4)와 정합 — 도면이 이 부분에서는 자기정합적이다." },
+    { "label": "도면 역산 — FC 총 발열량", "value": "약 2,014", "unit": "kWth", "source": "계산: 4,014 − 2,000. 회수 350 kWth는 이 중 17.4%뿐이다." },
+    { "label": "도면 역산 — 수전해 비에너지", "value": "55.6", "unit": "kWh/kg H₂", "source": "계산: 2,500 kW ÷ (500 Nm³/h × 0.08988 kg/Nm³ = 44.94 kg/h). DOE 2022 현황 55 kWh/kg(s1)과 정합." },
+    { "label": "도면 역산 — 수전해 자체 발열량", "value": "약 728 (상한) / 약 500 (스택만, 1.9 V 기준)", "unit": "kWth", "source": "계산: 2,500 × (1 − 39.4/55.6) = 728 kW. 열중성 39.4 kWh/kg = HHV 285.8 kJ/mol ÷ 2.016 g/mol. assumption: 728 kW는 BOP 손실을 모두 발열로 본 상한값." },
+    { "label": "도면 역산 — HX-301 2차측이 실제 흡수 가능한 최대 열량", "value": "23.3", "unit": "kWth", "source": "계산: 0.5 m³/h × 4.187 kJ/kg·K × (55 − 15) K. 1차측 350 kWth의 6.7%에 불과하다. 2차측 입구 15 °C는 assumption(도면에 없음)." },
+    { "label": "도면 역산 — HX-301 LMTD와 UA (2차측 열량 기준)", "value": "LMTD 30.8 K, UA 0.76", "unit": "K, kW/K", "source": "계산: ΔT1 = 75−55 = 20 K, ΔT2 = 60−15 = 45 K, LMTD = (45−20)/ln(45/20) = 30.8 K, UA = 23.3/30.8. 산식은 Alfa Laval(s9)." },
+    { "label": "도면 역산 — 1차측 유량 (350 kWth, ΔT 15 K 기준)", "value": "약 20.1", "unit": "m³/h", "source": "계산: 350 / (4.187 × 15) = 5.57 kg/s" },
+    { "label": "도면 역산 — 350 kWth를 급수로 다 받으려면 필요한 급수량", "value": "7.5 (ΔT 40 K 기준)", "unit": "m³/h", "source": "계산: 350 / (4.187 × 40) = 2.09 kg/s. 도면 급수 0.5 m³/h의 15배다." },
+    { "label": "도면 역산 — 급수 0.5 m³/h가 350 kW를 받으면 필요한 온도상승", "value": "602 (물리적으로 불가 — 비등)", "unit": "K", "source": "계산: 350 / (0.1389 × 4.187). 도면의 1차/2차 열량이 양립할 수 없음을 보여주는 결정적 수치다." },
+    { "label": "'3% 저감' 주장의 물리적 상한", "value": "0.93 (= 23.3 kW_th / 2,500 kW, 열을 전력으로 1:1 환산한 낙관적 가정에서도)", "unit": "%", "source": "계산. 실제로는 1:1 환산이 성립하지 않으므로 더 낮다." },
+    { "label": "'3% 저감'을 급수 예열로 달성하려면 필요한 셀전압 감소", "value": "57 mV/cell (1.9 V의 3%) ≈ 스택 온도 약 17 K 상승분", "unit": "-", "source": "계산 — s15의 0.175 %p/K 환산 적용. PEM 스택이 이미 50~80 °C에서 운전하므로 17 K 여유가 있을 가능성이 낮다." }
+  ],
+  "standards": [
+    {
+      "code": "산업통상자원부고시 — 적산열량계 기술기준",
+      "title": "적산열량계 기술기준 (2018.06.07 타법개정)",
+      "scope": "열량계 정확도 등급(1/2/3등급), 연산부·감온부·유량부 허용오차 산식, ΔΘmin·유량비 선택지, 형식승인·검정·정기검사. 열량을 거래·정산에 쓰면 법정계량기다.",
+      "url": "https://www.ulex.co.kr/%EB%B2%95%EB%A5%A0/2100000009614-2048906-%EC%A0%81%EC%82%B0"
+    },
+    {
+      "code": "EN 1434-1/-2/-4:2022",
+      "title": "Thermal energy meters — General / Constructional requirements / Pattern approval tests",
+      "scope": "열량계 일반·구조 요구와 형식승인 시험. Class 2가 과금 기준. 정합된 백금 측온저항체 쌍(pair) 사용 요구.",
+      "url": "https://standards.iteh.ai/catalog/standards/cen/4a401223-1f56-4448-861b-67d46d1c3d0f/en-1434-1-2022"
+    },
+    {
+      "code": "ASTM D1193-06(2018) (Type I / Type II)",
+      "title": "Standard Specification for Reagent Water",
+      "scope": "PEM 수전해 급수 수질의 사실상 참조 규격. Type II ≤1.0 μS/cm(≥1.0 MΩ·cm), Type I ≤0.056 μS/cm(≥18 MΩ·cm), 양쪽 모두 TOC ≤50 μg/L·SiO₂ ≤3 μg/L.",
+      "url": "https://www.astm.org/Standards/D1193.htm",
+      "urlNote": "2026-09-16 수정 — 이전에는 이 항목에 Nel FAQ(https://nelhydrogen.com/faq/) URL이 붙어 있었다. Nel FAQ는 '최소 Type II, 권장 Type I'라는 제조사 요구의 출처일 뿐 ASTM 규격 자체가 아니다. 수치 상세는 research-water.json standards·typicalValues 참조."
+    },
+    {
+      "code": "IPC / FBC 608.16.3 계열",
+      "title": "Heat exchangers — double-wall construction for toxic transfer fluid separation",
+      "scope": "독성 전열매체(글리콜 등)와 음용수/공정수 사이는 이중벽 + 대기개방 벤트로 분리. 본 사이트는 음용수는 아니지만 '오염 시 하류 설비 전손'이라는 점에서 같은 원리를 적용할 근거가 된다. 국내 대응 법규는 미확인.",
+      "url": "https://www.eng-tips.com/threads/double-wall-heat-exchanger-safeguards-code.389705/"
+    },
+    {
+      "code": "열사용시설기준 (집단에너지사업)",
+      "title": "열사용시설 기준 (2017.8.1 시행)",
+      "scope": "지역난방 열사용시설의 열교환기·계량기·수질 관련 기준. 본 사이트는 지역난방 수용가가 아니라 직접 적용 대상은 아니지만, 국내 판형 열교환기 운용 관행의 준거로 참고한다.",
+      "url": "https://www.skens.com/download/wirye/wirye_steam2.pdf"
+    }
+  ],
+  "detectorProposals": [
+    {
+      "id": "hx-cross-leak",
+      "failureMode": "판 미세균열 교차누설",
+      "inputs": ["water.conductivity(qualifier=feed, HX 하류)", "water.conductivity(qualifier=feed_in, HX 상류)", "hx.temp.cold.out", "1차측 보충수 카운터(신설 필요)", "hx.flow.cold"],
+      "method": "① 25 °C 환산 전도도로 보정한다(온도보정 미적용 시 40 K 상승만으로 값이 크게 부풀려진다). ② Δσ = σ_하류 − σ_상류를 계산한다. ③ Δσ > 0.3 μS/cm이면서 1차측 보충수 주간 증가율이 기준을 넘으면 '누설'로 판정하고, 보충수 증가가 없으면 '이온 용출'로 분류한다. ④ σ_하류 > 1.0 μS/cm는 원인 불문 즉시 경보한다.",
+      "thresholds": { "sigma_absolute_alarm_uScm": 1.0, "delta_sigma_warn_uScm": 0.3, "persist_samples": 3, "makeup_increase_pct_wow": 20 },
+      "gateIdea": "hx.flow.cold > 0.1 m³/h 이고 hx.temp.cold.out > 30 °C(예열 실제 동작 중)일 때만 판정. 신설·세정·수지 교체 후 72시간은 억제(flushing 구간)."
+    },
+    {
+      "id": "hx-ua-drop",
+      "failureMode": "스케일·오염에 의한 UA 저하",
+      "inputs": ["hx.temp.hot.in", "hx.temp.hot.out", "hx.temp.cold.in", "hx.temp.cold.out", "hx.flow.hot", "hx.flow.cold"],
+      "method": "정상상태 창(5분)에서 Q_cold = ṁ_cold·cp·ΔT_cold, LMTD = (ΔT1−ΔT2)/ln(ΔT1/ΔT2), UA = Q_cold/LMTD를 계산한다. 유량 bin(±10%)과 T_hot_in bin(±3 K)별로 세정 직후 14일을 기준선으로 잡고, 최근 7일 중앙값의 기준 대비 변화율을 본다. 차압 정규화값(hx-dp-rise)과의 동반 여부로 '스케일/막힘' 대 '표면 막' 판별 체크를 붙인다.",
+      "thresholds": { "warn_pct": -15, "alert_pct": -25, "window_days": 7, "baseline_days": 14, "min_samples": 200 },
+      "gateIdea": "정상상태: 5분 창에서 4개 온도의 |dT/dt| < 0.2 K/min. 최소 부하: Q_cold ≥ 설계의 30%. 최소 온도차: 양측 ΔΘ ≥ 10 K (적산열량계 감온부 오차 Et=±(0.5+3ΔΘmin/ΔΘ)%가 작은 ΔΘ에서 폭증하므로). 열수지 절대값 게이트는 이 계통에서 쓰지 말 것(설계상 Q_cold ≈ Q_hot의 7%) — openQuestions 2번 해결 후 재검토."
+    },
+    {
+      "id": "hx-approach-rise",
+      "failureMode": "스케일·오염 (1차측 유량계가 없을 때의 대체 탐지)",
+      "inputs": ["hx.temp.hot.in", "hx.temp.cold.out"],
+      "method": "approach = hx.temp.hot.in − hx.temp.cold.out. 유량 bin이 없으므로 T_hot_in bin과 시간대 bin만 쓴다. 7일 중앙값이 기준선 대비 상승한 폭을 본다. UA 탐지기와 동시에 움직이면 확증, 단독으로 움직이면 유량 변화 의심.",
+      "thresholds": { "warn_k": 3, "alert_k": 5, "window_days": 7, "baseline_days": 14 },
+      "gateIdea": "hx.flow.cold > 0.1 m³/h, 정상상태 5분 창, hx.temp.hot.in ≥ 60 °C(FC 정상 발열 중)."
+    },
+    {
+      "id": "hx-dp-rise",
+      "failureMode": "유로 막힘·스트레이너 막힘",
+      "inputs": ["hx.pressure.diff.hot", "hx.pressure.diff.cold", "hx.flow.hot", "hx.flow.cold", "pump.power"],
+      "method": "정규화 차압 R = ΔP / (ΔP_ref × (Q/Q_ref)^n), n 기본 1.75(현장 회귀 권고). 양측을 따로 계산한다. R의 7일 중앙값을 본다. 정속펌프에서 R이 올라가지 않는데 유량만 떨어지면 펌프 열화로 분류한다.",
+      "thresholds": { "warn_ratio": 1.2, "alert_ratio": 1.5, "window_days": 7, "exponent_default": 1.75 },
+      "gateIdea": "Q ≥ 설계의 30%, 유체온도 bin(점도 보정 대용), 차압계 영점 검증 통과(무유량 구간 |ΔP| < 2 kPa)."
+    },
+    {
+      "id": "hx-recovery-lost",
+      "failureMode": "바이패스 밸브 고착 / 동시운전 미성립",
+      "inputs": ["hx.heat.recovered", "fc.ac.power", "op.state(ELZ)", "hx.flow.cold", "hx.temp.hot.in", "hx.temp.hot.out"],
+      "method": "FC 출력 ≥ 정격의 30%이고 수전해가 운전 중인데 hx.heat.recovered의 15분 중앙값이 설계 열량의 10% 미만이면 '회수 상실'. 1차측 ΔT ≈ 0이면 '밸브 우회 고착', ΔT는 정상인데 2차측 유량이 0이면 '급수측 차단'으로 분류한다.",
+      "thresholds": { "fc_load_min_pct": 30, "recovery_min_pct_of_design": 10, "window_min": 15, "hot_dt_stuck_k": 1.0 },
+      "gateIdea": "수전해 op.state가 운전(정지·대기 제외)일 때만. 계획정비 플래그 억제. 기동 후 30분 억제."
+    },
+    {
+      "id": "hx-overheat-feed",
+      "failureMode": "바이패스 고착(전개 방향) — 급수 과열",
+      "inputs": ["hx.temp.cold.out", "급수온도 설정값", "stack.temp.in(ELZ)"],
+      "method": "hx.temp.cold.out이 설정치 +5 K를 15분 이상 초과하면 경보. 수전해 스택 입구 온도가 설계 상한(통상 80 °C)에 접근하면 즉시 상향한다. 이 탐지기는 법정 안전설비·현장 PLC 인터록을 대체하지 않는다.",
+      "thresholds": { "over_setpoint_k": 5, "persist_min": 15, "stack_inlet_max_c": 80 },
+      "gateIdea": "hx.flow.cold > 0.1 m³/h. 설정값 변경 이력이 있는 24시간은 기준선 재산정."
+    },
+    {
+      "id": "hx-meter-drift",
+      "failureMode": "열량계·온도센서 쌍 드리프트",
+      "inputs": ["hx.temp.hot.in", "hx.temp.hot.out", "hx.temp.cold.in", "hx.temp.cold.out", "hx.flow.hot", "hx.flow.cold"],
+      "method": "① 무유량 영점 검사: 양측 유량 ≈ 0이고 온도가 안정된 구간에서 |T_in − T_out|의 24시간 중앙값이 0.3 K를 넘으면 센서 쌍 불일치. ② 열수지 비 검사: Q_hot/Q_cold의 장기 추세를 본다 — 절대값이 아니라 '비의 변화'를 본다(설계상 비가 1이 아니므로).",
+      "thresholds": { "zero_offset_k": 0.3, "zero_window_h": 24, "ratio_drift_pct": 15, "window_days": 14 },
+      "gateIdea": "영점 검사는 유량 < 정격의 5%이고 |dT/dt| < 0.05 K/min인 구간만. 열수지 비 검사는 정상상태 창 200점 이상."
+    },
+    {
+      "id": "elz-preheat-benefit",
+      "failureMode": "'3% 절감' 주장 검증 (고장 탐지가 아닌 성능 검증기)",
+      "inputs": ["ac.power(ELZ)", "h2.flow.mass(FT-201)", "hx.temp.cold.out", "stack.temp(ELZ)", "h2.pressure", "hx.heat.recovered", "ambient.temp"],
+      "method": "수전해 비에너지 SEC = ac.power / h2.flow.mass [kWh/kg]를 계산한다. 예열 ON 구간과 OFF 구간을 (수소 생산유량 bin, 스택 온도 bin, 출구압력 bin, 외기온도 bin)으로 짝지어 중앙값을 비교한다. ΔSEC과 그 신뢰구간(부트스트랩)을 보고한다. 유량계 정확도가 결과를 지배하므로 FT-201 불확도를 함께 보고한다.",
+      "thresholds": { "min_paired_bins": 8, "min_samples_per_bin": 50, "report_ci_pct": 95, "claimed_saving_pct": 3.0, "physical_upper_bound_pct": 0.93 },
+      "gateIdea": "예열 ON/OFF가 같은 날 안에서 교대되도록 운전 협조가 필요하다(계절·열화 교란 제거). 스택 온도 bin을 반드시 넣어야 한다 — 예열의 이득이 있다면 스택 온도 상승을 통해서만 나타나기 때문이다. 이 탐지기는 경보가 아니라 월간 리포트 항목으로 낸다."
+    },
+    {
+      "id": "hx-freeze-risk",
+      "failureMode": "동절기 동결",
+      "inputs": ["ambient.temp", "hx.flow.hot", "hx.flow.cold", "tank.temp(qualifier=di_water)"],
+      "method": "ambient.temp < 2 °C, 양측 유량 ≈ 0이 30분 이상 지속되고 tank.temp < 5 °C이면 동결 위험 경보.",
+      "thresholds": { "ambient_c": 2, "no_flow_min": 30, "tank_temp_c": 5 },
+      "gateIdea": "계획정비(배수 완료) 플래그가 있으면 억제. 외기 온도계가 실내 설치면 이 탐지기를 쓰지 말 것."
+    }
+  ],
+  "openQuestions": [
+    "HX-301 2차측 입구 온도(DI 물탱크 수온)가 도면에 없다. 절감량 계산의 최대 불확실 인자이며, 계절 변동 실측(동절기·하절기 각 1주)이 필요하다. 계기 TT-304 신설을 우선 요청한다.",
+    "'350 kWth'가 (a) FC에서 회수 가능한 총 열량인지, (b) HX-301이 실제로 전달하는 열량인지 확정해야 한다. 도면의 급수 0.5 m³/h로는 물리적으로 최대 약 23 kW만 흡수할 수 있고(350 kW를 받으려면 온도가 602 K 올라야 한다), 350 kW를 다 받으려면 급수가 7.5 m³/h여야 한다(15배). 즉 (b)라면 도면이 자기모순이다.",
+    "FC 총 발열 약 2,014 kWth 중 회수 350 kWth를 뺀 약 1,664 kWth를 버릴 덤프쿨러/라디에이터가 P&ID에 보이지 않는다. 용량과 태그를 확인해야 한다. 없으면 하절기 FC 감발이 확정적이다.",
+    "FC와 수전해가 연간 몇 시간을 동시에 도는가. 태양광 1.5 MWp → 수전해(주간), FC → 계통(야간·피크)이 경제적 기본형이라면 동시운전이 적어 회수열이 대부분 0이 된다. 축열조(온수 버퍼)가 계획에 있는지 확인이 필요하다. 다만 도면 주석의 '외부 수소 반입 전제'는 FC가 상시 운전될 수 있음을 시사하므로 운전계획 문서로 확정해야 한다.",
+    "수전해 스택의 설계 운전온도와 상한은 얼마인가. 이미 상한(통상 80 °C) 근처에서 운전한다면 급수 예열로 얻을 셀전압 이득이 물리적으로 없다. 예열의 이득은 오직 스택 온도 상승 경로로만 나타난다.",
+    "HX-301이 이중벽(double-wall, 벤트형)인가 단일벽인가. 단일벽이면 판 핀홀 하나로 수전해 스택이 전손될 수 있다. 도면에 표기가 없다.",
+    "HX-301 판·개스킷 재질은 무엇인가. 양측이 모두 저전도도 물이면 316L에서 금속이온이 용출돼 전도도가 오를 수 있다. 티타늄 또는 표면처리 판 검토가 필요한지 판단해야 한다.",
+    "HX-301 하류(수전해 급수측)에 전도도계가 있는가. 도면 계장 태그 목록(PT/FT/TT/LT)에 전도도계가 없다. 교차누설의 유일한 조기 지표이므로 신설이 필요하다.",
+    "FC 냉각수의 조성은 무엇인가(순수 / 글리콜 혼합 / 비율). 글리콜이면 교차누설 시 수전해 스택이 즉시 회복 불가가 되고, 동시에 cp가 달라져 모든 열량 계산이 바뀐다.",
+    "1차측 유량계가 없다(FT-101은 급수측). Q_hot을 못 구하면 양측 열수지 교차검증이 불가능해 센서 드리프트와 실제 성능 저하를 구분할 수 없다.",
+    "적산열량계를 설치하는가, 등급은 몇 등급인가. 열 판매가 없더라도 '3% 절감' 주장을 검증하려면 2등급 이상과 ΔΘmin ≤ 3 K 지정이 필요하다.",
+    "'수전해 소비전력 약 3% 저감'의 산출 근거 문서(계산서)를 받아야 한다. 본 파일의 계산으로는 급수 예열 경로로 3%가 나올 수 없다(물리적 상한 0.93%, 그마저도 전력이 아닌 열 기준).",
+    "국내 산업용 전력 단가(계약종별·시간대별)를 확인하지 못했다. 절감 '금액' KPI는 단가가 확정되기 전까지 kWh로만 보고한다.",
+    "가평 현장의 동절기 설계 최저기온과 동결방지 설계(트레이싱·보온·배수 절차)를 확인하지 못했다. 2차측 정제수 라인은 유량이 0.5 m³/h로 작아 정지 중 동결 위험이 크다.",
+    "회수열의 대안 용도를 검토했는가. 75 °C는 단효용 흡수식 냉동기 구동에 부족하고(80 °C 이하에서 능력 절반), 수소 건조기 TSA 재생(통상 150~200 °C급 — 본 조사에서 1차 출처 미확인)에도 부족하다. 현실적 대안은 동결 방지, 건물·컨테이너 난방, DI 제조설비 RO 급수 예열(RO 플럭스는 수온에 비례해 개선), 흡착식 냉동기, 히트펌프 승온이다.",
+    "검증 메모(2026-09-16 적대검증) — 도면의 연료전지측 전력변환설비(PCS 2,500 kW, DC 650 V ⇒ AC 380 V)는 본 파일을 포함해 pid 폴더 5개 파일 어느 곳도 다루지 않고, 상위 리서치도 PV·ESS측 PCS(research-solar_ess.json, deep/research-ess.json)와 수전해 정류기(research-electrolyzer.json)만 다룬다 — 연료전지 전용 PCS의 고장모드·효율곡선·계통연계 요건은 공백이다. 전기측 리서치 별도 파일로 다뤄야 한다(본 파일 범위 밖).", "수전해가 자체적으로 약 500~730 kWth를 발열하는데도 외부에서 350 kWth를 더 넣도록 설계한 이유가 무엇인가. 수전해 냉각 부하를 오히려 늘리는 구조로 보이므로 설계 의도를 확인해야 한다(대기·기동 시 보온 목적이라면 타당하다)."
+  ],
+  "sources": [
+    { "n": 1, "title": "DOE — Technical Targets for Proton Exchange Membrane Electrolysis", "url": "https://www.energy.gov/cmei/fuels/technical-targets-proton-exchange-membrane-electrolysis", "note": "1차자료(미 에너지부). 2022 현황 시스템 55 kWh/kg(61% LHV), 스택 51 kWh/kg(65% LHV), 2.0 A/cm² @ 1.9 V/cell. 2026 목표 51 kWh/kg, 최종 46 kWh/kg." },
+    { "n": 2, "title": "van der Roest 외, Utilisation of waste heat from PEM electrolysers — Unlocking local optimisation, Int. J. Hydrogen Energy (2023), DOI 10.1016/j.ijhydene.2023.03.374", "url": "https://research.tudelft.nl/en/publications/utilisation-of-waste-heat-from-pem-electrolysers-unlocking-local-", "note": "학술 1차자료. 2.5 MWel PEM(우리 수전해와 동급). 스택 투입 전력의 14~15%를 열수요처가 실제로 쓸 수 있고 총 효율 90%(HHV)까지. 열 비용 8.4~36.9 €/MWh, CO₂ 0.08~0.28 t/MWh_heat. 오스트리아 1 MW 실증 폐열 50~80 °C, 2 MW는 50~60 °C." },
+    { "n": 3, "title": "Derez, Hoogsteyn, Delarue (KU Leuven), Optimisation of Electrolyser Operation: Integrating External Heat, arXiv:2507.06796 (2025-07-09)", "url": "https://arxiv.org/html/2507.06796v1", "note": "학술 1차자료(프리프린트). 핵심 인용: PEM 수전해는 '본질적으로 발열 운전영역이라 외부 열을 전기분해 반응에 직접 쓸 수 없고 급수 예열 같은 보조 공정에만 쓸 수 있어' 수익 개선이 수소가격 2.5~5.5 EUR/kg 구간에서 1.83%~0.44%에 그친다(Table II, 2026-09-16 원문 재확인 — 이전 기재 '1.9~2.7%'는 오기였다). SOE는 저온열 17.1~4.0%, 고온열 추가 23.3~5.4%, 시스템 효율 77.77% → 저온열 85.63% → 고온열 88.73%. 본 파일의 3% 반증 논거의 핵심 출처." },
+    { "n": 4, "title": "Ballard FCwave 제품 데이터시트 (2024-10-08)", "url": "https://www.ballard.com/wp-content/uploads/2024/11/FCwave_20241008.pdf", "note": "제조사 1차자료(PDF 본문 직접 추출). 200 kW 모듈, 최고효율 53%, 수명 >15,000 h, 운전전압 350~720 V, 최대 냉각수 출구온도 65 °C. 도면 75 °C는 이 상한보다 높다." },
+    { "n": 5, "title": "Ballard FCgen-LCS 스택 사양 요약 (secondwatt)", "url": "https://secondwatt.com/equipment/fuel-cells/ballard-power-systems-fcgen-lcs", "note": "2차자료(유통사 요약). 93 kW @ 500 A·187 V DC, 냉각수 최고 82 °C. 스택 단품 상한이 패키지 모듈보다 높음을 보여준다. 원 데이터시트 직접 확인 필요." },
+    { "n": 6, "title": "두산퓨얼셀 PureCell Model 400 Hydrogen", "url": "https://www.doosanfuelcell.com/kr/prod/prod-0102/", "note": "제조사 1차자료(국내). 이 URL은 수소 전용 모델(M400 Hydrogen) 페이지다 — 정격 440 kW, 전기효율 50% / 열효율 35% / 종합 85% (= 0.70 kWth/kWe), 온수 HG 120 °C·LG 60 °C. 도시가스 모델(M400 NG, https://www.doosanfuelcell.com/kr/prod/prod-0101/)은 440 kW·발전 43% / 열 47% / 종합 90%, 온수 HG 120 °C·LG 60 °C. 2026-09-16 양쪽 페이지 재확인. PAFC라 열등급이 PEM보다 높아 직접 적용은 불가하나 국내 열병합 회수율의 기준점으로 쓴다." },
+    { "n": 7, "title": "적산열량계 기술기준 (산업통상자원부고시, 2018.06.07 타법개정)", "url": "https://www.ulex.co.kr/%EB%B2%95%EB%A5%A0/2100000009614-2048906-%EC%A0%81%EC%82%B0", "note": "국내 법규 1차자료(2차 게시 사이트 경유). 2·3등급 연산부 Ec=±(0.5+ΔΘmin/ΔΘ), 감온부 Et=±(0.5+3ΔΘmin/ΔΘ), 유량부 2등급 Ef=±(2+0.02qp/q)·3등급 Ef=±(3+0.05qp/q) 단 ±5.0% 이하, 1등급 일체형 E=±(2+4ΔΘmin/ΔΘ+0.01qp/q). ΔΘmin은 1/2/3/5/10 K 중 선택, 최대·최소 온도차 비 10 이상, 유량비 10/25/50/100/250. 원문은 국가법령정보센터에서 재확인 권고." },
+    { "n": 8, "title": "MID Class 2 & EN 1434 Heat Meters (zpmeter 해설)", "url": "https://www.zpmeter.com/blog/which-heat-meters-meet-centralized-heating-acceptance-standards", "note": "2차자료(상업 블로그). Class 2 = 열량 ±2%, 온도센서 쌍 편차 0.1 °C 허용. EN 1434-1/-2:2022 원문 미확인이므로 참고값으로 다룬다." },
+    { "n": 9, "title": "Alfa Laval — Plate Heat Exchanger Calculation Method", "url": "https://www.alfalaval.co.uk/products/heat-transfer/plate-heat-exchangers/gasketed-plate-and-frame-heat-exchangers/calculation-method/", "note": "제조사 1차자료. P = m·cp·δt, LMTD = (ΔT1−ΔT2)/ln(ΔT1/ΔT2) (ΔT1 = T1−T4, ΔT2 = T2−T3), k = P/(A·LMTD), 설계여유 M = kc·Rf. 수치 예시는 없다." },
+    { "n": 10, "title": "아파트관리신문 — 지역난방 운영관리 / 열교환기 유지관리 (4·끝)", "url": "https://www.aptn.co.kr/news/articleView.html?idxno=11977", "note": "국내 실무자료. 세정 주기(난방 2년 1회 또는 연 1회 비수기, 급탕 매년), 세정액(스케일 HNO₃ ≤1.5%·≤65 °C, 유기물 NaOH ≤1.5%·≤85 °C, 칼슘침전물 HNO₃ 10% + 인산나트륨계 2%), 염산 금지(Cr₂O₃ 부동태 손상), 분해 전 30~40 °C 냉각·대각선 분리·판별 핀홀/균열/변형 점검." },
+    { "n": 11, "title": "Advancements and prospects of thermal management and waste heat recovery of PEMFC, Energy Conversion and Management: X (2021)", "url": "https://www.sciencedirect.com/science/article/pii/S2666202721000021", "note": "학술 리뷰. LT-PEMFC 운전온도 60~80 °C, 폐열량이 전기출력과 거의 같음, 폐열의 약 80%를 외부 냉각계통이 처리해야 함. 본문은 페이월(HTTP 403)이라 검색 요약 기준이며 수치 재확인 권고." },
+    { "n": 12, "title": "Shimadzu — Process Monitoring of PEM H₂ Electrolysis Feed Water (TOC-1000e)", "url": "https://www.shimadzu.com/an/sites/shimadzu.com.an/files/pim/pim_document_file/applications/application_note/25054/an_05-sca-130-612-en.pdf", "note": "제조사 응용자료. PEM 수전해가 허용하는 최고 전도도는 ASTM Type II(<1 μS/cm), Type I(<0.056 μS/cm) 권장. 오염 이벤트를 스택 진입 전에 잡아야 비가역 손상을 막는다." },
+    { "n": 13, "title": "NREL — Performance Losses and Current-Driven Recovery in PEM Electrolyzers (FY24, NREL/TP-5900-89676)", "url": "https://docs.nrel.gov/docs/fy24osti/89676.pdf", "note": "국립연구소 1차자료. 수질 오염·가역/비가역 성능손실 배경. 본 파일에서는 급수 오염 심각성의 보조 근거로만 인용." },
+    { "n": 14, "title": "Data-Driven Fouling Detection in Refinery Preheat Train Heat Exchangers Using Neural Networks and Gradient Boosting, Sensors 25(16):4936 (2025), DOI 10.3390/s25164936", "url": "https://doi.org/10.3390/s25164936", "note": "학술 1차자료(오픈액세스). 출구온도 예측 대비 실측 괴리로 파울링을 탐지, NTU·UA 기반. 본문은 PMC 캡차로 직접 확인 실패 — 방법론 개념만 인용하고 구체 임계값은 인용하지 않았다." },
+    { "n": 15, "title": "Temperature optimization for improving polymer electrolyte membrane-water electrolysis system efficiency, Applied Energy (2021)", "url": "https://www.sciencedirect.com/science/article/pii/S0306261920316603", "note": "학술 1차자료. 3.0 A/cm²에서 40→80 °C 시 전압효율 약 7%p 개선(활성화·저항·물질전달 과전압 감소). 본문 페이월(HTTP 403)로 검색 요약 기준이며, %p/K 환산(약 0.175)은 본 파일의 계산이다." },
+    { "n": 16, "title": "Plate Heat Exchanger Fouling Factor Calculation Methods (Industrial Monitor Direct)", "url": "https://industrialmonitordirect.com/blogs/knowledgebase/plate-heat-exchanger-fouling-factor-calculation-methods", "note": "2차자료(상업 지식베이스). Rf = 1/U_actual − 1/U_clean, 미처리 계통 U값 5년 후 30~50% 저하. 1차 출처 미확인이므로 참고값." },
+    { "n": 17, "title": "Plate Heat Exchanger Pressure Drop: Formula & Calculation Guide (Industrial Monitor Direct)", "url": "https://industrialmonitordirect.com/blogs/knowledgebase/plate-heat-exchanger-pressure-drop-formula-and-flow-calculation", "note": "2차자료(상업 지식베이스). ΔP의 유량 지수 1.7(제조사별 1.5~2.0), 파울링 억제 최소 유속 물 0.5 m/s·열매유 1.0 m/s. 현장 회귀로 지수를 확정할 것을 권고한다." },
+    { "n": 18, "title": "Double Wall Heat Exchanger Safeguards / Code (Eng-Tips 토론, IPC 608.16.3 인용)", "url": "https://www.eng-tips.com/threads/double-wall-heat-exchanger-safeguards-code.389705/", "note": "2차자료(엔지니어 토론). 독성 전열매체와 음용수 사이 이중벽 + 대기개방 벤트 요구(IPC/FBC 608.16.3), 누설 시 층간으로 흘러 외부에서 검지. 국내 대응 법규는 별도 확인 필요." },
+    { "n": 19, "title": "SilcoTek — Preventing Metal Ion Leaching in DI Water", "url": "https://www.silcotek.com/blog/preventing-metal-ion-leaching-in-di-water", "note": "2차자료(코팅 제조사). 초순수가 316 SS에서 Ni·Fe를 용출시켜 전도도를 올릴 수 있다. Ni·Fe와 그 산화물은 부동태층의 Cr 산화물보다 훨씬 쉽게 빠진다. 누설 오경보의 주요 원인이므로 판별 체크가 필요하다." },
+    { "n": 20, "title": "헬로디디 — 버려지는 폐온수 재활용해 냉방에 활용", "url": "https://www.hellodd.com/news/articleView.html?idxno=64967", "note": "국내 언론(연구성과 보도). 흡수식 냉동기는 온수 80 °C 이하에서 냉동능력이 절반 이하로 떨어지고, 흡착식은 90% 수준을 유지한다. 본 사이트 75 °C가 흡수식 구동에 부족하다는 근거." },
+    { "n": 21, "title": "Nel Hydrogen FAQ", "url": "https://nelhydrogen.com/faq/", "note": "제조사 1차자료. 수전해 급수 수질 요구의 보조 근거." },
+    { "n": 22, "title": "Low-temperature water electrolysis: fundamentals, progress, and new strategies, Materials Advances (RSC, 2022), DOI 10.1039/D2MA00185C", "url": "https://pubs.rsc.org/en/content/articlehtml/2022/ma/d2ma00185c", "note": "학술 리뷰(오픈액세스). 열중성 전압 1.481 V, 가역전압 1.229 V(25 °C), ΔH° 285.8 kJ/mol = 전기 237.1 + 열 48.7 kJ/mol. 본 파일 열역학 계산의 기반." },
+    { "n": 23, "title": "SWEP — Brazed plate heat exchanger cleaning in place (CIP)", "url": "https://www.swepgroup.com/product/brazed-plate-heat-exchanger/cleaning-in-place", "note": "제조사 1차자료. CIP는 시간·온도·농도의 조합이며 화학·기계 세정을 함께 한다. 세정 시 유량은 최소한 운전 유량 이상이어야 하고, 브레이즈드형은 세정은 되지만 막힌 유로를 뚫기는 거의 불가능하므로 상시 감시가 중요하다." },
+    { "n": 24, "title": "열사용시설기준 (위례에너지서비스 배포본, 2017.8.1 시행)", "url": "https://www.skens.com/download/wirye/wirye_steam2.pdf", "note": "국내 제도자료. 집단에너지 열사용시설의 열교환기·계량 관련 기준. 본 사이트는 직접 적용 대상이 아니며 국내 관행 준거로만 인용." }
+  ]
+}

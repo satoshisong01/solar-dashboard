@@ -1,0 +1,434 @@
+{
+  "area": "h2.supply",
+  "areaName_ko": "외부 수소 반입·정산과 사이트 물질수지",
+  "pid": "FCND-GP-PID-002 REV.2 (가평 2MW 청정수소발전 시스템, 2026-07-17)",
+  "generatedAt": "2026-09-16",
+  "scope": {
+    "in": [
+      "튜브트레일러(압축수소)·탱크로리(액화수소)로 들어오는 외부 수소의 반입 경계: 차량 도착 → 접지·연결 → 하역(계량) → 분리 → 출차",
+      "반입량 계량·정산: 계량 기준(질량 vs 부피), 압력·온도 보정, 전표 대조, 잔류 수소(heel) 정산",
+      "사이트 수소 물질수지에 반입 항을 넣는 방법과 계량 오차의 잔차 전파",
+      "수소 단가·금액·자급률·재고 여유일 KPI, CHPS 정산과의 연결",
+      "반입 관련 고장·이상 모드와 탐지기 제안",
+      "산소 출하(판매) 정산은 같은 대조 구조를 쓰므로 '거울 항목'으로만 최소 언급"
+    ],
+    "out": [
+      "수전해 설비 내부 성능·열화 — docs/renewal/research/research-electrolyzer.json, deep/research-electrolyzer.json 참조",
+      "연료전지 스택·BOP — docs/renewal/research/research-fuelcell_storage.json, deep/research-fuelcell.json 참조",
+      "고압 저장뱅크 정지보유 누설·Z 보정 재고 계산 — deep/research-storage.json 및 lib/analytics/detectors/tank-static-leak.ts, hydrogen-eos.ts 참조 (여기서 중복하지 않음)",
+      "수소 안전(검지·화염·ESD) 일반 — research-fuelcell_storage.json의 h2_safety_system 절 참조",
+      "청정수소 인증 공식 산정(Well-to-Gate LCA) — 콘솔은 인증 산정기가 아니다"
+    ],
+    "reuseNote": "기존 탐지기 h2chain.mass_balance_gap@1(lib/analytics/detectors/h2chain-mass-balance.ts)과 원장 lib/analytics/ledger/hydrogen.ts가 이미 '생산 − 소비 − 재고변화 − 배출 = 잔차'를 계산한다. 이 리서치의 1순위 결론은 그 식에 '반입(delivered)' 항이 없다는 것이다."
+  },
+  "siteFactsFromPid": {
+    "electrolyzer_h2_nm3_h": 500,
+    "fuelcell_h2_nm3_h": 1340,
+    "buffer_bar": 30,
+    "buffer_m3": 50,
+    "buffer_kg_label": 120,
+    "o2_nm3_h": 250,
+    "o2_tank_bar": 15,
+    "o2_tank_m3": 30,
+    "note_ko": "도면 주석대로 생산 500 < 소비 1,340 Nm³/h. 도면에는 반입 설비(하역 패널·수입 계량기·수입 고압 뱅크·하역 벤트스택)가 그려져 있지 않다 — openQuestions 1번."
+  },
+  "equipment": [
+    {
+      "code": "H2RCV1",
+      "name_ko": "수소 하역 스테이션(이송 패널, transfer panel)",
+      "classKeyProposal": "h2.delivery.station",
+      "parentClass": "h2.system",
+      "role_ko": "튜브트레일러와 사이트 배관 사이의 인터페이스. 압력별 전용 커플링, 감압단, 체크밸브, PSV, 벤트라인, 접지, 계장가스(질소/압축공기) 공급, 긴급차단을 한 덩어리로 묶는다.",
+      "subComponents": ["수소 플렉시블 호스(anti-whip, breakaway)", "차단밸브 XV-501", "감압 레귤레이터", "체크밸브", "PSV-501", "벤트라인·벤트스택", "접지 케이블·감시", "계장가스 호스", "질량유량계 스키드"],
+      "source": "EIGA TB 51/24 §Recommendations and requirements — 하역구역은 자연환기·포장면, 이탈방지장치, 퍼지가스는 고정식 벤트라인으로, HRS MAWP ≥ 트레일러 developed pressure",
+      "sourceUrl": "https://www.eiga.eu/uploads/documents/TB051.pdf"
+    },
+    {
+      "code": "TT-A",
+      "name_ko": "수소 튜브트레일러(사이트 체류형 포함)",
+      "classKeyProposal": "h2.trailer",
+      "parentClass": "h2.system",
+      "role_ko": "압축수소 운송 용기 묶음. 이 사이트는 버퍼(약 120 kg)가 연료전지 1시간분도 못 되므로, 체류 트레일러가 사실상 주 저장설비가 된다.",
+      "nameplateFields": ["vessel_type(Type I/IV)", "working_bar", "water_volume_l", "loaded_kg", "min_residual_bar", "carrier", "plate_no"],
+      "source": "국내 Type I 200 bar 1회 300~350 kg, Type IV 450 bar 480~500 kg",
+      "sourceUrl": "https://www.h2news.kr/news/articleView.html?idxno=12352"
+    },
+    {
+      "code": "H2IMPBANK1",
+      "name_ko": "수입 고압 뱅크(선택 설비, 도면 미표기)",
+      "classKeyProposal": "h2.storage.bank",
+      "parentClass": "h2.system",
+      "role_ko": "트레일러 잔압을 더 뽑아내고 트레일러 체류시간을 줄이기 위한 200~450 bar급 수용 뱅크. 없으면 트레일러 잔압이 버퍼 압력(30 bar)+배관손실 근처에서 하역이 멈춰 회수율이 크게 떨어진다.",
+      "note_ko": "기존 카탈로그의 h2.storage.bank / h2.storage.tank 클래스를 그대로 쓸 수 있다.",
+      "source": "cascade discharge로 단계 감압해야 회수 가능분이 커진다는 설명",
+      "sourceUrl": "https://www.rein-hytec.com/market-trends/what-is-a-hydrogen-tube-trailer"
+    },
+    {
+      "code": "H2VENT1",
+      "name_ko": "하역 벤트스택",
+      "classKeyProposal": "h2.vent.stack",
+      "parentClass": "h2.system",
+      "role_ko": "호스 퍼지와 연결/분리 시 배관 체적 방출의 배출구. 계량되지 않으면 물질수지 잔차로 그대로 남는다.",
+      "source": "EIGA/AIGA — 의도적 수소 방출은 벤트스택으로, 퍼지가스는 고정식 벤트라인으로 배출",
+      "sourceUrl": "https://www.asiaiga.org/uploaded_docs/en_AIGA_126_24_Guide_for_H2_Supply_Systems.pdf"
+    },
+    {
+      "code": "H2MTR1",
+      "name_ko": "반입 계량 스키드(코리올리 질량유량계)",
+      "classKeyProposal": "h2.delivery.meter",
+      "parentClass": "h2.delivery.station",
+      "role_ko": "하역 라인의 거래용 계량. 코리올리는 밀도·압축계수와 무관하게 질량을 직접 재므로 압력이 200 bar에서 잔압까지 떨어지는 하역 구간에 적합하다.",
+      "source": "고압 수소용 코리올리(가스 0.5% 정확도, 최대 1,060 bar); 국내 충전소 계량설비에도 코리올리 질량유량계 적용",
+      "sourceUrl": "https://www.emerson.com/en-us/news/automation/20-09-coriolis-high-pressure"
+    }
+  ],
+  "instruments": [
+    { "tag": "FT-501", "name_ko": "반입 수소 질량유량계", "type": "코리올리 질량유량계", "location": "하역 헤더", "metricKeys": ["h2.delivery.flow.mass", "h2.delivery.mass.total"], "note_ko": "도면 신설 제안. 기존 FT-201(수소 생산)·FT-301(수소 소비)과 대칭되는 세 번째 경계 계량기." },
+    { "tag": "PT-501", "name_ko": "트레일러 측 공급 압력", "type": "압력 전송기(절대압 환산)", "location": "하역 호스 트레일러 측", "metricKeys": ["h2.trailer.pressure"], "note_ko": "하역 종료 판정(잔압 하한)과 잔량 정산의 근거. Type IV는 저압까지 뽑으면 라이너 손상 위험." },
+    { "tag": "PT-502", "name_ko": "하역 헤더 압력", "type": "압력 전송기", "location": "감압 후 사이트 측", "metricKeys": ["h2.delivery.pressure"], "note_ko": "역류·배압으로 하역이 멈추는 구간 판별." },
+    { "tag": "TT-501", "name_ko": "하역 가스 온도", "type": "저항 온도계", "location": "계량기 직상류", "metricKeys": ["h2.delivery.temp"], "note_ko": "하역 중 트레일러는 팽창으로 냉각되고 수용 뱅크는 압축으로 가열된다. 체적·압력 기반 정산을 쓸 경우 필수 보정 입력." },
+    { "tag": "TT-502", "name_ko": "트레일러 용기 표면 온도", "type": "표면 온도계(선택)", "location": "체류 트레일러", "metricKeys": ["h2.trailer.temp"], "note_ko": "체류 트레일러를 재고로 잡을 때 Z 보정 잔량 계산 입력." },
+    { "tag": "ES-501", "name_ko": "접지 연속성 감시", "type": "접지 저항 감시(≤25 Ω)", "location": "하역 패널", "metricKeys": ["h2.delivery.ground"], "note_ko": "EIGA TB51은 매 납품마다 접지 연결을 패널에서 감시하거나 훈련된 사람이 확인하도록 요구." },
+    { "tag": "GD-501", "name_ko": "하역장 수소 검지기", "type": "접촉연소식/반도체식", "location": "하역구역", "metricKeys": ["gas.detector.ppm"], "note_ko": "기존 h2.detector 클래스 재사용. 하역 중 누출 에피소드를 손실 판별 체크에 쓴다." },
+    { "tag": "XV-501", "name_ko": "하역 긴급차단밸브", "type": "공압/전자 차단밸브(NC)", "location": "하역 헤더", "metricKeys": ["valve.open"], "note_ko": "기존 valve.open 키 재사용(qualifier: 'delivery')." },
+    { "tag": "FT-502", "name_ko": "하역 벤트 유량(선택)", "type": "열식/차압식 소유량계", "location": "벤트스택", "metricKeys": ["h2.vent.mass.total"], "note_ko": "없으면 벤트 손실은 '배관 체적 × 방출 전 압력' 추정으로 대체하고 추정임을 표기." },
+    { "tag": "FT-101 / FT-201 / FT-301 / PT-201 / PT-202 / LT-101", "name_ko": "기존 도면 태그(급수·생산·소비·수소압력·물탱크)", "type": "기존", "location": "기존", "metricKeys": ["water.flow", "h2.flow.mass", "fc.h2.consumption", "h2.pressure"], "note_ko": "물질수지의 나머지 항. 반입 항만 추가하면 경계가 닫힌다." }
+  ],
+  "metrics": [
+    { "key": "h2.delivery.flow.mass", "unit": "kg/h", "samplingS": 1, "range": [0, 500], "why": "하역 중 순간 질량유량. 하역 소요시간·중단 구간·역류 판별의 1차 신호이며, 적산이 반입량의 1순위 근거다.", "source": "코리올리 질량유량계(가스 0.5%, 1,060 bar급) — https://www.emerson.com/en-us/news/automation/20-09-coriolis-high-pressure" },
+    { "key": "h2.delivery.mass.total", "unit": "kg", "samplingS": 60, "range": [0, 1000000000], "why": "누적 반입 적산(counter, delta 집계). 물질수지 원장의 delivered 항 1순위 소스. 기존 h2.mass.total(생산 적산)과 같은 kind/rollup.", "source": "기존 카탈로그 명명 규칙 db/seed/catalog.ts의 h2.mass.total" },
+    { "key": "h2.delivery.pressure", "unit": "bar", "samplingS": 5, "range": [0, 550], "why": "감압 후 사이트 측 헤더 압력. 버퍼 압력에 근접하면 하역 구동력이 사라진다(미하역 잔량 발생).", "source": "cascade 감압 단계 설명 — https://www.rein-hytec.com/market-trends/what-is-a-hydrogen-tube-trailer" },
+    { "key": "h2.delivery.temp", "unit": "°C", "samplingS": 5, "range": [-50, 80], "why": "하역 가스 온도. 체적·압력 기반 정산을 쓸 때의 보정 입력이며, Type IV 트레일러 저온 트립 판단에도 쓴다.", "source": "EIGA TB 51/24 Table 1 — 높은 하역 유량 + 낮은 외기에서 Type IV 라이너 저온 균열 위험, 저온 트립 안전기능 권고 — https://www.eiga.eu/uploads/documents/TB051.pdf" },
+    { "key": "h2.delivery.state", "unit": "", "samplingS": 5, "range": null, "why": "하역 상태 코드(대기/연결/퍼지/하역중/종료/분리). 하역 구간을 기계적으로 잘라내야 '하역 중 손실'과 '정지 중 누설'을 구분할 수 있다.", "source": "기존 op.state 명명 규칙 — db/seed/catalog.ts" },
+    { "key": "h2.delivery.ground", "unit": "", "samplingS": 5, "range": null, "why": "접지 연속성 양호 여부(bool). 미연결 상태에서 하역이 시작된 이력은 안전 이벤트이자 절차 준수 지표다.", "source": "EIGA TB 51/24 §Grounding — 접지점 저항 25 Ω 이하, 매 납품 시 확인 — https://www.eiga.eu/uploads/documents/TB051.pdf" },
+    { "key": "h2.trailer.pressure", "unit": "bar", "samplingS": 60, "range": [0, 550], "why": "체류/연결 트레일러 잔압. 하역 종료 판정, 회수율, 반환 잔량(heel) 정산의 근거.", "source": "잔압 70 bar 기준 실운송량 산정 관행(Type IV 373 kg / Type I 198 kg) — https://www.h2news.kr/news/articleView.html?idxno=12352" },
+    { "key": "h2.trailer.temp", "unit": "°C", "samplingS": 60, "range": [-50, 85], "why": "트레일러 가스/표면 온도. 체류 트레일러를 재고에 포함할 때 Z 보정 잔량 계산 입력.", "source": "기존 tank.temp 규칙 및 lib/analytics/detectors/hydrogen-eos.ts" },
+    { "key": "h2.trailer.inventory", "unit": "kg", "samplingS": 60, "range": [0, 1000], "why": "트레일러별 Z 보정 잔량. 기존 h2.inventory(사이트 저장뱅크)와 같은 계산식·같은 kind를 쓰되 자산만 다르다.", "source": "기존 h2.inventory 키 및 NIST(Lemmon 2008) 상태식 구현 — lib/analytics/detectors/hydrogen-eos.ts" },
+    { "key": "h2.trailer.count", "unit": "", "samplingS": 3600, "range": [0, 20], "why": "사이트에 체류 중인 트레일러 수. 재고 여유일과 하역장 점유·안전거리 관리의 기본 수치.", "source": "사이트 운영 데이터(파생)" },
+    { "key": "h2.vent.mass.total", "unit": "kg", "samplingS": 60, "range": [0, 1000000], "why": "누적 방출량. 지금 원장의 vented_est는 퍼지 횟수 추정뿐이라 하역 벤트가 통째로 잔차에 섞인다.", "source": "lib/analytics/ledger/hydrogen.ts 주석(vented_est = purge.count × kgPerPurge + dryerLossFraction × produced)" },
+    { "key": "h2.purity", "unit": "%", "samplingS": 86400, "range": [0, 100], "why": "반입 수소 순도. 기존 키를 qualifier 'delivered'로 재사용한다. EIGA는 트레일러가 분석성적서를 동반하므로 인터페이스에서의 분석은 보통 불필요하다고 본다 — 즉 값의 출처는 성적서다.", "source": "EIGA TB 51/24 §Analysis — https://www.eiga.eu/uploads/documents/TB051.pdf" },
+    { "key": "h2.import.invoice.mass", "unit": "kg", "samplingS": 86400, "range": [0, 100000], "why": "전표(거래명세·계량증명) 반입량. 텔레메트리가 아니라 ERP·수기 입력. 사이트 계량과의 대조가 정산의 핵심.", "source": "계량증명서 기재항목(차량번호·거래처·품명·총중량·공차중량·실중량·인수량) — https://www.gov.kr/mw/AA020InfoCappView.do?HighCtgCD=A09006&CappBizCD=14110000061" },
+    { "key": "h2.import.heel.mass", "unit": "kg", "samplingS": 86400, "range": [0, 1000], "why": "반환 잔류량(heel). 전표상 '적재량 − 인수량'과 사이트 계산 잔량이 다르면 정산 분쟁이 된다.", "source": "잔압 기준 실운송량 산정 관행 — https://www.h2news.kr/news/articleView.html?idxno=12352" },
+    { "key": "h2.import.unit.price", "unit": "KRW/kg", "samplingS": 86400, "range": [0, 100000], "why": "반입 단가(계약·전표). 연료원가/MWh, 반입 금액 KPI의 입력. 텔레메트리 아님.", "source": "수소 판매가격은 kg 중량 단위로 보고·공개된다(수소법 제50조·시행령 제52조) — https://www.h2nbiz.or.kr/rt/uif/inf/infoSalePrice.do" },
+    { "key": "h2.import.grade", "unit": "", "samplingS": 86400, "range": null, "why": "반입 수소의 청정수소 인증 등급(1~4등급/미인증). CHPS 청정수소 시장 참여와 정산 구분에 필요.", "source": "청정수소 인증 4 kgCO2e/kgH2 이하, 1~4등급, Well-to-Gate — https://www.h2news.kr/news/articleView.html?idxno=12249" },
+    { "key": "o2.shipment.mass.total", "unit": "kg", "samplingS": 60, "range": [0, 1000000000], "why": "산소 출하 적산(거울 항목). 반입과 같은 전표-계량 대조 구조를 그대로 쓴다. 상세는 별도 O₂ 리서치 몫.", "source": "도면 FCND-GP-PID-002 REV.2 — O₂ 250 Nm³/h, 15 bar·30 m³ 저장, 이송트럭 출하" }
+  ],
+  "failureModes": [
+    {
+      "mode": "반입 기록 누락 (delivery_unlogged)",
+      "signal": "저장 재고(h2.inventory)가 생산 유량으로 설명할 수 없는 속도로 증가했는데 같은 날짜 원장에 delivered = 0 또는 전표가 없다. 하역 상태 코드도 '하역중'을 지나지 않았다.",
+      "detectionMethod": "일별 원장에서 stored_delta − produced_from_meter > 임계(예: 시간당 최대 생산량 × 1.5) 구간을 이벤트로 잘라내고, 같은 구간에 h2.delivery.mass.total 증가 또는 h2.import.invoice.mass 레코드가 있는지 조인. 없으면 '기록 없는 재고 증가' finding.",
+      "falsePositiveTraps": "① 야간 냉각으로 탱크 온도가 떨어지면 압력이 내려가는데, 온도 보정을 빠뜨린 재고는 반대로 요동친다. ② 수전해 적산계 통신 결측으로 produced가 0으로 기록된 날. ③ 정비 후 질소 퍼지·수소 치환으로 압력이 오른 구간. ④ 자정 경계에서 하역이 걸친 경우 이틀에 나뉘어 한쪽만 큰 값이 된다.",
+      "recommendedAction_ko": "하역 이벤트 구간(시각·수량·트레일러 번호)을 그대로 제시하고, 해당 날짜의 반입 전표 입력을 요청하세요. 전표가 정말 없으면 공급사에 납품확인서를 요청하고, 재고 급증이 하역이 아니었다면 온도 보정과 적산계 통신을 먼저 점검하세요.",
+      "severityHint": 2,
+      "source": "원장 식에 delivered 항이 없음 — lib/analytics/ledger/hydrogen.ts:10"
+    },
+    {
+      "mode": "반입 전표-사이트 계량 불일치 (invoice_meter_mismatch)",
+      "signal": "같은 하역 건에서 h2.delivery.mass.total 증가분과 h2.import.invoice.mass가 계속 한쪽으로 치우쳐 벌어진다(예: 전표가 항상 1~3% 많음).",
+      "detectionMethod": "하역 건별 차이율 = (전표 − 사이트계량)/전표 × 100을 계산하고, 기준 구간 대비 중앙값 이동을 CUSUM으로 본다. 부호가 일정하면 계통오차, 무작위면 계량 잡음.",
+      "falsePositiveTraps": "① 계량 기준 차이 — 공급사는 출하 시 중량(트럭스케일) 또는 충전 시 계량, 사이트는 하역 계량이라 heel·호스 체적만큼 원래 다르다. ② Nm³ 기준조건(0 °C vs 20 °C) 차이로 약 7% 수준의 환산 차이가 날 수 있다. ③ 하역 벤트를 사이트 계량 뒤에서 하면 전표가 항상 많게 보인다. ④ 건수가 적으면 중앙값이 불안정하다.",
+      "recommendedAction_ko": "먼저 계약서의 계량 기준(질량 kg인지 Nm³인지, 기준조건, 계량 지점)을 확인해 '정의 차이'를 제거하세요. 그래도 한쪽으로 치우치면 사이트 계량기 교정성적서와 공급사 계량 근거를 맞대고, 차이율의 허용 범위를 계약에 명문화하세요.",
+      "severityHint": 2,
+      "source": "국내에서도 생산시설과 충전소 간 계량방식 차이가 문제로 지적되어 수소 질량유량계 교정설비 구축이 추진됨 — http://www.engjournal.co.kr/news/articleView.html?idxno=3258"
+    },
+    {
+      "mode": "하역 계량기 드리프트 (delivery_meter_drift)",
+      "signal": "하역 중 계량 적산량과, 같은 구간의 저장 재고 증가량(Z 보정) + 그 사이 소비량의 합이 이루는 비율이 서서히 변한다.",
+      "detectionMethod": "하역 건마다 ratio = Δ(h2.delivery.mass.total) ÷ (Δ재고_Z보정 + 소비 적산 + 벤트 추정)을 계산하고, 기준 구간 중앙값 대비 변화폭을 본다(기존 h2chain.mass_balance_gap의 flowmeter_drift 체크와 같은 방식, 패러데이 기대치 대신 재고 증가를 기준으로 삼는다).",
+      "falsePositiveTraps": "① 하역 중 수용부가 압축열로 데워지면 재고 증가가 실제보다 작게 계산된다(온도센서 열지연). ② 상태식 선택(Abel–Noble vs NIST Lemmon 2008)에 따라 고압에서 약 0.5% 차이가 난다. ③ 코리올리는 저유량 컷오프 근처에서 오차가 커진다 — 하역 끝물 구간을 포함하면 비율이 흔들린다. ④ 하역 중 연료전지 부하 변동이 크면 소비 적산 오차가 섞인다.",
+      "recommendedAction_ko": "저유량 컷오프 이하 구간을 뺀 뒤 비율을 다시 보고, 그래도 변했으면 계량기 영점(zero) 재설정과 교정 이력을 확인하세요. 국내에는 수소 질량유량계 현장 교정 인프라가 갖춰지는 중이므로, 교정 주기와 기준기 소급성을 계약·O&M 절차에 넣어두세요.",
+      "severityHint": 2,
+      "source": "OIML 기준 수소 유량계 최대허용오차 1.5%(등급 2)~2.0%(등급 4), 충전소 계량시스템 형식승인·검정 2~4% — http://www.procon.co.kr/bbs/board.php?bo_table=magazine_new&wr_id=1036"
+    },
+    {
+      "mode": "하역 중 방출 손실 과다 (unloading_vent_loss)",
+      "signal": "하역 건수가 늘어난 기간에 물질수지 잔차가 같이 커진다. 호스 퍼지·연결/분리 횟수와 잔차의 상관이 높다.",
+      "detectionMethod": "하역 건수(또는 연결·분리 사이클 수)와 일 잔차의 상관계수를 본다(기존 purge_vent_estimate 체크와 동일 패턴). 벤트 유량계가 있으면 h2.vent.mass.total 증가분을 직접 원장의 vented 항에 넣고 잔차가 줄어드는지 확인.",
+      "falsePositiveTraps": "① 하역이 몰린 날은 소비도 많은 날이라 상관이 가짜로 나올 수 있다 — 소비량을 통제한 편상관을 써야 한다. ② 벤트 추정을 '배관 체적 × 압력'으로 하면 배관 실측 체적이 틀린 만큼 통째로 편향된다. ③ 계절(외기 온도)에 따라 퍼지 절차 횟수가 달라진다.",
+      "recommendedAction_ko": "하역 1회당 방출량을 실측(또는 배관 체적·방출 전 압력으로 산정)해 원장 파라미터로 등록하고, 값이 크면 호스 체적 축소·잔압 회수(에바큐에이션) 절차 도입을 검토하세요. 방출은 반드시 고정식 벤트라인/벤트스택으로 보내야 합니다.",
+      "severityHint": 2,
+      "source": "EIGA/AIGA — 이송 중 방출은 호스 퍼지와 충전회로에 집중되며 고정식 벤트라인으로 배출 — https://www.asiaiga.org/uploaded_docs/en_AIGA_126_24_Guide_for_H2_Supply_Systems.pdf"
+    },
+    {
+      "mode": "트레일러 잔류(heel) 정산 오류 (heel_settlement_error)",
+      "signal": "출차 시점 트레일러 잔압·온도로 계산한 잔량과 전표의 '반환 잔량'이 계속 다르다. 또는 잔압 하한에 못 미쳐 하역을 멈췄는데 전표에는 전량 인수로 기재된다.",
+      "detectionMethod": "분리 직전 h2.trailer.pressure·h2.trailer.temp와 트레일러 내용적(명판)으로 Z 보정 잔량을 계산하고 h2.import.heel.mass와 비교. 건별 차이의 중앙값과 부호를 추적한다. 회수율 = 하역량 ÷ (적재량 − 잔압상당량)도 함께 본다.",
+      "falsePositiveTraps": "① 트레일러 내용적(수용적) 명판값이 틀리거나 용기 수가 다르면 잔량 계산이 통째로 어긋난다. ② 하역 직후 트레일러는 팽창으로 차가워져 있어 압력이 낮게 보인다 — 열평형 전에 읽으면 잔량을 과소평가한다. ③ 트레일러별 압력계가 공급사 자산이라 교정 이력을 모를 수 있다.",
+      "recommendedAction_ko": "잔량 판정 시각을 '분리 후 N분(열평형 대기)'으로 절차에 고정하고, 트레일러 내용적·용기 수를 명판에서 받아 자산에 등록하세요. 회수율이 계약 전제보다 낮으면 수입 뱅크 추가나 잔압 하한 재협상으로 회수 가능분을 키우는 쪽이 단가 절감 효과가 큽니다.",
+      "severityHint": 2,
+      "source": "잔압 70 bar 기준 Type I 실운송 198 kg / Type IV 373 kg — https://www.h2news.kr/news/articleView.html?idxno=12352 ; 현장 회수율 80~85% 보고 — https://www.rein-hytec.com/market-trends/what-is-a-hydrogen-tube-trailer"
+    },
+    {
+      "mode": "온도 보정 누락에 의한 겉보기 반입량 오차 (temp_compensation_error)",
+      "signal": "잔차가 하역 중 온도 변화폭·일교차와 상관을 보인다. 특히 계절에 따라 반입 대조 차이의 부호가 바뀐다.",
+      "detectionMethod": "기존 h2chain.mass_balance_gap의 temperature_compensation 체크를 하역 구간으로 확장: 하역 전후 수용부 온도 변화(ΔT)와 건별 대조 차이의 상관을 본다.",
+      "falsePositiveTraps": "① 표면 온도센서는 내부 가스 온도를 열지연을 두고 따라간다 — 상관이 있어도 원인이 센서 위치일 수 있다. ② 계량이 코리올리(질량 직독)면 온도 보정 문제는 재고 쪽에만 생긴다 — 원인 위치를 혼동하기 쉽다.",
+      "recommendedAction_ko": "코리올리 질량 계량이 있으면 반입량은 계량을 정답으로 두고, 상관이 나오는 쪽(재고 계산)의 센서 위치·열지연 모델을 고치세요. 체적·압력 기반 정산만 쓰고 있다면 온도 보정과 상태식을 명시적으로 계약에 넣어야 합니다.",
+      "severityHint": 2,
+      "source": "기존 탐지기의 동일 체크 — lib/analytics/detectors/h2chain-mass-balance.ts (temperature_compensation)"
+    },
+    {
+      "mode": "반입 리드타임 초과·재고 고갈 (supply_stockout)",
+      "signal": "가용 재고(버퍼 + 체류 트레일러) ÷ 최근 일평균 소비 = 여유일이 계약 리드타임 아래로 떨어진다. 또는 연료전지가 수소 부족으로 부하를 스스로 낮춘다.",
+      "detectionMethod": "가용 재고 = Σ(Z 보정 재고 − 최소 인출 압력 상당량)을 계산하고, 최근 N일 소비 중앙값과 예정 발전 스케줄로 여유 시간을 추정. 리드타임(예: 발주→도착 24~48 h)과 비교해 경보.",
+      "falsePositiveTraps": "① 태양광 호조로 생산이 늘면 소비 대비 여유가 실제보다 길어진다 — 계절·일사 조건을 반영하지 않으면 과경보. ② 연료전지 출력 계획이 바뀌면 소비 중앙값이 곧 무의미해진다. ③ 체류 트레일러를 재고에 넣을지 말지에 따라 여유일이 몇 배 달라진다 — 정의를 고정해야 한다.",
+      "recommendedAction_ko": "이 사이트는 버퍼 120 kg이 연료전지 전부하 1시간분도 안 되므로, 체류 트레일러를 재고 정의에 포함할지부터 정하세요. 포함한다면 트레일러 잔압·내용적을 자산으로 등록하고, 포함하지 않는다면 여유일 KPI는 사실상 '다음 배송까지 남은 시간'이 됩니다.",
+      "severityHint": 3,
+      "source": "도면 값으로 계산한 버퍼 가용량(typicalValues 참조)"
+    },
+    {
+      "mode": "계량 기준 불일치 (unit_basis_mismatch)",
+      "signal": "전표는 Nm³, 사이트는 kg으로 기록되고 환산계수가 시스템마다 다르다. 또는 같은 kg인데 공급사는 출하 중량, 사이트는 하역 계량이다.",
+      "detectionMethod": "데이터 품질 게이트: 반입 레코드의 단위·기준조건 필드가 비어 있거나 사이트 설정과 다르면 '판정 불능'으로 처리하고 대조 탐지기를 아예 돌리지 않는다.",
+      "falsePositiveTraps": "① 0 °C 기준과 15/20 °C 기준을 섞으면 약 5~7% 차이가 나는데, 이는 계량기 허용오차와 비슷한 크기라 '드리프트'로 오진하기 쉽다. ② 순도 보정(99.97% vs 100%) 유무도 0.03% 수준이지만 장기 누적되면 보인다.",
+      "recommendedAction_ko": "계약과 콘솔 모두 질량(kg)을 1차 단위로 고정하고, Nm³ 표기가 필요하면 기준조건(0 °C, 101.325 kPa)과 환산계수를 명시적으로 기록하세요. 도면의 Nm³ 표기도 기준조건이 적혀 있지 않으므로 발주처 확인이 필요합니다.",
+      "severityHint": 2,
+      "source": "Nm³는 0 °C·1 atm 기준, 수소 0.08988 kg/Nm³ — https://h2tools.org/hyarc/calculator-tools/hydrogen-conversions-calculator ; 국내 판매가격 보고는 kg 단위 — https://www.h2nbiz.or.kr/rt/uif/inf/infoSalePrice.do"
+    },
+    {
+      "mode": "재고 경계 모호에 의한 이중계상 (inventory_boundary_ambiguity)",
+      "signal": "체류 트레일러를 재고에 넣었다 뺐다 하면서 stored_delta가 한 번에 수백 kg 튀고, 잔차가 그날만 폭주한다.",
+      "detectionMethod": "재고 정의(경계)에 버전을 붙이고, 경계가 바뀐 날은 원장에서 baselineReset으로 표시해 탐지기 기준 구간을 끊는다. 경계 변경 이벤트 없이 stored_delta가 트레일러 1대분 이상 점프하면 finding.",
+      "falsePositiveTraps": "① 트레일러 교체(빈 차 출차 + 새 차 입차)가 같은 날 일어나면 정상인데도 큰 점프로 보인다 — 교체 이벤트와 조인해야 한다. ② 수입 뱅크를 추가 설치한 시점 이후로는 경계 자체가 바뀐다.",
+      "recommendedAction_ko": "'사이트 재고 = 버퍼 + (수입 뱅크) + 연결된 트레일러'처럼 경계를 한 문장으로 고정해 문서화하고, 경계를 바꿀 때는 반드시 기준선 리셋을 기록하세요. 대조는 트레일러 단위(입차 잔량 → 출차 잔량)로도 따로 닫아두면 이중계상을 잡기 쉽습니다.",
+      "severityHint": 2,
+      "source": "기존 탐지기의 baselineResetAt 처리 방식 — lib/analytics/detectors/h2chain-mass-balance.ts"
+    },
+    {
+      "mode": "반입 단가 이상 (price_anomaly)",
+      "signal": "kg당 단가가 과거 분포에서 벗어나거나, 같은 공급사에서 건별 단가가 설명 없이 달라진다.",
+      "detectionMethod": "건별 단가의 로버스트 z(중앙값·MAD)와 계약 단가 대비 편차를 본다. 공개 시세(수소유통정보시스템 지역 평균)와의 스프레드도 함께 표시한다.",
+      "falsePositiveTraps": "① 충전소 소매가는 발전용 벌크 단가와 성격이 다르다 — 공개 시세를 '정답'으로 쓰면 항상 어긋난다. ② 운송거리·긴급 배송 할증이 계약에 있으면 정상 변동이다. ③ 부가세·운송비 포함 여부가 전표마다 다를 수 있다.",
+      "recommendedAction_ko": "단가는 '계약 기준가 대비 편차'로 감시하고, 공개 시세는 참고선으로만 겹쳐 그리세요. 전표 입력 시 운송비·할증·부가세 포함 여부를 필드로 받아두면 사후 분쟁이 줄어듭니다.",
+      "severityHint": 1,
+      "source": "공개 시세(전국 평균 10,495원/kg, 지역 9,792~15,000원/kg, 2026-09 조회) — https://www.h2nbiz.or.kr/rt/sts/pce/rtAmountInfo.do"
+    },
+    {
+      "mode": "하역 미완료·회수율 저하 (incomplete_unload)",
+      "signal": "하역 유량이 잔압 하한에 닿기 전에 0에 수렴하고, 트레일러 잔압이 계약 잔압보다 높은 채로 출차한다.",
+      "detectionMethod": "건별 회수율 = 하역량 ÷ (입차 잔량 − 목표 잔압 상당량)을 계산해 추세를 본다. 하역 말기 유량 곡선의 감쇠 시정수와 헤더 압력(PT-502)/트레일러 압력(PT-501) 차를 함께 본다.",
+      "falsePositiveTraps": "① 사이트 버퍼가 이미 만압이면 구동력이 없어 정상적으로 멈춘다 — 수용부 압력을 통제해야 한다. ② 필터·체크밸브 막힘과 레귤레이터 설정 변경이 같은 모양을 만든다. ③ 겨울철 저온 트립으로 의도적으로 멈춘 경우.",
+      "recommendedAction_ko": "수용부가 만압이어서 멈췄다면 하역 스케줄을 발전 스케줄과 맞추거나 수입 뱅크(중간 압력대)를 검토하세요. 만압이 아닌데 멈췄다면 하역 라인 필터·레귤레이터·체크밸브를 점검하세요. 회수율 1%p는 Type I 기준 약 2~3 kg, 연간으로는 수백 kg의 단가 차이가 됩니다.",
+      "severityHint": 2,
+      "source": "cascade 감압으로 회수 가능분을 키움, 현장 회수율 80~85% — https://www.rein-hytec.com/market-trends/what-is-a-hydrogen-tube-trailer"
+    },
+    {
+      "mode": "반입 수소 순도 미달 (purity_offspec)",
+      "signal": "성적서 순도는 규격 이내인데 하역 후 사이트 측 순도·산소 농도(OTH)·이슬점이 나빠진다. 연료전지 스택 성능이 반입 직후에만 떨어진다.",
+      "detectionMethod": "반입 이벤트 전후로 연료전지 스택 성능 지표(조건 매칭 셀 전압)와 퍼지 빈도를 비교하는 전후 대조. 순도는 성적서 값과 사이트 분석값을 병기.",
+      "falsePositiveTraps": "① 하역 배관 잔류 공기·수분이 원인일 수 있다(수소 자체가 아니라 퍼지 절차 문제). ② 스택 성능 변화는 온도·부하 이력에 더 크게 좌우된다 — 조건 매칭 없이 비교하면 거의 확실히 오진한다. ③ 분석 샘플링 위치가 바뀌면 값이 바뀐다.",
+      "recommendedAction_ko": "EIGA 권고대로 분석이 필요하면 트레일러에서 직접 채취하고, 평소에는 성적서를 자산 이력으로 보관하세요. 반입 직후에만 성능이 떨어지면 수소 품질보다 하역 퍼지 절차를 먼저 의심하세요.",
+      "severityHint": 2,
+      "source": "EIGA TB 51/24 §Analysis — 트레일러가 분석성적서를 동반하므로 인터페이스 분석은 보통 불필요, 필요 시 트레일러에서 직접 — https://www.eiga.eu/uploads/documents/TB051.pdf"
+    },
+    {
+      "mode": "접지 미연결·하역 인터록 우회 (grounding_bypass)",
+      "signal": "h2.delivery.ground가 불량인데 하역 상태가 '하역중'으로 진행된 이력, 또는 접지 감시 신호가 늘 일정한 값으로 고정(flatline)되어 있다.",
+      "detectionMethod": "상태 조합 규칙(하역중 AND 접지불량) 위반 이벤트를 세고, 접지 신호의 flatline을 데이터 품질 탐지기(dq-gap-flatline)로 감시.",
+      "falsePositiveTraps": "① 접지 감시 접점이 노이즈로 순간 튀는 경우 — 디바운스 필요. ② 수동 확인 절차만 운영하는 사이트는 신호 자체가 없다(데이터 없음이지 위반이 아님).",
+      "recommendedAction_ko": "안전 판단은 현장 안전설비와 절차의 몫입니다. 콘솔은 '절차 준수 기록'으로만 제시하세요. EIGA는 매 납품마다 패널에서 접지 연결을 감시하거나 훈련된 사람이 확인하고, 접지점 저항은 25 Ω 이하일 것을 권고합니다.",
+      "severityHint": 3,
+      "source": "EIGA TB 51/24 §Grounding — https://www.eiga.eu/uploads/documents/TB051.pdf"
+    },
+    {
+      "mode": "하역 저온에 의한 Type IV 라이너 손상 위험 (type4_low_temp)",
+      "signal": "겨울철 고유량 하역 중 h2.delivery.temp가 급격히 떨어지고, 같은 조건이 반복된다.",
+      "detectionMethod": "하역 구간의 최저 가스 온도와 평균 하역 유량을 산점도로 누적해 한계선 접근 빈도를 본다. 저온 트립 작동 횟수도 함께 집계.",
+      "falsePositiveTraps": "① 센서가 배관 표면에 있으면 실제 가스 온도보다 높게 읽힌다 — 위험을 과소평가한다. ② Type I(강재) 트레일러에는 해당하지 않는 모드다 — 트레일러 타입을 모르면 전부 오경보.",
+      "recommendedAction_ko": "트레일러 타입을 자산에 반드시 기록하고, Type IV라면 하역 유량 상한과 저온 트립 설정을 공급사와 합의해 절차에 넣으세요. 이 모드는 안전 항목이므로 판단은 현장과 제작사 기준을 따릅니다.",
+      "severityHint": 3,
+      "source": "EIGA TB 51/24 Table 1 — 높은 하역 유량 + 저외기에서 Type IV 라이너 균열 위험, 트레일러·HRS 양측 저온 트립 안전기능 — https://www.eiga.eu/uploads/documents/TB051.pdf"
+    },
+    {
+      "mode": "반입 항 누락으로 인한 기존 물질수지 탐지기 편향 (mass_balance_sign_bias)",
+      "signal": "반입이 있는 날마다 h2chain.mass_balance_gap의 잔차가 크게 음(−)으로 나온다. 반입이 몰린 주에는 CUSUM이 무조건 경보한다.",
+      "detectionMethod": "현행 식 residual = produced − fc_consumed − stored_delta − vented_est에서, 반입일의 stored_delta가 produced를 훨씬 넘으므로 잔차가 구조적으로 음이 된다. 반입일 여부와 잔차 부호의 연관을 보면 즉시 확인된다.",
+      "falsePositiveTraps": "이것은 오탐이 아니라 모델 누락이다. 임계값(residualPct 2%)을 올려 덮으면 진짜 누설·계량 이상을 못 잡게 된다.",
+      "recommendedAction_ko": "원장 식을 residual = produced + delivered − fc_consumed − stored_delta − vented_est로 확장하고(탐지기 버전 @2), 잔차율 분모도 max(produced + delivered, fc_consumed, floor)로 바꾸세요. 반입 데이터가 없는 사이트에서는 delivered = 0이므로 기존 동작과 같습니다. 반입 레코드가 결측인 날은 잔차를 계산하지 말고 '판정 불능'으로 두는 게 안전합니다.",
+      "severityHint": 3,
+      "source": "lib/analytics/ledger/hydrogen.ts:9-11 및 lib/analytics/detectors/h2chain-mass-balance.ts"
+    }
+  ],
+  "kpis": [
+    { "key": "h2.self_sufficiency", "formula": "생산량(기간) ÷ 소비량(기간) × 100", "unit": "%", "target": "사업 계획서의 자급률 전제와 비교(도면 전제로는 순간 기준 37.3%, 실제 일 기준은 태양광 발전량에 지배됨)", "source": "도면 500/1,340 Nm³/h" },
+    { "key": "h2.import.share", "formula": "반입량 ÷ (생산량 + 반입량) × 100", "unit": "%", "target": "낮을수록 좋음. 이 사이트는 구조적으로 높다", "source": "파생" },
+    { "key": "h2.import.mass", "formula": "Σ 전표 반입량(기간). 사이트 계량 적산과 병기", "unit": "kg", "target": "발전 계획 대비 계약 물량 소진율 관리", "source": "파생" },
+    { "key": "h2.import.unit.price.avg", "formula": "Σ 반입 금액 ÷ Σ 반입량", "unit": "KRW/kg", "target": "계약 단가 대비 편차 관리. 공개 시세(전국 평균 10,495원/kg, 2026-09)와는 성격이 달라 참고선으로만", "source": "https://www.h2nbiz.or.kr/rt/sts/pce/rtAmountInfo.do" },
+    { "key": "h2.import.amount", "formula": "Σ (건별 반입량 × 단가)", "unit": "KRW", "target": "월·분기 예산 대비", "source": "파생" },
+    { "key": "h2.fuel.cost.per.mwh", "formula": "(반입 금액 + 자가생산 전력원가) ÷ 연료전지 발전량", "unit": "KRW/MWh", "target": "SMP + CHPS 발전비용 차액정산 수준과 비교(실측 SMP는 EPSIS에서 확인)", "source": "CHPS 정산 구조 https://news.skecoplant.com/plant-tomorrow/15746/ ; SMP https://epsis.kpx.or.kr/epsisnew/selectEkmaSmpSmpChart.do?menuId=040201" },
+    { "key": "h2.autonomy.days", "formula": "가용 재고(버퍼 + 수입뱅크 + 체류 트레일러, 최소 인출압 차감) ÷ 최근 7일 일평균 소비", "unit": "일", "target": "발주 리드타임의 2배 이상 권고(리드타임은 계약 확인 필요)", "source": "파생. 경계 정의는 failureModes의 inventory_boundary_ambiguity 참조" },
+    { "key": "h2.balance.residual.pct", "formula": "(생산 + 반입 − 소비 − 재고변화 − 배출) ÷ max(생산+반입, 소비, floor) × 100", "unit": "%", "target": "건강 사이트 기준 ±2% 이내(기존 탐지기 기본값 residualPct = 2)", "source": "lib/analytics/detectors/h2chain-mass-balance.ts H2_MASS_BALANCE_DEFAULTS" },
+    { "key": "h2.reconciliation.gap.pct", "formula": "|사이트 하역 계량 − 전표| ÷ 전표 × 100 (건별 중앙값)", "unit": "%", "target": "계량기 허용오차 안(OIML 등급 2 기준 1.5%, 계량시스템 2%)을 계약 허용범위로 제안", "source": "http://www.procon.co.kr/bbs/board.php?bo_table=magazine_new&wr_id=1036" },
+    { "key": "h2.delivery.recovery.pct", "formula": "하역량 ÷ (입차 잔량 − 목표 잔압 상당량) × 100", "unit": "%", "target": "해외 보고 80~85%를 초기 기준선으로", "source": "https://www.rein-hytec.com/market-trends/what-is-a-hydrogen-tube-trailer" },
+    { "key": "h2.delivery.loss.pct", "formula": "(방출 실측 또는 추정) ÷ 반입량 × 100", "unit": "%", "target": "압축수소는 배관 체적 수준(소량). 액화수소면 하역 증발손실이 별개로 크다", "source": "액화수소 하역 시 최대 5% 증발손실 보고 — https://www.osti.gov/biblio/1466121" },
+    { "key": "h2.delivery.count", "formula": "기간 내 하역 건수", "unit": "회", "target": "물류 부하·하역장 점유·안전관리 인력 산정의 기본", "source": "파생" },
+    { "key": "h2.delivery.turnaround", "formula": "연결 → 분리 소요시간 중앙값", "unit": "분", "target": "트레일러 스왑 자체는 해외 기준 10~30분. 실하역 시간은 국내 실측치 unknown", "source": "https://h2fcp.org/sites/default/files/Stations-Fact-sheet3_0.pdf" }
+  ],
+  "typicalValues": [
+    { "label": "Type I 튜브트레일러 1회 운송량(200 bar 이하)", "value": "320~350", "unit": "kg", "source": "https://www.energy-news.co.kr/news/articleView.html?idxno=212859" },
+    { "label": "Type I 튜브트레일러 1회 운송량(다른 보도)", "value": "약 300", "unit": "kg", "source": "https://www.electimes.com/news/articleView.html?idxno=221102", "assumption": "같은 Type I인데 300 kg과 320~350 kg이 함께 보도된다. 용기 내용적·충전 압력·기준 온도가 기사마다 달라서로 보인다. 계약·정산에는 트레일러 명판(내용적·용기 수·충전압)을 받아 직접 계산할 것." },
+    { "label": "Type I 실운송량(잔압 70 bar 기준)", "value": "198", "unit": "kg", "source": "https://www.h2news.kr/news/articleView.html?idxno=12352" },
+    { "label": "Type IV 450 bar 튜브트레일러 최대 적재량", "value": "480", "unit": "kg", "source": "https://www.h2news.kr/news/articleView.html?idxno=12352" },
+    { "label": "Type IV 450 bar 실운송량(잔압 70 bar 기준)", "value": "373", "unit": "kg", "source": "https://www.h2news.kr/news/articleView.html?idxno=12352" },
+    { "label": "Type IV 튜브트레일러 1회 공급량(다른 보도)", "value": "약 500", "unit": "kg", "source": "https://www.todayenergy.kr/news/articleView.html?idxno=244561", "assumption": "480 kg(적재)과 500 kg(공급량)이 함께 보도된다. 전자는 잔압 0 기준 적재, 후자는 반올림한 마케팅 수치로 보인다." },
+    { "label": "미국 강재 튜브트레일러 적재량 / 압력 상한", "value": "약 380 kg / DOT 250 bar(예외 시 500 bar 이상)", "unit": "kg, bar", "source": "https://www.energy.gov/eere/fuelcells/hydrogen-tube-trailers" },
+    { "label": "복합재 용기 트레일러 적재량", "value": "560~900", "unit": "kg", "source": "https://www.energy.gov/eere/fuelcells/hydrogen-tube-trailers" },
+    { "label": "현장 하역 회수율(잔압 하한까지)", "value": "80~85", "unit": "%", "source": "https://www.rein-hytec.com/market-trends/what-is-a-hydrogen-tube-trailer", "assumption": "벤더 자료. 국내 Type I 잔압 70 bar 기준으로 환산하면 198/300 ≈ 66%로 더 낮다 — 잔압 하한이 다르기 때문이다. 계약 잔압을 확인하고 자체 실측으로 대체할 것." },
+    { "label": "트레일러 교체(스왑) 소요시간", "value": "10~30", "unit": "분", "source": "https://h2fcp.org/sites/default/files/Stations-Fact-sheet3_0.pdf", "assumption": "미국 충전소 기준. 배관 연결·분리 시간이며 실제 하역(감압 이송) 시간은 포함되지 않는다." },
+    { "label": "액화수소 탱크 충전(하역) 소요시간", "value": "약 30", "unit": "분", "source": "https://h2fcp.org/sites/default/files/Stations-Fact-sheet3_0.pdf" },
+    { "label": "액화수소 탱크트레일러 1회 운송량(국내)", "value": "3톤 초과(적재중량 3 t, 용량 47,000 L)", "unit": "t", "source": "https://www.cvinfo.com/news/articleView.html?idxno=26588" },
+    { "label": "액화수소 하역 시 증발(boil-off) 손실", "value": "최대 5(문헌에 따라 5.9~6.3도 보고)", "unit": "%", "source": "https://www.osti.gov/biblio/1466121", "assumption": "값의 폭이 크다. 탱크 설계·단열·이송 방식에 좌우된다. 압축수소 반입에는 해당 없음." },
+    { "label": "수소 판매가격(전국 평균, 충전소 소매)", "value": "10,495", "unit": "KRW/kg", "source": "https://www.h2nbiz.or.kr/rt/sts/pce/rtAmountInfo.do", "assumption": "2026-09-16 조회값. 지역별 9,792(울산)~15,000(제주). 수송용 소매가로, 발전용 벌크 단가와는 성격이 다르다." },
+    { "label": "튜브트레일러 이송비 포함 수소 원가(수도권 도달 기준)", "value": "울산·여수 생산원가 2,000~3,000 → 수도권 도달 약 7,000", "unit": "KRW/kg", "source": "http://www.newstof.com/news/articleView.html?idxno=1553", "assumption": "언론 보도 기반 추정. 연도·유가에 따라 변한다. 가평 사이트의 실제 공급원·거리로 재산정 필요." },
+    { "label": "수송용 수소 공동구매 공급가격 조정 사례", "value": "최초 계약단가 대비 +12.2%", "unit": "%", "source": "https://www.kogas.or.kr/site/koGas/bbs/View.do?cbIdx=41&Key=1010202000000&boardIdx=44570", "assumption": "원인은 부생수소 구매 원가와 튜브트레일러 운송비 상승. 절대 단가는 공개되지 않았다." },
+    { "label": "수소 유량계 최대허용오차(OIML)", "value": "유량계 1.5%(등급 2)~2.0%(등급 4), 충전소 계량시스템 형식승인·검정 2%~4%", "unit": "%", "source": "http://www.procon.co.kr/bbs/board.php?bo_table=magazine_new&wr_id=1036" },
+    { "label": "고압 수소용 코리올리 질량유량계 정확도", "value": "가스 질량유량 ±0.5(압력 1,060 bar까지), 액화수소 ±0.35", "unit": "%", "source": "https://www.emerson.com/en-us/news/automation/20-09-coriolis-high-pressure", "assumption": "제조사 사양. 현장 설치 후 성능은 교정·배관 조건에 좌우된다." },
+    { "label": "Nm³ ↔ kg 환산(수소, 0 °C·101.325 kPa)", "value": "0.08988 kg/Nm³ (1 kg = 11.126 Nm³)", "unit": "kg/Nm³", "source": "https://h2tools.org/hyarc/calculator-tools/hydrogen-conversions-calculator" },
+    { "label": "[도면 기반 계산] 수전해 생산량", "value": "44.9", "unit": "kg/h", "source": "도면 500 Nm³/h × 0.08988 kg/Nm³", "assumption": "도면의 Nm³ 기준조건이 명시되지 않아 0 °C·1 atm으로 가정. 20 °C 기준이면 약 7% 작아진다." },
+    { "label": "[도면 기반 계산] 연료전지 소비량", "value": "120.4", "unit": "kg/h", "source": "도면 1,340 Nm³/h × 0.08988 kg/Nm³", "assumption": "같은 기준조건 가정. 2,000 kW ÷ (120.4 kg/h × 33.33 kWh/kg) = LHV 기준 49.8%로 PEMFC 상식 범위 안이어서 기준조건 가정이 크게 틀리지 않았음을 방증." },
+    { "label": "[도면 기반 계산] 동시 전부하 시 부족분", "value": "75.5", "unit": "kg/h", "source": "120.4 − 44.9", "assumption": "순간 자급률 37.3%." },
+    { "label": "[도면 기반 계산] 버퍼탱크 재고(30 bar, 50 m³)", "value": "15 °C에서 123.8 (5 °C 128.2 / 25 °C 119.7 / 35 °C 115.9)", "unit": "kg", "source": "Abel–Noble 상태식 — lib/analytics/detectors/hydrogen-eos.ts", "assumption": "도면의 '≈120 kg' 표기와 일치. 온도 30 K 차이가 재고를 약 12 kg(10%) 바꾼다 — 재고 기반 대조는 반드시 온도 보정이 필요하다. 교차참조 — research-pressure.json은 같은 탱크를 20 °C 기준 121.9 kg(NIST)으로 적고 가용량 하한도 5 bar가 아닌 3 bar를 쓴다. 두 파일 모두 옳으나 기준온도와 압력 하한을 콘솔에서 하나로 고정해야 가동시간 KPI가 갈리지 않는다." },
+    { "label": "[도면 기반 계산] 버퍼 가용량(30 → 5 bar, 15 °C)", "value": "102.8", "unit": "kg", "source": "위 상태식", "assumption": "연료전지 인출 하한을 5 bar로 가정(도면 PRV 30→0.8 bar)." },
+    { "label": "[도면 기반 계산] 버퍼만으로 버티는 시간", "value": "연료전지 단독 전부하 0.85, 수전해 동시 가동 시 1.36", "unit": "h", "source": "102.8 ÷ 120.4 / 102.8 ÷ 75.5", "assumption": "버퍼는 완충재일 뿐 저장설비가 아니다. 체류 트레일러가 사실상 주 저장이 된다." },
+    { "label": "[도면 기반 계산] 하루 반입 소요(연료전지 8 h 전부하 가정)", "value": "소비 964, 생산 94, 반입 869 kg/일 → Type I 4.4대 / Type IV 2.3대", "unit": "kg/일, 대/일", "source": "파생", "assumption": "생산량은 태양광 1.5 MWp × 일 3.5 kWh/kWp(국내 통상 수준 가정, research-solar_ess.json 교차확인 필요) ÷ 55.6 kWh/kg으로 산정. 연료전지 가동 시간은 가정값이며 실제 CHPS 운전계획에 따라 달라진다. 자급률 9.8%." },
+    { "label": "[도면 기반 계산] 하역 계량 오차가 물질수지 잔차에 주는 편향", "value": "계량 오차 1% → 잔차 약 0.90%p, 2% → 1.81%p, 4% → 3.61%p", "unit": "%p", "source": "파생(반입 869 kg/일, 소비 964 kg/일 가정)", "assumption": "기존 탐지기 기본 임계 residualPct = 2%. 즉 반입 계량 오차가 2%만 되어도 잔차 임계를 혼자 먹어치운다 — 반입이 있는 사이트에서는 계량 등급이 곧 탐지 민감도다." },
+    { "label": "국내 수소 튜브트레일러 운영 대수", "value": "unknown", "unit": "대", "source": "https://h2hub.or.kr/main/stat/stat_distribute_area_tube.do", "assumption": "포털이 연·월 선택 후에만 수치를 내보내 자동 조회로는 확인하지 못했다. 400기 이상(기사)과 950대(검색 스니펫)가 함께 돌아다녀 직접 조회로 확정할 것." }
+  ],
+  "standards": [
+    { "code": "수소경제 육성 및 수소 안전관리에 관한 법률 제50조 / 시행령 제52조", "title": "수소 판매가격 보고·공개", "scope": "수소판매사업자는 판매가격 결정·변경 후 24시간 이내에 종류별 kg 단위 판매가격을 보고. 반입 단가 데이터의 단위(kg)와 공개 시세 비교선의 근거.", "url": "https://www.h2nbiz.or.kr/rt/uif/inf/infoSalePrice.do" },
+    { "code": "계량에 관한 법률 / 시행령 별표 7", "title": "법정계량기 형식승인·검정·정기검사", "scope": "법정계량기 13종(비자동저울, 가스미터, 오일미터, 전기자동차 충전기 등)에 형식승인·검정, 정기검사 2년. 수소 유량계·수소충전기가 이 목록에 포함되는지는 확인되지 않음(openQuestions 7번) — 확인 전에는 반입 계량을 계약상 합의 계량으로 다뤄야 한다.", "url": "https://www.kats.go.kr/content.do?cmsid=73" },
+    { "code": "OIML R 139-1:2018", "title": "차량용 압축가스 연료 계량시스템", "scope": "수소 계량시스템의 정확도 등급과 최대허용오차. 국내 해설 기준 유량계 1.5~2.0%, 계량시스템 형식승인·검정 2~4%.", "url": "https://h2tools.org/fuel-cell-codes-and-standards/oiml-r-139-compressed-gaseous-fuel-measuring-systems-vehicles-oiml-r" },
+    { "code": "EIGA TB 51/24", "title": "Hydrogen Interface for Trailer to Hydrogen Refueling Station", "scope": "트레일러↔사이트 하역 인터페이스의 위험·안전장벽·설계 요구. 압력별 전용 커플링, 계장가스 7~10 bara, 접지 25 Ω 이하, 퍼지가스는 고정식 벤트라인, MAWP ≥ 트레일러 developed pressure, Type IV 저온·저압 트립.", "url": "https://www.eiga.eu/uploads/documents/TB051.pdf" },
+    { "code": "AIGA 126/24 (= EIGA Doc 250/24)", "title": "Standard Procedures for Hydrogen Supply Systems", "scope": "수소 공급계통 표준 절차. 이송 중 방출은 호스 퍼지·충전회로에 집중, 벤트스택 설계·접지.", "url": "https://www.asiaiga.org/uploaded_docs/en_AIGA_126_24_Guide_for_H2_Supply_Systems.pdf" },
+    { "code": "KGS FP211", "title": "고압가스 용기 및 차량에 고정된 탱크 충전의 시설·기술·검사·안전성평가 기준", "scope": "충전·이송 설비 기준. 하역 설비 설계 시 국내 적용 기준의 출발점.", "url": "https://h2hub.or.kr/main/info/regulation_info.do?mode=view&articleNo=2632" },
+    { "code": "KGS FP217", "title": "저장식 수소자동차 충전의 시설·기술·검사 기준", "scope": "저장설비-충전설비 안전거리 8 m(방호벽 설치 시 예외) 등. 하역장 배치 검토 참고.", "url": "https://cyber.kgs.or.kr/kgscode.CodeList.do" },
+    { "code": "고압가스 안전관리법 — 특정고압가스 사용신고", "title": "사용신고 대상 기준", "scope": "압축가스 저장능력 50 m³ 이상 저장설비로 특정고압가스(수소 포함)를 사용하려는 자는 사용신고. 이 사이트의 버퍼(50 m³)와 수입 뱅크 추가 시 해당 여부를 확인해야 한다.", "url": "https://www.innopolis.or.kr/fileDownload?titleId=182136&fileId=1&fileDownType=C&paramMenuId=MENU00318" },
+    { "code": "청정수소 인증제도 운영에 관한 고시", "title": "청정수소 인증", "scope": "4 kgCO2e/kgH2 이하를 청정수소로 인증, 1등급(0~0.1)~4등급(2~4), Well-to-Gate. 추적방식은 Mass Balance를 원칙으로 하고 국내 유통분은 Book & Claim 한시 허용 검토. 반입 수소의 등급이 곧 CHPS 청정수소 시장 참여 자격이다.", "url": "https://www.h2news.kr/news/articleView.html?idxno=12249" },
+    { "code": "수소발전 입찰시장 연도별 구매량 산정 등에 관한 고시", "title": "CHPS 입찰시장", "scope": "일반수소·청정수소 시장 구분과 연도별 개설물량. 2026년 일반수소 930 GWh / 청정수소 500 GWh(기존 1,300 / 3,000에서 축소).", "url": "https://www.law.go.kr/%ED%96%89%EC%A0%95%EA%B7%9C%EC%B9%99/%EC%88%98%EC%86%8C%EB%B0%9C%EC%A0%84%20%EC%9E%85%EC%B0%B0%EC%8B%9C%EC%9E%A5%20%EC%97%B0%EB%8F%84%EB%B3%84%20%EA%B5%AC%EB%A7%A4%EB%9F%89%20%EC%82%B0%EC%A0%95%20%EB%93%B1%EC%97%90%20%EA%B4%80%ED%95%9C%20%EA%B3%A0%EC%8B%9C" },
+    { "code": "ISO 5145 / CGA V-10 / ISO 16964 / ISO 14113", "title": "하역 커플링·고압 호스 표준", "scope": "300 bar는 ISO 5145 No.38, 200 bar는 지역 표준(미국 CGA 1350). 하역 호스는 ISO 16964 또는 ISO 14113. 압력대별 전용 커플링으로 과압 오연결을 물리적으로 막는 것이 핵심.", "url": "https://www.eiga.eu/uploads/documents/TB051.pdf" },
+    { "code": "화물자동차 운수사업법 (규제샌드박스 실증특례)", "title": "튜브트레일러 임대·유통", "scope": "자가용 T/T의 유상임대가 원칙적으로 금지되어 있어 실증특례로 96대 임대가 허용된 사례. 트레일러를 사이트 저장으로 상시 체류시키는 운용을 계획한다면 계약·법적 형태를 먼저 확인해야 한다.", "url": "https://www.energydaily.co.kr/news/articleView.html?idxno=126024" }
+  ],
+  "detectorProposals": [
+    {
+      "id": "h2chain.mass_balance_gap@2",
+      "failureMode": "mass_balance_sign_bias / 전반적 물질수지",
+      "inputs": ["원장 H2Ledger(produced, fc_consumed, stored_delta, vented_est)", "신규: delivered(하역 적산 또는 전표)", "신규: delivery_count", "신규: vent_measured"],
+      "method": "기존 탐지기를 그대로 두고 식만 확장: residual = produced + delivered − fc_consumed − stored_delta − vented_est. 잔차율 분모는 max(produced + delivered, fc_consumed, residualFloorKg). 판별 체크에 '반입 계량 드리프트'와 '하역 건수-잔차 상관'을 추가.",
+      "thresholds": { "residualPct": 2, "recentDays": 7, "referenceDays": 14, "deliveryCorrelationR": 0.6 },
+      "gateIdea": "delivered가 null인 날은 유효일에서 제외한다(0으로 채우면 반입을 손실로 오인). 반입이 있는 사이트인지 여부는 자산에 h2.delivery.station 또는 h2.trailer가 등록되어 있는지로 판단."
+    },
+    {
+      "id": "h2.delivery.unlogged",
+      "failureMode": "반입 기록 누락",
+      "inputs": ["h2.inventory(사이트 Z 보정 재고)", "h2.flow.mass / h2.mass.total(생산)", "h2.delivery.mass.total", "h2.import.invoice.mass", "h2.delivery.state"],
+      "method": "재고 시계열에서 상승 구간을 이벤트로 분할하고, 각 이벤트의 재고 증가량 − 같은 구간 생산량 > 임계이면 '외부 유입'으로 본다. 해당 시각에 하역 적산 증가도 전표도 없으면 finding.",
+      "thresholds": { "surplusKg": "시간당 최대 생산량 × 1.5", "minEventKg": 20, "joinWindowH": 24 },
+      "gateIdea": "온도 보정 재고가 없으면 판정 불능. 정비·퍼지 이벤트 구간은 제외."
+    },
+    {
+      "id": "h2.delivery.reconciliation",
+      "failureMode": "전표-계량 불일치",
+      "inputs": ["건별 h2.delivery.mass.total 증가분", "h2.import.invoice.mass", "h2.import.heel.mass", "계량 기준 메타(단위·기준조건·계량지점)"],
+      "method": "건별 차이율의 중앙값 + 부트스트랩 CI, 기준 구간 대비 CUSUM(기존 h2chain.mass_balance_gap과 같은 통계 틀 재사용). 판별 체크: ① 단위·기준조건 불일치 ② heel 정산 차이 ③ 벤트 위치(계량 전/후) ④ 공급사별 층화.",
+      "thresholds": { "gapPct": 1.5, "minDeliveries": 8, "cusumK": 0.5, "cusumH": 4 },
+      "gateIdea": "계량 기준 메타가 비어 있으면 아예 돌리지 않는다(판정 불능). 공급사가 둘 이상이면 공급사별로 따로 판정."
+    },
+    {
+      "id": "h2.delivery.meter_drift",
+      "failureMode": "하역 계량기 드리프트",
+      "inputs": ["건별 하역 적산", "하역 구간 재고 증가량(Z 보정)", "하역 구간 소비 적산", "벤트 실측/추정", "h2.delivery.flow.mass(저유량 구간 식별)"],
+      "method": "ratio = 하역적산 ÷ (재고증가 + 소비 + 벤트)의 기준 구간 중앙값 대비 변화폭. 기존 flowmeter_drift 체크와 같은 구조(패러데이 기대치 → 재고 증가로 치환).",
+      "thresholds": { "driftPct": 2, "referenceDeliveries": 10, "lowFlowCutoffFraction": 0.05 },
+      "gateIdea": "재고 온도센서가 없거나 flatline이면 판정 불능. 하역 말기 저유량 구간은 계산에서 제외."
+    },
+    {
+      "id": "h2.delivery.recovery_drop",
+      "failureMode": "하역 미완료·회수율 저하",
+      "inputs": ["h2.trailer.pressure(입차·출차)", "h2.trailer.temp", "트레일러 내용적·용기 수(명판)", "h2.delivery.pressure", "h2.delivery.flow.mass"],
+      "method": "건별 회수율을 계산해 peer(같은 트레일러 타입·공급사) 비교 + 추세. 판별 체크: 수용부 만압 여부, 헤더-트레일러 차압, 저온 트립 발생, 필터 차압.",
+      "thresholds": { "recoveryPct": 75, "peerDeltaPct": 5, "minDeliveries": 6 },
+      "gateIdea": "트레일러 명판(내용적·타입)이 등록되지 않은 건은 제외. 계약 잔압 하한이 사이트마다 다르므로 파라미터로 받는다."
+    },
+    {
+      "id": "h2.delivery.heel_gap",
+      "failureMode": "잔류(heel) 정산 오류",
+      "inputs": ["분리 시점 h2.trailer.pressure·h2.trailer.temp", "트레일러 명판", "h2.import.heel.mass(전표)"],
+      "method": "Z 보정 계산 잔량과 전표 잔량의 건별 차이 중앙값·부호를 추적. 열평형 대기시간 파라미터를 두고 그 이전 측정은 버린다.",
+      "thresholds": { "heelGapKg": 5, "settleMinutes": 30, "minDeliveries": 6 },
+      "gateIdea": "출차 시각 이벤트가 없으면 판정 불능. 트레일러별로 층화."
+    },
+    {
+      "id": "h2chain.autonomy_margin",
+      "failureMode": "반입 리드타임 초과·재고 고갈",
+      "inputs": ["h2.inventory", "h2.trailer.inventory × 체류 대수", "최근 소비 시계열", "발전 계획(있으면)", "계약 리드타임(파라미터)"],
+      "method": "가용 재고 ÷ 소비율로 잔여 시간을 계산하고, 소비율은 최근 N일 중앙값과 계획값 중 큰 쪽을 쓴다. 리드타임 × 안전계수 아래로 내려가면 경보. 재고 경계 정의는 파라미터.",
+      "thresholds": { "leadTimeH": 48, "safetyFactor": 2, "minInventoryKg": "연료전지 최소 안정운전 1시간분" },
+      "gateIdea": "체류 트레일러 포함 여부를 사이트 설정으로 고정하고, 설정 변경일은 기준선 리셋으로 표시."
+    },
+    {
+      "id": "h2.import.price_anomaly",
+      "failureMode": "반입 단가 이상",
+      "inputs": ["h2.import.unit.price(건별)", "계약 기준 단가", "공급사", "운송거리·할증 플래그"],
+      "method": "계약 기준 단가 대비 편차의 로버스트 z(중앙값·MAD). 공개 시세는 비교선으로만 겹쳐 표시하고 판정에는 쓰지 않는다.",
+      "thresholds": { "zAbs": 3, "deviationPct": 10, "minRecords": 10 },
+      "gateIdea": "계약 기준 단가가 등록되지 않았으면 자체 이력 중앙값을 기준으로 쓰되 '기준 미등록' 배지를 붙인다."
+    },
+    {
+      "id": "h2.delivery.procedure_violation",
+      "failureMode": "접지 미연결·인터록 우회",
+      "inputs": ["h2.delivery.ground", "h2.delivery.state", "valve.open(qualifier delivery)", "gas.detector.ppm(하역장)"],
+      "method": "상태 조합 규칙 위반(하역중 AND 접지불량) 이벤트 집계 + 접지 신호 flatline 감시(기존 dq-gap-flatline 재사용).",
+      "thresholds": { "debounceS": 10, "flatlineS": 604800 },
+      "gateIdea": "안전 판단이 아니라 절차 준수 기록으로만 제시하고, 기존 SAFETY_DISCLAIMER 문구를 붙인다. 접지 신호가 아예 없는 사이트는 '데이터 없음'."
+    }
+  ],
+  "openQuestions": [
+    "도면(FCND-GP-PID-002 REV.2)에 반입 설비가 없다. 하역 패널·반입 계량기·수입 고압 뱅크·하역 벤트스택·하역장 안전거리를 어디에 둘 것인가? 반입이 전제라면 이것이 도면의 가장 큰 공백이다.",
+    "도면의 Nm³ 기준조건(0 °C인지 20 °C인지)이 적혀 있지 않다. 500/1,340/250 Nm³/h를 kg으로 옮기는 모든 계산이 여기에 걸린다(차이 약 7%).",
+    "수소 공급 계약 형태 — 공급사, 공급 형태(압축 200 bar / 액화), 계약 단가와 단가 구성(생산비·운송비·할증), 리드타임, take-or-pay 유무, 계량 기준과 계량 지점. 전부 미확보.",
+    "체류 트레일러를 사이트 재고로 볼 것인가? 버퍼가 연료전지 1시간분도 안 되므로 이 정의 하나로 재고 여유일 KPI와 물질수지 경계가 완전히 달라진다.",
+    "연료전지 운전 계획(일 가동시간·출력 프로파일). 이것이 없으면 반입 물량·물류 부하·연료원가 KPI가 전부 가정 위에 선다.",
+    "반입 수소의 청정수소 인증 등급과 CHPS 시장 참여 계획(일반수소 vs 청정수소). 반입 수소가 그레이수소면 청정수소 시장 참여가 불가능하다.",
+    "수소 유량계·수소충전기가 국내 법정계량기 13종에 포함되는지. 포함되지 않는다면 반입 계량은 법정 검정이 아니라 계약상 합의 계량이며, 교정 주기·기준기 소급성을 계약에 직접 써야 한다.",
+    "국내 발전용 벌크 수소 구매단가 공개자료를 찾지 못했다(충전소 소매가만 공개). CHPS 입찰 상한가격도 비공개. 연료원가 KPI의 비교선은 계약 단가로만 세울 수 있다.",
+    "하역 1회 실소요시간(연결~분리)의 국내 실측치 unknown. 해외 스왑 10~30분은 배관 연결/분리 시간이지 감압 이송 시간이 아니다. 물류 스케줄·하역장 점유 설계에 필요하다.",
+    "국내 튜브트레일러 운영 대수 확정치 unknown(400기 이상 / 950대가 혼재). h2hub 포털에서 연·월을 선택해 직접 조회할 것.",
+    "하역 1회당 방출(퍼지) 실측량. 배관 체적·퍼지 절차가 정해져야 vented 항을 추정이 아닌 값으로 넣을 수 있다.",
+    "산소 출하(판매) 정산도 같은 대조 구조가 필요하다. 산소 250 Nm³/h는 약 357 kg/h로 수소보다 질량이 훨씬 크다 — 별도 리서치 파일에서 다룰지 여기 확장할지 결정 필요."
+  ],
+  "sources": [
+    { "n": 1, "title": "'수소가격 인하 마중물' 450bar 튜브트레일러, 드디어 달린다 (월간수소경제)", "url": "https://www.h2news.kr/news/articleView.html?idxno=12352", "note": "Type IV 450 bar 적재 480 kg, 잔압 70 bar 기준 실운송 Type IV 373 kg / Type I 198 kg, 중량 16.6 t vs 30.4 t, 전장 10.5 m vs 12.4 m, 전주 평화수소충전소 1.2 t/일 → Type I 6왕복 / Type IV 3왕복" },
+    { "n": 2, "title": "액화수소 대항마 '타입4 튜브트레일러' 각광 (전기신문)", "url": "https://www.electimes.com/news/articleView.html?idxno=221102", "note": "Type IV 약 500 kg, 350~700 bar / Type I 약 300 kg, 약 200 bar. Type I은 450 bar·900 bar 2단 압축, Type IV는 1단" },
+    { "n": 3, "title": "[기획] 국내 수소튜브트레일러 산업 현황&전망 (투데이에너지)", "url": "https://www.todayenergy.kr/news/articleView.html?idxno=244561", "note": "Type I 약 300 kg, Type IV 450 bar 약 500 kg·총중량 26 t·전장 10 m, 550 bar 1,000 L 용기 KGS 제조승인, 990 bar 개발 중" },
+    { "n": 4, "title": "수소 트레일러, 폭발 대신 '안전'을 싣는다 (에너지신문)", "url": "https://www.energy-news.co.kr/news/articleView.html?idxno=212859", "note": "국내는 주로 200 bar 이하 전용 T/T, 1회 최대 320~350 kg, 400기 이상 운영. 트레일러 안전장치는 오발진방지·안전밸브·긴급차단밸브 3가지뿐이라는 지적" },
+    { "n": 5, "title": "Hydrogen Tube Trailers (US DOE EERE)", "url": "https://www.energy.gov/eere/fuelcells/hydrogen-tube-trailers", "note": "강재 트레일러 약 380 kg, 복합재 560~900 kg, DOT 압력 상한 250 bar(예외 승인 시 500 bar 이상)" },
+    { "n": 6, "title": "Hydrogen Tube Trailers: Types, Capacity, Pressure & Selection Guide (Rein Hytec)", "url": "https://www.rein-hytec.com/market-trends/what-is-a-hydrogen-tube-trailer", "note": "현장 회수율 80~85%(잔압이 하류 최소 흡입압 아래로 떨어지면 종료), cascade 감압. 벤더 자료이므로 확신도 중간" },
+    { "n": 7, "title": "EIGA TB 51/24 — Hydrogen Interface for Trailer to Hydrogen Refueling Station", "url": "https://www.eiga.eu/uploads/documents/TB051.pdf", "note": "하역 인터페이스 1차 자료. 압력별 전용 커플링(200/300 bar), 계장가스 7~10 bara·질소 노점 ≤ −40 °C, 접지 25 Ω 이하·매 납품 확인, 퍼지가스는 고정식 벤트라인, MAWP ≥ 트레일러 developed pressure, Type IV 저온·저압 트립, 분석성적서는 트레일러 동반" },
+    { "n": 8, "title": "AIGA 126/24 — Standard Procedures for Hydrogen Supply Systems", "url": "https://www.asiaiga.org/uploaded_docs/en_AIGA_126_24_Guide_for_H2_Supply_Systems.pdf", "note": "이송 중 방출은 호스 퍼지·충전회로에 집중, 벤트스택 설계·접지 요구" },
+    { "n": 9, "title": "Hydrogen Station Fact Sheet (H2FCP)", "url": "https://h2fcp.org/sites/default/files/Stations-Fact-sheet3_0.pdf", "note": "기체수소는 트레일러 교체 방식이며 스왑 10~30분, 액화수소 탱크 충전 약 30분. 연간 계약·배송 스케줄 운용" },
+    { "n": 10, "title": "수소유통정보시스템 — 판매가격 보고 및 공개 제도 안내", "url": "https://www.h2nbiz.or.kr/rt/uif/inf/infoSalePrice.do", "note": "수소법 제50조·시행령 제52조, 판매가격 결정·변경 후 24시간 이내 보고, 종류별 kg 단위 판매가격 공개" },
+    { "n": 11, "title": "수소유통정보시스템 — 가격정보", "url": "https://www.h2nbiz.or.kr/rt/sts/pce/rtAmountInfo.do", "note": "2026-09-16 조회: 전국 평균 10,495원/kg, 울산 9,792 ~ 제주 15,000원/kg. 충전소 소매가" },
+    { "n": 12, "title": "수송용 수소 충전소 공급가격 조정 (한국가스공사 보도자료)", "url": "https://www.kogas.or.kr/site/koGas/bbs/View.do?cbIdx=41&Key=1010202000000&boardIdx=44570", "note": "공동구매 9개 충전소 공급가격을 최초 계약단가 대비 12.2% 인상. 사유는 부생수소 구매 원가와 T/T 운송비 상승. 절대 단가는 비공개" },
+    { "n": 13, "title": "수도권에 대규모 수소 공급...액화수소가 효율적이다 (뉴스톱)", "url": "http://www.newstof.com/news/articleView.html?idxno=1553", "note": "울산·여수 생산원가 kg당 2~3천원, 수도권 T/T 운송 시 약 7천원. 언론 보도 기반 추정치" },
+    { "n": 14, "title": "수소 유량 현장 교정 시스템 개발 (계장기술 기획특집)", "url": "http://www.procon.co.kr/bbs/board.php?bo_table=magazine_new&wr_id=1036", "note": "OIML 수소 유량계 MPE 1.5%(등급 2)~2.0%(등급 4), 충전소 계량시스템 형식승인·검정 2~4%. 기존 기체유량계는 0.5~1%. 코리올리 질량유량계 적용, Type IV 156 L·700 bar·−40 °C 조건, 정밀저울 소급" },
+    { "n": 15, "title": "국가기술표준원 — 법정계량기 관리", "url": "https://www.kats.go.kr/content.do?cmsid=73", "note": "법정계량기 13종 형식승인·검정, 정기검사 2년. 수소 계량기 포함 여부는 이 페이지에서 확인되지 않음" },
+    { "n": 16, "title": "Emerson Micro Motion 고압 코리올리 유량계", "url": "https://www.emerson.com/en-us/news/automation/20-09-coriolis-high-pressure", "note": "가스 질량유량 정확도 0.5%, 최대 1,060 bar. 액화수소는 ±0.35%" },
+    { "n": 17, "title": "OIML R 139 — Compressed Gaseous Fuel Measuring Systems for Vehicles (H2tools 요약)", "url": "https://h2tools.org/fuel-cell-codes-and-standards/oiml-r-139-compressed-gaseous-fuel-measuring-systems-vehicles-oiml-r", "note": "수소 계량시스템의 국제 법정계량 권고. 세부 MPE 수치는 원문이 유료라 국내 해설(출처 14)로 인용" },
+    { "n": 18, "title": "Hydrogen Conversions Calculator (H2tools / PNNL)", "url": "https://h2tools.org/hyarc/calculator-tools/hydrogen-conversions-calculator", "note": "Nm³(0 °C·101.325 kPa) ↔ kg 환산 0.08988 kg/Nm³" },
+    { "n": 19, "title": "수소 튜브트레일러(T/T) 이용 수소 유통 가능 (에너지데일리)", "url": "https://www.energydaily.co.kr/news/articleView.html?idxno=126024", "note": "화물자동차 운수사업법상 자가용 T/T 유상임대 금지 → 규제샌드박스 실증특례로 한국가스공사 96대 임대 허용(수소 공동구매 참여 공급업체 한정)" },
+    { "n": 20, "title": "청정수소 인증제, 어떻게 운영되나 (월간수소경제)", "url": "https://www.h2news.kr/news/articleView.html?idxno=12249", "note": "4 kgCO2e/kgH2 이하 청정수소, 1등급 0~0.1 / 2등급 0.1~1 / 3등급 1~2 / 4등급 2~4, Well-to-Gate" },
+    { "n": 21, "title": "청정수소 인증제 관련 보도자료 (기후솔루션)", "url": "https://forourclimate.org/ko/newsroom/518", "note": "인증서 추적 방식으로 Mass Balance 채택, 국내 유통분에 한해 Book & Claim 한시 허용 검토" },
+    { "n": 22, "title": "수소 상용화 앞당길 '청정수소발전의무화제도' A to Z (SK에코플랜트 뉴스룸)", "url": "https://news.skecoplant.com/plant-tomorrow/15746/", "note": "CHPS 정산 구조: SMP로 1차 정산 + 입찰 시 제시한 고정비·연료비와 SMP의 차액을 추가 정산. 준비기간 3년 + 거래기간 15년" },
+    { "n": 23, "title": "유틸리티 — CHPS 규제 변화 (하나증권 산업분석, 2026-06-10)", "url": "https://file.hanaw.com/download/research/FileServer/WEB/industry/industry/2026/06/09/Utilities_260610_CHPS.pdf", "note": "2026년 개설물량 일반수소 930 GWh / 청정수소 500 GWh(기존 1,300 / 3,000에서 축소). 2024년 청정수소 입찰은 6,500 GWh 개설·6,172 GWh 참여에 750 GWh만 낙찰. 석탄-암모니아 혼소는 청정수소 시장 대상에서 제외" },
+    { "n": 24, "title": "수소발전 입찰시장 연도별 구매량 산정 등에 관한 고시 (국가법령정보센터)", "url": "https://www.law.go.kr/%ED%96%89%EC%A0%95%EA%B7%9C%EC%B9%99/%EC%88%98%EC%86%8C%EB%B0%9C%EC%A0%84%20%EC%9E%85%EC%B0%B0%EC%8B%9C%EC%9E%A5%20%EC%97%B0%EB%8F%84%EB%B3%84%20%EA%B5%AC%EB%A7%A4%EB%9F%89%20%EC%82%B0%EC%A0%95%20%EB%93%B1%EC%97%90%20%EA%B4%80%ED%95%9C%20%EA%B3%A0%EC%8B%9C", "note": "CHPS 개설물량의 법적 근거 고시" },
+    { "n": 25, "title": "2025년 일반수소발전시장 경쟁입찰 공고 (전력거래소)", "url": "https://kpx.or.kr/board.es?mid=a11201000000&bid=0042&list_no=75083&act=view", "note": "총 입찰가격·고정비·변동비 3개 항목별 상한가격을 별도 설정하되 비공개. 발전용 수소 단가를 공개자료로 역산할 수 없는 이유" },
+    { "n": 26, "title": "계량증명업 등록 안내 (정부24)", "url": "https://www.gov.kr/mw/AA020InfoCappView.do?HighCtgCD=A09006&CappBizCD=14110000061", "note": "계량증명서 기재항목(차량번호·거래처·품명·총중량·공차중량·실중량·인수량). 중량 계량 기반 거래 증빙의 국내 표준 양식" },
+    { "n": 27, "title": "수소 및 수소용품 관련 규제사항 체크리스트 (연구개발특구진흥재단, 2025.8)", "url": "https://www.innopolis.or.kr/fileDownload?titleId=182136&fileId=1&fileDownType=C&paramMenuId=MENU00318", "note": "특정고압가스 사용신고 기준: 압축가스 저장능력 50 m³ 이상. 2025-10-01부터 액화가스 기준 250 kg → 500 kg 상향" },
+    { "n": 28, "title": "Boil-off losses along LH2 pathway (LLNL-TR-750685, OSTI)", "url": "https://www.osti.gov/biblio/1466121", "note": "액화수소 경로별 증발손실. 하역 시 최대 5%, 문헌에 따라 5.9~6.3%도 보고. 압축수소 반입에는 해당 없음" },
+    { "n": 29, "title": "국내 최초, 세계 최대 용량 '3톤 액화수소 탱크트레일러' 출시 (상용차매거진)", "url": "https://www.cvinfo.com/news/articleView.html?idxno=26588", "note": "적재중량 3 t, 최대 적재용량 47,000 L 액화수소 탱크트레일러" },
+    { "n": 30, "title": "국내 수소튜브트레일러 현황(권역별) — 수소경제 종합정보포털", "url": "https://h2hub.or.kr/main/stat/stat_distribute_area_tube.do", "note": "권역별 운영 대수 통계. 연·월 선택 후에만 수치가 표시되어 자동 조회로 확정하지 못함 — openQuestions 10번" },
+    { "n": 31, "title": "가중평균 SMP — 전력통계정보시스템(EPSIS)", "url": "https://epsis.kpx.or.kr/epsisnew/selectEkmaSmpSmpChart.do?menuId=040201", "note": "연료원가/MWh KPI의 비교선. 2026년 값은 이 페이지에서 직접 조회할 것(이번 조사에서 수치 미확보)" },
+    { "n": 32, "title": "수소 유통시장, 플랫폼 구축과 계량표준화로 진화 중 (공학저널)", "url": "http://www.engjournal.co.kr/news/articleView.html?idxno=3258", "note": "생산시설과 충전소 간 계량방식 차이가 업계 문제로 지적되어 한국가스기술공사가 수소 질량유량계 교정설비를 구축 중. 사이트 접속 시 인증서 만료로 본문 직접 확인 실패 — 검색 요약 기준" }
+  ]
+}
