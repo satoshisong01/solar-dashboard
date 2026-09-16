@@ -4,7 +4,7 @@
 //   게이트 미달이면 종료 코드 1. 전체 프리셋이면 lib/analytics/scorecard.json을 갱신하고, 로컬 DB가 떠 있으면 sim.eval_result에 기록한다.
 //
 //   npm run sim:eval                                  전체 (시드 3 × (P2 스윕 5 + P3 순번 12) = 사이트 잡 84개)
-//   npm run sim:eval -- --runs 3,4,5,6,8,9,10,13,17   CI 축소(사이트 잡 51개): P2 스윕 3~5번 + P3 순번 1·3·4·5·8·12 — 게이트마다 기준 크기 이상 주입이 시드마다 남는다(REDUCED_RUNS)
+//   npm run sim:eval -- --runs 3,4,5,6,8,9,10,11,17   CI 축소(사이트 잡 51개): P2 스윕 3~5번 + P3 순번 1·3·4·5·6·12 — 게이트마다 기준 크기 이상 주입이 시드마다 남는다(REDUCED_RUNS)
 //   npm run sim:eval -- --cache .data/sim-eval        시뮬레이션·추출 결과를 저장해 탐지기 파라미터만 바꿔 다시 평가
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { availableParallelism } from 'node:os';
