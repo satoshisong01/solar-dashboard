@@ -3,7 +3,7 @@
 import { PLAYBOOKS } from '@/lib/analytics/playbooks';
 import type { EvidenceView } from '@/lib/desk/evidence-types';
 import type { PlainFinding, PlainSummary } from '@/lib/desk/plain';
-import { asRecord, asString } from '@/lib/desk/json-read';
+import { parseLines } from './parse';
 import { PLAIN_LINE_KEYS, type LlmRequest, type PlainLines } from './types';
 
 /** om.finding_explanation.prompt_version. 프롬프트를 고치면 올린다 */
@@ -78,20 +78,5 @@ export function buildPlainRequest(finding: ExplainFinding, evidence: EvidenceVie
   return { system: SYSTEM, user: JSON.stringify(payload), temperature: PLAIN_TEMPERATURE, maxOutputTokens: PLAIN_MAX_OUTPUT_TOKENS };
 }
 
-/** ```json 울타리를 두르고 오는 응답도 읽는다 */
-const unfence = (text: string): string => text.replace(/^\s*```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
-
-/** 응답 본문 → 4줄. JSON이 아니거나 문자열이 아닌 값은 버린다 (검증에서 빠진 줄로 잡힌다) */
-export function parsePlainLines(text: string): PlainLines | null {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(unfence(text));
-  } catch {
-    return null;
-  }
-  const record = asRecord(parsed);
-  return Object.fromEntries(PLAIN_LINE_KEYS.flatMap((key) => {
-    const value = asString(record[key]);
-    return value === null ? [] : [[key, value.trim()]];
-  }));
-}
+/** 응답 본문 → 쉬운 말 4줄 */
+export const parsePlainLines = (text: string): PlainLines | null => parseLines(PLAIN_LINE_KEYS, text);

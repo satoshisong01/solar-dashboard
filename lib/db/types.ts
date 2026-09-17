@@ -223,6 +223,17 @@ export interface OmFinding {
   window_start: Timestamp;
 }
 
+export interface OmFindingDigest {
+  created_at: Generated<Timestamp>;
+  findings_hash: string;
+  model: string | null;
+  prompt_version: string;
+  scope_key: string;
+  source: string;
+  text: Json;
+  validation: Json;
+}
+
 export interface OmFindingEvidence {
   computed_at: Generated<Timestamp>;
   finding_id: Int8;
@@ -515,6 +526,7 @@ export interface DB {
   "om.episode": OmEpisode;
   "om.event_log": OmEventLog;
   "om.finding": OmFinding;
+  "om.finding_digest": OmFindingDigest;
   "om.finding_evidence": OmFindingEvidence;
   "om.finding_explanation": OmFindingExplanation;
   "om.finding_transition": OmFindingTransition;

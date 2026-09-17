@@ -1,5 +1,6 @@
 // 생성 문장 검증 (순수). 리포트 초안 검증(lib/report/validate.ts·tokens.ts·direction.ts)의 규칙을 그대로 가져와
-// 쉬운 말 4줄에 맞게 넓힌다. 하나라도 걸리면 그 문장은 채택하지 않고 틀 문장으로 되돌린다.
+// 줄 단위 요약(발견사항 쉬운 말 4줄·분석 데스크 종합 요약 4줄)에 맞게 넓힌다.
+// 하나라도 걸리면 그 문장은 채택하지 않고 틀 문장으로 되돌린다.
 //   1) 숫자·날짜: 엔진 문장에 있는 것만, 개수까지 같게 (표시 반올림 허용)
 //   2) 이름: 엔진 문장에 있던 설비·사이트 이름이 그대로 있어야 한다
 //   3) 방향: 엔진 문장에 없던 반대 방향 단어를 새로 넣지 못한다
@@ -23,20 +24,25 @@ export type PlainIssueCode =
   | 'extra_line'
   | 'too_long';
 
-export interface PlainIssue {
+export interface LineIssue<K extends string = string> {
   readonly code: PlainIssueCode;
-  readonly line: PlainLineKey | null;
+  readonly line: K | null;
   readonly message: string;
 }
 
-export interface PlainReference {
+export type LineTexts<K extends string> = Readonly<Partial<Record<K, string>>>;
+
+export interface LineReference<K extends string = string> {
   /** 엔진이 만든 줄. 값이 없는 줄은 키를 넣지 않는다 */
-  readonly lines: PlainLines;
-  /** 숫자로 세지 않는 이름 (설비 이름·코드·사이트 이름) */
+  readonly lines: LineTexts<K>;
+  /** 숫자로 세지 않는 이름 (설비 이름·코드·사이트 이름·계통 이름) */
   readonly labels: readonly string[];
   /** 효과 부호가 가리키는 방향 (없으면 방향 검사를 건너뛴다) */
   readonly direction: EffectDirection | null;
 }
+
+export type PlainIssue = LineIssue<PlainLineKey>;
+export type PlainReference = LineReference<PlainLineKey>;
 
 /** 엔진 문장보다 이만큼 넘게 길면 내용을 더한 것으로 본다 */
 const MAX_LENGTH_RATIO = 2;
@@ -61,10 +67,10 @@ export const PLAIN_FORBIDDEN: readonly { readonly pattern: RegExp; readonly reas
 
 const plainForbiddenReasons = (text: string): string[] => PLAIN_FORBIDDEN.filter((rule) => rule.pattern.test(text)).map((rule) => rule.reason);
 
-const at = (code: PlainIssueCode, line: PlainLineKey, message: string): PlainIssue => ({ code, line, message });
+const at = <K extends string>(code: PlainIssueCode, line: K, message: string): LineIssue<K> => ({ code, line, message });
 
 /** 엔진 숫자와 짝을 지어 본다. 짝이 없는 쪽이 지어낸 숫자(untracked)·빠뜨린 숫자(missing) */
-function numberIssues(line: PlainLineKey, candidate: string, reference: string, labels: readonly string[]): PlainIssue[] {
+function numberIssues<K extends string>(line: K, candidate: string, reference: string, labels: readonly string[]): LineIssue<K>[] {
   const engine = numericTexts(reference, labels);
   const shown = numericTexts(candidate, labels);
   const used = engine.map(() => false);
@@ -81,7 +87,7 @@ function numberIssues(line: PlainLineKey, candidate: string, reference: string, 
 }
 
 /** 엔진 문장에 없던 반대 방향 단어를 새로 넣었는가 (같은 방향 다른 표현은 허용) */
-function directionIssues(line: PlainLineKey, candidate: string, reference: string, direction: EffectDirection | null): PlainIssue[] {
+function directionIssues<K extends string>(line: K, candidate: string, reference: string, direction: EffectDirection | null): LineIssue<K>[] {
   if (direction === null) return [];
   const opposite = DIRECTION_WORDS[direction === 'increase' ? 'decrease' : 'increase'];
   return opposite
@@ -89,7 +95,7 @@ function directionIssues(line: PlainLineKey, candidate: string, reference: strin
     .map((word) => at('direction_mismatch', line, `효과는 ${direction === 'increase' ? '증가' : '감소'} 방향인데 "${word}" 표현을 넣었습니다`));
 }
 
-function lineIssues(line: PlainLineKey, candidate: string, reference: PlainReference): PlainIssue[] {
+function lineIssues<K extends string>(line: K, candidate: string, reference: LineReference<K>): LineIssue<K>[] {
   const engineText = reference.lines[line] ?? '';
   const text = candidate.trim();
   if (text === '') return [at('missing_line', line, '문장이 비어 있습니다')];
@@ -104,9 +110,9 @@ function lineIssues(line: PlainLineKey, candidate: string, reference: PlainRefer
   ];
 }
 
-/** 생성한 4줄이 엔진 문장과 같은 사실을 말하는가. 빈 배열이면 채택할 수 있다 */
-export function validatePlainLines(candidate: PlainLines, reference: PlainReference): PlainIssue[] {
-  return PLAIN_LINE_KEYS.flatMap((line): PlainIssue[] => {
+/** 생성한 줄들이 엔진 문장과 같은 사실을 말하는가. 빈 배열이면 채택할 수 있다 */
+export function validateLines<K extends string>(keys: readonly K[], candidate: LineTexts<K>, reference: LineReference<K>): LineIssue<K>[] {
+  return keys.flatMap((line): LineIssue<K>[] => {
     const engineText = reference.lines[line];
     const text = candidate[line];
     if (engineText === undefined) return text === undefined || text.trim() === '' ? [] : [at('extra_line', line, '엔진이 만들지 않은 줄을 새로 썼습니다')];
@@ -114,3 +120,6 @@ export function validatePlainLines(candidate: PlainLines, reference: PlainRefere
     return lineIssues(line, text, reference);
   });
 }
+
+/** 발견사항 쉬운 말 4줄 검증 */
+export const validatePlainLines = (candidate: PlainLines, reference: PlainReference): PlainIssue[] => validateLines(PLAIN_LINE_KEYS, candidate, reference);

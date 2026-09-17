@@ -45,6 +45,21 @@ export async function listRecentRuns(limit: number): Promise<readonly RunHistory
   });
 }
 
+/**
+ * 마지막으로 끝난 분석 실행 시각 (실패한 실행은 빼고, 없으면 null).
+ * 열린 발견사항이 0건일 때 "언제까지 본 결과인가"를 밝히는 데 쓴다.
+ */
+export async function getLastRunFinishedMs(): Promise<number | null> {
+  const row = await db
+    .selectFrom('om.analysis_run')
+    .select('finished_at')
+    .where('status', 'in', ['succeeded', 'partial'])
+    .orderBy('finished_at', 'desc')
+    .limit(1)
+    .executeTakeFirst();
+  return row?.finished_at ? row.finished_at.getTime() : null;
+}
+
 export interface RunSiteOption {
   readonly id: number;
   readonly code: string;

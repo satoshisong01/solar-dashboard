@@ -37,4 +37,9 @@ export const PLAIN_LINE_KEYS = ['what', 'basis', 'outlook', 'nextStep'] as const
 export type PlainLineKey = (typeof PLAIN_LINE_KEYS)[number];
 export type PlainLines = Readonly<Partial<Record<PlainLineKey, string>>>;
 
+/** 분석 데스크 종합 요약 4줄의 키 (lib/desk/digest의 DigestSummary와 같다) */
+export const DIGEST_LINE_KEYS = ['headline', 'breakdown', 'urgency', 'nextStep'] as const;
+export type DigestLineKey = (typeof DIGEST_LINE_KEYS)[number];
+export type DigestLines = Readonly<Partial<Record<DigestLineKey, string>>>;
+
 export const failure = (reason: LlmFailureReason, detail: string): LlmOutcome => ({ ok: false, reason, detail });
