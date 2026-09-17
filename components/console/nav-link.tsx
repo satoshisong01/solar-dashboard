@@ -1,9 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { isActivePath } from './nav-items';
+import { PendingLink } from './pending-link';
 
 type NavLinkProps = Readonly<{ href: string; className: string; children: ReactNode }>;
 
@@ -12,8 +12,8 @@ export function NavLink({ href, className, children }: NavLinkProps) {
   const pathname = usePathname();
 
   return (
-    <Link href={href} className={className} aria-current={isActivePath(pathname, href) ? 'page' : undefined}>
+    <PendingLink href={href} className={className} current={isActivePath(pathname, href)}>
       {children}
-    </Link>
+    </PendingLink>
   );
 }

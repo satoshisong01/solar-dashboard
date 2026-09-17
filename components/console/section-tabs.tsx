@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { PendingLink } from './pending-link';
 
 export interface SectionTab {
   readonly href: string;
@@ -19,9 +19,9 @@ export function SectionTabs({ label, tabs, current }: SectionTabsProps) {
       <ul className="flex gap-2 pb-1">
         {tabs.map((tab) => (
           <li key={tab.href}>
-            <Link href={tab.href} aria-current={tab.href === current ? 'page' : undefined} className={TAB_CLASS}>
+            <PendingLink href={tab.href} current={tab.href === current} className={TAB_CLASS}>
               {tab.label}
-            </Link>
+            </PendingLink>
           </li>
         ))}
       </ul>
