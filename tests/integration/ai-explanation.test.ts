@@ -1,10 +1,13 @@
 // AI 설명 저장·재사용 (hysol_test): 같은 근거면 다시 부르지 않고, 근거가 바뀌면 새로 만든다.
+// 일시적 실패(타임아웃 등)로 되돌아간 틀 문장만 기간이 지나면 한 번 더 부른다.
 // 실제 Gemini API는 부르지 않는다 — 제공자는 가짜다.
 import { sql } from 'kysely';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { plainSummary } from '@/lib/desk/plain';
 import { engineLines } from '@/lib/llm/prompt';
+import { TRANSIENT_RETRY_MS } from '@/lib/llm/retry';
 import { fakeProvider, jsonReply, llmCase } from '@/lib/llm/test-fixtures';
+import { failure } from '@/lib/llm/types';
 import { aiEnabledFor, readAiSettings, setGlobalAiSetting, setSiteAiSetting } from '@/lib/ops/ai-settings';
 import { getOrCreateExplanation, readExplanation, type ExplanationInput } from '@/lib/ops/finding-explanation';
 import { createTestDb } from '../support/ingest-fixture';
@@ -169,5 +172,50 @@ describe('AI 설명 저장·재사용 (hysol_test)', () => {
 
     await setSiteAiSetting(db, { siteId, enabled: null, actor: ADMIN });
     expect(aiEnabledFor(await readAiSettings(db), siteId, false)).toBe(true);
+  });
+
+  /** 저장 시각을 뒤로 밀어 '기간이 지난 행'을 만든다 (시계를 건드리지 않고) */
+  const ageRow = (evidence: string, ms: number) =>
+    db
+      .updateTable('om.finding_explanation')
+      .set({ created_at: new Date(Date.now() - ms) })
+      .where('finding_id', '=', findingId)
+      .where('evidence_id', '=', evidence)
+      .execute();
+
+  it('타임아웃으로 되돌아간 틀 문장은 잠시만 쓰고, 기간이 지나면 다시 부른다', async () => {
+    const evidence = await newEvidence('hash-timeout');
+    const timingOut = fakeProvider(failure('timeout', '제한 시간 안에 응답이 없습니다'));
+
+    const first = await getOrCreateExplanation(db, inputFor(evidence), timingOut);
+    expect(first).toMatchObject({ source: 'template', cached: false, validation: { reason: 'timeout' } });
+
+    // 기간 안에서는 저장된 틀 문장을 그대로 쓴다 — 화면을 열 때마다 부르지 않는다
+    const reused = await getOrCreateExplanation(db, inputFor(evidence), timingOut);
+    expect(reused).toMatchObject({ source: 'template', cached: true });
+    expect(timingOut.requests).toHaveLength(1);
+
+    await ageRow(evidence, TRANSIENT_RETRY_MS + 1_000);
+    const recovered = fakeProvider(jsonReply(REWRITTEN), 'fake-flash');
+    const retried = await getOrCreateExplanation(db, inputFor(evidence), recovered);
+
+    expect(retried).toMatchObject({ source: 'llm', cached: false });
+    expect(recovered.requests).toHaveLength(1);
+    expect(await readExplanation(db, findingId, evidence)).toMatchObject({ source: 'llm', model: 'fake-flash' });
+  });
+
+  it('검증에 걸려 되돌아간 틀 문장은 기간이 지나도 그대로 쓴다', async () => {
+    const evidence = await newEvidence('hash-rejected');
+    const rejected = fakeProvider(jsonReply({ ...LINES, what: `${TEMPLATE.what} 교체 비용은 1,200만 원입니다.` }));
+
+    const first = await getOrCreateExplanation(db, inputFor(evidence), rejected);
+    expect(first).toMatchObject({ source: 'template', validation: { reason: 'rejected' } });
+
+    await ageRow(evidence, TRANSIENT_RETRY_MS * 10);
+    const never = fakeProvider(jsonReply(REWRITTEN));
+    const again = await getOrCreateExplanation(db, inputFor(evidence), never);
+
+    expect(again).toMatchObject({ source: 'template', cached: true });
+    expect(never.requests).toHaveLength(0);
   });
 });

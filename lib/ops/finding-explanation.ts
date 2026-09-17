@@ -1,5 +1,6 @@
 // 발견사항 쉬운 말 설명의 저장·재사용 (om.finding_explanation).
 // 같은 근거(evidence_id)면 저장된 문장을 그대로 쓰고, 근거가 바뀌면(새 evidence_id) 다시 만든다 — 화면을 볼 때마다 모델을 부르지 않는다.
+// 단, 일시적 실패(타임아웃·429·5xx·네트워크)로 되돌아간 틀 문장은 짧은 기간만 쓴다 (lib/llm/retry.ts).
 // AI 설명을 끄거나 키가 없으면 행을 만들지 않는다 (나중에 켜면 그때 만들 수 있게).
 // 'server-only'를 넣지 않는다: integration 테스트에서도 쓴다. 권한 확인은 page·Server Action이 한다.
 import type { Kysely } from 'kysely';
@@ -9,6 +10,7 @@ import { asArray, asBoolean, asRecord, asString } from '@/lib/desk/json-read';
 import type { PlainSummary } from '@/lib/desk/plain';
 import { explainFinding, type ExplainValidation } from '@/lib/llm/explain';
 import { PLAIN_PROMPT_VERSION, type ExplainFinding } from '@/lib/llm/prompt';
+import { canReuseStored } from '@/lib/llm/retry';
 import type { LlmFailureReason, LlmProvider } from '@/lib/llm/types';
 import type { PlainIssue } from '@/lib/llm/validate';
 
@@ -20,6 +22,7 @@ export interface Explanation {
   readonly validation: ExplainValidation;
   /** 저장된 행을 그대로 쓴 것인가 (이번에 만들지 않았다) */
   readonly cached: boolean;
+  readonly createdAtMs: number;
 }
 
 const summaryJson = (summary: PlainSummary) => ({ what: summary.what, basis: summary.basis, outlook: summary.outlook, nextStep: summary.nextStep, hold: summary.hold });
@@ -44,14 +47,14 @@ function parseValidation(raw: unknown): ExplainValidation {
 export async function readExplanation(db: Kysely<DB>, findingId: string, evidenceId: string): Promise<Explanation | null> {
   const row = await db
     .selectFrom('om.finding_explanation')
-    .select(['source', 'model', 'prompt_version', 'text', 'validation'])
+    .select(['source', 'model', 'prompt_version', 'text', 'validation', 'created_at'])
     .where('finding_id', '=', findingId)
     .where('evidence_id', '=', evidenceId)
     .executeTakeFirst();
   if (!row) return null;
   const summary = parseSummary(row.text);
   if (summary === null) return null;
-  return { source: row.source === 'llm' ? 'llm' : 'template', summary, model: row.model, promptVersion: row.prompt_version, validation: parseValidation(row.validation), cached: true };
+  return { source: row.source === 'llm' ? 'llm' : 'template', summary, model: row.model, promptVersion: row.prompt_version, validation: parseValidation(row.validation), cached: true, createdAtMs: row.created_at.getTime() };
 }
 
 export interface ExplanationInput {
@@ -73,18 +76,20 @@ const templateOnly = (summary: PlainSummary, reason: LlmFailureReason, detail: s
   promptVersion: PLAIN_PROMPT_VERSION,
   validation: { ok: false, reason, detail, issues: [] },
   cached: false,
+  createdAtMs: Date.now(),
 });
 
 /**
  * 저장된 문장이 있으면 그것을, 없으면 한 번 만들어 저장한다.
  * regenerate면 저장된 행을 무시하고 다시 만들어 덮어쓴다 ('다시 생성' 버튼).
+ * 일시적 실패로 남은 행은 기간이 지나면 없는 것으로 보고 한 번 더 불러 덮어쓴다.
  */
 export async function getOrCreateExplanation(db: Kysely<DB>, input: ExplanationInput, provider: LlmProvider | null, regenerate = false): Promise<Explanation> {
   if (input.evidenceId === null) return templateOnly(input.template, 'no_evidence', '근거 스냅샷이 없습니다');
-  if (!regenerate) {
-    const stored = await readExplanation(db, input.findingId, input.evidenceId);
-    if (stored) return stored;
-  }
+  const stored = regenerate ? null : await readExplanation(db, input.findingId, input.evidenceId);
+  if (stored && canReuseStored({ source: stored.source, reason: stored.validation.reason, createdAtMs: stored.createdAtMs }, Date.now())) return stored;
+  // 덮어써야 하는가: '다시 생성'이거나, 기간이 지난 일시적 실패 행이 이미 있어 그 자리를 갈아 끼우는 경우
+  const overwrite = regenerate || stored !== null;
   if (!input.enabled) return templateOnly(input.template, 'disabled', 'AI 설명을 쓰지 않는 설정입니다');
   if (provider === null) return templateOnly(input.template, 'no_key', 'GEMINI_API_KEY가 없습니다');
 
@@ -106,7 +111,7 @@ export async function getOrCreateExplanation(db: Kysely<DB>, input: ExplanationI
   await db
     .insertInto('om.finding_explanation')
     .values(values)
-    .onConflict((oc) => (regenerate ? oc.columns(['finding_id', 'evidence_id']).doUpdateSet({ source: values.source, model: values.model, prompt_version: values.prompt_version, text: values.text, validation: values.validation, created_at: values.created_at }) : oc.columns(['finding_id', 'evidence_id']).doNothing()))
+    .onConflict((oc) => (overwrite ? oc.columns(['finding_id', 'evidence_id']).doUpdateSet({ source: values.source, model: values.model, prompt_version: values.prompt_version, text: values.text, validation: values.validation, created_at: values.created_at }) : oc.columns(['finding_id', 'evidence_id']).doNothing()))
     .execute();
-  return { ...result, cached: false };
+  return { ...result, cached: false, createdAtMs: values.created_at.getTime() };
 }

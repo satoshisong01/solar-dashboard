@@ -1,5 +1,6 @@
 // 종합 요약의 저장·재사용 (om.finding_digest).
 // 발견사항 묶음의 지문이 같으면 저장된 문장을 그대로 쓰고, 묶음이 바뀌면 다시 만든다 — 화면을 볼 때마다 모델을 부르지 않는다.
+// 단, 일시적 실패(타임아웃·429·5xx·네트워크)로 되돌아간 틀 문장은 짧은 기간만 쓴다 (lib/llm/retry.ts).
 // AI 설명을 끄거나 키가 없으면 틀 문장을 저장한다 (나중에 켜고 '다시 생성'을 누르면 그때 만든다).
 // 'server-only'를 넣지 않는다: integration 테스트에서도 쓴다. 권한 확인은 page·Server Action이 한다.
 import type { Kysely } from 'kysely';
@@ -9,6 +10,7 @@ import type { DigestStats, DigestSummary } from '@/lib/desk/digest';
 import { asArray, asBoolean, asRecord, asString } from '@/lib/desk/json-read';
 import { explainDigest, type DigestIssue, type DigestValidation } from '@/lib/llm/digest';
 import { DIGEST_PROMPT_VERSION } from '@/lib/llm/digest-prompt';
+import { canReuseStored } from '@/lib/llm/retry';
 import type { DigestLineKey, LlmFailureReason, LlmProvider } from '@/lib/llm/types';
 
 /** 사이트 전체 범위의 scope_key (사이트 코드와 겹치지 않게 대문자 고정값) */
@@ -96,13 +98,14 @@ const templateOnly = (summary: DigestSummary, reason: LlmFailureReason, detail: 
 /**
  * 저장된 문장이 있으면 그것을, 없으면 한 번 만들어 저장한다.
  * regenerate면 저장된 행을 무시하고 다시 만들어 덮어쓴다 ('다시 생성' 버튼).
+ * 일시적 실패로 남은 행은 기간이 지나면 없는 것으로 보고 한 번 더 불러 덮어쓴다.
  */
 export async function getOrCreateDigest(db: Kysely<DB>, input: DigestStoreInput, provider: LlmProvider | null, regenerate = false): Promise<Digest> {
   const findingsHash = digestKeyOf(input.fingerprint, input.template);
-  if (!regenerate) {
-    const stored = await readDigest(db, input.scopeKey, findingsHash);
-    if (stored) return stored;
-  }
+  const stored = regenerate ? null : await readDigest(db, input.scopeKey, findingsHash);
+  if (stored && canReuseStored({ source: stored.source, reason: stored.validation.reason, createdAtMs: stored.createdAtMs }, Date.now())) return stored;
+  // 덮어써야 하는가: '다시 생성'이거나, 기간이 지난 일시적 실패 행이 이미 있어 그 자리를 갈아 끼우는 경우
+  const overwrite = regenerate || stored !== null;
   if (!input.enabled) return templateOnly(input.template, 'disabled', 'AI 설명을 쓰지 않는 설정입니다');
   if (provider === null) return templateOnly(input.template, 'no_key', 'GEMINI_API_KEY가 없습니다');
 
@@ -127,7 +130,7 @@ export async function getOrCreateDigest(db: Kysely<DB>, input: DigestStoreInput,
     .insertInto('om.finding_digest')
     .values(values)
     .onConflict((oc) =>
-      regenerate
+      overwrite
         ? oc.columns(['scope_key', 'findings_hash']).doUpdateSet({ source: values.source, model: values.model, prompt_version: values.prompt_version, text: values.text, validation: values.validation, created_at: values.created_at })
         : oc.columns(['scope_key', 'findings_hash']).doNothing(),
     )

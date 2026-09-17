@@ -14,6 +14,8 @@ import { parseInboxFilter } from '@/lib/desk/inbox';
 import { parseRunScope, unfinishedSiteIds } from '@/lib/desk/run-summary';
 import { errorState, formValues, INVALID_FORM_MESSAGE, successState, type ActionState, type FormValues } from '@/lib/forms/action-state';
 import { parseActionForm, parseDismissForm, parseFindingIds, parseRunForm } from '@/lib/forms/desk';
+import { takeSlot } from '@/lib/forms/throttle';
+import { REGENERATE_MIN_INTERVAL_MS } from '@/lib/llm/retry';
 
 export interface RunResultData {
   readonly runId: string;
@@ -190,10 +192,13 @@ export async function recordMaintenanceAction(prev: ActionState<ActionRecordData
 /**
  * 종합 요약 다시 생성: 저장된 문장을 무시하고 한 번 더 만든다 (검증에 걸리면 틀 문장으로 되돌아간다).
  * 지금 보고 있는 범위(사이트 필터)를 그대로 쓴다 — 화면에 보이는 건수와 문장이 어긋나지 않게.
+ * 저장된 문장을 건너뛰고 늘 모델을 부르므로 같은 사람·같은 범위로는 잠깐 사이에 다시 부르지 못하게 막는다.
  */
 export async function regenerateDigestAction(prev: ActionState, formData: FormData): Promise<ActionState> {
-  await requireAdmin();
+  const { user } = await requireAdmin();
   const { site } = parseInboxFilter({ site: String(formData.get('site') ?? '') });
+  const slot = takeSlot(`digest:${user.id}:${site ?? '*'}`, REGENERATE_MIN_INTERVAL_MS);
+  if (!slot.ok) return errorState(prev, `방금 다시 만들었습니다. ${slot.retryInSec}초 뒤에 다시 시도하세요.`);
   try {
     const { digest } = await buildDeskDigest(await listInboxRows(), site, true);
     revalidatePath('/desk');
