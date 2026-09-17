@@ -31,14 +31,8 @@ export function EmptyNote({ children }: Readonly<{ children: ReactNode }>) {
   return <p className="rounded-md border border-dashed border-rule-strong px-4 py-5 text-center text-sm text-muted">{children}</p>;
 }
 
-/** 표가 좁은 화면에서 페이지 대신 자기 안에서 가로 스크롤되게 한다. relative: 표 안 sr-only(absolute) 요소가 페이지 폭을 넓히지 않게 */
-export function TableScroll({ children, label }: Readonly<{ children: ReactNode; label: string }>) {
-  return (
-    <div role="region" aria-label={label} tabIndex={0} className="relative -mx-4 overflow-x-auto px-4 md:-mx-5 md:px-5">
-      {children}
-    </div>
-  );
-}
+// 표 스크롤 상자는 넘침을 재야 해서 클라이언트 컴포넌트다. 서버 컴포넌트가 계속 이 모듈에서 가져다 쓰도록 여기서 다시 내보낸다.
+export { TableScroll } from './table-scroll';
 
 export const TABLE_CLASS = 'w-full min-w-max border-collapse text-left text-sm';
 export const TH_CLASS = 'border-b border-rule-strong px-3 py-2 text-xs font-medium tracking-wide whitespace-nowrap text-muted first:pl-0 last:pr-0';

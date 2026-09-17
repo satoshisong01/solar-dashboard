@@ -8,7 +8,7 @@ import { ReportStatusBadge, ValidationBadge } from './report-badges';
 export function ReportList({ reports }: Readonly<{ reports: readonly ReportListRow[] }>) {
   if (reports.length === 0) return <EmptyNote>아직 만든 리포트가 없습니다. 위에서 사이트와 기간을 고르고 리포트를 만드세요.</EmptyNote>;
   return (
-    <TableScroll label="리포트 목록 표">
+    <TableScroll label="리포트 목록 표" stickyFirst>
       <table className={TABLE_CLASS}>
         <thead>
           <tr>

@@ -157,6 +157,26 @@
 }
 
 @layer utilities {
+  /* 열이 많은 표: lg 미만에서 첫 열(식별 열)을 얼려 어느 행을 보고 있는지 잃지 않게 한다.
+     행 배경은 :where()로 깔아 두어 강조 행(bg-ok-fill 등)의 클래스가 그대로 이긴다 — 얼린 칸은 그 배경을 물려받는다. */
+  @media (width < 64rem) {
+    :where(.sticky-first-col tr) {
+      background-color: var(--surface);
+    }
+    .sticky-first-col tr > :first-child {
+      position: sticky;
+      left: 1rem;
+      z-index: 1;
+      background-color: inherit;
+      box-shadow: 1px 0 0 var(--rule);
+    }
+  }
+  @media (48rem <= width < 64rem) {
+    .sticky-first-col tr > :first-child {
+      left: 1.25rem;
+    }
+  }
+
   /* 스크롤은 그대로 두고 막대만 숨긴다 (탭 띠처럼 넘침이 보이는 다른 단서가 있는 곳에서만 쓴다) */
   .no-scrollbar {
     scrollbar-width: none;

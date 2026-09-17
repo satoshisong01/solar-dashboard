@@ -23,7 +23,7 @@ export default async function SitesPage() {
         {sites.length === 0 ? (
           <EmptyNote>등록된 사이트가 없습니다</EmptyNote>
         ) : (
-          <TableScroll label="사이트 목록 표">
+          <TableScroll label="사이트 목록 표" stickyFirst>
             <table className={TABLE_CLASS}>
               <thead>
                 <tr>

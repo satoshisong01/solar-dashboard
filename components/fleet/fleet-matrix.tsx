@@ -10,7 +10,7 @@ export function FleetMatrix({ rows }: Readonly<{ rows: readonly FleetRow[] }>) {
   if (rows.length === 0) return <EmptyNote>등록된 사이트가 없습니다</EmptyNote>;
 
   return (
-    <TableScroll label="사이트 × 도메인 상태 매트릭스">
+    <TableScroll label="사이트 × 도메인 상태 매트릭스" stickyFirst>
       <table className={TABLE_CLASS}>
         <thead>
           <tr>

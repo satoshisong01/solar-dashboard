@@ -32,18 +32,23 @@ function BulkResult({ data }: Readonly<{ data: BulkResultData }>) {
   );
 }
 
+// lg 미만에서 행은 카드가 된다: 칸 테두리·안쪽 여백을 거두고 카드 테두리 하나로 묶는다
+const CARD_CELL = 'max-lg:border-0 max-lg:p-0';
+// 머리행이 없는 카드에서만 붙는 값 설명 (표에서는 열 제목이 그 일을 한다)
+const CARD_LABEL = 'font-sans text-xs text-muted lg:hidden';
+
 function FindingCells({ row }: Readonly<{ row: InboxRow }>) {
   const effectText = formatEffectWithCi(row.effect);
   const ci = effectText.ci;
   return (
     <>
-      <td className={TD_CLASS}>
+      <td role="cell" className={`${TD_CLASS} ${CARD_CELL}`}>
         <FindingSeverityChip severity={row.severity} />
         <span className="mt-1 block">
           <ConfidenceBar confidence={row.confidence} />
         </span>
       </td>
-      <td className={`${TD_CLASS} min-w-64 max-w-md`}>
+      <td role="cell" className={`${TD_CLASS} ${CARD_CELL} min-w-64 max-w-md max-lg:w-full max-lg:min-w-0`}>
         <Link href={`/desk/${row.id}`} className="font-medium text-ink hover:underline">
           {row.title}
         </Link>
@@ -59,18 +64,27 @@ function FindingCells({ row }: Readonly<{ row: InboxRow }>) {
           </span>
         )}
       </td>
-      <td className={`${TD_CLASS} whitespace-nowrap`}>
+      <td role="cell" className={`${TD_CLASS} ${CARD_CELL} whitespace-nowrap`}>
+        <span className={CARD_LABEL}>효과 </span>
         <span className="font-mono text-ink tabular-nums">{effectText.value}</span>
         {ci && <span className="block text-xs text-muted">{ci}</span>}
       </td>
-      <td className={TD_CLASS}>
+      <td role="cell" className={`${TD_CLASS} ${CARD_CELL}`}>
         <FindingStatusBadge status={row.status} />
       </td>
-      <td className={`${TD_CLASS} text-xs whitespace-nowrap text-ink-2`}>
+      <td role="cell" className={`${TD_CLASS} ${CARD_CELL} text-xs whitespace-nowrap text-ink-2`}>
+        <span className={CARD_LABEL}>최초 </span>
         {formatKstDateTime(row.firstDetectedMs)}
-        <span className="block">{formatKstDateTime(row.lastDetectedMs)}</span>
+        <span className="block">
+          <span className={CARD_LABEL}>최근 </span>
+          {formatKstDateTime(row.lastDetectedMs)}
+        </span>
       </td>
-      <td className={`${TD_CLASS} ${NUM_CLASS}`}>{row.detectionCount}</td>
+      <td role="cell" className={`${TD_CLASS} ${NUM_CLASS} ${CARD_CELL}`}>
+        <span className={CARD_LABEL}>탐지 </span>
+        {row.detectionCount}
+        <span className={CARD_LABEL}>회</span>
+      </td>
     </>
   );
 }
@@ -114,9 +128,11 @@ function InboxTable({ rows, triage, dismiss, dismissState, pending }: TableProps
           </div>
         </div>
       )}
+      {/* lg 미만에서만 카드 목록으로 바꾼다. DOM은 하나라서 선택 체크박스가 중복 제출되지 않고,
+          display를 바꾸면 사라지는 표 역할은 role로 다시 명시한다 */}
       <TableScroll label="발견사항 인박스 표">
-        <table className={TABLE_CLASS}>
-          <thead>
+        <table role="table" className={`${TABLE_CLASS} max-lg:block max-lg:min-w-0`}>
+          <thead role="rowgroup" className="max-lg:hidden">
             <tr>
               <th scope="col" className={TH_CLASS}>
                 <label className="inline-flex items-center gap-1">
@@ -136,10 +152,14 @@ function InboxTable({ rows, triage, dismiss, dismissState, pending }: TableProps
               <th scope="col" className={`${TH_CLASS} text-right`}>탐지 횟수</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody role="rowgroup" className="max-lg:flex max-lg:flex-col max-lg:gap-3">
             {rows.map((row) => (
-              <tr key={row.id} className={selected.has(row.id) ? 'bg-hydrogen-fill/40' : undefined}>
-                <td className={TD_CLASS}>
+              <tr
+                key={row.id}
+                role="row"
+                className={`max-lg:flex max-lg:flex-wrap max-lg:items-center max-lg:gap-x-3 max-lg:gap-y-1 max-lg:rounded-md max-lg:border max-lg:border-rule max-lg:p-3 ${selected.has(row.id) ? 'bg-hydrogen-fill/40' : ''}`}
+              >
+                <td role="cell" className={`${TD_CLASS} ${CARD_CELL}`}>
                   <input type="checkbox" name="findingId" value={row.id} checked={selected.has(row.id)} onChange={(event) => toggle(row.id, event.target.checked)} aria-label={`선택: ${row.title}`} className="accent-accent" />
                 </td>
                 <FindingCells row={row} />

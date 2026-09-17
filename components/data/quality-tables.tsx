@@ -27,7 +27,7 @@ const percent = (count: number, total: number) => (total > 0 ? `${formatNumber((
 export function PointQualityTable({ rows }: Readonly<{ rows: readonly PointQualityRow[] }>) {
   if (rows.length === 0) return <EmptyNote>조건에 맞는 품질 비트가 있는 포인트가 없습니다</EmptyNote>;
   return (
-    <TableScroll label="포인트별 품질 비트 비율 표">
+    <TableScroll label="포인트별 품질 비트 비율 표" stickyFirst>
       <table className={TABLE_CLASS}>
         <thead>
           <tr>
@@ -63,7 +63,7 @@ export function PointQualityTable({ rows }: Readonly<{ rows: readonly PointQuali
 export function StuckPointTable({ rows }: Readonly<{ rows: readonly StuckPointRow[] }>) {
   if (rows.length === 0) return <EmptyNote>조건에 맞는 고착 의심 포인트가 없습니다</EmptyNote>;
   return (
-    <TableScroll label="고착 의심 포인트 표">
+    <TableScroll label="고착 의심 포인트 표" stickyFirst>
       <table className={TABLE_CLASS}>
         <thead>
           <tr>

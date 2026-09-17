@@ -26,7 +26,7 @@ export default async function AdminSettingsPage() {
         {users.length === 0 ? (
           <EmptyNote>계정이 없습니다</EmptyNote>
         ) : (
-          <TableScroll label="계정 표">
+          <TableScroll label="계정 표" stickyFirst>
             <table className={TABLE_CLASS}>
               <thead>
                 <tr>

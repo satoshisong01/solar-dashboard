@@ -28,7 +28,7 @@ export function UnmappedTable({ tags, nowMs }: Readonly<{ tags: readonly InboxTa
   if (tags.length === 0) return <EmptyNote>매핑되지 않은 수신 태그가 없습니다</EmptyNote>;
 
   return (
-    <TableScroll label="미매핑 태그 표">
+    <TableScroll label="미매핑 태그 표" stickyFirst>
       <table className={TABLE_CLASS}>
         <thead>
           <tr>

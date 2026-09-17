@@ -98,7 +98,7 @@ export default async function SupplySettingsPage({ searchParams }: SupplyPagePro
         {list.rows.length === 0 ? (
           <EmptyNote>반입 기록이 없습니다</EmptyNote>
         ) : (
-          <TableScroll label="반입 기록 표">
+          <TableScroll label="반입 기록 표" stickyFirst>
             <table className={TABLE_CLASS}>
               <thead>
                 <tr>

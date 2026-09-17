@@ -24,7 +24,7 @@ export function GatewayIngestTable({ rows, nowMs }: Readonly<{ rows: readonly Ga
   if (rows.length === 0) return <EmptyNote>등록된 게이트웨이가 없습니다. 설정 › 게이트웨이·키에서 만드세요.</EmptyNote>;
 
   return (
-    <TableScroll label="게이트웨이 수집 상태 표">
+    <TableScroll label="게이트웨이 수집 상태 표" stickyFirst>
       <table className={TABLE_CLASS}>
         <thead>
           <tr>

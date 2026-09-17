@@ -34,7 +34,7 @@ export function ScoreSummary({ badge }: Readonly<{ badge: TrustBadge }>) {
 
 export function DetectorListTable({ rows }: Readonly<{ rows: readonly DetectorListRow[] }>) {
   return (
-    <TableScroll label="탐지기 목록 표">
+    <TableScroll label="탐지기 목록 표" stickyFirst>
       <table className={TABLE_CLASS}>
         <thead>
           <tr>

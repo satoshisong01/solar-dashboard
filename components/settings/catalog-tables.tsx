@@ -14,7 +14,7 @@ function rangeText(min: number | null, max: number | null): string {
 export function MetricDefTable({ rows, highlightKey }: Readonly<{ rows: readonly MetricDefRow[]; highlightKey: string | null }>) {
   if (rows.length === 0) return <EmptyNote>조건에 맞는 메트릭이 없습니다</EmptyNote>;
   return (
-    <TableScroll label="메트릭 정의 표">
+    <TableScroll label="메트릭 정의 표" stickyFirst>
       <table className={TABLE_CLASS}>
         <thead>
           <tr>
@@ -62,7 +62,7 @@ export function MetricDefTable({ rows, highlightKey }: Readonly<{ rows: readonly
 export function AssetClassTable({ rows }: Readonly<{ rows: readonly AssetClassRow[] }>) {
   if (rows.length === 0) return <EmptyNote>등록된 설비 종류가 없습니다</EmptyNote>;
   return (
-    <TableScroll label="설비 종류 표">
+    <TableScroll label="설비 종류 표" stickyFirst>
       <table className={TABLE_CLASS}>
         <thead>
           <tr>

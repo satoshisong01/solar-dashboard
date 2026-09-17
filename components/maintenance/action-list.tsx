@@ -15,7 +15,7 @@ export const progressOf = (row: ActionListRow, nowMs: number): ActionProgress =>
 export function ActionList({ rows, nowMs }: Readonly<{ rows: readonly ActionListRow[]; nowMs: number }>) {
   if (rows.length === 0) return <EmptyNote>기록된 조치가 없습니다. 아래에서 직접 등록하거나 CSV로 가져오세요.</EmptyNote>;
   return (
-    <TableScroll label="조치 목록 표">
+    <TableScroll label="조치 목록 표" stickyFirst>
       <table className={TABLE_CLASS}>
         <thead>
           <tr>
