@@ -58,7 +58,7 @@ export function DismissFields<T>({ state }: Readonly<{ state: ActionState<T> }>)
       {operatingChange && (
         <fieldset className="flex flex-col gap-2 rounded-md border border-rule p-3">
           <legend className="px-1 text-xs font-medium text-ink-2">기준선 재설정</legend>
-          <label className="inline-flex items-start gap-2 text-sm text-ink">
+          <label className="inline-flex items-start gap-2 text-sm text-ink max-lg:min-h-11">
             <input type="checkbox" name="resetBaseline" checked={reset} onChange={(event) => setReset(event.target.checked)} className={`mt-1 ${CHECK_CLASS}`} />
             <span>
               기준선 재설정 이벤트 만들기

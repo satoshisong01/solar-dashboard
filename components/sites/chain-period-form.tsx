@@ -20,7 +20,7 @@ export function ChainPeriodForm({ siteCode, period, maxDay }: Props) {
         <legend className="text-xs font-medium text-ink-2">기간 (KST, 끝난 날까지)</legend>
         <div className="flex flex-wrap gap-x-4 gap-y-2 py-1.5">
           {options.map((option) => (
-            <label key={option.value} className="inline-flex items-center gap-1.5 text-sm text-ink">
+            <label key={option.value} className="inline-flex items-center gap-1.5 text-sm text-ink max-lg:min-h-11">
               <input type="radio" name="chain" value={option.value} checked={choice === option.value} onChange={() => setChoice(option.value)} className={CHECK_CLASS} />
               {option.label}
             </label>

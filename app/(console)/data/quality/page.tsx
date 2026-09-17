@@ -65,7 +65,7 @@ export default async function DataQualityPage({ searchParams }: QualityPageProps
             ))}
           </select>
         </label>
-        <label className="flex items-center gap-2 pb-2 text-sm text-ink-2">
+        <label className="flex items-center gap-2 pb-2 text-sm text-ink-2 max-lg:min-h-11">
           <input type="checkbox" name="zero" value="1" defaultChecked={filters.includeZero} className={CHECK_CLASS} />
           값 0 포함
         </label>

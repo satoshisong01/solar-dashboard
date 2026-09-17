@@ -50,7 +50,7 @@ export function RunPanel({ options, activeRun }: RunPanelProps) {
           <legend className="text-xs font-medium text-ink-2">사이트</legend>
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             {options.sites.map((site) => (
-              <label key={site.id} className="inline-flex items-center gap-1.5 text-sm text-ink">
+              <label key={site.id} className="inline-flex items-center gap-1.5 text-sm text-ink max-lg:min-h-11">
                 <input type="checkbox" name="siteId" value={site.id} checked={siteIds.includes(site.id)} onChange={(event) => toggleSite(site.id, event.target.checked)} className={CHECK_CLASS} />
                 <span className="font-medium">{site.code}</span>
                 <span className="text-xs text-muted">{site.name}</span>
@@ -68,7 +68,7 @@ export function RunPanel({ options, activeRun }: RunPanelProps) {
               <p className="text-sm text-muted">사이트를 먼저 고르세요.</p>
             ) : (
               assets.map((asset) => (
-                <label key={asset.id} className="inline-flex items-center gap-1.5 text-sm text-ink">
+                <label key={asset.id} className="inline-flex items-center gap-1.5 text-sm text-ink max-lg:min-h-11">
                   <input type="checkbox" name="assetId" value={asset.id} className={CHECK_CLASS} />
                   <span className="font-mono text-xs">{options.sites.find((s) => s.id === asset.siteId)?.code}/{asset.code}</span>
                   <span className="text-xs text-muted">{asset.name}</span>
@@ -83,7 +83,7 @@ export function RunPanel({ options, activeRun }: RunPanelProps) {
           <legend className="text-xs font-medium text-ink-2">기간</legend>
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             {PERIOD_OPTIONS.map((option) => (
-              <label key={option.value} className="inline-flex items-center gap-1.5 text-sm text-ink">
+              <label key={option.value} className="inline-flex items-center gap-1.5 text-sm text-ink max-lg:min-h-11">
                 <input type="radio" name="period" value={option.value} checked={period === option.value} onChange={() => setPeriod(option.value)} className={CHECK_CLASS} />
                 {option.label}
               </label>

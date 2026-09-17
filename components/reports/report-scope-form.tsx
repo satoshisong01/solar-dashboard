@@ -45,7 +45,7 @@ export function ReportScopeForm({ sites, defaults }: Props) {
           <legend className="text-xs font-medium text-ink-2">기간</legend>
           <div className="flex flex-wrap gap-x-4 gap-y-2 py-1.5">
             {KINDS.map((option) => (
-              <label key={option.value} className="inline-flex items-center gap-1.5 text-sm text-ink">
+              <label key={option.value} className="inline-flex items-center gap-1.5 text-sm text-ink max-lg:min-h-11">
                 <input type="radio" name="kind" value={option.value} checked={kind === option.value} onChange={() => setKind(option.value)} className={CHECK_CLASS} />
                 {option.label}
               </label>

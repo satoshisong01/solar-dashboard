@@ -6,7 +6,7 @@ export const CONTROL_CLASS =
   'w-full min-h-11 rounded-md border border-rule-strong bg-field px-2.5 py-1.5 text-base text-ink placeholder:text-muted disabled:opacity-60 lg:min-h-0 lg:text-sm aria-[invalid=true]:border-crit';
 
 /** 네이티브 체크박스·라디오. 크기를 안 주면 13px이라 손가락으로 못 누른다 (lg 이상은 브라우저 기본값 그대로) */
-export const CHECK_CLASS = 'size-5 shrink-0 accent-accent lg:size-auto';
+export const CHECK_CLASS = 'size-6 shrink-0 accent-accent lg:size-auto';
 
 const BUTTON_VARIANTS = {
   primary: 'border-transparent bg-accent text-accent-ink hover:bg-accent/90 hover:shadow-glow',

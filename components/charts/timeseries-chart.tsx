@@ -126,13 +126,13 @@ export function TimeseriesChart({ points, initial, events = NO_EVENTS, bands = N
             </span>
           )}
           {bands.length > 0 && (
-            <label className="inline-flex items-center gap-1.5">
+            <label className="inline-flex items-center gap-1.5 max-lg:min-h-11">
               <input type="checkbox" checked={showBands} onChange={(event) => setShowBands(event.target.checked)} className={CHECK_CLASS} />
               {bandLabel} 밴드 {bands.length}건
             </label>
           )}
           {events.length > 0 && (
-            <label className="inline-flex items-center gap-1.5">
+            <label className="inline-flex items-center gap-1.5 max-lg:min-h-11">
               <input type="checkbox" checked={showEvents} onChange={(event) => setShowEvents(event.target.checked)} className={CHECK_CLASS} />
               이벤트 밴드 {events.length}건
             </label>

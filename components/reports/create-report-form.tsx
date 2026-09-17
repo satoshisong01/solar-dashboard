@@ -87,7 +87,7 @@ export function CreateReportForm({ siteId, siteCode, periodLabel, scope, candida
         </TableScroll>
       )}
       {fieldError(state, 'findingId') && <p className="text-xs text-crit">{fieldError(state, 'findingId')}</p>}
-      <label className="inline-flex items-center gap-2 text-sm text-ink">
+      <label className="inline-flex items-center gap-2 text-sm text-ink max-lg:min-h-11">
         <input type="checkbox" name="includeVerifiedActions" defaultChecked className={CHECK_CLASS} />
         기간 안에 계산된 조치 효과 검증 결과 포함
       </label>

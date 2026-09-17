@@ -136,7 +136,7 @@ function InboxTable({ rows, triage, dismiss, dismissState, pending }: TableProps
           <thead role="rowgroup" className="max-lg:hidden">
             <tr>
               <th scope="col" className={TH_CLASS}>
-                <label className="inline-flex items-center gap-1">
+                <label className="inline-flex items-center gap-1 max-lg:min-h-11">
                   <input type="checkbox" checked={allSelected} onChange={(event) => setSelected(new Set(event.target.checked ? rows.map((row) => row.id) : []))} className={CHECK_CLASS} />
                   <span className="sr-only">모두 선택</span>
                 </label>
