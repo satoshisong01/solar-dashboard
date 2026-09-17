@@ -1,22 +1,51 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { AnalysisBusyError, runAnalysis, type AnalysisStatus } from '@/lib/analysis/run';
+import { after } from 'next/server';
+import { findBusyRun } from '@/lib/analysis/lock';
+import { ABANDONED_AFTER_MS, AnalysisBusyError, CONSOLE_TIME_BUDGET_MS, createAnalysisRun, executeAnalysisRun, progressWriter, type AnalysisRequest, type PreparedRun } from '@/lib/analysis/run';
 import { dismissFinding, reopenFinding, registerMaintenanceAction, TransitionError, triageFinding, type TransitionResult } from '@/lib/analysis/transitions';
 import { requireAdmin } from '@/lib/auth/dal';
 import { db } from '@/lib/db/kysely';
 import { verificationMetricsFor } from '@/lib/desk/action-defaults';
-import { summarizeRunStats, type RunSummary } from '@/lib/desk/run-summary';
-import { errorState, formValues, INVALID_FORM_MESSAGE, successState, type ActionState } from '@/lib/forms/action-state';
+import { parseRunScope, unfinishedSiteIds } from '@/lib/desk/run-summary';
+import { errorState, formValues, INVALID_FORM_MESSAGE, successState, type ActionState, type FormValues } from '@/lib/forms/action-state';
 import { parseActionForm, parseDismissForm, parseFindingIds, parseRunForm } from '@/lib/forms/desk';
-
-/** 화면에서 분석을 실행할 때의 시간 예산. 페이지 maxDuration(300초)보다 짧게 둬서 플랫폼이 끊기 전에 스스로 마무리한다 */
-const ACTION_TIME_BUDGET_MS = 4 * 60_000;
 
 export interface RunResultData {
   readonly runId: string;
-  readonly status: AnalysisStatus;
-  readonly summary: RunSummary;
+  readonly startedMs: number;
+}
+
+/** 응답 뒤에 이어서 돈다 (after). 여기서 던진 오류는 받을 곳이 없으므로 실행 행(failed)과 서버 로그에만 남긴다 */
+async function runInBackground(prepared: PreparedRun): Promise<void> {
+  try {
+    await executeAnalysisRun(db, prepared, { timeBudgetMs: CONSOLE_TIME_BUDGET_MS, onProgress: progressWriter(db, prepared.runId) });
+    revalidatePath('/', 'layout'); // 결과가 다른 화면(오늘·조치 추적)에도 반영되게 한다. 이 화면은 진행 표시가 끝을 보고 새로 고친다
+  } catch (error) {
+    // AnalysisBusyError면 실행 행은 이미 failed로 남았다 (화면은 진행 표시로 그 상태를 읽는다)
+    if (!(error instanceof AnalysisBusyError)) console.error('[desk/run] 분석 실행 실패:', error);
+  }
+}
+
+/**
+ * 실행 행만 만들고 곧바로 돌아온다. 계산은 after()가 응답 뒤에 이어서 한다.
+ * 그래야 분석이 도는 동안에도 다른 화면으로 옮길 수 있다 (진행 상황은 /api/desk/run-status로 본다).
+ */
+async function startRun(prev: ActionState<RunResultData>, values: FormValues, request: AnalysisRequest): Promise<ActionState<RunResultData>> {
+  const busy = await findBusyRun(db, request.siteIds, new Date(Date.now() - ABANDONED_AFTER_MS));
+  if (busy) {
+    const sites = await db.selectFrom('om.site').select('code').where('id', 'in', [...busy.siteIds]).orderBy('code').execute();
+    return errorState(prev, `${sites.map((site) => site.code).join(', ')} 사이트는 분석 실행 #${busy.runId}이(가) 진행 중입니다. 끝난 뒤 다시 실행하세요.`, { values });
+  }
+  try {
+    const prepared = await createAnalysisRun(db, request);
+    after(() => runInBackground(prepared));
+    return successState(prev, `분석 실행 #${prepared.runId}을(를) 시작했습니다. 다른 화면으로 옮겨도 계속 진행됩니다.`, { runId: prepared.runId, startedMs: prepared.startedAt.getTime() });
+  } catch (error) {
+    console.error('[desk/run] 분석 실행을 시작하지 못했습니다:', error);
+    return errorState(prev, '분석을 시작하지 못했습니다. 잠시 뒤 다시 시도하세요.', { values });
+  }
 }
 
 /** 분석 실행 (설계 §0: 수동 실행만, 결과는 발견사항으로만 저장하고 리포트는 만들지 않는다) */
@@ -31,19 +60,25 @@ export async function runAnalysisAction(prev: ActionState<RunResultData>, formDa
     const owned = await db.selectFrom('om.asset').select('id').where('id', 'in', [...assetIds]).where('site_id', 'in', [...siteIds]).execute();
     if (owned.length !== assetIds.length) return errorState(prev, INVALID_FORM_MESSAGE, { values, fieldErrors: { assetIds: '고른 사이트의 설비만 선택할 수 있습니다' } });
   }
+  return startRun(prev, values, { siteIds: [...siteIds], assetIds: assetIds ? [...assetIds] : undefined, from, to, requestedBy: session.user.email });
+}
 
-  try {
-    const result = await runAnalysis(db, { siteIds: [...siteIds], assetIds: assetIds ? [...assetIds] : undefined, from, to, requestedBy: session.user.email }, { timeBudgetMs: ACTION_TIME_BUDGET_MS });
-    revalidatePath('/', 'layout');
-    const summary = summarizeRunStats(result.stats);
-    if (result.status === 'failed') return errorState(prev, `분석 실행 #${result.runId}이(가) 실패했습니다: ${result.stats.errors[0]?.message ?? '원인을 알 수 없습니다'}`, { values });
-    const note = result.status === 'partial' ? ' 일부 단계에서 오류가 났거나 시간 예산을 넘었습니다. 실행 이력의 오류를 확인하세요.' : '';
-    return successState(prev, `분석 실행 #${result.runId}을(를) 마쳤습니다.${note}`, { runId: result.runId, status: result.status, summary });
-  } catch (error) {
-    if (error instanceof AnalysisBusyError) return errorState(prev, error.message, { values });
-    console.error('[desk/run] 분석 실행 실패:', error);
-    return errorState(prev, '분석 중 오류가 났습니다. 저장된 결과는 그대로이며 다시 실행할 수 있습니다.', { values });
-  }
+/**
+ * 이어서 실행: 시간 예산을 넘겨 끝내지 못한 사이트만 같은 기간으로 다시 돌린다.
+ * 사이트는 순서대로 도므로 남은 사이트만 돌리면 각 실행이 시간 예산 안에 들어온다.
+ */
+export async function resumeAnalysisAction(prev: ActionState<RunResultData>, formData: FormData): Promise<ActionState<RunResultData>> {
+  const session = await requireAdmin();
+  const runId = String(formData.get('runId') ?? '');
+  if (!/^[1-9]\d{0,17}$/.test(runId)) return errorState(prev, INVALID_FORM_MESSAGE);
+  const run = await db.selectFrom('om.analysis_run').select(['status', 'scope', 'stats']).where('id', '=', runId).executeTakeFirst();
+  if (!run) return errorState(prev, '분석 실행을 찾을 수 없습니다.');
+  if (run.status === 'running') return errorState(prev, `분석 실행 #${runId}이(가) 아직 진행 중입니다.`);
+
+  const scope = parseRunScope(run.scope);
+  const remaining = unfinishedSiteIds(scope, run.stats);
+  if (scope.verifyOnly || remaining.length === 0 || scope.fromMs === null || scope.toMs === null) return errorState(prev, '이어서 실행할 사이트가 없습니다. 실행 이력에서 범위를 확인하세요.');
+  return startRun(prev, {}, { siteIds: [...remaining], assetIds: scope.assetIds ? [...scope.assetIds] : undefined, from: new Date(scope.fromMs), to: new Date(scope.toMs), requestedBy: session.user.email });
 }
 
 export interface BulkResultData {

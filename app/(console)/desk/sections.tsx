@@ -4,7 +4,7 @@ import { RunHistory } from '@/components/desk/run-history';
 import { RunPanel } from '@/components/desk/run-panel';
 import { EmptyNote, Panel } from '@/components/ui/panel';
 import { Skeleton, SkeletonPanel, SkeletonTable } from '@/components/ui/skeleton';
-import { listRecentRuns, type RunFormOptions } from '@/lib/data/analysis-runs';
+import { getActiveRun, listRecentRuns, type RunFormOptions } from '@/lib/data/analysis-runs';
 import { INBOX_LIMIT, listInboxRows } from '@/lib/data/findings';
 import { firstParam, type SearchParamValue } from '@/lib/data/range';
 import { applyInboxFilter, DEFAULT_INBOX_FILTER, parseInboxFilter, sortInbox } from '@/lib/desk/inbox';
@@ -18,8 +18,9 @@ import { applyInboxFilter, DEFAULT_INBOX_FILTER, parseInboxFilter, sortInbox } f
 export const RUN_HISTORY_LIMIT = 10;
 
 export async function RunSection({ options }: Readonly<{ options: Promise<RunFormOptions> }>) {
-  const resolved = await options;
-  return resolved.sites.length === 0 ? <EmptyNote>등록된 사이트가 없습니다</EmptyNote> : <RunPanel options={resolved} />;
+  // 진행 중인 실행이 있으면 함께 넘긴다: 실행 중에 화면을 떠났다 돌아와도 진행 표시가 이어진다
+  const [resolved, activeRun] = await Promise.all([options, getActiveRun()]);
+  return resolved.sites.length === 0 ? <EmptyNote>등록된 사이트가 없습니다</EmptyNote> : <RunPanel options={resolved} activeRun={activeRun} />;
 }
 
 export function RunSkeleton() {

@@ -9,7 +9,7 @@ const panel = (page: Page, title: string) => page.locator('section', { has: page
 /** 기술 근거는 기본으로 접혀 있다 */
 const openDetails = (page: Page) => page.locator('summary', { hasText: '자세히 보기' }).click();
 
-test('분석 데스크: SIM-B 최근 30일 분석 실행 → 결과 요약·실행 이력 → 인박스 또는 빈 상태 → 워크스페이스', async ({ page }) => {
+test('분석 데스크: SIM-B 최근 30일 분석 실행 → 바로 응답하고 다른 메뉴로 이동 → 결과 요약·실행 이력 → 인박스 또는 빈 상태 → 워크스페이스', async ({ page }) => {
   test.slow(); // 분석 실행은 롤업·에피소드 추출·탐지를 모두 한다
   await page.goto('/desk');
   const run = panel(page, '분석 실행');
@@ -18,16 +18,36 @@ test('분석 데스크: SIM-B 최근 30일 분석 실행 → 결과 요약·실�
   await expect(run.getByRole('checkbox', { name: new RegExp(E2E_INGEST_SITE) })).toBeChecked();
   await expect(run.getByRole('radio', { name: '최근 30일' })).toBeChecked();
 
+  // 분석 실행은 실행 행만 만들고 곧바로 응답한다 (계산은 서버가 응답 뒤에 잇는다)
+  const posted = page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes('/desk'));
+  const clickedAt = Date.now();
   await run.getByRole('button', { name: '분석 실행' }).click();
-  await expect(run.getByRole('button', { name: '분석 중…' })).toBeDisabled();
-  await expect(run.getByRole('status').filter({ hasText: '마쳤습니다' })).toBeVisible({ timeout: 180_000 });
-  await expect(run.getByText('판정 불가 탐지기')).toBeVisible();
+  await posted;
+  expect(Date.now() - clickedAt).toBeLessThan(3_000);
+  await expect(run.getByRole('status').filter({ hasText: '시작했습니다' })).toBeVisible();
+  await expect(run.getByRole('status').filter({ hasText: '진행 중' })).toBeVisible();
+  // 중복 실행 차단: 진행 중에는 다시 실행할 수 없다
+  await expect(run.getByRole('button', { name: '분석 실행' })).toBeDisabled();
   // 실행 뒤에도 고른 사이트·기간이 그대로다 (폼 초기화로 화면과 어긋나지 않음)
   await expect(run.getByRole('checkbox', { name: /SIM-A/ })).not.toBeChecked();
 
+  // 실행 중에도 다른 메뉴로 옮길 수 있고, 계산은 뒤에서 계속된다
+  await page.getByRole('navigation', { name: '주 메뉴' }).getByRole('link', { name: '플릿' }).click();
+  await expect(page).toHaveURL(/\/fleet$/);
+  await page.goto('/desk');
+
+  // 돌아오면 진행 표시가 이어지고, 끝나면 그 자리가 결과 요약으로 바뀐다 (이미 끝났으면 실행 이력으로 확인한다)
+  const back = panel(page, '분석 실행');
+  await expect(back.getByRole('button', { name: '분석 실행' })).toBeVisible();
+  const status = back.getByRole('status').filter({ hasText: /진행 중|완료|일부 완료/ });
+  if ((await status.count()) > 0) {
+    await expect(back.getByRole('status').filter({ hasText: /완료|일부 완료/ })).toBeVisible({ timeout: 180_000 });
+    await expect(back.getByText('판정 불가 탐지기')).toBeVisible();
+  }
+
   const history = page.getByRole('region', { name: '최근 분석 실행 표' });
   await expect(history.locator('tbody tr').first()).toContainText(E2E_INGEST_SITE);
-  await expect(history.locator('tbody tr').first()).toContainText(/완료|일부 완료/);
+  await expect(history.locator('tbody tr').first()).toContainText(/완료|일부 완료/, { timeout: 180_000 });
 
   await page.goto('/desk?status=all');
   const inbox = panel(page, '발견사항 인박스');

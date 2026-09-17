@@ -1,7 +1,8 @@
 import 'server-only';
+import { ABANDONED_AFTER_MS } from '@/lib/analysis/run';
 import { EXTRACTABLE_CLASSES } from '@/lib/analytics/pipeline/sources';
 import { db } from '@/lib/db/kysely';
-import { parseRunScope, summarizeRunStats, type RunSummary } from '@/lib/desk/run-summary';
+import { parseRunProgress, parseRunScope, runProgressText, summarizeRunStats, unfinishedSiteIds, type RunSummary } from '@/lib/desk/run-summary';
 
 export interface RunHistoryRow {
   readonly id: string;
@@ -73,4 +74,70 @@ export async function getRunFormOptions(): Promise<RunFormOptions> {
     sites: sites.map((s) => ({ id: s.id, code: s.code, name: s.name })),
     assets: assets.map((a) => ({ id: a.id, siteId: a.site_id, code: a.code, name: a.name, classKey: a.class_key })),
   };
+}
+
+/** 분석 데스크 진행 표시가 읽는 실행 하나의 상태 */
+export interface RunStatusView {
+  readonly id: string;
+  readonly status: string;
+  readonly startedMs: number;
+  readonly finishedMs: number | null;
+  readonly siteCodes: readonly string[];
+  /** 실행 중일 때의 현재 위치: 'SIM-B (2/4) · 탐지' */
+  readonly progressText: string;
+  readonly summary: RunSummary;
+  readonly error: string | null;
+  /** '이어서 실행'으로 다시 돌릴 사이트. 시간 예산을 넘긴 partial일 때만 채운다 */
+  readonly resumeSiteCodes: readonly string[];
+}
+
+const RUN_STATUS_COLUMNS = ['id', 'status', 'started_at', 'finished_at', 'scope', 'stats', 'error'] as const;
+
+type RunStatusRow = Readonly<{ id: string; status: string; started_at: Date; finished_at: Date | null; scope: unknown; stats: unknown; error: string | null }>;
+
+async function statusView(run: RunStatusRow): Promise<RunStatusView> {
+  const scope = parseRunScope(run.scope);
+  const unfinished = run.status === 'partial' && !scope.verifyOnly ? unfinishedSiteIds(scope, run.stats) : [];
+  const ids = [...new Set(scope.siteIds)];
+  const sites = ids.length === 0 ? [] : await db.selectFrom('om.site').select(['id', 'code']).where('id', 'in', ids).execute();
+  const codeOf = new Map(sites.map((site) => [site.id, site.code]));
+  const label = (id: number) => codeOf.get(id) ?? `#${id}`;
+  return {
+    id: run.id,
+    status: run.status,
+    startedMs: run.started_at.getTime(),
+    finishedMs: run.finished_at === null ? null : run.finished_at.getTime(),
+    siteCodes: scope.siteIds.map(label),
+    progressText: runProgressText(parseRunProgress(run.stats)),
+    summary: summarizeRunStats(run.stats),
+    error: run.error,
+    resumeSiteCodes: unfinished.map(label),
+  };
+}
+
+/**
+ * 화면을 열 때의 진행 표시: 아직 도는 중인 실행이 있으면 그것, 없으면 null.
+ * 중단돼 running으로 남은 오래된 행(프로세스가 죽은 경우)은 진행 중으로 보이지 않게 뺀다.
+ */
+export async function getActiveRun(): Promise<RunStatusView | null> {
+  const run = await db
+    .selectFrom('om.analysis_run')
+    .select([...RUN_STATUS_COLUMNS])
+    .where('status', '=', 'running')
+    .where('started_at', '>=', new Date(Date.now() - ABANDONED_AFTER_MS))
+    .orderBy('started_at', 'desc')
+    .orderBy('id', 'desc')
+    .limit(1)
+    .executeTakeFirst();
+  return run ? statusView(run) : null;
+}
+
+/** 진행 표시 폴링(/api/desk/run-status)이 읽는 실행 하나 */
+export async function getRunStatus(runId: string): Promise<RunStatusView | null> {
+  const run = await db
+    .selectFrom('om.analysis_run')
+    .select([...RUN_STATUS_COLUMNS])
+    .where('id', '=', runId)
+    .executeTakeFirst();
+  return run ? statusView(run) : null;
 }

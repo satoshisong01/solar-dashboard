@@ -27,7 +27,8 @@ async function runChainAnalysis(page: Page): Promise<Locator> {
   await run.getByLabel('시작 (KST)').fill(P3_INPUTS.run.from);
   await run.getByLabel(/^끝 \(KST/).fill(P3_INPUTS.run.to);
   await run.getByRole('button', { name: '분석 실행' }).click();
-  await expect(run.getByRole('status').filter({ hasText: '마쳤습니다' })).toBeVisible({ timeout: RUN_TIMEOUT_MS });
+  // 실행 버튼은 바로 응답하고 계산은 서버가 응답 뒤에 잇는다: 끝나면 진행 표시가 결과 요약으로 바뀐다
+  await expect(run.getByRole('status').filter({ hasText: /완료|일부 완료/ })).toBeVisible({ timeout: RUN_TIMEOUT_MS });
   return run;
 }
 
