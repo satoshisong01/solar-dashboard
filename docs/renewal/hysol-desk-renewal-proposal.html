@@ -553,12 +553,12 @@ html { scroll-behavior: smooth; }
     <section id="screens" aria-labelledby="screens-h">
       <p class="eyebrow">정보 구조</p>
       <h2 id="screens-h">화면 구성</h2>
-      <p class="section-intro">기존 4개 탭(지도 관제·발전 효율·예지 보전·수익 관리)은 아래 구조로 흡수됩니다. 지도는 플릿 화면으로, 수익은 오늘 화면의 요약 위젯으로 갑니다.</p>
+      <p class="section-intro">기존 4개 탭(지도 관제·발전 효율·예지 보전·수익 관리)은 아래 구조로 흡수됩니다. 지도는 플릿 화면으로, 수익은 대시보드 화면의 요약 위젯으로 갑니다.</p>
       <div class="table-wrap">
         <table>
           <thead><tr><th>메뉴</th><th>하는 일</th><th>핵심 요소</th><th>단계</th></tr></thead>
           <tbody>
-            <tr><td class="menu">오늘<br><span class="route">/</span></td><td class="w">출근 후 5분 안에 할 일과 밤사이 변화 파악</td><td class="w">안전 배너 · 할 일 카운터 · 신규·악화 발견사항 Top 10 · 끊긴 게이트웨이 · 수익 요약</td><td><span class="chip p2">P1–P2</span></td></tr>
+            <tr><td class="menu">대시보드<br><span class="route">/</span></td><td class="w">출근 후 5분 안에 할 일과 밤사이 변화 파악</td><td class="w">안전 배너 · 할 일 카운터 · 신규·악화 발견사항 Top 10 · 끊긴 게이트웨이 · 수익 요약</td><td><span class="chip p2">P1–P2</span></td></tr>
             <tr><td class="menu">플릿<br><span class="route">/fleet</span></td><td class="w">여러 사이트를 도메인별 건강 상태로 관망</td><td class="w">사이트 × 도메인(PV·ESS·전해조·저장·연료전지·데이터품질) 매트릭스 · Kakao 지도</td><td><span class="chip p1">P1</span></td></tr>
             <tr><td class="menu">사이트<br><span class="route">/sites/[code]</span></td><td class="w">사이트 맥락: 설비 트리·KPI·타임라인·체인</td><td class="w">자산 트리 + 발견사항 배지 · KPI 카드 · 이벤트 타임라인 · 체인 Sankey(P3)</td><td><span class="chip p1">P1</span> <span class="chip p3">P3</span></td></tr>
             <tr><td class="menu">자산 상세<br><span class="route">…/assets/[id]</span></td><td class="w">부품 단위 원시 시계열과 같은 조건 비교</td><td class="w">다중축 시계열 + 에피소드 밴드 · 에피소드 표 · 비교 카드 · 명판·포인트</td><td><span class="chip p1">P1–P2</span></td></tr>
@@ -696,7 +696,7 @@ html { scroll-behavior: smooth; }
         </div>
         <div class="phase">
           <span class="pid">P1</span>
-          <div><h3>수집 원장 + 시뮬레이터</h3><p class="goal">수집 API, 카탈로그 시드, 월 파티션 저장·시간 롤업, 고장 주입 시뮬레이터 3개 사이트, 오늘·플릿·사이트·자산·탐색기·안전·데이터 화면</p></div>
+          <div><h3>수집 원장 + 시뮬레이터</h3><p class="goal">수집 API, 카탈로그 시드, 월 파티션 저장·시간 롤업, 고장 주입 시뮬레이터 3개 사이트, 대시보드·플릿·사이트·자산·탐색기·안전·데이터 화면</p></div>
           <p class="exit"><span class="exit-label">완료 기준</span>30일 × 3사이트를 중복·단절·백필 포함으로 적재해도 행 수 정확 일치 · 매핑 후 재처리로 과거 표시</p>
           <div class="who"><span class="chip claude">Claude</span></div>
         </div>

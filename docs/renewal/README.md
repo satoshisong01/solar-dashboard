@@ -8,7 +8,7 @@
 | 문서 | 내용 |
 |---|---|
 | 이 문서 | 최종 설계 (구현 기준) |
-| [hysol-desk-renewal-proposal.html](hysol-desk-renewal-proposal.html) · [.pdf](hysol-desk-renewal-proposal.pdf) | 검토용 제안서 (시각 요약본) |
+| [hysol-desk-renewal-proposal.html](hysol-desk-renewal-proposal.html) · [.pdf](hysol-desk-renewal-proposal.pdf) | 검토용 제안서 (시각 요약본). PDF는 2026-09-16 출력본이라 그 뒤 HTML 수정(첫 화면 이름)은 들어 있지 않다 — 최신 내용은 HTML을 본다 |
 | [data-contract-draft.md](data-contract-draft.md) | 설비별 수집 메트릭 초안 (must 106 · should 89 · nice 29) |
 | [research/](research/) | 도메인·아키텍처·기술스택 리서치 원본 (JSON/MD, 출처 URL 포함) |
 | [concepts/](concepts/) | 종합 전 독립 설계안 3건 (분석가 업무 흐름 / 데이터 플랫폼 / 실용 MVP) |
@@ -26,7 +26,7 @@
 | 롤업 | 크론 대신 수집 직후 `after()`에서 dirty 시간 버킷을 처리하고, 분석 실행 시작 시 남은 dirty를 먼저 처리 | §5.3 |
 | 리포트 | **분석과 출력 분리.** 분석이 리포트·파일을 자동으로 만들지 않음. 관리자가 "리포트 만들기" 버튼으로 초안 생성 → 검토 → "PDF 출력" 버튼. **메일 발송 기능 없음**, 전달은 사용자가 별도로 | §4 코칭 리포트 행, §5.3 월요일 리포트 |
 | 로그인 | 이메일+비밀번호(가입 비활성, 운영자가 계정 발급) | — |
-| 수익 위젯 | SMP·REC 수기 입력 + CSV 업로드 | §4 오늘 |
+| 수익 위젯 | SMP·REC 수기 입력 + CSV 업로드 | §4 대시보드 |
 | 정비 이력 | 콘솔에서 직접 기록 + CSV 가져오기 | §4 조치 추적 |
 | 수소 사양 기준 | PEM 전해조 + PEM 연료전지(순수소). 실제 사양이 오면 파라미터만 교체 | §5.5 |
 | 사이트 | 실제 운영 중인 태양광·수소 사이트 없음, 기존 데이터는 전부 목데이터 → **가상 사이트 3곳**(SIM-A 태양광+ESS / SIM-B 연계형 / SIM-C 고장 없는 대조군). 기존 `solar_*` 테이블은 이관하지 않음 | §5.5, §11 |
@@ -90,7 +90,7 @@
 
 | 메뉴 | 라우트 | 목적 | 핵심 위젯 | 단계 |
 |---|---|---|---|---|
-| 오늘 | `/` | 출근 후 5분 안에 할 일과 밤사이 변화 파악 | 안전 배너(ack 전 고정) · 할 일 카운터(새 finding / 조사 중 / 리포트 승인 대기 / 검증 결과 도착) · 신규·악화 finding Top 10 · 데이터 공백(끊긴 게이트웨이, 미매핑 태그) · 수익 요약 위젯 | P1 골격, P2 완성 |
+| 대시보드 | `/` | 출근 후 5분 안에 할 일과 밤사이 변화 파악 | 안전 배너(ack 전 고정) · 할 일 카운터(새 finding / 조사 중 / 리포트 승인 대기 / 검증 결과 도착) · 신규·악화 finding Top 10 · 데이터 공백(끊긴 게이트웨이, 미매핑 태그) · 수익 요약 위젯 | P1 골격, P2 완성 |
 | 플릿 | `/fleet` | 여러 사이트를 도메인별 건강 상태로 관망 | 사이트 × 도메인(PV / ESS / 전해조 / 저장 / 연료전지 / 데이터품질) 히트 매트릭스 · Kakao 지도 토글(상태·날씨 마커) | P1 |
 | 사이트 | `/sites/[siteCode]` | 사이트 맥락: 설비 트리, KPI, 타임라인, 에너지·수소 체인 | 자산 트리 + finding 배지 · KPI 카드(PR, ESS 왕복효율, 전해조 kWh/kg, 연료전지 kg/MWh, 가용률) · 이벤트 타임라인 · 체인 Sankey + 물질수지 잔차(P3) | P1, P3 |
 | 자산 상세 | `/sites/[siteCode]/assets/[assetId]` | 부품 단위 원시·롤업 시계열과 같은 조건 비교 | ECharts 다중축 시계열 + 에피소드/출력제어/DQ 밴드 · 에피소드 표 · 같은 조건 비교 카드 · 명판·포인트 매핑 · finding·조치 이력 | P1, P2 |
@@ -276,7 +276,7 @@ app/
   layout.tsx
   (auth)/login/
   (console)/layout.tsx           셸(사이드바·상단바)
-  (console)/page.tsx             오늘
+  (console)/page.tsx             대시보드
   (console)/fleet/ sites/ explore/ desk/ reports/ actions/ safety/ data/ settings/ sim/
   api/ingest/v1/  api/cron/{tick,daily}/  api/auth/[...all]/  api/series/
 proxy.ts
@@ -377,7 +377,8 @@ P0~P3는 아래 답 없이 기본값으로 진행할 수 있다.
 
 | 항목 | 설계 원문 요지 | 실제 구현 | 이유 | 관련 파일 · 커밋 |
 |---|---|---|---|---|
-| 분석 실행 | §5.3 tick/daily 크론, `job_lease`·`watermark`·`job_run`, `CRON_SECRET`, `npm run jobs:tick`·`jobs:daily`. §6 Vercel 크론 2개 | **수동 실행만 있다.** 크론 라우트, 잡 스크립트, 잡 테이블은 만들지 않았다. 설계의 파이프라인 함수를 관리자가 `/desk`의 "분석 실행"이나 `npm run analyze`로 돌린다.<br>· 실행 기록: `om.analysis_run`(running·succeeded·failed·partial)<br>· 동시 실행 방지: 사이트별 `pg_try_advisory_xact_lock`<br>· 시간 예산: 실행기 기본 15분, `/desk` 버튼 실행은 10분. 넘으면 partial<br>· 에피소드 재처리 겹침: 6시간<br>· 중단 실행 정리: 잠금을 잡은 뒤 자기 사이트의 running 행 중 `started_at < now − 예산×2`인 것만 failed로 바꾼다<br>· 단계 순서: dirty 롤업 → 추출 → 일 KPI → 보조 입력 → 탐지 → 체인 원장 → finding → 조치 효과 검증. `pv.soiling_rate`는 원장보다 먼저, 물질수지는 원장 뒤에 실행한다 | §0 확정 결정(분석은 수동 실행만) | `lib/analysis/run.ts`, `lib/analysis/site-run.ts`, `lib/analysis/lock.ts`, `scripts/analyze.ts`, `db/migrations/20260914150340633_om-analysis-coaching.sql` · `4165ab0`, `7510d02`, `4f4a0b7`, `500caab`, `8a5c4d4` |
+| 분석 실행 | §5.3 tick/daily 크론, `job_lease`·`watermark`·`job_run`, `CRON_SECRET`, `npm run jobs:tick`·`jobs:daily`. §6 Vercel 크론 2개 | **수동 실행만 있다.** 크론 라우트, 잡 스크립트, 잡 테이블은 만들지 않았다. 설계의 파이프라인 함수를 관리자가 `/desk`의 "분석 실행"이나 `npm run analyze`로 돌린다.<br>· 실행 기록: `om.analysis_run`(running·succeeded·failed·partial)<br>· 동시 실행 방지: 사이트별 `pg_try_advisory_xact_lock`<br>· 시간 예산: 실행기 기본 15분, `/desk` 버튼 실행은 4분(페이지 `maxDuration` 300초보다 짧게 둔다). 넘으면 partial<br>· `/desk` 버튼은 실행 행만 만들고 돌아오며 계산은 응답 뒤 `after()`가 이어서 한다(화면은 `/api/desk/run-status`로 진행을 읽는다). `npm run analyze`와 통합 테스트는 `runAnalysis`로 끝까지 기다린다<br>· 에피소드 재처리 겹침: 6시간<br>· 중단 실행 정리: 잠금을 잡은 뒤 자기 사이트의 running 행 중 `started_at < now − 예산×2`인 것만 failed로 바꾼다<br>· 단계 순서: dirty 롤업 → 추출 → 일 KPI → 보조 입력 → 탐지 → 체인 원장 → finding → 조치 효과 검증. `pv.soiling_rate`는 원장보다 먼저, 물질수지는 원장 뒤에 실행한다 | §0 확정 결정(분석은 수동 실행만) | `lib/analysis/run.ts`, `lib/analysis/site-run.ts`, `lib/analysis/lock.ts`, `scripts/analyze.ts`, `db/migrations/20260914150340633_om-analysis-coaching.sql` · `4165ab0`, `7510d02`, `4f4a0b7`, `500caab`, `8a5c4d4` |
+| 첫 화면 이름 | §4 IA 표의 첫 행은 '오늘'(`/`) | 화면 이름은 **대시보드**다. 경로(`/`)와 위젯 구성은 그대로이고 사이드바·모바일 탭·상단 바·페이지 제목·브라우저 탭 제목만 바꿨다. 화면 안의 '오늘'(오늘 발전량·오늘 KPI 등 날짜를 뜻하는 말)은 그대로다. §4 표와 §7 디렉터리, 제안서 IA 표도 이 이름으로 맞췄고, §8 로드맵과 §13의 지난 기록에 남은 '오늘 화면'은 이 화면을 가리킨다 | 메뉴에 '오늘'만 적혀 있으면 무엇을 보는 곳인지 읽히지 않는다 | `components/console/nav-items.ts`, `app/(console)/(today)/page.tsx` · `8eb78bc` |
 | 리포트 상태·전달 | §5.2 `report.status`(draft·reviewed·published·superseded)와 `report_delivery`(채널·수신자·일시). §4 "전달 기록". §5.3 월요일 자동 초안 | 상태는 **draft·approved·superseded** 세 가지다.<br>· 사이트·기간당 approved는 1개(부분 유니크)다.<br>· 승인하면 포함된 finding이 `in_report`가 되고, 같은 기간의 이전 리포트는 superseded가 된다.<br>· `report_delivery` 테이블과 메일 발송은 없다. 출력은 인쇄 화면(`/reports/[id]/print`)에서 브라우저 PDF로 저장한다.<br>· 초안은 "리포트 만들기" 버튼으로만 만든다. 팩이 같으면 기존 행을 쓴다.<br>· 엔진 `report-planner@3`, 문장 템플릿 `report-messages@2`, composer `templateComposer@1`. @3에서 조치 효과 검증 근거에 표본 방식(`method`·`methodLabel`)을 넣었다(방식이 여럿인 용량 지표만 문장에 밝힌다). 저장된 팩은 그대로라 기존 리포트 재검증은 영향이 없다 | §0 확정 결정(분석과 출력 분리, 메일 없음) | `db/migrations/20260914150340633_om-analysis-coaching.sql`, `lib/report/`, `app/(console)/reports/` · `2a4e8f5`, `889728a`, `5076ccc`, `c4ae998` |
 | 조치 효과 검증 표본 방식 | §3.1 조치 → 효과 검증(같은 조건 전후 비교) | `matched_before_after@1`은 지표마다 **표본 방식**을 가진다. 지표 대부분은 '에피소드 하나 = 표본 하나'(`episode`) 하나뿐이고, 용량(`ess.capacity_ah`)만 탐지기와 같은 우선순위(앵커 > 휴지 앵커 > CC > SOC 변화)로 여러 방식을 쓴다.<br>· 앞에서부터 전·후 창 모두 bin당 3개·합계 5개를 채우는 첫 방식을 골라 **그 방식으로만** 비교한다.<br>· 어느 방식도 양쪽을 못 채우면 `insufficient_data`이고, 방식별 표본 수를 `before_stats.methods`에 남긴다.<br>· 쓴 방식은 `before_stats`·`after_stats.method`와 리포트 팩(`method`·`methodLabel`)에 남고, 방식이 여럿인 지표만 리포트 문장에 "표본 방식: 휴지 앵커."로 붙는다.<br>· 표본 규칙(bin 폭·완결성·휴지 앵커 조건)은 탐지기 기본 파라미터와 `CAPACITY_SAMPLE_RULE_DEFAULTS` 한 곳을 공유한다 | 충전 세션 방식만 쓰면 만충 앵커가 드문 연계형·부분 사이클 사이트에서 표본 0으로 끝났다. 전은 앵커·후는 CC처럼 방식이 섞이면 방식 차이(예: 앵커 380 Ah vs CC 396 Ah)가 조치 효과로 보인다 | `lib/analytics/verification/before-after.ts`, `lib/analytics/detectors/ess-capacity-samples.ts`, `lib/analysis/verification.ts`, `tests/integration/verification-partial-cycle.test.ts` |
 | 사이트 단위 finding | §5.2 dedup_key(탐지기·자산·고장모드) | `h2chain.mass_balance_gap`과 `pv.soiling_rate`는 finding을 사이트 단위로 남긴다. `asset_id`는 NULL이고 dedup_key의 설비 자리에 `site:<id>`가 들어간다. 워크스페이스에서는 사이트 단위 finding의 조치를 직접 기록하지 않고 안내만 한다(세척은 조치 추적에서 설비로 기록) | 두 탐지기는 사이트 전체의 일 원장·인버터 전체를 한 번에 판정한다 | `lib/analysis/findings.ts`, `lib/analytics/pipeline/targets.ts` · `8a5c4d4`, `1eb6292` |
