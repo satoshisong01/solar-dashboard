@@ -1,5 +1,7 @@
 // 용어집 (/help). 콘솔과 리포트에 남아 있는 전문 용어를 비유와 예시로 푼다. 순수 모듈 (서버·클라이언트 공용).
 // id는 화면 곳곳의 물음표 아이콘이 가리키는 앵커다 (/help#<id>). 한 번 쓴 id는 바꾸지 않는다.
+// 탐지기 수처럼 코드에서 바로 셀 수 있는 값은 레지스트리에서 뽑아 쓴다 (손으로 적으면 늘어날 때마다 어긋난다).
+import { DETECTORS } from '@/lib/analytics/detectors';
 
 export interface GlossaryTerm {
   readonly id: string;
@@ -21,7 +23,7 @@ export const GLOSSARY: readonly GlossaryTerm[] = [
   {
     id: 'detector',
     term: '탐지기',
-    plain: '한 가지 고장 방식만 찾도록 만든 계산 규칙입니다. 이 콘솔에는 14가지가 있습니다.',
+    plain: `한 가지 고장 방식만 찾도록 만든 계산 규칙입니다. 이 콘솔에는 ${DETECTORS.length}가지가 있습니다.`,
     example: '연기 감지기와 누수 감지기가 따로 있는 것과 같습니다. 배터리 용량을 보는 규칙과 수소가 새는지 보는 규칙은 다릅니다.',
   },
   {

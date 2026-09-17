@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated_at": "2026-09-16",
+  "generated_at": "2026-09-17",
   "mode": "memory",
   "preset": {
     "from": "2025-10-01T00:00:00+09:00",
@@ -170,8 +170,8 @@
       }
     }
   },
-  "jobs": 84,
-  "elapsed_s": 454.5,
+  "jobs": 105,
+  "elapsed_s": 1402,
   "reduced_runs": {
     "runs": [
       3,
@@ -196,7 +196,7 @@
       "fn": 6,
       "recall": 0.8,
       "precision": 1,
-      "asset_months": 2457.8,
+      "asset_months": 3387.7,
       "fp_per_asset_month": 0,
       "median_delay_days": 19.5,
       "magnitude_mae": 0.079,
@@ -353,6 +353,14 @@
           "insufficient_ratio": 0,
           "summer_insufficient_ratio": 0,
           "summer_longest_insufficient_days": 0
+        },
+        {
+          "site": "SIM-D",
+          "checkpoints": 4200,
+          "insufficient": 0,
+          "insufficient_ratio": 0,
+          "summer_insufficient_ratio": 0,
+          "summer_longest_insufficient_days": 0
         }
       ],
       "soc_limit_control": {
@@ -371,7 +379,7 @@
       "fn": 0,
       "recall": 1,
       "precision": 1,
-      "asset_months": 2457.8,
+      "asset_months": 3387.7,
       "fp_per_asset_month": 0,
       "median_delay_days": 74,
       "magnitude_mae": null,
@@ -412,7 +420,7 @@
       "fn": 6,
       "recall": 0.5,
       "precision": 1,
-      "asset_months": 3719.8,
+      "asset_months": 4417.3,
       "fp_per_asset_month": 0,
       "median_delay_days": 5,
       "magnitude_mae": 0.065,
@@ -457,12 +465,12 @@
       "detector": "el.voltage_rise@1",
       "unit": "µV/h",
       "tp": 9,
-      "fp": 0,
+      "fp": 19,
       "fn": 3,
       "recall": 0.75,
-      "precision": 1,
-      "asset_months": 631,
-      "fp_per_asset_month": 0,
+      "precision": 0.321,
+      "asset_months": 863.5,
+      "fp_per_asset_month": 0.022,
       "median_delay_days": 37,
       "magnitude_mae": 0.104,
       "min_detectable_magnitude": 10,
@@ -510,7 +518,7 @@
       "fn": 6,
       "recall": 0.5,
       "precision": 1,
-      "asset_months": 631,
+      "asset_months": 863.5,
       "fp_per_asset_month": 0,
       "median_delay_days": 25.5,
       "magnitude_mae": 1.02,
@@ -559,7 +567,7 @@
       "fn": 6,
       "recall": 0.833,
       "precision": 1,
-      "asset_months": 17470,
+      "asset_months": 23049.7,
       "fp_per_asset_month": 0,
       "median_delay_days": 0.8,
       "magnitude_mae": null,
@@ -600,7 +608,7 @@
       "fn": 9,
       "recall": 0.667,
       "precision": 1,
-      "asset_months": 631,
+      "asset_months": 863.5,
       "fp_per_asset_month": 0,
       "median_delay_days": 61,
       "magnitude_mae": 3.339,
@@ -634,16 +642,16 @@
       "params_note": "운전 조건 bin을 전류밀도 → 설비 AC 전력(binBy ac_power, 50 kW)으로 변경. 재생전력 연계 전해조는 전력 설정값으로 운전해 정류기·스택 열화 시 같은 전력의 전류밀도가 낮아지고, 전류밀도 bin 기준이 고장 뒤 표본으로 새로 만들어져 상승이 가려졌다(정류기 10% 주입: 월 중앙 SEC 57.7 → 63.2 kWh/kg인데 finding 0). 전류 설정값 운전 설비는 binBy current_density로 되돌린다. 평가 프리셋에서 유량계 드리프트를 비에너지 스윕과 다른 순번(P3 10~12)으로 분리(드리프트가 계량 kg을 키워 kWh/kg 상승을 가림). 첫 전체 평가 5% 이상 재현율 0.5 → 이 스코어카드. 심각도 임계·CI 조건·break-in 1,000 h는 그대로."
     },
     "h2chain.mass_balance_gap": {
-      "detector": "h2chain.mass_balance_gap@1",
+      "detector": "h2chain.mass_balance_gap@2",
       "unit": "%/월",
-      "tp": 9,
+      "tp": 12,
       "fp": 3,
       "fn": 0,
       "recall": 1,
-      "precision": 0.75,
-      "asset_months": 631,
-      "fp_per_asset_month": 0.0048,
-      "median_delay_days": 34,
+      "precision": 0.8,
+      "asset_months": 863.5,
+      "fp_per_asset_month": 0.0035,
+      "median_delay_days": 26.5,
       "magnitude_mae": null,
       "min_detectable_magnitude": 1,
       "curve": [
@@ -670,6 +678,14 @@
           "recall": 1,
           "median_delay_days": 19,
           "magnitude_mae": null
+        },
+        {
+          "magnitude": 14,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 4,
+          "magnitude_mae": null
         }
       ],
       "params_note": "탐지기 변경 없음. 체인 원장 생산량을 전해조 적산계(h2.mass.total) 하루 증가량 우선으로 변경: 5분 순시 유량 시간 평균은 기동·정지가 표본 사이에 걸릴 때마다 최대 (유량 × 5분)씩 틀려 건강한 사이트 일 |잔차| p95가 2.08%였다(적산계 기준 약 0.3%). 저장량 경계는 정지 시간이면 P·T 시간 평균 사용."
@@ -682,8 +698,8 @@
       "fn": 11,
       "recall": 0.593,
       "precision": 0.533,
-      "asset_months": 2524.2,
-      "fp_per_asset_month": 0.0055,
+      "asset_months": 2756.7,
+      "fp_per_asset_month": 0.0051,
       "median_delay_days": 5,
       "magnitude_mae": 0.034,
       "min_detectable_magnitude": 0.15,
@@ -767,12 +783,12 @@
       "detector": "comp.sec_rise@1",
       "unit": "%",
       "tp": 8,
-      "fp": 0,
+      "fp": 7,
       "fn": 10,
       "recall": 0.444,
-      "precision": 1,
-      "asset_months": 631,
-      "fp_per_asset_month": 0,
+      "precision": 0.533,
+      "asset_months": 863.5,
+      "fp_per_asset_month": 0.0081,
       "median_delay_days": 42,
       "magnitude_mae": 2.636,
       "min_detectable_magnitude": 10,
@@ -836,7 +852,7 @@
       "fn": 4,
       "recall": 0.778,
       "precision": 1,
-      "asset_months": 631,
+      "asset_months": 863.5,
       "fp_per_asset_month": 0,
       "median_delay_days": 50.5,
       "magnitude_mae": 5.094,
@@ -889,12 +905,12 @@
       "detector": "pv.soiling_rate@1",
       "unit": "%/일",
       "tp": 9,
-      "fp": 0,
+      "fp": 7,
       "fn": 3,
       "recall": 0.75,
-      "precision": 1,
-      "asset_months": 930,
-      "fp_per_asset_month": 0,
+      "precision": 0.563,
+      "asset_months": 1162.5,
+      "fp_per_asset_month": 0.006,
       "median_delay_days": 45,
       "magnitude_mae": null,
       "min_detectable_magnitude": 0.05,
@@ -938,12 +954,12 @@
       "detector": "ess.resistance_growth@1",
       "unit": "%",
       "tp": 10,
-      "fp": 30,
+      "fp": 44,
       "fn": 2,
       "recall": 0.833,
-      "precision": 0.25,
-      "asset_months": 2457.8,
-      "fp_per_asset_month": 0.0122,
+      "precision": 0.185,
+      "asset_months": 3387.7,
+      "fp_per_asset_month": 0.013,
       "median_delay_days": 54.5,
       "magnitude_mae": 11.63,
       "min_detectable_magnitude": 20,
@@ -991,7 +1007,7 @@
       "fn": 0,
       "recall": 1,
       "precision": 1,
-      "asset_months": 3719.8,
+      "asset_months": 4417.3,
       "fp_per_asset_month": 0,
       "median_delay_days": 115,
       "magnitude_mae": null,
@@ -1007,6 +1023,129 @@
         }
       ],
       "params_note": "지속 저감 조건 추가(sustainedDerateHours 6): 냉각팬 고장은 저감 시간이 길어도 에너지 손실률이 작아(0.73% < 심각도 2 임계 1%) finding이 없었다. 손실률 임계 1%·3%는 그대로 두고 최근 기간 동종 대비 저감 6시간 이상이면 severity 2로 알린다."
+    },
+    "prv.seat_leak": {
+      "detector": "prv.seat_leak@1",
+      "unit": "mbar/h",
+      "tp": 9,
+      "fp": 0,
+      "fn": 0,
+      "recall": 1,
+      "precision": 1,
+      "asset_months": 232.5,
+      "fp_per_asset_month": 0,
+      "median_delay_days": 13,
+      "magnitude_mae": null,
+      "min_detectable_magnitude": 20,
+      "curve": [
+        {
+          "magnitude": 20,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 31,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 60,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 13,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 150,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 7,
+          "magnitude_mae": null
+        }
+      ],
+      "params_note": null
+    },
+    "hx.fouling": {
+      "detector": "hx.fouling@1",
+      "unit": "%",
+      "tp": 9,
+      "fp": 14,
+      "fn": 0,
+      "recall": 1,
+      "precision": 0.391,
+      "asset_months": 232.5,
+      "fp_per_asset_month": 0.0602,
+      "median_delay_days": 0,
+      "magnitude_mae": null,
+      "min_detectable_magnitude": 20,
+      "curve": [
+        {
+          "magnitude": 20,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 0,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 35,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 0,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 50,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 0,
+          "magnitude_mae": null
+        }
+      ],
+      "params_note": null
+    },
+    "o2.purity_drift": {
+      "detector": "o2.purity_drift@1",
+      "unit": "vol%p",
+      "tp": 9,
+      "fp": 21,
+      "fn": 0,
+      "recall": 1,
+      "precision": 0.3,
+      "asset_months": 232.5,
+      "fp_per_asset_month": 0.0903,
+      "median_delay_days": 0,
+      "magnitude_mae": null,
+      "min_detectable_magnitude": 0.4,
+      "curve": [
+        {
+          "magnitude": 0.4,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 0,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 0.8,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 0,
+          "magnitude_mae": null
+        },
+        {
+          "magnitude": 1.4,
+          "injections": 3,
+          "detected": 3,
+          "recall": 1,
+          "median_delay_days": 0,
+          "magnitude_mae": null
+        }
+      ],
+      "params_note": null
     }
   },
   "p3": {
@@ -1136,7 +1275,7 @@
     },
     {
       "id": "ess.capacity_fade.fp_per_asset_month",
-      "description": "ess.capacity_fade 오탐 [건/자산·월] (대조군 포함, 2457.8 자산·월, 정밀도 1)",
+      "description": "ess.capacity_fade 오탐 [건/자산·월] (대조군 포함, 3387.7 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1144,7 +1283,7 @@
     },
     {
       "id": "ess.cell_imbalance.fp_per_asset_month",
-      "description": "ess.cell_imbalance 오탐 [건/자산·월] (대조군 포함, 2457.8 자산·월, 정밀도 1)",
+      "description": "ess.cell_imbalance 오탐 [건/자산·월] (대조군 포함, 3387.7 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1152,7 +1291,7 @@
     },
     {
       "id": "pv.inverter_peer.fp_per_asset_month",
-      "description": "pv.inverter_peer 오탐 [건/자산·월] (대조군 포함, 3719.8 자산·월, 정밀도 1)",
+      "description": "pv.inverter_peer 오탐 [건/자산·월] (대조군 포함, 4417.3 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1160,15 +1299,15 @@
     },
     {
       "id": "el.voltage_rise.fp_per_asset_month",
-      "description": "el.voltage_rise 오탐 [건/자산·월] (대조군 포함, 631 자산·월, 정밀도 1)",
-      "value": 0,
+      "description": "el.voltage_rise 오탐 [건/자산·월] (대조군 포함, 863.5 자산·월, 정밀도 0.321)",
+      "value": 0.022,
       "comparator": "<=",
       "threshold": 0.1,
       "pass": true
     },
     {
       "id": "fc.voltage_decay.fp_per_asset_month",
-      "description": "fc.voltage_decay 오탐 [건/자산·월] (대조군 포함, 631 자산·월, 정밀도 1)",
+      "description": "fc.voltage_decay 오탐 [건/자산·월] (대조군 포함, 863.5 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1176,7 +1315,7 @@
     },
     {
       "id": "dq.gap_flatline.fp_per_asset_month",
-      "description": "dq.gap_flatline 오탐 [건/자산·월] (대조군 포함, 17470 자산·월, 정밀도 1)",
+      "description": "dq.gap_flatline 오탐 [건/자산·월] (대조군 포함, 23049.7 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1184,7 +1323,7 @@
     },
     {
       "id": "el.sec_rise.fp_per_asset_month",
-      "description": "el.sec_rise 오탐 [건/자산·월] (대조군 포함, 631 자산·월, 정밀도 1)",
+      "description": "el.sec_rise 오탐 [건/자산·월] (대조군 포함, 863.5 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1192,31 +1331,31 @@
     },
     {
       "id": "h2chain.mass_balance_gap.fp_per_asset_month",
-      "description": "h2chain.mass_balance_gap 오탐 [건/자산·월] (대조군 포함, 631 자산·월, 정밀도 0.75)",
-      "value": 0.0048,
+      "description": "h2chain.mass_balance_gap 오탐 [건/자산·월] (대조군 포함, 863.5 자산·월, 정밀도 0.8)",
+      "value": 0.0035,
       "comparator": "<=",
       "threshold": 0.1,
       "pass": true
     },
     {
       "id": "tank.static_leak.fp_per_asset_month",
-      "description": "tank.static_leak 오탐 [건/자산·월] (대조군 포함, 2524.2 자산·월, 정밀도 0.533)",
-      "value": 0.0055,
+      "description": "tank.static_leak 오탐 [건/자산·월] (대조군 포함, 2756.7 자산·월, 정밀도 0.533)",
+      "value": 0.0051,
       "comparator": "<=",
       "threshold": 0.02,
       "pass": true
     },
     {
       "id": "comp.sec_rise.fp_per_asset_month",
-      "description": "comp.sec_rise 오탐 [건/자산·월] (대조군 포함, 631 자산·월, 정밀도 1)",
-      "value": 0,
+      "description": "comp.sec_rise 오탐 [건/자산·월] (대조군 포함, 863.5 자산·월, 정밀도 0.533)",
+      "value": 0.0081,
       "comparator": "<=",
       "threshold": 0.1,
       "pass": true
     },
     {
       "id": "fc.blower_wear.fp_per_asset_month",
-      "description": "fc.blower_wear 오탐 [건/자산·월] (대조군 포함, 631 자산·월, 정밀도 1)",
+      "description": "fc.blower_wear 오탐 [건/자산·월] (대조군 포함, 863.5 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1224,24 +1363,48 @@
     },
     {
       "id": "pv.soiling_rate.fp_per_asset_month",
-      "description": "pv.soiling_rate 오탐 [건/자산·월] (대조군 포함, 930 자산·월, 정밀도 1)",
-      "value": 0,
+      "description": "pv.soiling_rate 오탐 [건/자산·월] (대조군 포함, 1162.5 자산·월, 정밀도 0.563)",
+      "value": 0.006,
       "comparator": "<=",
       "threshold": 0.1,
       "pass": true
     },
     {
       "id": "ess.resistance_growth.fp_per_asset_month",
-      "description": "ess.resistance_growth 오탐 [건/자산·월] (대조군 포함, 2457.8 자산·월, 정밀도 0.25)",
-      "value": 0.0122,
+      "description": "ess.resistance_growth 오탐 [건/자산·월] (대조군 포함, 3387.7 자산·월, 정밀도 0.185)",
+      "value": 0.013,
       "comparator": "<=",
       "threshold": 0.1,
       "pass": true
     },
     {
       "id": "inv.thermal_derating.fp_per_asset_month",
-      "description": "inv.thermal_derating 오탐 [건/자산·월] (대조군 포함, 3719.8 자산·월, 정밀도 1)",
+      "description": "inv.thermal_derating 오탐 [건/자산·월] (대조군 포함, 4417.3 자산·월, 정밀도 1)",
       "value": 0,
+      "comparator": "<=",
+      "threshold": 0.1,
+      "pass": true
+    },
+    {
+      "id": "prv.seat_leak.fp_per_asset_month",
+      "description": "prv.seat_leak 오탐 [건/자산·월] (대조군 포함, 232.5 자산·월, 정밀도 1)",
+      "value": 0,
+      "comparator": "<=",
+      "threshold": 0.1,
+      "pass": true
+    },
+    {
+      "id": "hx.fouling.fp_per_asset_month",
+      "description": "hx.fouling 오탐 [건/자산·월] (대조군 포함, 232.5 자산·월, 정밀도 0.391)",
+      "value": 0.0602,
+      "comparator": "<=",
+      "threshold": 0.1,
+      "pass": true
+    },
+    {
+      "id": "o2.purity_drift.fp_per_asset_month",
+      "description": "o2.purity_drift 오탐 [건/자산·월] (대조군 포함, 232.5 자산·월, 정밀도 0.3)",
+      "value": 0.0903,
       "comparator": "<=",
       "threshold": 0.1,
       "pass": true
@@ -1369,6 +1532,30 @@
     {
       "id": "h2chain.mass_balance_gap.recall_drift_3pct",
       "description": "h2chain.mass_balance_gap 유량계 드리프트 3%/월 이상 재현율 (주입 3건)",
+      "value": 1,
+      "comparator": ">=",
+      "threshold": 0.8,
+      "pass": true
+    },
+    {
+      "id": "prv.seat_leak.recall_60mbar_h",
+      "description": "prv.seat_leak 무유동 크리프 60 mbar/h 이상 재현율 (주입 6건)",
+      "value": 1,
+      "comparator": ">=",
+      "threshold": 0.8,
+      "pass": true
+    },
+    {
+      "id": "hx.fouling.recall_35pct",
+      "description": "hx.fouling UA 35% 이상 저하 재현율 (주입 6건)",
+      "value": 1,
+      "comparator": ">=",
+      "threshold": 0.8,
+      "pass": true
+    },
+    {
+      "id": "o2.purity_drift.recall_0_8pct_points",
+      "description": "o2.purity_drift HTO +0.8 vol%p 이상 재현율 (주입 6건)",
       "value": 1,
       "comparator": ">=",
       "threshold": 0.8,

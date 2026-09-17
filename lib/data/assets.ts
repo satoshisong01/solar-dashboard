@@ -39,19 +39,24 @@ export interface AssetDetail {
 const asRecord = (value: unknown): Readonly<Record<string, unknown>> =>
   typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 
+/** 값이 없는 명판 항목. 'null'이라고 쓰면 읽는 사람이 값인 줄 안다 (준공일과 같은 말을 쓴다) */
+const UNSET = '미등록';
+
 /** 명판 값을 설비 종류의 JSON Schema 속성 순서·제목으로 정리한다. 스키마에 없는 키는 뒤에 키 이름으로 붙인다 */
-function toNameplateEntries(nameplate: unknown, schema: unknown): NameplateEntry[] {
+export function toNameplateEntries(nameplate: unknown, schema: unknown): NameplateEntry[] {
   const values = asRecord(nameplate);
   const properties = asRecord(asRecord(schema).properties);
   const titleOf = (key: string) => {
     const title = asRecord(properties[key]).title;
     return typeof title === 'string' ? title : key;
   };
+  const textOf = (value: unknown) => {
+    if (value === null || value === undefined) return UNSET;
+    if (typeof value === 'string') return value.trim() === '' ? UNSET : value;
+    return typeof value === 'number' || typeof value === 'boolean' ? String(value) : JSON.stringify(value);
+  };
   const keys = [...Object.keys(properties).filter((key) => key in values), ...Object.keys(values).filter((key) => !(key in properties))];
-  return keys.map((key) => {
-    const value = values[key];
-    return { key, title: titleOf(key), value: typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : JSON.stringify(value) };
-  });
+  return keys.map((key) => ({ key, title: titleOf(key), value: textOf(values[key]) }));
 }
 
 /** 사이트 코드와 설비 id가 함께 맞을 때만 돌려준다 (다른 사이트 설비를 URL로 섞어 보지 않도록) */

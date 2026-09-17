@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DETECTORS } from '@/lib/analytics/detectors';
 import scorecardJson from '@/lib/analytics/scorecard.json';
 import { formatMagnitude, parseScorecard, trustBadgeFor } from './scorecard';
 import { detectorStage, parseScorecardP3, pathLabel, seasonOf } from './scorecard-p3';
@@ -6,23 +7,9 @@ import { detectorStage, parseScorecardP3, pathLabel, seasonOf } from './scorecar
 describe('parseScorecard (저장소의 scorecard.json)', () => {
   const scorecard = parseScorecard(scorecardJson);
 
-  it('탐지기 14종(P2 6종 + P3 8종)·게이트·곡선을 읽는다', () => {
-    expect(scorecard.detectors.map((d) => d.detectorId)).toEqual([
-      'ess.capacity_fade',
-      'ess.cell_imbalance',
-      'pv.inverter_peer',
-      'el.voltage_rise',
-      'fc.voltage_decay',
-      'dq.gap_flatline',
-      'el.sec_rise',
-      'h2chain.mass_balance_gap',
-      'tank.static_leak',
-      'comp.sec_rise',
-      'fc.blower_wear',
-      'pv.soiling_rate',
-      'ess.resistance_growth',
-      'inv.thermal_derating',
-    ]);
+  // 레지스트리에서 뽑아 견준다: 탐지기를 더하고 스코어카드를 갱신하지 않으면 여기서 깨진다
+  it('레지스트리의 모든 탐지기를 덮고 게이트·곡선을 읽는다', () => {
+    expect(scorecard.detectors.map((d) => d.detectorId).sort()).toEqual(DETECTORS.map((d) => d.id).sort());
     expect(scorecard.gates.length).toBeGreaterThan(0);
     expect(scorecard.pass).toBe(true);
     const capacity = scorecard.detectors[0];
@@ -37,7 +24,8 @@ describe('parseScorecard (저장소의 scorecard.json)', () => {
     expect(trustBadgeFor(scorecard, 'ess.cell_imbalance')).toMatchObject({ kind: 'evaluated', recall: 1, minDetectable: '5 mV/월', fpPerAssetMonth: 0 });
     expect(trustBadgeFor(scorecard, 'dq.gap_flatline')).toMatchObject({ kind: 'evaluated', minDetectable: '6 h', fpPerAssetMonth: 0 });
     expect(trustBadgeFor(scorecard, 'tank.static_leak')).toMatchObject({ kind: 'evaluated', minDetectable: '0.15 kg/일' });
-    expect(trustBadgeFor(scorecard, 'pv.soiling_rate')).toMatchObject({ kind: 'evaluated', minDetectable: '0.05%/일', fpPerAssetMonth: 0 });
+    expect(trustBadgeFor(scorecard, 'pv.soiling_rate')).toMatchObject({ kind: 'evaluated', minDetectable: '0.05%/일', fpPerAssetMonth: 0.006 });
+    expect(trustBadgeFor(scorecard, 'o2.purity_drift')).toMatchObject({ kind: 'evaluated', recall: 1, minDetectable: '0.4 vol%p' });
     expect(trustBadgeFor(parseScorecard({}), 'ess.capacity_fade')).toEqual({ kind: 'none', note: null });
   });
 });

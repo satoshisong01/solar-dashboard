@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { globSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { DETECTORS } from '@/lib/analytics/detectors';
 import { GLOSSARY, glossaryTerm } from './glossary';
 import { SCREEN_GUIDES } from './guides';
 
@@ -23,6 +24,10 @@ describe('용어집', () => {
   it('현장 담당자가 만나는 말을 모두 덮는다', () => {
     const required = ['severity', 'confidence', 'effect', 'ci', 'baseline', 'matched', 'operating-segment', 'hold', 'mass-balance', 'self-sufficiency', 'completeness', 'soh', 'soc'];
     expect(required.filter((id) => glossaryTerm(id) === undefined)).toEqual([]);
+  });
+
+  it('탐지기 수는 레지스트리에서 뽑아 쓴다 (손으로 적으면 어긋난다)', () => {
+    expect(glossaryTerm('detector')?.plain).toContain(`${DETECTORS.length}가지`);
   });
 
   it('화면의 물음표 아이콘이 가리키는 앵커가 모두 용어집에 있다', () => {
