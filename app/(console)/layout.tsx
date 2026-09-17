@@ -15,7 +15,7 @@ export default async function ConsoleLayout({ children }: Readonly<{ children: R
       >
         본문으로 건너뛰기
       </a>
-      <div className="md:grid md:grid-cols-[15rem_minmax(0,1fr)]">
+      <div className="lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
         <Sidebar showSim={showSim} />
         <div className="flex min-h-dvh min-w-0 flex-col">
           <TopBar email={user.email} showSim={showSim} />

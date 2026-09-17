@@ -156,6 +156,16 @@
   }
 }
 
+@layer utilities {
+  /* 스크롤은 그대로 두고 막대만 숨긴다 (탭 띠처럼 넘침이 보이는 다른 단서가 있는 곳에서만 쓴다) */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
