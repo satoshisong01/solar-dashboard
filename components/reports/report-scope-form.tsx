@@ -4,6 +4,7 @@ import { Search } from 'lucide-react';
 import { useState } from 'react';
 import { buttonClass, CONTROL_CLASS } from '@/components/forms/controls';
 import type { ReportPeriodKind } from '@/lib/report/pack-types';
+import { CHECK_CLASS } from '@/components/ui/form-styles';
 
 export interface ScopeDefaults {
   readonly site: string;
@@ -45,7 +46,7 @@ export function ReportScopeForm({ sites, defaults }: Props) {
           <div className="flex flex-wrap gap-x-4 gap-y-2 py-1.5">
             {KINDS.map((option) => (
               <label key={option.value} className="inline-flex items-center gap-1.5 text-sm text-ink">
-                <input type="radio" name="kind" value={option.value} checked={kind === option.value} onChange={() => setKind(option.value)} className="accent-accent" />
+                <input type="radio" name="kind" value={option.value} checked={kind === option.value} onChange={() => setKind(option.value)} className={CHECK_CLASS} />
                 {option.label}
               </label>
             ))}

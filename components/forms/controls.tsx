@@ -3,10 +3,10 @@
 import { CircleAlert, CircleCheck, LoaderCircle } from 'lucide-react';
 import { useId, type ComponentProps, type ReactNode } from 'react';
 import { useFormStatus } from 'react-dom';
-import { buttonClass, CONTROL_CLASS, type ButtonVariant } from '@/components/ui/form-styles';
+import { buttonClass, CHECK_CLASS, CONTROL_CLASS, type ButtonVariant } from '@/components/ui/form-styles';
 import type { ActionState } from '@/lib/forms/action-state';
 
-export { buttonClass, CONTROL_CLASS, type ButtonVariant };
+export { buttonClass, CHECK_CLASS, CONTROL_CLASS, type ButtonVariant };
 
 type FieldProps = Readonly<{
   label: string;

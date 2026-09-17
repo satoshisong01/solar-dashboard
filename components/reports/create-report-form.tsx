@@ -11,6 +11,7 @@ import type { ReportCandidate } from '@/lib/data/reports';
 import { detectorLabel } from '@/lib/desk/labels';
 import { IDLE_STATE, type ActionState } from '@/lib/forms/action-state';
 import { formatKstDate } from '@/lib/format';
+import { CHECK_CLASS } from '@/components/ui/form-styles';
 
 type Props = Readonly<{
   siteId: number;
@@ -62,7 +63,7 @@ export function CreateReportForm({ siteId, siteCode, periodLabel, scope, candida
               {candidates.map((c) => (
                 <tr key={c.id}>
                   <td className={TD_CLASS}>
-                    <input type="checkbox" name="findingId" value={c.id} defaultChecked={c.defaultSelected} aria-label={`발견사항 #${c.id} 포함`} className="accent-accent" />
+                    <input type="checkbox" name="findingId" value={c.id} defaultChecked={c.defaultSelected} aria-label={`발견사항 #${c.id} 포함`} className={CHECK_CLASS} />
                   </td>
                   <td className={TD_CLASS}>
                     <span className="block font-medium text-ink">
@@ -87,7 +88,7 @@ export function CreateReportForm({ siteId, siteCode, periodLabel, scope, candida
       )}
       {fieldError(state, 'findingId') && <p className="text-xs text-crit">{fieldError(state, 'findingId')}</p>}
       <label className="inline-flex items-center gap-2 text-sm text-ink">
-        <input type="checkbox" name="includeVerifiedActions" defaultChecked className="accent-accent" />
+        <input type="checkbox" name="includeVerifiedActions" defaultChecked className={CHECK_CLASS} />
         기간 안에 계산된 조치 효과 검증 결과 포함
       </label>
       <div>

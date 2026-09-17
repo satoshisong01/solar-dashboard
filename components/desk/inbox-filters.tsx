@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CONTROL_CLASS } from '@/components/ui/form-styles';
+import { buttonClass, CONTROL_CLASS } from '@/components/ui/form-styles';
 import { statusLabel } from '@/lib/analysis/transition-rules';
 import { FLEET_COLUMNS } from '@/lib/data/domains';
 import { STATUS_FILTER_OPTIONS, type InboxFilter, type StatusFilter } from '@/lib/desk/inbox';
@@ -71,7 +71,7 @@ export function InboxFilters({ filter, siteCodes }: InboxFiltersProps) {
         </select>
       </label>
       <div className="flex items-center gap-2">
-        <button type="submit" className="rounded-md border border-rule-strong bg-sunken px-3 py-1.5 text-sm font-medium text-ink-2 hover:bg-rule hover:text-ink">
+        <button type="submit" className={buttonClass('secondary')}>
           적용
         </button>
         <Link href="/desk#inbox" className="text-sm text-ink-2 underline hover:text-ink">

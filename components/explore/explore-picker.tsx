@@ -6,6 +6,7 @@ import { blockReason, useSelectionNavigator } from '@/components/charts/point-pi
 import type { RangeSelection } from '@/lib/data/range';
 import { SERIES_LIMITS } from '@/lib/data/series-types';
 import { explorePointLabel, visibleTree, type ExploreAsset, type ExplorePoint, type VisibleNode } from './explore-filter';
+import { CHECK_CLASS } from '@/components/ui/form-styles';
 
 type ExplorePickerProps = Readonly<{
   assets: readonly ExploreAsset[];
@@ -22,8 +23,8 @@ function PointOption({ point, selected, onToggle }: Readonly<{ point: ExplorePoi
   const reason = blockReason({ id: point.id, label: point.metricName, unit: point.unit }, selected.map((item) => ({ id: item.id, label: item.metricName, unit: item.unit })));
   return (
     <li>
-      <label className={`flex items-baseline gap-2 rounded px-1 py-0.5 text-sm ${reason ? 'text-muted' : 'cursor-pointer text-ink-2 hover:bg-sunken'}`} title={reason ?? undefined}>
-        <input type="checkbox" checked={checked} disabled={reason !== null} onChange={(event) => onToggle(point.id, event.target.checked)} className="accent-accent" />
+      <label className={`flex items-baseline gap-2 rounded px-1 py-0.5 text-sm max-lg:min-h-11 max-lg:items-center ${reason ? 'text-muted' : 'cursor-pointer text-ink-2 hover:bg-sunken'}`} title={reason ?? undefined}>
+        <input type="checkbox" checked={checked} disabled={reason !== null} onChange={(event) => onToggle(point.id, event.target.checked)} className={CHECK_CLASS} />
         <span>
           {point.metricName}
           {point.qualifier && <span className="text-muted"> ({point.qualifier})</span>}
@@ -43,7 +44,7 @@ function AssetBranch(props: Readonly<{ node: VisibleNode; filtering: boolean; se
   return (
     <li>
       <details open={filtering || containsSelected(node, selected)}>
-        <summary className="flex cursor-pointer list-none items-baseline gap-1.5 rounded py-0.5 text-sm hover:bg-sunken [&::-webkit-details-marker]:hidden">
+        <summary className="flex cursor-pointer list-none items-baseline gap-1.5 rounded py-0.5 text-sm max-lg:min-h-11 max-lg:items-center hover:bg-sunken [&::-webkit-details-marker]:hidden">
           <ChevronRight aria-hidden="true" className="size-3.5 shrink-0 self-center text-muted transition-transform [details[open]>summary>&]:rotate-90" />
           <span className="font-medium text-ink">{node.asset.name}</span>
           <span className="font-mono text-xs text-muted">{node.asset.code}</span>
@@ -100,11 +101,11 @@ export function ExplorePicker({ assets, points, metrics, selectedIds, selection 
           </p>
           <div className="flex items-center gap-2">
             {selected.length > 0 && (
-              <button type="button" onClick={() => navigate([])} className="rounded-md px-2 py-1 text-sm text-ink-2 hover:bg-sunken">
+              <button type="button" onClick={() => navigate([])} className="inline-flex items-center rounded-md px-2 py-1 text-sm text-ink-2 max-lg:min-h-11 hover:bg-sunken">
                 모두 해제
               </button>
             )}
-            <button type="button" onClick={copyLink} className="inline-flex items-center gap-1.5 rounded-md border border-rule-strong bg-sunken px-2.5 py-1 text-sm text-ink-2 hover:bg-rule">
+            <button type="button" onClick={copyLink} className="inline-flex items-center gap-1.5 rounded-md border border-rule-strong bg-sunken px-2.5 py-1 text-sm text-ink-2 max-lg:min-h-11 hover:bg-rule">
               <Link2 aria-hidden="true" className="size-4" />
               링크 복사
             </button>
@@ -118,7 +119,7 @@ export function ExplorePicker({ assets, points, metrics, selectedIds, selection 
             {selected.map((point) => (
               <li key={point.id} className="inline-flex items-center gap-1 rounded-md border border-accent bg-hydrogen-fill py-0.5 pr-1 pl-2 text-sm text-ink">
                 {explorePointLabel(point)}
-                <button type="button" onClick={() => toggle(point.id, false)} aria-label={`${explorePointLabel(point)} 선택 해제`} className="rounded p-0.5 hover:bg-surface">
+                <button type="button" onClick={() => toggle(point.id, false)} aria-label={`${explorePointLabel(point)} 선택 해제`} className="inline-flex items-center justify-center rounded p-0.5 max-lg:size-11 hover:bg-surface">
                   <X aria-hidden="true" className="size-3.5" />
                 </button>
               </li>

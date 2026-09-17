@@ -87,7 +87,7 @@ export function LoginForm({ initialError }: { initialError?: string }) {
             onChange={(event) => {
               if (!event.target.checked) clearRememberedEmail();
             }}
-            className="size-4 accent-accent"
+            className="size-5 shrink-0 accent-accent lg:size-4"
           />
           <label htmlFor={rememberId} className="text-sm text-ink-2">
             아이디 저장

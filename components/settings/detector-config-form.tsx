@@ -8,6 +8,7 @@ import { differsFromDefault, inputTextOf } from '@/lib/detector-config/history';
 import { formatParamValue, paramInputName, paramNullName, type ParamField, type ScopeKind } from '@/lib/detector-config/types';
 import { IDLE_STATE, type ActionState } from '@/lib/forms/action-state';
 import { AssetCombobox, type ComboAsset } from './asset-combobox';
+import { CHECK_CLASS } from '@/components/ui/form-styles';
 
 export interface ScopeOption {
   readonly kind: ScopeKind;
@@ -65,7 +66,7 @@ function ParamInput({ field, initialText, initialNull, error }: Readonly<{ field
       {control}
       {field.nullable && (
         <label className="inline-flex items-center gap-1.5 text-xs text-ink-2">
-          <input type="checkbox" name={paramNullName(field.key)} checked={isNull} onChange={(e) => setIsNull(e.target.checked)} className="accent-accent" />
+          <input type="checkbox" name={paramNullName(field.key)} checked={isNull} onChange={(e) => setIsNull(e.target.checked)} className={CHECK_CLASS} />
           자동(비움)으로 저장
         </label>
       )}
@@ -100,7 +101,7 @@ export function DetectorConfigForm({ detectorId, fields, scopeOptions, classKey,
         <div className="flex flex-wrap gap-x-4 gap-y-2">
           {scopeOptions.map((option) => (
             <label key={option.kind} className="inline-flex items-center gap-1.5 text-sm text-ink">
-              <input type="radio" name="scopeKind" value={option.kind} checked={scopeKind === option.kind} onChange={() => setScopeKind(option.kind)} className="accent-accent" />
+              <input type="radio" name="scopeKind" value={option.kind} checked={scopeKind === option.kind} onChange={() => setScopeKind(option.kind)} className={CHECK_CLASS} />
               {option.label}
             </label>
           ))}

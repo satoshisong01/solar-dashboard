@@ -32,7 +32,7 @@ export function MapSiteList({ sites, counts, selectedCode, onSelect, nowMs, clas
             onClick={() => setOpen((value) => !value)}
             aria-expanded={open}
             aria-controls={listId}
-            className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-ink-2 hover:bg-sunken hover:text-ink"
+            className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-ink-2 max-lg:min-h-11 hover:bg-sunken hover:text-ink"
           >
             {open ? '접기' : '펴기'}
             <ChevronDown aria-hidden="true" className={`size-4 transition-transform motion-reduce:transition-none ${open ? '' : '-rotate-90'}`} />
@@ -51,7 +51,7 @@ export function MapSiteList({ sites, counts, selectedCode, onSelect, nowMs, clas
                 type="button"
                 onClick={() => onSelect(site.code)}
                 aria-current={selected ? 'true' : undefined}
-                className={`flex w-full flex-col gap-0.5 px-3 py-2 text-left hover:bg-sunken ${selected ? 'bg-sunken' : ''}`}
+                className={`flex w-full flex-col justify-center gap-0.5 px-3 py-2 text-left max-lg:min-h-11 hover:bg-sunken ${selected ? 'bg-sunken' : ''}`}
               >
                 <span className="flex items-center gap-2">
                   <span aria-hidden="true" className={`size-2.5 shrink-0 rounded-full ${dot}`} />

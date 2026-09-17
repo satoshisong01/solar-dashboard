@@ -8,6 +8,7 @@ import { Panel } from '@/components/ui/panel';
 import { requireAdmin } from '@/lib/auth/dal';
 import { listAssetClasses, listMetricDefs } from '@/lib/data/catalog';
 import { firstParam, type SearchParamValue } from '@/lib/data/range';
+import { buttonClass } from '@/components/ui/form-styles';
 
 export const metadata: Metadata = { title: '카탈로그' };
 
@@ -50,7 +51,7 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
             검색 (키·이름·물리량·별칭)
             <input type="search" name="q" defaultValue={search} maxLength={SEARCH_MAX} placeholder="예: temp, 전압, SunSpec" className="rounded-md border border-rule-strong bg-field px-2.5 py-1.5 text-sm text-ink placeholder:text-muted" />
           </label>
-          <button type="submit" className="rounded-md border border-rule-strong bg-sunken px-3 py-1.5 text-sm font-medium text-ink-2 hover:bg-rule hover:text-ink">
+          <button type="submit" className={buttonClass('secondary')}>
             검색
           </button>
           {search && (

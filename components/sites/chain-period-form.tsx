@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { buttonClass, CONTROL_CLASS } from '@/components/ui/form-styles';
 import { CHAIN_PRESET_DAYS, type ChainPeriod } from '@/lib/chain/period';
+import { CHECK_CLASS } from '@/components/ui/form-styles';
 
 type Choice = `${(typeof CHAIN_PRESET_DAYS)[number]}` | 'custom';
 
@@ -20,7 +21,7 @@ export function ChainPeriodForm({ siteCode, period, maxDay }: Props) {
         <div className="flex flex-wrap gap-x-4 gap-y-2 py-1.5">
           {options.map((option) => (
             <label key={option.value} className="inline-flex items-center gap-1.5 text-sm text-ink">
-              <input type="radio" name="chain" value={option.value} checked={choice === option.value} onChange={() => setChoice(option.value)} className="accent-accent" />
+              <input type="radio" name="chain" value={option.value} checked={choice === option.value} onChange={() => setChoice(option.value)} className={CHECK_CLASS} />
               {option.label}
             </label>
           ))}

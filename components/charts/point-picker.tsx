@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { buildViewSearch, type RangeSelection } from '@/lib/data/range';
 import { SERIES_LIMITS } from '@/lib/data/series-types';
 import { fitsAxes } from './series-window';
+import { CHECK_CLASS } from '@/components/ui/form-styles';
 
 export interface PickablePoint {
   readonly id: number;
@@ -64,7 +65,7 @@ export function PointPicker({ points, selectedIds, basePath, selection }: PointP
                   checked={checked}
                   disabled={reason !== null}
                   onChange={(event) => toggle(point, event.target.checked)}
-                  className="accent-accent"
+                  className={CHECK_CLASS}
                 />
                 {point.label}
                 {point.unit && <span className="font-mono text-xs text-muted">{point.unit}</span>}

@@ -9,7 +9,7 @@ export function ScreenGuide({ text }: Readonly<{ text: string }>) {
 
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="self-start text-xs text-muted underline hover:text-ink-2">
+      <button type="button" onClick={() => setOpen(true)} className="inline-flex items-center self-start text-xs text-muted underline max-lg:min-h-11 hover:text-ink-2">
         이 화면 안내 보기
       </button>
     );
@@ -18,7 +18,7 @@ export function ScreenGuide({ text }: Readonly<{ text: string }>) {
     <div className="flex items-start gap-2 rounded-md border border-accent/30 bg-hydrogen-fill/40 px-3 py-2">
       <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-accent" />
       <p className="min-w-0 flex-1 text-sm text-pretty text-ink-2">{text}</p>
-      <button type="button" onClick={() => setOpen(false)} aria-label="이 화면 안내 숨기기" className="shrink-0 rounded p-0.5 text-muted hover:bg-sunken hover:text-ink-2">
+      <button type="button" onClick={() => setOpen(false)} aria-label="이 화면 안내 숨기기" className="inline-flex shrink-0 items-center justify-center rounded p-0.5 text-muted max-lg:size-11 hover:bg-sunken hover:text-ink-2">
         <X aria-hidden="true" className="size-4" />
       </button>
     </div>

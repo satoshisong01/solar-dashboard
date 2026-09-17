@@ -8,6 +8,7 @@ import { getPointQuality, getStuckPoints, type QualityScope } from '@/lib/data/d
 import { firstParam, type SearchParamValue } from '@/lib/data/range';
 import { DAY_MS, requestTimeMs } from '@/lib/data/time';
 import { formatKstDateTime } from '@/lib/format';
+import { buttonClass, CHECK_CLASS } from '@/components/ui/form-styles';
 
 export const metadata: Metadata = { title: '데이터 품질' };
 
@@ -65,10 +66,10 @@ export default async function DataQualityPage({ searchParams }: QualityPageProps
           </select>
         </label>
         <label className="flex items-center gap-2 pb-2 text-sm text-ink-2">
-          <input type="checkbox" name="zero" value="1" defaultChecked={filters.includeZero} className="accent-accent" />
+          <input type="checkbox" name="zero" value="1" defaultChecked={filters.includeZero} className={CHECK_CLASS} />
           값 0 포함
         </label>
-        <button type="submit" className="rounded-md border border-rule-strong bg-sunken px-3 py-1.5 text-sm font-medium text-ink-2 hover:bg-rule hover:text-ink">
+        <button type="submit" className={buttonClass('secondary')}>
           적용
         </button>
       </form>

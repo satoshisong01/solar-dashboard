@@ -8,6 +8,7 @@ import { useChartTheme } from './chart-theme';
 import { EChart, type ZoomRange } from './echart';
 import { buildSeriesOption, type ChartBandMark, type ChartEventMark, type ChartPointMeta } from './series-options';
 import { assignAxes, isFullZoom, mergeWindow, zoomWindow } from './series-window';
+import { CHECK_CLASS } from '@/components/ui/form-styles';
 
 export type { ChartBandMark, ChartEventMark, ChartPointMeta };
 
@@ -126,13 +127,13 @@ export function TimeseriesChart({ points, initial, events = NO_EVENTS, bands = N
           )}
           {bands.length > 0 && (
             <label className="inline-flex items-center gap-1.5">
-              <input type="checkbox" checked={showBands} onChange={(event) => setShowBands(event.target.checked)} className="accent-accent" />
+              <input type="checkbox" checked={showBands} onChange={(event) => setShowBands(event.target.checked)} className={CHECK_CLASS} />
               {bandLabel} 밴드 {bands.length}건
             </label>
           )}
           {events.length > 0 && (
             <label className="inline-flex items-center gap-1.5">
-              <input type="checkbox" checked={showEvents} onChange={(event) => setShowEvents(event.target.checked)} className="accent-accent" />
+              <input type="checkbox" checked={showEvents} onChange={(event) => setShowEvents(event.target.checked)} className={CHECK_CLASS} />
               이벤트 밴드 {events.length}건
             </label>
           )}

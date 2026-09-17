@@ -16,6 +16,7 @@ import { IDLE_STATE, type ActionState } from '@/lib/forms/action-state';
 import { formatKstDateTime } from '@/lib/format';
 import { DismissFields } from './dismiss-fields';
 import { ConfidenceBar, FindingSeverityChip, FindingStatusBadge } from './finding-badges';
+import { CHECK_CLASS } from '@/components/ui/form-styles';
 
 type BulkAction = (formData: FormData) => void;
 
@@ -136,7 +137,7 @@ function InboxTable({ rows, triage, dismiss, dismissState, pending }: TableProps
             <tr>
               <th scope="col" className={TH_CLASS}>
                 <label className="inline-flex items-center gap-1">
-                  <input type="checkbox" checked={allSelected} onChange={(event) => setSelected(new Set(event.target.checked ? rows.map((row) => row.id) : []))} className="accent-accent" />
+                  <input type="checkbox" checked={allSelected} onChange={(event) => setSelected(new Set(event.target.checked ? rows.map((row) => row.id) : []))} className={CHECK_CLASS} />
                   <span className="sr-only">모두 선택</span>
                 </label>
               </th>
@@ -160,7 +161,7 @@ function InboxTable({ rows, triage, dismiss, dismissState, pending }: TableProps
                 className={`max-lg:flex max-lg:flex-wrap max-lg:items-center max-lg:gap-x-3 max-lg:gap-y-1 max-lg:rounded-md max-lg:border max-lg:border-rule max-lg:p-3 ${selected.has(row.id) ? 'bg-hydrogen-fill/40' : ''}`}
               >
                 <td role="cell" className={`${TD_CLASS} ${CARD_CELL}`}>
-                  <input type="checkbox" name="findingId" value={row.id} checked={selected.has(row.id)} onChange={(event) => toggle(row.id, event.target.checked)} aria-label={`선택: ${row.title}`} className="accent-accent" />
+                  <input type="checkbox" name="findingId" value={row.id} checked={selected.has(row.id)} onChange={(event) => toggle(row.id, event.target.checked)} aria-label={`선택: ${row.title}`} className={CHECK_CLASS} />
                 </td>
                 <FindingCells row={row} />
               </tr>

@@ -45,7 +45,7 @@ export function SiteMapCard({ sites, nowMs }: Readonly<{ sites: readonly SiteMap
               onClick={() => setOpen((value) => !value)}
               aria-expanded={open}
               aria-controls={mapId}
-              className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-ink-2 hover:bg-sunken hover:text-ink"
+              className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-ink-2 max-lg:min-h-11 hover:bg-sunken hover:text-ink"
             >
               지도 {open ? '접기' : '펴기'}
               <ChevronDown aria-hidden="true" className={`size-4 transition-transform motion-reduce:transition-none ${open ? '' : '-rotate-90'}`} />

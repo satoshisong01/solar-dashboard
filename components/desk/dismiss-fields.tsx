@@ -6,6 +6,7 @@ import { OPERATING_CONDITION_CHANGE } from '@/lib/analysis/transition-rules';
 import type { ActionState } from '@/lib/forms/action-state';
 import { DEFAULT_SUPPRESS_DAYS, DISMISS_REASONS, MAX_SUPPRESS_DAYS } from '@/lib/desk/labels';
 import { DISMISS_NOTE_MAX } from '@/lib/forms/limits';
+import { CHECK_CLASS } from '@/components/ui/form-styles';
 
 function FieldError({ id, message }: Readonly<{ id: string; message: string | undefined }>) {
   return message ? (
@@ -58,7 +59,7 @@ export function DismissFields<T>({ state }: Readonly<{ state: ActionState<T> }>)
         <fieldset className="flex flex-col gap-2 rounded-md border border-rule p-3">
           <legend className="px-1 text-xs font-medium text-ink-2">기준선 재설정</legend>
           <label className="inline-flex items-start gap-2 text-sm text-ink">
-            <input type="checkbox" name="resetBaseline" checked={reset} onChange={(event) => setReset(event.target.checked)} className="mt-1 accent-accent" />
+            <input type="checkbox" name="resetBaseline" checked={reset} onChange={(event) => setReset(event.target.checked)} className={`mt-1 ${CHECK_CLASS}`} />
             <span>
               기준선 재설정 이벤트 만들기
               <span className="block text-xs text-muted">설비 이벤트(설정값 변경, 기준선 분할)를 기록합니다. 다음 분석부터 이 시점 이전 데이터는 기준선에 쓰지 않아 같은 오탐이 사라집니다.</span>

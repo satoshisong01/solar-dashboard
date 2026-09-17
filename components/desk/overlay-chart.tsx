@@ -7,7 +7,7 @@ import { OVERLAY_AXES, OVERLAY_AXIS_META, overlayXY, summarizeCurve, type Charge
 import { formatKstDate, formatKstDateTime, formatNumber } from '@/lib/format';
 
 const TOGGLE_CLASS =
-  'rounded-md px-3 py-1.5 text-sm font-medium text-ink-2 hover:text-ink aria-pressed:bg-hydrogen-fill aria-pressed:text-ink aria-pressed:shadow-glow';
+  'inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium text-ink-2 max-lg:min-h-11 hover:text-ink aria-pressed:bg-hydrogen-fill aria-pressed:text-ink aria-pressed:shadow-glow';
 
 type Curves = Readonly<{ reference: ChargeCurve | null; recent: ChargeCurve | null }>;
 

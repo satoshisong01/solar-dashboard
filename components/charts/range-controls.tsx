@@ -23,7 +23,7 @@ type RangeControlsProps = Readonly<{
 }>;
 
 const PRESET_CLASS =
-  'rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ' +
+  'inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium transition-colors max-lg:min-h-11 ' +
   'border-rule-strong bg-sunken text-ink-2 hover:bg-rule hover:text-ink ' +
   'aria-[current=true]:border-accent aria-[current=true]:bg-hydrogen-fill aria-[current=true]:text-ink';
 

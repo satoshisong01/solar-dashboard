@@ -8,6 +8,7 @@ import { ActionMessage, buttonClass, CONTROL_CLASS, fieldError } from '@/compone
 import type { RunFormOptions, RunStatusView } from '@/lib/data/analysis-runs';
 import { IDLE_STATE, type ActionState } from '@/lib/forms/action-state';
 import { ANALYSIS_PERIOD_DAYS } from '@/lib/forms/limits';
+import { CHECK_CLASS } from '@/components/ui/form-styles';
 
 const PERIOD_OPTIONS = [...ANALYSIS_PERIOD_DAYS.map((days) => ({ value: String(days), label: `최근 ${days}일` })), { value: 'custom', label: '사용자 지정' }];
 
@@ -50,7 +51,7 @@ export function RunPanel({ options, activeRun }: RunPanelProps) {
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             {options.sites.map((site) => (
               <label key={site.id} className="inline-flex items-center gap-1.5 text-sm text-ink">
-                <input type="checkbox" name="siteId" value={site.id} checked={siteIds.includes(site.id)} onChange={(event) => toggleSite(site.id, event.target.checked)} className="accent-accent" />
+                <input type="checkbox" name="siteId" value={site.id} checked={siteIds.includes(site.id)} onChange={(event) => toggleSite(site.id, event.target.checked)} className={CHECK_CLASS} />
                 <span className="font-medium">{site.code}</span>
                 <span className="text-xs text-muted">{site.name}</span>
               </label>
@@ -68,7 +69,7 @@ export function RunPanel({ options, activeRun }: RunPanelProps) {
             ) : (
               assets.map((asset) => (
                 <label key={asset.id} className="inline-flex items-center gap-1.5 text-sm text-ink">
-                  <input type="checkbox" name="assetId" value={asset.id} className="accent-accent" />
+                  <input type="checkbox" name="assetId" value={asset.id} className={CHECK_CLASS} />
                   <span className="font-mono text-xs">{options.sites.find((s) => s.id === asset.siteId)?.code}/{asset.code}</span>
                   <span className="text-xs text-muted">{asset.name}</span>
                 </label>
@@ -83,7 +84,7 @@ export function RunPanel({ options, activeRun }: RunPanelProps) {
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             {PERIOD_OPTIONS.map((option) => (
               <label key={option.value} className="inline-flex items-center gap-1.5 text-sm text-ink">
-                <input type="radio" name="period" value={option.value} checked={period === option.value} onChange={() => setPeriod(option.value)} className="accent-accent" />
+                <input type="radio" name="period" value={option.value} checked={period === option.value} onChange={() => setPeriod(option.value)} className={CHECK_CLASS} />
                 {option.label}
               </label>
             ))}
