@@ -52,6 +52,20 @@ describe('validatePlainLines', () => {
     expect(issues.map((issue) => issue.code)).toContain('direction_mismatch');
   });
 
+  it('숫자 집합은 그대로 두고 비교 횟수만 서로 바꿔 붙이면 거부한다', () => {
+    const { summary, reference } = referenceOf('ess.cell_imbalance');
+    const swapped = (summary.basis ?? '').replace(/예전 (\S+?)번, 최근 (\S+?)번/u, '예전 $2번, 최근 $1번');
+    expect(swapped).not.toBe(summary.basis);
+    const issues = validatePlainLines({ ...engineLines(summary), basis: swapped }, reference);
+    expect(issues.map((issue) => issue.code)).toContain('number_label_mismatch');
+  });
+
+  it('엔진이 낸 할 일을 하지 않아도 된다고 뒤집으면 거부한다', () => {
+    const { summary, reference } = referenceOf('ess.capacity_fade');
+    const issues = validatePlainLines({ ...engineLines(summary), nextStep: '정기 용량시험 결과와 비교하지 않아도 됩니다.' }, reference);
+    expect(issues.some((issue) => issue.code === 'forbidden_expression' && issue.message.includes('지시를 뒤집는'))).toBe(true);
+  });
+
   it('설비 이름을 빠뜨리면 거부한다', () => {
     const { summary, reference } = referenceOf('ess.capacity_fade');
     const issues = validatePlainLines({ ...engineLines(summary), what: summary.what.replace('(RACK01)', '') }, reference);

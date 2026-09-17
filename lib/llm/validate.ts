@@ -2,8 +2,9 @@
 // 줄 단위 요약(발견사항 쉬운 말 4줄·분석 데스크 종합 요약 4줄)에 맞게 넓힌다.
 // 하나라도 걸리면 그 문장은 채택하지 않고 틀 문장으로 되돌린다.
 //   1) 숫자·날짜: 엔진 문장에 있는 것만, 개수까지 같게 (표시 반올림 허용)
+//   1-1) 숫자와 라벨의 짝: 엔진 문장에서 그 숫자를 가리키던 말 옆에 다른 숫자를 붙이지 못한다 (lib/llm/number-facts.ts)
 //   2) 이름: 엔진 문장에 있던 설비·사이트 이름이 그대로 있어야 한다
-//   3) 방향: 엔진 문장에 없던 반대 방향 단어를 새로 넣지 못한다
+//   3) 방향: 엔진 문장에 없던 반대 방향 단어를 새로 넣지 못한다 (방향이 없는 줄에는 방향 단어 자체를 새로 넣지 못한다)
 //   4) 금지 표현: 리포트 금지 목록 + 원인 단정·안전 판단 대체·법적 조언
 //   5) 안전 고정 문구: 엔진 문장에 있으면 글자 그대로 남아야 한다
 //   6) 줄 구성·길이: 엔진이 쓴 줄만, 지나치게 길지 않게
@@ -11,11 +12,13 @@ import { SAFETY_DECISION_NOTICE } from '@/lib/desk/plain/outlook';
 import { DIRECTION_WORDS, type EffectDirection } from '@/lib/report/direction';
 import { displayNumbersMatch, numericTexts } from '@/lib/report/tokens';
 import { forbiddenReasons } from '@/lib/report/validate';
+import { mismatchedFacts, numberFacts } from './number-facts';
 import { PLAIN_LINE_KEYS, type PlainLineKey, type PlainLines } from './types';
 
 export type PlainIssueCode =
   | 'untracked_number'
   | 'missing_number'
+  | 'number_label_mismatch'
   | 'missing_label'
   | 'direction_mismatch'
   | 'forbidden_expression'
@@ -63,6 +66,12 @@ export const PLAIN_FORBIDDEN: readonly { readonly pattern: RegExp; readonly reas
   { pattern: /손해\s*배상/, reason: '법적 조언' },
   { pattern: /위약금/, reason: '계약 조언' },
   { pattern: /소송/, reason: '법적 조언' },
+  // 지시 뒤집기: 숫자·이름을 그대로 두고 "확인하세요"를 "안 봐도 됩니다"로 바꾸는 답을 막는다
+  { pattern: /(?:하지|보지|확인하지|점검하지|열지)\s*않아(?:도|서는)\s*(?:됩니다|된다|괜찮|좋)/, reason: '엔진이 낸 지시를 뒤집는 표현' },
+  { pattern: /(?:안|굳이)\s*(?:봐도|해도|확인해도|열어도)\s*(?:됩니다|된다|괜찮)/, reason: '엔진이 낸 지시를 뒤집는 표현' },
+  { pattern: /(?:확인|점검|조치|대응)[^.]{0,4}필요(?:는|가)?\s*없/, reason: '엔진이 낸 지시를 뒤집는 표현' },
+  { pattern: /(?:무시|생략)(?:해도|하셔도|하세요|하시면|하면)/, reason: '엔진이 낸 지시를 뒤집는 표현' },
+  { pattern: /(?:급하지|서두르지)\s*(?:않|마)/, reason: '엔진이 낸 지시를 뒤집는 표현' },
 ];
 
 const plainForbiddenReasons = (text: string): string[] => PLAIN_FORBIDDEN.filter((rule) => rule.pattern.test(text)).map((rule) => rule.reason);
@@ -86,13 +95,18 @@ function numberIssues<K extends string>(line: K, candidate: string, reference: s
   ];
 }
 
-/** 엔진 문장에 없던 반대 방향 단어를 새로 넣었는가 (같은 방향 다른 표현은 허용) */
+/**
+ * 엔진 문장에 없던 방향 단어를 새로 넣었는가.
+ *   - 방향이 정해진 줄: 반대 방향 단어를 넣으면 뒤집은 것이다 (같은 방향 다른 표현은 허용).
+ *   - 방향이 없는 줄(여러 건을 묶은 종합 요약 등): 엔진이 방향을 아예 말하지 않았는데 늘었다·줄었다를 쓰면 없는 사실을 더한 것이다.
+ *     엔진 문장에 이미 방향 단어가 있으면 어느 쪽이 맞는지 알 수 없으므로 건드리지 않는다.
+ */
 function directionIssues<K extends string>(line: K, candidate: string, reference: string, direction: EffectDirection | null): LineIssue<K>[] {
-  if (direction === null) return [];
-  const opposite = DIRECTION_WORDS[direction === 'increase' ? 'decrease' : 'increase'];
-  return opposite
+  const words = direction === null ? [...DIRECTION_WORDS.increase, ...DIRECTION_WORDS.decrease] : DIRECTION_WORDS[direction === 'increase' ? 'decrease' : 'increase'];
+  if (direction === null && words.some((word) => reference.includes(word))) return [];
+  return words
     .filter((word) => candidate.includes(word) && !reference.includes(word))
-    .map((word) => at('direction_mismatch', line, `효과는 ${direction === 'increase' ? '증가' : '감소'} 방향인데 "${word}" 표현을 넣었습니다`));
+    .map((word) => at('direction_mismatch', line, direction === null ? `엔진 문장에 없던 방향 표현 "${word}"을(를) 넣었습니다` : `효과는 ${direction === 'increase' ? '증가' : '감소'} 방향인데 "${word}" 표현을 넣었습니다`));
 }
 
 function lineIssues<K extends string>(line: K, candidate: string, reference: LineReference<K>): LineIssue<K>[] {
@@ -103,6 +117,7 @@ function lineIssues<K extends string>(line: K, candidate: string, reference: Lin
   const alreadyForbidden = new Set([...forbiddenReasons(engineText), ...plainForbiddenReasons(engineText)]);
   return [
     ...numberIssues(line, text, engineText, reference.labels),
+    ...mismatchedFacts(text, numberFacts(engineText, reference.labels), reference.labels).map((fact) => at('number_label_mismatch', line, `"${fact.label}" 옆에 엔진 수치(${fact.value})가 아닌 숫자를 붙였습니다`)),
     ...reference.labels.filter((label) => label !== '' && engineText.includes(label) && !text.includes(label)).map((label) => at('missing_label', line, `이름 "${label}"이(가) 빠졌습니다`)),
     ...directionIssues(line, text, engineText, reference.direction),
     ...[...forbiddenReasons(text), ...plainForbiddenReasons(text)].filter((reason) => !alreadyForbidden.has(reason)).map((reason) => at('forbidden_expression', line, `금지 표현: ${reason}`)),

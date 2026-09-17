@@ -12,7 +12,7 @@ const IGNORED_PHRASES: readonly RegExp[] = [/95% CI/g];
  * 본문 숫자: 날짜(YYYY-MM-DD) · 시간(8h 00m) · 천 단위 쉼표 수 · 일반 수 (부호 +, −, - 허용).
  * 영문자·숫자·밑줄·점·#·/ 바로 뒤에 붙은 숫자(RACK01, #12, v1.2)는 식별자로 보고 세지 않는다.
  */
-const NUMERIC_PATTERN = /(?<![A-Za-z0-9_.#/])(?:\d{4}-\d{2}-\d{2}|\d+h \d{2}m|[+−-]?\d{1,3}(?:,\d{3})+(?:\.\d+)?|[+−-]?\d+(?:\.\d+)?)(?!\d)/g;
+export const NUMERIC_PATTERN = /(?<![A-Za-z0-9_.#/])(?:\d{4}-\d{2}-\d{2}|\d+h \d{2}m|[+−-]?\d{1,3}(?:,\d{3})+(?:\.\d+)?|[+−-]?\d+(?:\.\d+)?)(?!\d)/g;
 
 /** 'findings[2].effect.value' 경로로 값을 읽는다. 없으면 undefined */
 export function resolvePath(root: unknown, path: string): unknown {
