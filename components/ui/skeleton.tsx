@@ -16,12 +16,32 @@ export function SkeletonHeader({ guide = false }: Readonly<{ guide?: boolean }>)
   );
 }
 
+/** Breadcrumb 자리. 실제 Breadcrumb와 같은 -mb-3을 써서 골격에서 내용으로 바뀔 때 아래가 12px 튀지 않는다 */
+export function SkeletonBreadcrumb({ className = 'w-48' }: Readonly<{ className?: string }>) {
+  return (
+    <div className="-mb-3">
+      <Skeleton className={`h-5 ${className}`} />
+    </div>
+  );
+}
+
 /** Panel 자리. Panel과 같은 테두리·여백·간격 */
 export function SkeletonPanel({ titleClassName = 'w-32', children }: Readonly<{ titleClassName?: string; children: ReactNode }>) {
   return (
     <div className="flex min-w-0 flex-col gap-4 rounded-lg border border-rule bg-surface p-4 shadow-panel md:p-5">
       <Skeleton className={`h-6 ${titleClassName}`} />
       {children}
+    </div>
+  );
+}
+
+/** SectionTabs 자리. 탭 한 칸은 py-1.5 + text-sm + 테두리 = 34px(h-8.5)이다 */
+export function SkeletonTabs({ count }: Readonly<{ count: number }>) {
+  return (
+    <div className="-mt-2 flex gap-2 overflow-hidden pb-1">
+      {Array.from({ length: count }, (_, index) => (
+        <Skeleton key={index} className="h-8.5 w-24 shrink-0" />
+      ))}
     </div>
   );
 }

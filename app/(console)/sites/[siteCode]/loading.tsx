@@ -1,13 +1,13 @@
-import { Skeleton, SkeletonCards, SkeletonHeader, SkeletonPanel, SkeletonStatus, SkeletonTable } from '@/components/ui/skeleton';
+import { Skeleton, SkeletonBreadcrumb, SkeletonCards, SkeletonHeader, SkeletonPanel, SkeletonStatus, SkeletonTable } from '@/components/ui/skeleton';
 
-/** 사이트 상세 골격: 오늘 KPI · 설비 트리 · 이벤트 타임라인 · 게이트웨이. 공정도·설비 화면도 이 골격을 쓴다 */
+/** 사이트 상세 골격: 오늘 KPI · 설비 트리 · 이벤트 타임라인 · 게이트웨이. 설비 화면도 이 골격을 쓴다 (공정도는 따로) */
 export default function SiteLoading() {
   return (
     <>
       <SkeletonStatus />
-      <Skeleton className="h-5 w-48" />
+      <SkeletonBreadcrumb />
       <SkeletonHeader />
-      <Skeleton className="h-8 w-32" />
+      <Skeleton className="h-7.5 w-32" />
       <SkeletonPanel titleClassName="w-24">
         <SkeletonCards count={4} />
       </SkeletonPanel>

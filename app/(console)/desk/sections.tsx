@@ -27,8 +27,9 @@ export async function RunSection({ options }: Readonly<{ options: Promise<RunFor
   return resolved.sites.length === 0 ? <EmptyNote>등록된 사이트가 없습니다</EmptyNote> : <RunPanel options={resolved} activeRun={activeRun} />;
 }
 
+/** 분석 실행 폼 자리: 안내 한 줄 · 사이트 고르기 · 설비 고르기 · 기간 · 실행 버튼 (사이트가 한 줄에 들어갈 때의 높이) */
 export function RunSkeleton() {
-  return <Skeleton className="h-28" />;
+  return <Skeleton className="h-62" />;
 }
 
 export async function RunHistorySection() {
@@ -52,8 +53,23 @@ export async function DigestSection({ inbox, searchParams }: DigestSectionProps)
   return <DigestCard stats={stats} summary={digest?.summary ?? null} source={digest?.source ?? 'template'} model={digest?.model ?? null} lastRunMs={lastRunMs} />;
 }
 
+/** 종합 요약 카드 자리. DigestCard와 같은 테두리·여백·간격에 같은 높이의 줄을 둔다
+ *  (제목 줄 + 다시 생성 버튼 · 큰 문장 한 줄 · 작은 문장 세 줄 · 상세 보기 버튼) */
 export function DigestSkeleton() {
-  return <Skeleton className="h-48" />;
+  return (
+    <div className="flex min-w-0 flex-col gap-3 rounded-lg border border-accent/40 bg-hydrogen-fill/40 p-4 md:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <Skeleton className="h-8.5 w-72 max-w-full" />
+        <Skeleton className="h-8.5 w-28" />
+      </div>
+      {/* 글줄 높이 그대로: 큰 문장 text-lg/leading-snug = 24.75px, 작은 문장 text-sm/leading-relaxed = 22.75px */}
+      <Skeleton className="h-[24.75px] w-96 max-w-full" />
+      {['breakdown', 'urgency', 'nextStep'].map((line) => (
+        <Skeleton key={line} className="h-[22.75px] w-full" />
+      ))}
+      <Skeleton className="h-9.5 w-56 max-w-full" />
+    </div>
+  );
 }
 
 type InboxSectionProps = Readonly<{

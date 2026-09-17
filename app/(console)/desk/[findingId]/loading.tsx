@@ -1,11 +1,11 @@
-import { Skeleton, SkeletonHeader, SkeletonPanel, SkeletonStatus, SkeletonTable } from '@/components/ui/skeleton';
+import { Skeleton, SkeletonBreadcrumb, SkeletonHeader, SkeletonPanel, SkeletonStatus, SkeletonTable } from '@/components/ui/skeleton';
 
 /** 발견사항 상세 골격: 머리글 · 쉬운 요약 · 근거 · 권고 조치 */
 export default function FindingLoading() {
   return (
     <>
       <SkeletonStatus />
-      <Skeleton className="h-5 w-56" />
+      <SkeletonBreadcrumb className="w-56" />
       <SkeletonHeader />
       <SkeletonPanel titleClassName="w-28">
         <Skeleton className="h-24" />
