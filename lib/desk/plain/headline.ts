@@ -54,7 +54,7 @@ const HEADLINES: Readonly<Record<string, Headline>> = {
 
   'dq.gap_flatline': (subject, e) => {
     if (e.metric === 'dq.flatline_hours') return has(e.value) ? `${subject}의 계측값이 최대 ${size(e.value)}시간 동안 같은 값에 멈춰 있었습니다` : null;
-    return has(e.value) ? `${subject}의 계측 데이터가 들어와야 할 양의 ${size(e.value)}%만 들어왔습니다` : null;
+    return has(e.current) ? `${subject}의 계측 데이터가 들어와야 할 양의 ${size(e.current)}%만 들어왔습니다` : null;
   },
 };
 

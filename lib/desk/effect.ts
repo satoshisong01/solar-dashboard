@@ -17,10 +17,20 @@ const asRecord = (value: unknown): Readonly<Record<string, unknown>> =>
 const num = (value: unknown): number | null => (typeof value === 'number' && Number.isFinite(value) ? value : null);
 const str = (value: unknown): string | null => (typeof value === 'string' ? value : null);
 
+/**
+ * 옛 dq.completeness 발견사항은 효과 자리에 변화량이 아니라 완결성 수준(91.67%)을 넣어
+ * 화면이 '+91.67%'처럼 오른 것으로 보여 줬다. 지금 탐지기는 변화량(−8.33%p)을 저장한다 —
+ * 다시 분석하기 전에 저장된 행도 같은 뜻으로 읽히도록 여기서 맞춘다 (단위 '%'가 옛 형식 표시다).
+ */
+function fromLevelToChange(effect: EffectView): EffectView {
+  if (effect.metric !== 'dq.completeness' || effect.unit !== '%' || effect.value === null || effect.baseline === null) return effect;
+  return { ...effect, value: effect.value - effect.baseline, unit: '%p' };
+}
+
 /** 저장된 effect jsonb → 표시용. 모르는 값은 null */
 export function parseEffect(raw: unknown): EffectView {
   const e = asRecord(raw);
-  return {
+  return fromLevelToChange({
     metric: str(e.metric) ?? '',
     value: num(e.value),
     unit: str(e.unit) ?? '',
@@ -29,7 +39,7 @@ export function parseEffect(raw: unknown): EffectView {
     baseline: num(e.baseline),
     current: num(e.current),
     levelUnit: str(e.levelUnit),
-  };
+  });
 }
 
 /** 부호 붙은 수: +1.2 / −6.3 (마이너스 기호 U+2212) */

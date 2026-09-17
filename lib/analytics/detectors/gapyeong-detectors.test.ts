@@ -72,6 +72,15 @@ describe('hx.fouling@1', () => {
     expect(checksOf(result).ua_available).toBe('supports');
   });
 
+  it('접근온도 95% CI가 자기 대표값을 품는다', () => {
+    const result = run(hxSamplesFixture({ seed: 14, days: DAYS, fouling: from(DAYS - 7, 0.5) }));
+    expect(result.status).toBe('ok');
+    if (result.status !== 'ok') return;
+    const approach = (result.findings[0]?.evidence as { approach: { recent_k: number; ci_low_k: number; ci_high_k: number } }).approach;
+    expect(approach.ci_low_k).toBeLessThanOrEqual(approach.recent_k);
+    expect(approach.ci_high_k).toBeGreaterThanOrEqual(approach.recent_k);
+  });
+
   it('차압이 함께 오르면 스케일·막힘 체크가 지지, 그대로면 반박', () => {
     const scaled = run(hxSamplesFixture({ seed: 12, days: DAYS, fouling: from(DAYS - 7, 0.5), diffFactor: from(DAYS - 7, 1.5, 1) }));
     expect(checksOf(scaled).pressure_drop).toBe('supports');

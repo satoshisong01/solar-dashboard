@@ -11,10 +11,10 @@ import * as z from 'zod';
 import type { HxSample } from '../episodes/gapyeong-samples';
 import { binFloor, downsample } from '../episodes/series';
 import { hashInput } from '../hash';
-import { bootstrapCI } from '../stats/bootstrap';
+import { resample } from '../stats/bootstrap';
 import { relativeCiWidth, scoreConfidence } from '../stats/confidence';
-import { median } from '../stats/robust';
-import { kstDateString, MS_PER_DAY, type JsonObject } from '../types';
+import { median, quantileSorted, sortedCopy } from '../stats/robust';
+import { kstDateString, MS_PER_DAY, type JsonObject, type RandomSource } from '../types';
 import { levelCheck, medianShift, SAFETY_DISCLAIMER } from './check-helpers';
 import { fixed, insufficient, r, severityByMagnitude, signed, withDefaults } from './common';
 import { completenessParam, intParam, iterationsParam, numParam } from './param-schema';
@@ -158,6 +158,31 @@ function binShift(split: Split, pick: (x: Point) => number | null): { readonly s
   return { shift: cur - ref, ref, cur, n: weight };
 }
 
+/** bin별 값과 결합 가중치. 대표값은 bin별 중앙값을 최근 표본 수 비율로 가중 평균한 값이다 */
+interface LevelBin {
+  readonly values: readonly number[];
+  readonly weight: number;
+}
+
+const levelOf = (bins: readonly LevelBin[]): number => bins.reduce((sum, bin) => sum + bin.weight * median(bin.values), 0);
+
+/**
+ * 최근 대표 접근온도의 95% CI. 대표값이 bin별 중앙값의 가중 평균이므로 CI도 같은 통계량으로 내야 한다 —
+ * 전체 표본의 단순 중앙값을 부트스트랩하면 다른 값을 추정하게 되어 구간이 자기 대표값을 품지 않는다.
+ * bin 안에서만 복원추출하고 결합 가중치는 고정한다 (stats/matched.ts의 matchedRatio와 같은 방식).
+ */
+function recentLevelCI(split: Split, iterations: number, rng: RandomSource): { readonly low: number; readonly high: number } | null {
+  const rows = split.bins.flatMap((bin) => {
+    const values = split.recent.filter((x) => x.bin === bin).map((x) => x.approachK);
+    return values.length === 0 ? [] : [values];
+  });
+  const total = rows.reduce((sum, values) => sum + values.length, 0);
+  if (total === 0) return null;
+  const bins: LevelBin[] = rows.map((values) => ({ values, weight: values.length / total }));
+  const stats = sortedCopy(Array.from({ length: iterations }, () => levelOf(bins.map((bin) => ({ ...bin, values: resample(bin.values, rng) })))));
+  return { low: quantileSorted(stats, 0.025), high: quantileSorted(stats, 0.975) };
+}
+
 function checksOf(split: Split, p: HxFoulingParams): DiagnosticCheck[] {
   const diff = binShift(split, (x) => x.diffHotKpa);
   const diffPct = diff === null || !(diff.ref > 0) ? null : (diff.cur / diff.ref - 1) * 100;
@@ -210,8 +235,7 @@ function buildFinding(input: HxFoulingInput, ctx: DetectorContext<HxFoulingParam
   const uaDropPct = ua === null || !(ua.ref > 0) ? null : (1 - ua.cur / ua.ref) * 100;
   const severity: Severity =
     severityByMagnitude(Math.max(approach.shift / p.approachRiseK, (uaDropPct ?? 0) / p.uaDropPct), [[Math.max(p.severeApproachRiseK / p.approachRiseK, p.severeUaDropPct / p.uaDropPct), 3], [1, 2]]) ?? 2;
-  const recentApproach = split.recent.map((x) => x.approachK);
-  const ci = bootstrapCI(recentApproach, median, { iterations: p.iterations, rng: ctx.rng });
+  const ci = recentLevelCI(split, p.iterations, ctx.rng);
   const checks = checksOf(split, p);
   const supported = checks.filter((c) => c.status === 'supports' && c.id !== 'ua_available' && c.id !== 'sample_count').map((c) => c.label);
   const evidence: JsonObject = {
@@ -220,7 +244,7 @@ function buildFinding(input: HxFoulingInput, ctx: DetectorContext<HxFoulingParam
     bin: { key: 'hx_temp_hot_in_c', width: p.hotBinWidthC, bins: split.bins },
     gate: { min_delta_theta_k: p.minDeltaThetaK },
     design: { approach_k: r(input.designApproachK, 2), ua_kw_k: r(input.designUaKwK, 4) },
-    approach: { reference_k: r(approach.ref, 2), recent_k: r(approach.cur, 2), rise_k: r(approach.shift, 2), ci_low_k: r(ci.ciLow, 2), ci_high_k: r(ci.ciHigh, 2) },
+    approach: { reference_k: r(approach.ref, 2), recent_k: r(approach.cur, 2), rise_k: r(approach.shift, 2), ci_low_k: r(ci?.low ?? null, 2), ci_high_k: r(ci?.high ?? null, 2) },
     ua: ua === null ? null : { reference_kw_k: r(ua.ref, 4), recent_kw_k: r(ua.cur, 4), drop_pct: r(uaDropPct, 2) },
     points: downsample(split.recent.map((x) => ({ date: kstDateString(x.hourStart), hot_in_c: r(x.hotInC, 2), approach_k: r(x.approachK, 2), ua_kw_k: r(x.uaKwK, 4) })), 120),
     checks,
@@ -233,7 +257,7 @@ function buildFinding(input: HxFoulingInput, ctx: DetectorContext<HxFoulingParam
     failureMode: META.failureMode,
     category: META.category,
     severity,
-    confidence: scoreConfidence({ n: split.recent.length, ciWidth: relativeCiWidth(approach.cur, ci.ciLow, ci.ciHigh), dqCompleteness: 1, methodsAgree: uaDropPct !== null && uaDropPct > p.uaDropPct }),
+    confidence: scoreConfidence({ n: split.recent.length, ciWidth: relativeCiWidth(approach.cur, ci?.low ?? null, ci?.high ?? null), dqCompleteness: 1, methodsAgree: uaDropPct !== null && uaDropPct > p.uaDropPct }),
     title: `폐열회수 열교환기 접근온도 ${signed(approach.shift, 1)} K`,
     summary:
       `같은 1차측 입구 온도 조건(bin ${split.bins.length}개, 최근 ${split.recent.length}시간)에서 접근온도가 ${fixed(approach.ref, 1)} K → ${fixed(approach.cur, 1)} K(${signed(approach.shift, 1)} K, 기준 ${fixed(p.approachRiseK, 1)} K)로 벌어졌습니다.` +

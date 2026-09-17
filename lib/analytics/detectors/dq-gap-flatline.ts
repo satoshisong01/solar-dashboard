@@ -90,7 +90,9 @@ function findingFor(assetId: number, points: readonly DqPointSummary[], input: D
     title: `데이터 품질: ${titleParts.join('·')}`,
     summary: `${parts.join(', ')}. ${advice}을 권고합니다.`,
     effect: gapPoints.length > 0
-      ? { metric: 'dq.completeness', value: r(completenessPct, 2) ?? 0, unit: '%', ciLow: null, ciHigh: null, baseline: 100, current: r(completenessPct, 2), levelUnit: '%' }
+      // 효과 값은 다른 탐지기와 같이 '기준 대비 변화량'이다 (완결성 100% → 91.67%면 -8.33%p).
+      // 수준(91.67%)을 그대로 넣으면 화면 효과 칩이 '+91.67%'가 되어 완결성이 오른 것처럼 읽힌다.
+      ? { metric: 'dq.completeness', value: r(completenessPct - 100, 2) ?? 0, unit: '%p', ciLow: null, ciHigh: null, baseline: 100, current: r(completenessPct, 2), levelUnit: '%' }
       : { metric: 'dq.flatline_hours', value: r(longestFlatline(worstFlat as DqPointSummary), 2) ?? 0, unit: 'h', ciLow: null, ciHigh: null, baseline: null, current: null, levelUnit: null },
     windowStart: input.window.start,
     windowEnd: input.window.end,

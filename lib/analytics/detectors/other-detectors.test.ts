@@ -116,7 +116,10 @@ describe('dq.gap_flatline@1', () => {
     expect(result.findings).toHaveLength(1);
     const [finding] = result.findings;
     expect(finding).toMatchObject({ assetId: 10, severity: 2, category: 'data_quality', failureMode: 'dq.data_gap_flatline', title: '데이터 품질: 수신 결측·센서 값 고착' });
-    expect(finding?.effect).toMatchObject({ metric: 'dq.completeness', unit: '%' });
+    // 효과는 완결성 수준이 아니라 기준(100%) 대비 변화량이다 — 수준을 넣으면 화면 칩이 '+91.7%'로 오른 것처럼 보인다
+    expect(finding?.effect).toMatchObject({ metric: 'dq.completeness', unit: '%p', baseline: 100 });
+    expect(finding?.effect.value).toBeLessThan(0);
+    expect(finding?.effect.value).toBeCloseTo((finding?.effect.current ?? 0) - 100, 2);
     expect(finding?.summary).toContain('게이트웨이·통신 경로 점검과 센서 교정·배선 점검을 권고합니다.');
     expect(finding?.summary).toContain('ESS1/RACK01/T_CELL_AVG');
   });
