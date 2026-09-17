@@ -1,28 +1,28 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { PageHeader } from '@/components/console/page-header';
 import { SCREEN_GUIDES } from '@/lib/desk/plain/guides';
-import { FleetMatrix } from '@/components/fleet/fleet-matrix';
-import { FleetView } from '@/components/fleet/fleet-view';
 import { Panel } from '@/components/ui/panel';
 import { requireAdmin } from '@/lib/auth/dal';
-import { getFleetMatrix } from '@/lib/data/fleet';
-import { getFleetMapSites } from '@/lib/data/site-map-board';
 import { FLEET_THRESHOLDS, LEDGER_RESIDUAL_RULES } from '@/lib/data/fleet-status';
 import { requestTimeMs } from '@/lib/data/time';
 import { formatDuration, formatKstDateTime } from '@/lib/format';
+import { FleetBoardSection, FleetBoardSkeleton } from './sections';
 
 export const metadata: Metadata = { title: '플릿' };
 
+/** 제목·기준 시각·판정 규칙은 바로 그리고, 오래 걸리는 도메인 집계는 Suspense 경계 안에서 채운다 (sections.tsx) */
 export default async function FleetPage() {
   await requireAdmin();
   const nowMs = requestTimeMs();
-  const [rows, mapBoard] = await Promise.all([getFleetMatrix(nowMs), getFleetMapSites(nowMs)]);
 
   return (
     <>
       <PageHeader title="플릿" purpose="여러 사이트를 도메인별 건강 상태로 관망" guide={SCREEN_GUIDES.fleet} />
       <Panel title="사이트 × 도메인 상태" meta={`기준 시각 ${formatKstDateTime(nowMs)} KST`}>
-        <FleetView matrix={<FleetMatrix rows={rows} />} sites={mapBoard.sites} nowMs={nowMs} />
+        <Suspense fallback={<FleetBoardSkeleton />}>
+          <FleetBoardSection nowMs={nowMs} />
+        </Suspense>
         <details className="text-xs text-muted">
           <summary className="cursor-pointer">상태 판정 규칙</summary>
           <ul className="mt-2 flex list-disc flex-col gap-1 pl-5">
