@@ -43,7 +43,7 @@ export function PointTable({ points, latest, quality, nowMs }: PointTableProps) 
   if (points.length === 0) return <EmptyNote>이 설비에 매핑된 포인트가 없습니다</EmptyNote>;
 
   return (
-    <TableScroll label="포인트 목록 표">
+    <TableScroll label="포인트 목록 표" stickyFirst>
       <table className={TABLE_CLASS}>
         <thead>
           <tr>

@@ -18,7 +18,7 @@ const elapsedText = (run: RunHistoryRow): string => (run.finishedMs === null ? '
 export function RunHistory({ runs }: Readonly<{ runs: readonly RunHistoryRow[] }>) {
   if (runs.length === 0) return <EmptyNote>아직 실행한 분석이 없습니다</EmptyNote>;
   return (
-    <TableScroll label="최근 분석 실행 표">
+    <TableScroll label="최근 분석 실행 표" stickyFirst>
       <table className={TABLE_CLASS}>
         <thead>
           <tr>

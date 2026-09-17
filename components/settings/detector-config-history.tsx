@@ -58,7 +58,7 @@ export function DetectorConfigHistory({ detectorId, history, scopeNames }: Props
             {scopeNames[h.scope] ?? h.scope} <span className="font-mono text-xs font-normal text-muted">{h.scope}</span>
             <span className="ml-2 text-xs font-normal text-ink-2">{h.active ? `활성 버전 ${h.active.version}` : '활성 버전 없음 (물려받음)'}</span>
           </h3>
-          <TableScroll label={`${h.scope} 버전 이력 표`}>
+          <TableScroll label={`${h.scope} 버전 이력 표`} stickyFirst>
             <table className={TABLE_CLASS}>
               <thead>
                 <tr>
