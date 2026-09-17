@@ -18,7 +18,7 @@ export function FindingSeverityChip({ severity }: Readonly<{ severity: number }>
     <span className={`inline-flex items-center gap-1 rounded border px-1.5 py-px text-xs font-medium whitespace-nowrap ${SEVERITY_TONE[severity] ?? SEVERITY_TONE[0]}`}>
       <span className="sr-only">심각도 {severityLabel(severity)} · </span>
       {severityAction(severity)}
-      <span aria-hidden="true" className="font-mono text-[0.625rem] opacity-70 tabular-nums">
+      <span aria-hidden="true" className="font-mono text-[0.625rem] tabular-nums">
         {severity}
       </span>
     </span>
