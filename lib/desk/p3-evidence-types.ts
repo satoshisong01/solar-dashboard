@@ -163,6 +163,73 @@ export interface ThermalEvidence {
 
 export type GapyeongEvidenceDetectorId = 'prv.seat_leak' | 'hx.fouling' | 'o2.purity_drift';
 
+/** prv.seat_leak 무유동 구간 한 줄 */
+export interface PrvHoldView {
+  readonly start: number | null;
+  /** KST 'YYYY-MM-DD' */
+  readonly date: string;
+  readonly hours: number | null;
+  readonly creepMbarPerH: number | null;
+  readonly startBar: number | null;
+  readonly endBar: number | null;
+  /** 구간 앞쪽 안정화를 뺀 뒤 남은 비율 (1에 가까울수록 구간 내내 이어진 상승) */
+  readonly settleRatio: number | null;
+}
+
+/** hx.fouling 최근 정상상태 한 시간 */
+export interface HxPointView {
+  readonly date: string;
+  readonly hotInC: number | null;
+  readonly approachK: number | null;
+  readonly uaKwK: number | null;
+}
+
+/** o2.purity_drift 하루 한 줄 */
+export interface O2DayView {
+  readonly date: string;
+  readonly medianPct: number | null;
+  readonly maxPct: number | null;
+  readonly hours: number | null;
+  /** 그 날 전해조 부하율 (0~1) */
+  readonly load: number | null;
+}
+
+/** 탐지기마다 다른 근거 화면 입력. 옛 스냅샷에서는 값이 null·빈 배열로 온다 */
+export type GapyeongDetail =
+  | {
+      readonly kind: 'prv';
+      readonly setpointBar: number | null;
+      readonly warnMbarPerH: number | null;
+      readonly alertMbarPerH: number | null;
+      readonly alarmHolds: number;
+      readonly minAlarmHolds: number;
+      readonly ciLowMbarPerH: number | null;
+      readonly ciHighMbarPerH: number | null;
+      readonly holds: readonly PrvHoldView[];
+    }
+  | {
+      readonly kind: 'hx';
+      readonly binWidthC: number | null;
+      readonly bins: readonly number[];
+      readonly minDeltaThetaK: number | null;
+      readonly designApproachK: number | null;
+      readonly designUaKwK: number | null;
+      readonly riseK: number | null;
+      readonly ciLowK: number | null;
+      readonly ciHighK: number | null;
+      readonly uaReferenceKwK: number | null;
+      readonly uaRecentKwK: number | null;
+      readonly points: readonly HxPointView[];
+    }
+  | {
+      readonly kind: 'o2';
+      readonly lelPct: number | null;
+      readonly recentP95Pct: number | null;
+      readonly ciLowPct: number | null;
+      readonly ciHighPct: number | null;
+      readonly days: readonly O2DayView[];
+    };
+
 /**
  * 가평 구성 탐지기 3종 공용 표시 모델: 기준 구간 값 → 최근 구간 값 (+ 한계선까지 남은 여유).
  * 셋 다 '같은 조건에서 어떤 값이 얼마나 움직였는가'라는 뼈대가 같아 한 타입으로 읽는다.
@@ -192,6 +259,8 @@ export interface GapyeongEvidence {
   };
   /** 날짜별 값 (추세 차트) */
   readonly points: readonly { readonly date: string; readonly value: number | null }[];
+  /** 탐지기별 근거 화면 입력 (구간 표·같은 조건 비교·한계선) */
+  readonly detail: GapyeongDetail;
   readonly note: string | null;
   readonly checks: readonly CheckView[];
 }

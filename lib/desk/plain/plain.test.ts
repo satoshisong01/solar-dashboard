@@ -181,6 +181,7 @@ describe('한계선 여유·성능 변화의 부호', () => {
     margin: null,
     extra: { alarmHolds: null, minAlarmHolds: null, leakNlPerMin: null, downstreamVolumeM3: null, uaDropPct: null, marginPctPoints: null },
     points: [],
+    detail: { kind: 'o2', lelPct: 4, recentP95Pct: null, ciLowPct: null, ciHighPct: null, days: [] },
     note: null,
     checks: [],
     ...overrides,

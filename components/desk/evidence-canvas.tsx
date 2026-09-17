@@ -6,6 +6,7 @@ import type { CapacityEvidence, EvidenceView, SohTargetView } from '@/lib/desk/e
 import { formatKstDate } from '@/lib/format';
 import { CapacityBinsTable, CellImbalanceTables, DqPointsTable, PvPeerTable, StackBinsTable } from './comparison-tables';
 import { OverlayChart } from './overlay-chart';
+import { GapyeongCanvas } from './p3/gapyeong-canvas';
 import { MassBalanceCanvas } from './p3/mass-balance-canvas';
 import { RiseCanvas } from './p3/rise-canvas';
 import { SoilingCanvas } from './p3/soiling-canvas';
@@ -104,6 +105,8 @@ export function EvidenceCanvas({ evidence, chargeTimeText, assetLabel, siteCode,
       return <SoilingCanvas evidence={evidence} />;
     case 'thermal':
       return <ThermalCanvas evidence={evidence} />;
+    case 'gapyeong':
+      return <GapyeongCanvas evidence={evidence} />;
     default:
       return (
         <Panel title="근거">
