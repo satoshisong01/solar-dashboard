@@ -23,7 +23,7 @@ export default async function MarketSettingsPage() {
       <PageHeader title="설정" purpose="스키마 변경 없이 자산·메트릭 등록, 탐지기 파라미터, 키 회전, 관리자" />
       <SectionTabs label="설정 하위 화면" tabs={SETTINGS_TABS} current="/settings/market" />
 
-      <Panel title="수기 입력" meta="SMP(육지·제주)·REC 일별 값 → 오늘 화면 수익 요약">
+      <Panel title="수기 입력" meta="SMP(육지·제주)·REC 일별 값 → 대시보드 수익 요약">
         <MarketManualForm defaultDay={formatKstDate(nowMs)} />
       </Panel>
 

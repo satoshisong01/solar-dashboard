@@ -14,7 +14,7 @@ const FIT_PADDING: FitPadding = { top: 44, right: 88, bottom: 44, left: 88 };
 const LINK_CLASS = 'inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline';
 
 /**
- * 오늘 화면의 지도 카드. 문제가 있는 발전소만 크게·이름과 함께 그리고 정상·수신 없음은 작은 점으로 둔다.
+ * 대시보드 화면의 지도 카드. 문제가 있는 발전소만 크게·이름과 함께 그리고 정상·수신 없음은 작은 점으로 둔다.
  * 마커를 누르면 그 사이트 화면으로 가고, 전체 보기는 플릿 지도로 간다.
  */
 export function SiteMapCard({ sites, nowMs }: Readonly<{ sites: readonly SiteMapStatus[]; nowMs: number }>) {

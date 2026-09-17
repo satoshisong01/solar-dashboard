@@ -21,7 +21,7 @@ export interface RunResultData {
 async function runInBackground(prepared: PreparedRun): Promise<void> {
   try {
     await executeAnalysisRun(db, prepared, { timeBudgetMs: CONSOLE_TIME_BUDGET_MS, onProgress: progressWriter(db, prepared.runId) });
-    revalidatePath('/', 'layout'); // 결과가 다른 화면(오늘·조치 추적)에도 반영되게 한다. 이 화면은 진행 표시가 끝을 보고 새로 고친다
+    revalidatePath('/', 'layout'); // 결과가 다른 화면(대시보드·조치 추적)에도 반영되게 한다. 이 화면은 진행 표시가 끝을 보고 새로 고친다
   } catch (error) {
     // AnalysisBusyError면 실행 행은 이미 failed로 남았다 (화면은 진행 표시로 그 상태를 읽는다)
     if (!(error instanceof AnalysisBusyError)) console.error('[desk/run] 분석 실행 실패:', error);

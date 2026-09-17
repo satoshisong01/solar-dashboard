@@ -3,6 +3,7 @@ import {
   Database,
   FileText,
   FlaskConical,
+  LayoutDashboard,
   LayoutGrid,
   LifeBuoy,
   ListChecks,
@@ -10,7 +11,6 @@ import {
   Microscope,
   Settings,
   ShieldAlert,
-  Sunrise,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -23,7 +23,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
     id: 'operate',
     label: '운영',
     items: [
-      { href: '/', label: '오늘', icon: Sunrise },
+      { href: '/', label: '대시보드', icon: LayoutDashboard },
       { href: '/fleet', label: '플릿', icon: LayoutGrid },
       { href: '/sites', label: '사이트', icon: MapPin },
       { href: '/explore', label: '탐색기', icon: ChartSpline },

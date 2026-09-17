@@ -79,7 +79,7 @@ test.describe('지도', () => {
     await expect(page.getByRole('heading', { level: 1 })).toContainText(String(code));
   });
 
-  test('오늘 화면의 지도 카드에 마커가 보이고 전체 보기로 플릿에 간다', async ({ page }) => {
+  test('대시보드의 지도 카드에 마커가 보이고 전체 보기로 플릿에 간다', async ({ page }) => {
     await page.goto('/');
     const card = page.locator('section', { has: page.getByRole('heading', { name: '발전소 지도', exact: true }) });
     await expect(card.getByRole('link', { name: MARKER_NAME })).toHaveCount(SITE_COUNT);

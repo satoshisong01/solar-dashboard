@@ -15,7 +15,7 @@ export const SIGNED_OUT = Object.freeze({ cookies: [], origins: [] });
 
 /** 설계 §4 IA의 콘솔 메뉴. 구현 상수를 가져오지 않고 기대값으로 따로 적는다. */
 export const CONSOLE_ROUTES = Object.freeze([
-  { href: '/', title: '오늘' },
+  { href: '/', title: '대시보드' },
   { href: '/fleet', title: '플릿' },
   { href: '/sites', title: '사이트' },
   { href: '/explore', title: '탐색기' },

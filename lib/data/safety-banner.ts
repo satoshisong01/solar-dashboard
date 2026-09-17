@@ -1,4 +1,4 @@
-// 오늘 화면 안전 배너 규칙 (순수). 두 경로를 구분해 보여 준다:
+// 대시보드 화면 안전 배너 규칙 (순수). 두 경로를 구분해 보여 준다:
 //   안전 이벤트   수집 즉시 경로(event_log.is_safety). 확인(ack) 전까지 고정 — 분석을 거치지 않는다
 //   안전 발견사항 분석 결과(카테고리 safety·심각도 4 이상, lib/desk/safety.ts)이면서 열린 상태(기각·효과 확인 제외). 상태가 닫히면 사라진다
 import { isFindingStatus, isOpenStatus } from '@/lib/analysis/transition-rules';

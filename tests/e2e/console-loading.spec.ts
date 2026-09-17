@@ -39,7 +39,7 @@ async function watchForSkeleton(page: Page): Promise<void> {
 
 /** content: 그 화면에서 가장 늦게 채워지는 영역의 표시 (Suspense 경계 안에서 서버가 보낸 것) */
 const SLOW_SCREENS = [
-  { href: '/', title: '오늘', content: { role: 'heading', name: '사이트별 발전·수소 요약' } },
+  { href: '/', title: '대시보드', content: { role: 'heading', name: '사이트별 발전·수소 요약' } },
   { href: '/fleet', title: '플릿', content: { role: 'group', name: '보기 전환' } },
   { href: '/desk', title: '분석 데스크', content: { role: 'heading', name: '발견사항 인박스' } },
 ] as const;

@@ -7,7 +7,7 @@ import { errorState, formValues, INVALID_FORM_MESSAGE, successState, type Action
 import { parseAckForm } from '@/lib/forms/settings';
 import { ackSafetyEvent } from '@/lib/ops/safety';
 
-/** 안전 이벤트 확인(ack). 메모 필수, 확인자는 세션 이메일. 미확인 수는 여러 화면(오늘·플릿·사이트)에 보이므로 콘솔 전체를 다시 그린다 */
+/** 안전 이벤트 확인(ack). 메모 필수, 확인자는 세션 이메일. 미확인 수는 여러 화면(대시보드·플릿·사이트)에 보이므로 콘솔 전체를 다시 그린다 */
 export async function ackSafetyEventAction(prev: ActionState, formData: FormData): Promise<ActionState> {
   const session = await requireAdmin();
   const values = formValues(formData);

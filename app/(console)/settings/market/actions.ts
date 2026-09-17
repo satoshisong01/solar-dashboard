@@ -12,7 +12,7 @@ export type MarketSaveData = Readonly<{ inserted: number; updated: number }>;
 
 const savedMessage = (data: MarketSaveData) => `저장했습니다. 새로 ${data.inserted}건, 덮어씀 ${data.updated}건`;
 
-/** 수기 입력 (날짜 하나 × 항목별 값). 오늘 화면의 수익 요약 위젯이 바로 반영하도록 콘솔 전체를 다시 그린다 */
+/** 수기 입력 (날짜 하나 × 항목별 값). 대시보드 화면의 수익 요약 위젯이 바로 반영하도록 콘솔 전체를 다시 그린다 */
 export async function saveMarketManualAction(prev: ActionState<MarketSaveData>, formData: FormData): Promise<ActionState<MarketSaveData>> {
   const session = await requireAdmin();
   const values = formValues(formData);

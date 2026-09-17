@@ -7,7 +7,7 @@ import { E2E_ADMIN_EMAIL, E2E_INGEST_SITE } from './e2e-env';
 const LEAK_CODE = 'H2_LEAK_L1';
 const UNMAPPED_TAG = 'COMP1/VIB_RMS';
 
-test('오늘 화면 안전 배너 → 안전 화면에서 메모와 함께 확인 → 이력에 남고 배너가 사라진다', async ({ page }) => {
+test('대시보드 안전 배너 → 안전 화면에서 메모와 함께 확인 → 이력에 남고 배너가 사라진다', async ({ page }) => {
   await page.goto('/');
   const banner = page.getByRole('region', { name: /^미확인 안전 이벤트 \d+건$/ });
   await expect(banner).toBeVisible();

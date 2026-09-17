@@ -8,7 +8,7 @@ const DAY_MS = 86_400_000;
 const KST_OFFSET_MS = 9 * 3_600_000;
 const kstDate = (ms: number): string => new Date(ms + KST_OFFSET_MS).toISOString().slice(0, 10);
 
-test('시장가격 CSV: 오류 행을 행 번호와 함께 안내하고, 올바른 파일을 적용하면 오늘 화면 수익 요약에 반영된다', async ({ page }) => {
+test('시장가격 CSV: 오류 행을 행 번호와 함께 안내하고, 올바른 파일을 적용하면 대시보드 수익 요약에 반영된다', async ({ page }) => {
   const today = kstDate(Date.now());
   const yesterday = kstDate(Date.now() - DAY_MS);
   await page.goto('/settings/market');
@@ -66,7 +66,7 @@ test('게이트웨이 키: 비밀값은 발급 직후 한 번만 보이고, 화�
   expect(secret.length).toBeGreaterThanOrEqual(43);
 
   // 다른 화면에 갔다가 다시 들어온다: 키 ID는 목록에 남고 비밀값은 어디에도 없다
-  await page.getByRole('navigation', { name: '주 메뉴' }).getByRole('link', { name: '오늘', exact: true }).click();
+  await page.getByRole('navigation', { name: '주 메뉴' }).getByRole('link', { name: '대시보드', exact: true }).click();
   await expect(page).toHaveURL('/');
   await page.goto('/settings/gateways');
   const revisited = page.getByRole('listitem').filter({ has: page.getByRole('heading', { name: new RegExp(gatewayCode) }) });
@@ -93,7 +93,7 @@ async function signIn(page: Page, email: string, password: string): Promise<void
   expect(status).toBe(200);
 }
 
-test('관리자 계정을 만들면 새 계정으로 로그인해 오늘 화면에 들어간다', async ({ page, browser }) => {
+test('관리자 계정을 만들면 새 계정으로 로그인해 대시보드 화면에 들어간다', async ({ page, browser }) => {
   // 실행마다 다른 계정. 공유 관리자 세션을 바꾸지 않도록 로그인은 별도 브라우저 컨텍스트에서 한다.
   const email = `e2e-new-admin-${Date.now()}@hysol.local`;
   const password = randomBytes(18).toString('base64url');
@@ -111,7 +111,7 @@ test('관리자 계정을 만들면 새 계정으로 로그인해 오늘 화면�
     const newPage = await context.newPage();
     await signIn(newPage, email, password);
     await expect(newPage).toHaveURL('/');
-    await expect(newPage.getByRole('heading', { level: 1, name: '오늘' })).toBeVisible();
+    await expect(newPage.getByRole('heading', { level: 1, name: '대시보드' })).toBeVisible();
   } finally {
     await context.close();
   }

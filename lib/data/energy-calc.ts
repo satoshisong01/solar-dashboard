@@ -20,7 +20,7 @@ export interface EnergyKpiDef {
   readonly method: EnergyMethod;
 }
 
-/** 오늘 화면·사이트 KPI의 발전·수소 요약 정의. 같은 종류의 설비가 여럿이면 합한다 */
+/** 대시보드·사이트 KPI의 발전·수소 요약 정의. 같은 종류의 설비가 여럿이면 합한다 */
 export const ENERGY_KPIS = Object.freeze({
   pvKwh: { classKey: 'pv.inverter', metricKey: 'ac.energy.total', method: 'counter' },
   essChargeKwh: { classKey: 'ess.pcs', metricKey: 'ac.energy.charge.total', method: 'counter' },

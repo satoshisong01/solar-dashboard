@@ -4,7 +4,7 @@ import { E2E_BASE_URL, SIGNED_OUT } from './e2e-env';
 import { P3_ASSETS, P3_DAYS, P3_INPUTS, P3_SITE } from './p3-chain-plan';
 import { captureServerAction, expectBlocked, FORGED_SESSION_COOKIE } from './server-action';
 
-// P3 수소 체인 E2E (설계 §8 P3): 분석 실행 → 누설 안전 발견사항·물질수지 사이트 발견사항 → 오늘 배너 → 누설 근거 → 체인 원장 섹션
+// P3 수소 체인 E2E (설계 §8 P3): 분석 실행 → 누설 안전 발견사항·물질수지 사이트 발견사항 → 대시보드 배너 → 누설 근거 → 체인 원장 섹션
 // → 탐지 준비도 → 탐지기 설정 버전 → 리포트(안전 블록·방향 단어 검증) → 조치 효과 검증 → 비로그인 차단 → 분석은 리포트를 만들지 않음.
 // 데이터: globalSetup이 SIM-B 과거 21일(p3-chain-plan.ts)을 적재했다. 테스트는 앞 단계가 만든 상태를 이어 쓴다 (serial).
 
@@ -58,7 +58,7 @@ async function saveResidualPct(page: Page, value: string): Promise<void> {
   await form.getByRole('button', { name: '새 버전 저장' }).click();
 }
 
-test('(1) SIM-B 수소 체인 기간 분석 실행 → 누설 안전 발견사항(심각도 4)·물질수지 사이트 발견사항 → 오늘 화면 안전 발견사항 배너', async ({ page }) => {
+test('(1) SIM-B 수소 체인 기간 분석 실행 → 누설 안전 발견사항(심각도 4)·물질수지 사이트 발견사항 → 대시보드 안전 발견사항 배너', async ({ page }) => {
   test.slow();
   const run = await runChainAnalysis(page);
   await expect(run).toContainText('리포트나 파일을 만들지 않습니다');

@@ -95,7 +95,7 @@ async function loadKpiRows(db: Kysely<DB>, siteId: number, period: PackPeriod, n
   return rows.map((row) => ({ scopeType: row.scope_type === 'site' ? 'site' : 'asset', assetPath: row.path, day: row.day, key: row.kpi_key, value: row.value, dqCompleteness: row.dq_completeness }));
 }
 
-/** 사이트 발전·수소 요약 (m_1h, 오늘 화면과 같은 정의). 기간 끝은 지금을 넘지 않는다 */
+/** 사이트 발전·수소 요약 (m_1h, 대시보드와 같은 정의). 기간 끝은 지금을 넘지 않는다 */
 async function loadEnergy(db: Kysely<DB>, siteId: number, window: { fromMs: number; toMs: number }): Promise<PackEnergy> {
   const points = await db
     .selectFrom('om.point as p')

@@ -8,7 +8,7 @@ import { getSiteMapStatus } from '@/lib/data/site-map';
 import { getDataGaps, getEnergySummary, getMarketSummary, getSafetyBanner } from '@/lib/data/today';
 
 /**
- * 오늘 화면의 영역별 조회와 그 자리 골격.
+ * 대시보드 화면의 영역별 조회와 그 자리 골격.
  * 영역마다 Suspense 경계를 두므로(page.tsx) 조회가 끝난 영역부터 채워진다.
  * 골격은 loading.tsx와 Suspense fallback이 함께 쓴다 — 두 곳이 어긋나지 않게 여기 한 곳에만 둔다.
  */

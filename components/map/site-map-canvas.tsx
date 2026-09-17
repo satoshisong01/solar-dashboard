@@ -82,7 +82,7 @@ type Props = Readonly<{
   selectedCode: string | null;
   onSelect: (code: string) => void;
   nowMs: number;
-  /** 정상인 곳의 마커를 작게 그린다 (오늘 화면: 문제 있는 곳만 눈에 들어오게). 수신 없음은 볼 수 없다는 문제라 그대로 크게 둔다 */
+  /** 정상인 곳의 마커를 작게 그린다 (대시보드 화면: 문제 있는 곳만 눈에 들어오게). 수신 없음은 볼 수 없다는 문제라 그대로 크게 둔다 */
   subdueHealthy?: boolean;
   /** 지도 자리를 대신 채울 안내 (키가 없을 때) */
   label: string;
@@ -139,7 +139,7 @@ function LoadedMap({ appKey, sites, view, padding, selectedCode, onSelect, nowMs
       <LabelOverlap sites={sites} pinnedCode={selectedCode} onChange={updateHidden} />
       {sites.map((site) => {
         const active = site.code === selectedCode;
-        // 오늘 화면(작은 지도)에서는 정상인 곳과, 겹쳐서 라벨을 접은 곳을 작은 점으로 줄여 옆 카드를 가리지 않게 한다.
+        // 대시보드 화면(작은 지도)에서는 정상인 곳과, 겹쳐서 라벨을 접은 곳을 작은 점으로 줄여 옆 카드를 가리지 않게 한다.
         const quiet = subdueHealthy === true && !active && (site.level === 'normal' || hidden.has(site.code));
         return (
           // 선언형 오버레이: 마커 내용은 React가 그린다 (innerHTML 사용 안 함)

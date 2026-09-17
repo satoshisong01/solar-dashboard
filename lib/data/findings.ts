@@ -90,7 +90,7 @@ export async function listInboxRows(): Promise<Readonly<{ rows: readonly InboxRo
   return { rows: rows.slice(0, INBOX_LIMIT).flatMap(toInboxRow), truncated: rows.length > INBOX_LIMIT };
 }
 
-/** 오늘 화면 신규·악화 목록: 새 발견·다시 열림(조치 뒤 악화·재개) 중 심각도×신뢰도 상위 */
+/** 대시보드 화면 신규·악화 목록: 새 발견·다시 열림(조치 뒤 악화·재개) 중 심각도×신뢰도 상위 */
 export async function listNewAndReopened(limit: number): Promise<readonly InboxRow[]> {
   const statuses: FindingStatus[] = ['new', 'reopened'];
   const rows = await baseQuery().where('f.status', 'in', statuses).execute();

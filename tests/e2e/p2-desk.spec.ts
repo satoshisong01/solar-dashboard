@@ -111,7 +111,7 @@ test('HYSOL_SHOW_SIM 없이는 시뮬레이터 메뉴가 없고 /sim은 찾을 �
   await expect(page.getByRole('navigation', { name: '주 메뉴' }).getByRole('link', { name: '시뮬레이터' })).toHaveCount(0);
 });
 
-test('오늘 화면에 할 일 카운터와 신규·악화 발견사항 영역이 있다', async ({ page }) => {
+test('대시보드에 할 일 카운터와 신규·악화 발견사항 영역이 있다', async ({ page }) => {
   await page.goto('/');
   const work = panel(page, '할 일');
   for (const label of ['새 발견사항', '조사 중', '조치 후 검증 대기', '검증 결과 도착']) await expect(work.getByRole('link', { name: new RegExp(label) })).toBeVisible();

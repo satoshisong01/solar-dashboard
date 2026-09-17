@@ -15,7 +15,7 @@ type Props = Readonly<{
   active: boolean;
   /** 겹쳐서 라벨 카드를 접었는가 (마커 원과 상태색은 남는다) */
   labelHidden: boolean;
-  /** 작게 그린다 (오늘 화면에서 문제 없는 곳) */
+  /** 작게 그린다 (대시보드 화면에서 문제 없는 곳) */
   subdued?: boolean;
   onSelect: () => void;
   nowMs: number;
