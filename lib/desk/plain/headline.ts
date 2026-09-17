@@ -49,8 +49,12 @@ const HEADLINES: Readonly<Record<string, Headline>> = {
       ? `${subject}에서 뜨거운 물과 데워진 물의 온도 차이가 ${size(e.baseline)}도에서 ${size(e.current)}도로 벌어졌습니다 — 열이 예전만큼 넘어가지 않습니다`
       : null,
 
-  'o2.purity_drift': (subject, e) =>
-    has(e.current) ? `${subject}에서 나오는 산소에 섞인 수소가 ${size(e.current, 2)}%까지 올랐습니다` : null,
+  // 이 탐지기는 오르지 않아도 압축금지선까지 여유가 좁으면 나온다 — 그때 '올랐습니다'로 쓰면 없던 상승을 말하게 된다
+  'o2.purity_drift': (subject, e) => {
+    if (!has(e.current)) return null;
+    const level = `${subject}에서 나오는 산소에 섞인 수소가 ${size(e.current, 2)}%`;
+    return has(e.baseline) && e.current <= e.baseline ? `${level}입니다` : `${level}까지 올랐습니다`;
+  },
 
   'dq.gap_flatline': (subject, e) => {
     if (e.metric === 'dq.flatline_hours') return has(e.value) ? `${subject}의 계측값이 최대 ${size(e.value)}시간 동안 같은 값에 멈춰 있었습니다` : null;

@@ -216,6 +216,14 @@ describe('한계선 여유·성능 변화의 부호', () => {
     ]);
   });
 
+  it('산소 중 수소는 오르지 않았으면 올랐다고 말하지 않는다', () => {
+    const { finding } = caseOf('o2.purity_drift');
+    const level = (baseline: number, current: number) => plainHeadline({ ...finding, effect: { ...finding.effect, baseline, current } });
+    expect(level(1.06, 1.54)).toContain('1.54%까지 올랐습니다.');
+    expect(level(1.6, 1.54)).toContain('1.54%입니다.');
+    expect(level(1.54, 1.54)).toContain('1.54%입니다.');
+  });
+
   it('열교환 성능은 저하율이 음수면 올랐다고 말한다', () => {
     expect([uaChangeText(45.2), uaChangeText(0), uaChangeText(-45.2)]).toEqual(['45.2% 떨어졌습니다', '그대로입니다', '45.2% 올랐습니다']);
     const hx = caseOf('hx.fouling');
