@@ -2,7 +2,8 @@
 import { MAP_LEVELS, hasAlerts, type MapLevelCounts } from '@/lib/data/map-status';
 import { MAP_LEVEL_META } from './map-level';
 
-const PANEL_CLASS = 'rounded-lg border border-rule bg-surface/95 shadow-lg backdrop-blur-sm';
+// 밝은 지도 타일 위에 뜨는 패널. 바탕은 거의 불투명한 어두운 면, 테두리는 3:1 이상인 --rule-strong 으로 둔다
+const PANEL_CLASS = 'rounded-lg border border-rule-strong bg-surface/95 shadow-overlay backdrop-blur-sm';
 
 /** 왼쪽 위 상태 칩: 전체가 정상인지와 열린 발견사항 수 */
 export function MapStatusChip({ counts, openFindings, className = '' }: Readonly<{ counts: MapLevelCounts; openFindings: number; className?: string }>) {

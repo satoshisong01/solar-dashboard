@@ -31,7 +31,7 @@ export interface FitPadding {
 
 /** 지도 대신 띄우는 안내. 지도 위에 뜬 목록·상세 패널에 가리지 않게 가운데 좁은 칸에 카드로 둔다 */
 const NOTICE_WRAP_CLASS = 'flex h-full items-center justify-center p-4';
-const NOTICE_CLASS = 'max-w-64 rounded-md border border-rule bg-surface/95 px-4 py-3 text-center text-sm text-balance shadow-md';
+const NOTICE_CLASS = 'max-w-64 rounded-md border border-rule-strong bg-surface/95 px-4 py-3 text-center text-sm text-balance shadow-overlay';
 
 type LocatedSite = SiteMapStatus & { readonly lat: number; readonly lon: number };
 

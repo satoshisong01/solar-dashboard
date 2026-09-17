@@ -17,7 +17,7 @@ const FUTURE_TOLERANCE_MS = 5 * 60_000;
 const STUCK_MINUTE_OPTIONS = [30, 60, 180, 360] as const;
 const DEFAULT_STUCK_MINUTES = 60;
 
-const SELECT_CLASS = 'rounded-md border border-rule-strong bg-surface px-2 py-1.5 text-sm text-ink';
+const SELECT_CLASS = 'rounded-md border border-rule-strong bg-field px-2 py-1.5 text-sm text-ink';
 
 type QualityPageProps = Readonly<{ searchParams: Promise<Record<string, SearchParamValue>> }>;
 
@@ -68,7 +68,7 @@ export default async function DataQualityPage({ searchParams }: QualityPageProps
           <input type="checkbox" name="zero" value="1" defaultChecked={filters.includeZero} className="accent-accent" />
           값 0 포함
         </label>
-        <button type="submit" className="rounded-md border border-rule bg-surface px-3 py-1.5 text-sm font-medium text-ink-2 hover:bg-sunken hover:text-ink">
+        <button type="submit" className="rounded-md border border-rule-strong bg-sunken px-3 py-1.5 text-sm font-medium text-ink-2 hover:bg-rule hover:text-ink">
           적용
         </button>
       </form>

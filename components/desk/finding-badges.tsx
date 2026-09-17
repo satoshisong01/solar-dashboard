@@ -3,8 +3,8 @@ import { severityLabel } from '@/lib/desk/labels';
 import { severityAction } from '@/lib/desk/plain/common';
 
 const SEVERITY_TONE: readonly string[] = [
-  'border-rule bg-surface text-muted',
-  'border-rule bg-surface text-muted',
+  'border-rule bg-sunken text-muted',
+  'border-rule bg-sunken text-muted',
   'border-rule-strong bg-sunken text-ink-2',
   'border-warn/40 bg-warn-fill text-warn',
   'border-crit/40 bg-crit-fill text-crit',
@@ -46,9 +46,9 @@ const STATUS_TONE: Readonly<Record<FindingStatus, string>> = {
   reopened: 'border-warn/40 bg-warn-fill text-warn',
   triaged: 'border-rule-strong bg-sunken text-ink-2',
   in_report: 'border-rule-strong bg-sunken text-ink-2',
-  action_taken: 'border-rule-strong bg-surface text-ink-2',
+  action_taken: 'border-rule-strong bg-sunken text-ink-2',
   verified: 'border-ok/40 bg-ok-fill text-ok',
-  dismissed: 'border-rule bg-surface text-muted',
+  dismissed: 'border-rule bg-sunken text-muted',
 };
 
 export function FindingStatusBadge({ status }: Readonly<{ status: FindingStatus }>) {

@@ -105,7 +105,7 @@ export function ActionCsvImport() {
         <label htmlFor={inputId} className="text-xs font-medium text-ink-2">
           CSV 파일 (UTF-8, 헤더 <span className="font-mono">{ACTION_CSV_HEADER.join(',')}</span>, finding_id 열은 선택)
         </label>
-        <input id={inputId} type="file" accept=".csv,text/csv" onChange={handleFile} className="text-sm text-ink-2 file:mr-3 file:rounded-md file:border file:border-rule file:bg-surface file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-ink-2 hover:file:bg-sunken" />
+        <input id={inputId} type="file" accept=".csv,text/csv" onChange={handleFile} className="text-sm text-ink-2 file:mr-3 file:rounded-md file:border file:border-rule-strong file:bg-sunken file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-ink-2 hover:file:bg-sunken" />
         <p className="text-xs text-muted">
           performed_at: YYYY-MM-DD 또는 YYYY-MM-DD HH:mm (KST). finding_id를 넣으면 그 탐지기의 기본 검증 지표로 기대 효과를 채우고(최소 변화량 0), 발견사항은 조치 완료로 바뀝니다. 예){' '}
           <span className="font-mono">SIM-A,SIM-A/ESS1/RACK03,셀 밸런싱,2026-08-01 09:30,현장팀,,2</span>

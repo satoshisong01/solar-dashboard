@@ -71,7 +71,7 @@ export function InboxFilters({ filter, siteCodes }: InboxFiltersProps) {
         </select>
       </label>
       <div className="flex items-center gap-2">
-        <button type="submit" className="rounded-md border border-rule bg-surface px-3 py-1.5 text-sm font-medium text-ink-2 hover:bg-sunken hover:text-ink">
+        <button type="submit" className="rounded-md border border-rule-strong bg-sunken px-3 py-1.5 text-sm font-medium text-ink-2 hover:bg-rule hover:text-ink">
           적용
         </button>
         <Link href="/desk#inbox" className="text-sm text-ink-2 underline hover:text-ink">

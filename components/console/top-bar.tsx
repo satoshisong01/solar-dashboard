@@ -10,11 +10,11 @@ import { NavLink } from './nav-link';
 
 const TAB_CLASS =
   'flex items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 py-1.5 text-sm text-ink-2 hover:bg-sunken hover:text-ink ' +
-  'aria-[current=page]:bg-hydrogen-fill aria-[current=page]:font-medium aria-[current=page]:text-ink';
+  'aria-[current=page]:bg-hydrogen-fill aria-[current=page]:font-medium aria-[current=page]:text-ink aria-[current=page]:shadow-glow';
 
 export function TopBar({ email, showSim }: Readonly<{ email: string; showSim: boolean }>) {
   return (
-    <header className="border-b border-rule bg-surface md:sticky md:top-0 md:z-10">
+    <header className="border-b border-rule bg-surface/85 backdrop-blur-md md:sticky md:top-0 md:z-10">
       <div className="flex h-14 items-center gap-3 px-4 md:px-8">
         <Link href="/" className="flex shrink-0 items-center gap-2 rounded-md font-semibold text-ink md:hidden">
           <BrandMark />

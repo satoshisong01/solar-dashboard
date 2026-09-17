@@ -12,7 +12,7 @@ const VERDICT_TONE: Readonly<Record<string, { readonly icon: typeof CircleCheck;
 export function VerificationBadge({ progress }: Readonly<{ progress: ActionProgress }>) {
   const tone = progress.verdict ? VERDICT_TONE[progress.verdict] : null;
   const Icon = tone?.icon ?? (progress.state === 'untracked' ? CircleMinus : Hourglass);
-  const className = tone?.className ?? (progress.state === 'untracked' ? 'border-rule bg-surface text-muted' : progress.state === 'ready' ? 'border-accent/50 bg-hydrogen-fill text-ink' : 'border-rule-strong bg-surface text-ink-2');
+  const className = tone?.className ?? (progress.state === 'untracked' ? 'border-rule bg-sunken text-muted' : progress.state === 'ready' ? 'border-accent/50 bg-hydrogen-fill text-ink' : 'border-rule-strong bg-sunken text-ink-2');
   return (
     <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${className}`}>
       <Icon aria-hidden="true" className="size-3.5 shrink-0" />

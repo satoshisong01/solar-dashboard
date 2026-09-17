@@ -55,7 +55,7 @@ export function PointPicker({ points, selectedIds, basePath, selection }: PointP
             <li key={point.id}>
               <label
                 className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-sm ${
-                  checked ? 'border-accent bg-hydrogen-fill text-ink' : 'border-rule bg-surface text-ink-2'
+                  checked ? 'border-accent bg-hydrogen-fill text-ink' : 'border-rule-strong bg-sunken text-ink-2'
                 } ${reason ? 'opacity-60' : 'cursor-pointer hover:bg-sunken'}`}
                 title={reason ?? undefined}
               >

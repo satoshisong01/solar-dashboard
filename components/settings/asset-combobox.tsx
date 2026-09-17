@@ -93,7 +93,7 @@ export function AssetCombobox({ name, label, assets, defaultAssetId, error, onSe
       />
       <input type="hidden" name={name} value={selected?.id ?? ''} />
       {open && (
-        <ul id={listId} role="listbox" aria-label={`${label} 후보`} className="absolute top-full z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-rule-strong bg-surface py-1 shadow-lg">
+        <ul id={listId} role="listbox" aria-label={`${label} 후보`} className="absolute top-full z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border border-rule-strong bg-sunken py-1 shadow-panel">
           {matches.length === 0 ? (
             <li className="px-3 py-2 text-sm text-muted">일치하는 설비가 없습니다</li>
           ) : (

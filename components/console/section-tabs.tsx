@@ -9,8 +9,8 @@ type SectionTabsProps = Readonly<{ label: string; tabs: readonly SectionTab[]; c
 
 const TAB_CLASS =
   'inline-flex items-center rounded-md border px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors ' +
-  'border-rule bg-surface text-ink-2 hover:bg-sunken hover:text-ink ' +
-  'aria-[current=page]:border-accent aria-[current=page]:bg-hydrogen-fill aria-[current=page]:text-ink';
+  'border-rule bg-sunken text-ink-2 hover:bg-rule hover:text-ink ' +
+  'aria-[current=page]:border-accent aria-[current=page]:bg-hydrogen-fill aria-[current=page]:text-ink aria-[current=page]:shadow-glow';
 
 /** 한 메뉴 안의 하위 화면 이동. current는 지금 화면의 href (없으면 null) */
 export function SectionTabs({ label, tabs, current }: SectionTabsProps) {

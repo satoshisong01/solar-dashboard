@@ -7,7 +7,7 @@ import { FINDING_SERIES_SPANS, type FindingSeries, type FindingSeriesSpan } from
 import { formatKstDateTime } from '@/lib/format';
 
 const SPAN_CLASS =
-  'rounded-md border px-3 py-1.5 text-sm font-medium transition-colors border-rule bg-surface text-ink-2 hover:bg-sunken hover:text-ink ' +
+  'rounded-md border px-3 py-1.5 text-sm font-medium transition-colors border-rule-strong bg-sunken text-ink-2 hover:bg-rule hover:text-ink ' +
   'aria-[current=true]:border-accent aria-[current=true]:bg-hydrogen-fill aria-[current=true]:text-ink';
 
 type RawSeriesPanelProps = Readonly<{ series: FindingSeries; span: FindingSeriesSpan; basePath: string; exploreHref: string | null }>;

@@ -149,7 +149,7 @@ export function DeliveryCsvImport() {
         <label htmlFor={inputId} className="text-xs font-medium text-ink-2">
           CSV 파일 (UTF-8, 헤더 <span className="font-mono">{DELIVERY_CSV_HEADER.slice(0, DELIVERY_CSV_REQUIRED_COLUMNS).join(',')}</span>)
         </label>
-        <input id={inputId} type="file" accept=".csv,text/csv" onChange={handleFile} className="text-sm text-ink-2 file:mr-3 file:rounded-md file:border file:border-rule file:bg-surface file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-ink-2 hover:file:bg-sunken" />
+        <input id={inputId} type="file" accept=".csv,text/csv" onChange={handleFile} className="text-sm text-ink-2 file:mr-3 file:rounded-md file:border file:border-rule-strong file:bg-sunken file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-ink-2 hover:file:bg-sunken" />
         <p className="text-xs text-muted">
           뒤에 <span className="font-mono">{DELIVERY_CSV_HEADER.slice(DELIVERY_CSV_REQUIRED_COLUMNS).join(',')}</span> 을 순서대로 더 붙일 수 있습니다. delivered_at: YYYY-MM-DD 또는 YYYY-MM-DD HH:mm (KST). 예){' '}
           <span className="font-mono">GP-1,2026-09-10 14:30,○○가스,12가3456,318.4</span>

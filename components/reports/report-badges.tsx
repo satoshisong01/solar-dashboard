@@ -4,7 +4,7 @@ import { reportStatusLabel } from '@/lib/report/citations';
 const STATUS_TONE: Readonly<Record<string, string>> = {
   draft: 'border-accent/50 bg-hydrogen-fill text-ink',
   approved: 'border-ok/40 bg-ok-fill text-ok',
-  superseded: 'border-rule bg-surface text-muted',
+  superseded: 'border-rule bg-sunken text-muted',
 };
 
 export function ReportStatusBadge({ status }: Readonly<{ status: string }>) {

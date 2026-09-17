@@ -13,7 +13,7 @@ type PanelProps = Readonly<{
 /** 화면 안의 한 영역. 제목은 h2 */
 export function Panel({ title, meta, action, children, className = '' }: PanelProps) {
   return (
-    <section className={`flex min-w-0 flex-col gap-4 rounded-lg border border-rule bg-surface p-4 md:p-5 ${className}`}>
+    <section className={`flex min-w-0 flex-col gap-4 rounded-lg border border-rule bg-surface p-4 shadow-panel md:p-5 ${className}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
           <h2 className="text-base font-semibold text-ink">{title}</h2>
@@ -41,6 +41,6 @@ export function TableScroll({ children, label }: Readonly<{ children: ReactNode;
 }
 
 export const TABLE_CLASS = 'w-full min-w-max border-collapse text-left text-sm';
-export const TH_CLASS = 'border-b border-rule px-3 py-2 text-xs font-medium whitespace-nowrap text-muted first:pl-0 last:pr-0';
+export const TH_CLASS = 'border-b border-rule-strong px-3 py-2 text-xs font-medium tracking-wide whitespace-nowrap text-muted first:pl-0 last:pr-0';
 export const TD_CLASS = 'border-b border-rule px-3 py-2 align-top first:pl-0 last:pr-0';
 export const NUM_CLASS = 'text-right font-mono tabular-nums';

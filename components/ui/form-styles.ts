@@ -2,12 +2,12 @@
 // (클라이언트 모듈의 export를 서버에서 가져오면 값이 아니라 클라이언트 참조가 된다).
 
 export const CONTROL_CLASS =
-  'w-full rounded-md border border-rule-strong bg-surface px-2.5 py-1.5 text-sm text-ink placeholder:text-muted disabled:opacity-60 aria-[invalid=true]:border-crit';
+  'w-full rounded-md border border-rule-strong bg-field px-2.5 py-1.5 text-sm text-ink placeholder:text-muted disabled:opacity-60 aria-[invalid=true]:border-crit';
 
 const BUTTON_VARIANTS = {
-  primary: 'border-transparent bg-accent text-accent-ink hover:bg-accent/90',
-  secondary: 'border-rule bg-surface text-ink-2 hover:bg-sunken hover:text-ink',
-  danger: 'border-crit/50 bg-surface text-crit hover:bg-crit-fill',
+  primary: 'border-transparent bg-accent text-accent-ink hover:bg-accent/90 hover:shadow-glow',
+  secondary: 'border-rule-strong bg-sunken text-ink-2 hover:bg-rule hover:text-ink',
+  danger: 'border-crit/60 bg-crit-fill text-crit hover:bg-crit/25',
 } as const;
 
 export type ButtonVariant = keyof typeof BUTTON_VARIANTS;

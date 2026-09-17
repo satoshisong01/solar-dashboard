@@ -7,12 +7,12 @@ import { NavLink } from './nav-link';
 const LINK_CLASS =
   'flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-ink-2 transition-colors hover:bg-sunken hover:text-ink ' +
   'aria-[current=page]:bg-hydrogen-fill aria-[current=page]:font-medium aria-[current=page]:text-ink ' +
-  'aria-[current=page]:shadow-[inset_3px_0_0_var(--accent)]';
+  'aria-[current=page]:shadow-[inset_3px_0_0_var(--accent),0_0_16px_-8px_var(--accent)]';
 
 /** md 이상에서만 보이는 좌측 사이드바. */
 export function Sidebar({ showSim }: Readonly<{ showSim: boolean }>) {
   return (
-    <div className="sticky top-0 hidden h-dvh flex-col gap-7 overflow-y-auto border-r border-rule bg-surface px-3 py-5 md:flex">
+    <div className="sticky top-0 hidden h-dvh flex-col gap-7 overflow-y-auto border-r border-rule bg-surface px-3 py-5 shadow-panel md:flex">
       <Link href="/" className="flex items-center gap-2.5 rounded-md px-2.5">
         <BrandMark className="size-7" />
         <span className="flex flex-col leading-tight">

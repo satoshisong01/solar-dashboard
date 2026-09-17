@@ -9,7 +9,7 @@ const TONES: Readonly<Record<CellTone, string>> = {
   ok: 'border-ok/40 bg-ok-fill text-ok',
   warn: 'border-warn/40 bg-warn-fill text-warn',
   crit: 'border-crit/40 bg-crit-fill text-crit',
-  na: 'border-rule bg-surface text-muted',
+  na: 'border-rule bg-sunken text-muted',
 };
 
 type MatrixRow = ReadinessRow & { readonly className: string };

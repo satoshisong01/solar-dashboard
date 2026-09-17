@@ -61,7 +61,7 @@ export function MapDetailPanel({ site, nowMs, className = '' }: Readonly<{ site:
         <p className="flex items-center gap-1.5 text-xs font-semibold text-ink">
           <Sparkles aria-hidden="true" className="size-3.5" />
           AI 진단 리포트
-          <span className="rounded-full border border-rule bg-surface px-1.5 py-px text-[0.625rem] font-normal text-muted">
+          <span className="rounded-full border border-rule bg-sunken px-1.5 py-px text-[0.625rem] font-normal text-muted">
             {site.worstFinding?.headlineSource === 'llm' ? 'AI가 작성 · 수치는 분석 엔진 값' : '규칙 기반 요약'}
           </span>
         </p>

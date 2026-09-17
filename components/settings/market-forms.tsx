@@ -129,7 +129,7 @@ export function MarketCsvUpload() {
         <label htmlFor={inputId} className="text-xs font-medium text-ink-2">
           CSV 파일 (UTF-8, 헤더 <span className="font-mono">{MARKET_CSV_HEADER.join(',')}</span>)
         </label>
-        <input id={inputId} type="file" accept=".csv,text/csv" onChange={handleFile} className="text-sm text-ink-2 file:mr-3 file:rounded-md file:border file:border-rule file:bg-surface file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-ink-2 hover:file:bg-sunken" />
+        <input id={inputId} type="file" accept=".csv,text/csv" onChange={handleFile} className="text-sm text-ink-2 file:mr-3 file:rounded-md file:border file:border-rule-strong file:bg-sunken file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-ink-2 hover:file:bg-sunken" />
         <p className="text-xs text-muted">
           market_key: {MARKET_KEYS.join(', ')} · day: YYYY-MM-DD · value: 숫자. 예) <span className="font-mono">2026-09-14,smp_land,142.35</span>
         </p>

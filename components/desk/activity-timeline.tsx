@@ -19,7 +19,7 @@ export function ActivityTimeline({ entries }: Readonly<{ entries: readonly Timel
         const { icon: Icon, label } = KIND_META[entry.kind];
         return (
           <li key={entry.key} className="flex gap-3 border-l border-rule pb-4 pl-4 last:pb-0">
-            <span className="-ml-[1.6rem] flex size-6 shrink-0 items-center justify-center rounded-full border border-rule bg-surface text-ink-2">
+            <span className="-ml-[1.6rem] flex size-6 shrink-0 items-center justify-center rounded-full border border-rule bg-sunken text-ink-2">
               <Icon aria-hidden="true" className="size-3.5" />
               <span className="sr-only">{label}</span>
             </span>

@@ -1,8 +1,8 @@
 import type { ComponentProps } from 'react';
 
 const VARIANTS = {
-  primary: 'border-transparent bg-accent text-accent-ink hover:bg-accent/90',
-  secondary: 'border-rule bg-surface text-ink-2 hover:bg-sunken hover:text-ink',
+  primary: 'border-transparent bg-accent text-accent-ink hover:bg-accent/90 hover:shadow-glow',
+  secondary: 'border-rule-strong bg-sunken text-ink-2 hover:bg-rule hover:text-ink',
 } as const;
 
 type ButtonProps = ComponentProps<'button'> & {

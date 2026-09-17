@@ -10,7 +10,7 @@ const STATUS_META: Readonly<Record<CheckStatus, { icon: LucideIcon; className: s
   supports: { icon: CircleCheck, className: 'border-warn/40 bg-warn-fill text-warn' },
   refutes: { icon: CircleX, className: 'border-ok/40 bg-ok-fill text-ok' },
   unknown: { icon: CircleHelp, className: 'border-rule-strong bg-sunken text-ink-2' },
-  no_data: { icon: CircleMinus, className: 'border-rule bg-surface text-muted' },
+  no_data: { icon: CircleMinus, className: 'border-rule bg-sunken text-muted' },
 };
 
 const measuredText = (value: MeasuredValue): string => (typeof value === 'number' ? formatNumber(value, 3) : value === null ? '—' : String(value));

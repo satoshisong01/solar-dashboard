@@ -49,7 +49,7 @@ export function SiteMarker({ site, active, labelHidden, subdued = false, onSelec
           <Icon aria-hidden="true" className={subdued ? 'size-3' : 'size-4'} />
         </span>
         {site.openFindingCount > 0 && !subdued && (
-          <span className="absolute -top-1.5 -right-2 rounded-full border border-rule bg-surface px-1.5 font-mono text-[0.625rem] leading-4 font-semibold text-ink shadow-sm tabular-nums">
+          <span className="absolute -top-1.5 -right-2 rounded-full border border-rule-strong bg-surface px-1.5 font-mono text-[0.625rem] leading-4 font-semibold text-ink shadow-overlay tabular-nums">
             {site.openFindingCount}
             <span className="sr-only">건</span>
           </span>
@@ -58,8 +58,8 @@ export function SiteMarker({ site, active, labelHidden, subdued = false, onSelec
 
       {!labelHidden && (
         <span
-          className={`mt-2 flex w-full flex-col gap-0.5 rounded-md border bg-surface/95 px-2.5 py-1.5 text-center shadow-lg backdrop-blur-sm ${
-            active ? 'border-accent' : 'border-rule'
+          className={`mt-2 flex w-full flex-col gap-0.5 rounded-md border bg-surface/95 px-2.5 py-1.5 text-center shadow-overlay backdrop-blur-sm ${
+            active ? 'border-accent' : 'border-rule-strong'
           }`}
         >
           <span className="truncate text-xs font-semibold text-ink">{site.name}</span>

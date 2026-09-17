@@ -19,7 +19,7 @@ export function SkeletonHeader({ guide = false }: Readonly<{ guide?: boolean }>)
 /** Panel 자리. Panel과 같은 테두리·여백·간격 */
 export function SkeletonPanel({ titleClassName = 'w-32', children }: Readonly<{ titleClassName?: string; children: ReactNode }>) {
   return (
-    <div className="flex min-w-0 flex-col gap-4 rounded-lg border border-rule bg-surface p-4 md:p-5">
+    <div className="flex min-w-0 flex-col gap-4 rounded-lg border border-rule bg-surface p-4 shadow-panel md:p-5">
       <Skeleton className={`h-6 ${titleClassName}`} />
       {children}
     </div>

@@ -34,7 +34,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           </p>
         </div>
 
-        <section className="flex flex-col gap-5 rounded-xl border border-rule bg-surface p-6 shadow-sm">
+        <section className="flex flex-col gap-5 rounded-xl border border-rule bg-surface p-6 shadow-panel">
           <h1 className="text-lg font-semibold text-ink">관리자 로그인</h1>
           <LoginForm initialError={initialError} />
         </section>

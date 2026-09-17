@@ -11,7 +11,7 @@ import { formatAgo, formatKstDateTime } from '@/lib/format';
 export function DiagramLevelBadge({ level }: Readonly<{ level: DiagramLevel }>) {
   if (level === 'absent') {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-rule bg-surface px-2 py-0.5 text-xs font-medium whitespace-nowrap text-muted">
+      <span className="inline-flex items-center gap-1 rounded-full border border-rule bg-sunken px-2 py-0.5 text-xs font-medium whitespace-nowrap text-muted">
         <CircleMinus aria-hidden="true" className="size-3.5 shrink-0" />
         {DIAGRAM_LEVEL_LABELS.absent}
       </span>

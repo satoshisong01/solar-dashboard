@@ -104,7 +104,7 @@ export function ExplorePicker({ assets, points, metrics, selectedIds, selection 
                 모두 해제
               </button>
             )}
-            <button type="button" onClick={copyLink} className="inline-flex items-center gap-1.5 rounded-md border border-rule bg-surface px-2.5 py-1 text-sm text-ink-2 hover:bg-sunken">
+            <button type="button" onClick={copyLink} className="inline-flex items-center gap-1.5 rounded-md border border-rule-strong bg-sunken px-2.5 py-1 text-sm text-ink-2 hover:bg-rule">
               <Link2 aria-hidden="true" className="size-4" />
               링크 복사
             </button>
@@ -130,7 +130,7 @@ export function ExplorePicker({ assets, points, metrics, selectedIds, selection 
       <div className="flex flex-wrap gap-3">
         <label className="flex min-w-48 flex-1 flex-col gap-1 text-xs text-muted">
           메트릭
-          <select value={metricKey} onChange={(event) => setMetricKey(event.target.value)} className="rounded-md border border-rule-strong bg-surface px-2 py-1.5 text-sm text-ink">
+          <select value={metricKey} onChange={(event) => setMetricKey(event.target.value)} className="rounded-md border border-rule-strong bg-field px-2 py-1.5 text-sm text-ink">
             <option value="">모든 메트릭</option>
             {metrics.map((metric) => (
               <option key={metric.key} value={metric.key}>
@@ -141,7 +141,7 @@ export function ExplorePicker({ assets, points, metrics, selectedIds, selection 
         </label>
         <label className="flex min-w-48 flex-1 flex-col gap-1 text-xs text-muted">
           검색 (설비 코드·이름, 메트릭)
-          <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder="예: INV01, 스택 전압" className="rounded-md border border-rule-strong bg-surface px-2 py-1.5 text-sm text-ink placeholder:text-muted" />
+          <input type="search" value={text} onChange={(event) => setText(event.target.value)} placeholder="예: INV01, 스택 전압" className="rounded-md border border-rule-strong bg-field px-2 py-1.5 text-sm text-ink placeholder:text-muted" />
         </label>
       </div>
 

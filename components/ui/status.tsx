@@ -7,7 +7,7 @@ export const STATUS_META: Readonly<Record<StatusLevel, Readonly<{ label: string;
   warn: { label: '주의', icon: TriangleAlert, className: 'border-warn/40 bg-warn-fill text-warn' },
   crit: { label: '위험', icon: OctagonAlert, className: 'border-crit/40 bg-crit-fill text-crit' },
   unknown: { label: '데이터 없음', icon: CircleHelp, className: 'border-rule-strong bg-sunken text-ink-2' },
-  na: { label: '해당 없음', icon: CircleMinus, className: 'border-rule bg-surface text-muted' },
+  na: { label: '해당 없음', icon: CircleMinus, className: 'border-rule bg-sunken text-muted' },
 };
 
 /** 상태는 색만으로 구분하지 않는다: 아이콘과 글자를 함께 쓴다 */
@@ -23,7 +23,7 @@ export function StatusBadge({ level, className = '' }: Readonly<{ level: StatusL
 
 const SEVERITY_TONE: Readonly<Record<EventSeverity, string>> = {
   info: 'border-rule bg-sunken text-ink-2',
-  minor: 'border-rule-strong bg-surface text-ink-2',
+  minor: 'border-rule-strong bg-sunken text-ink-2',
   major: 'border-warn/40 bg-warn-fill text-warn',
   critical: 'border-crit/40 bg-crit-fill text-crit',
 };

@@ -24,7 +24,7 @@ type RangeControlsProps = Readonly<{
 
 const PRESET_CLASS =
   'rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ' +
-  'border-rule bg-surface text-ink-2 hover:bg-sunken hover:text-ink ' +
+  'border-rule-strong bg-sunken text-ink-2 hover:bg-rule hover:text-ink ' +
   'aria-[current=true]:border-accent aria-[current=true]:bg-hydrogen-fill aria-[current=true]:text-ink';
 
 /** 기간 선택: 24시간 · 7일 · 30일(링크) + 사용자 지정(KST 시각 입력). 상태는 URL 쿼리에 둔다 */
@@ -80,7 +80,7 @@ export function RangeControls({ basePath, pointIds, selection, fromMs, toMs }: R
               type="datetime-local"
               name="from"
               defaultValue={toKstInputValue(fromMs)}
-              className="rounded-md border border-rule-strong bg-surface px-2 py-1.5 text-sm text-ink"
+              className="rounded-md border border-rule-strong bg-field px-2 py-1.5 text-sm text-ink"
             />
           </label>
           <label className="flex flex-col gap-1 text-xs text-muted">
@@ -89,7 +89,7 @@ export function RangeControls({ basePath, pointIds, selection, fromMs, toMs }: R
               type="datetime-local"
               name="to"
               defaultValue={toKstInputValue(toMs)}
-              className="rounded-md border border-rule-strong bg-surface px-2 py-1.5 text-sm text-ink"
+              className="rounded-md border border-rule-strong bg-field px-2 py-1.5 text-sm text-ink"
             />
           </label>
           <Button type="submit" variant="secondary" className="py-1.5">
