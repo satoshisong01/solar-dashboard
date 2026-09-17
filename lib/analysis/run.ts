@@ -11,8 +11,14 @@ import { failAbandonedRuns, withSiteLocks } from './lock';
 import { runSite, type RunError, type SiteRunContext, type SiteRunStats } from './site-run';
 
 export const DEFAULT_TIME_BUDGET_MS = 15 * 60_000;
-/** 화면에서 시작한 분석의 시간 예산. 페이지 maxDuration(300초)보다 짧게 둬서 플랫폼이 함수를 끊기 전에 스스로 마무리하고 partial로 남긴다 */
-export const CONSOLE_TIME_BUDGET_MS = 4 * 60_000;
+/**
+ * 화면에서 시작한 분석의 시간 예산. 예산은 사이트 하나를 시작할지 말지 정하는 선이라
+ * 실제 실행은 '예산 + 사이트 하나 소요'까지 늘어난다 — 그 합이 페이지 maxDuration(300초) 안이어야
+ * 플랫폼이 함수를 끊기 전에 스스로 마무리하고 partial로 남길 수 있다.
+ * 운영 실측(2026-09-17 실행 #7·#8)에서 30일·사이트 하나가 79~95초였으므로 180 + 95 = 275초로 둔다
+ * (예전 값 240초는 최악의 경우 335초라 플랫폼에 끊길 수 있었다. 실행 #8은 261초로 겨우 들어왔다).
+ */
+export const CONSOLE_TIME_BUDGET_MS = 3 * 60_000;
 /** 이보다 오래 running으로 남은 실행 행은 중단된 실행으로 본다 (failAbandonedRuns·진행 표시·중복 실행 검사가 같은 기준을 쓴다) */
 export const ABANDONED_AFTER_MS = 2 * CONSOLE_TIME_BUDGET_MS;
 export const DEFAULT_OVERLAP_HOURS = 6;
@@ -49,6 +55,17 @@ export interface RunAnalysisOptions {
 }
 
 export type AnalysisStatus = 'succeeded' | 'partial' | 'failed';
+
+/**
+ * 사이트를 도는 순서를 실행마다 한 칸씩 돌린다. 시간 예산을 넘기면 늘 뒤쪽 사이트가 통째로 남는데,
+ * 순서가 고정이면 같은 사이트만 계속 굶는다 — 운영 실행 #7·#8에서 GP-1과 SIM-D가 두 번 다 건너뛰어졌다.
+ * 실행 id를 사이트 수로 나눈 나머지만큼 앞을 잘라 뒤로 보낸다 (id가 숫자가 아니면 그대로 둔다).
+ */
+export function rotateSites<T>(sites: readonly T[], runId: string): T[] {
+  if (sites.length < 2 || !/^\d+$/.test(runId)) return [...sites];
+  const offset = Number(BigInt(runId) % BigInt(sites.length));
+  return [...sites.slice(offset), ...sites.slice(0, offset)];
+}
 
 export interface AnalysisRunStats {
   readonly sites: readonly SiteRunStats[];
@@ -87,8 +104,9 @@ async function execute(db: Kysely<DB>, request: AnalysisRequest, runId: string, 
   const report = options.onProgress ?? (() => {});
   const budgetMs = options.timeBudgetMs ?? DEFAULT_TIME_BUDGET_MS;
   const abandoned = await failAbandonedRuns(db, runId, request.siteIds, new Date(now().getTime() - 2 * budgetMs));
-  const sites = await loadSites(db, request.siteIds);
-  if (sites.length !== request.siteIds.length) throw new Error(`없는 사이트가 있습니다: ${request.siteIds.filter((id) => !sites.some((s) => s.id === id)).join(', ')}`);
+  const loaded = await loadSites(db, request.siteIds);
+  if (loaded.length !== request.siteIds.length) throw new Error(`없는 사이트가 있습니다: ${request.siteIds.filter((id) => !loaded.some((s) => s.id === id)).join(', ')}`);
+  const sites = rotateSites(loaded, runId);
   const verifyOnly = options.stages === 'verify';
   const pointIds = verifyOnly ? [] : (await Promise.all(sites.map((s) => loadSitePoints(db, s.id)))).flat().map((p) => p.pointId);
   if (!verifyOnly) report({ siteCode: null, siteIndex: 0, siteCount: sites.length, stage: 'rollup', atMs: now().getTime() });

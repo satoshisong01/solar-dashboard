@@ -45,6 +45,7 @@ export function RunHistory({ runs }: Readonly<{ runs: readonly RunHistoryRow[] }
                   {run.verifyOnly && <span className="font-normal text-muted"> · 조치 효과 검증만</span>}
                 </span>
                 <span className="block text-xs text-muted">{periodText(run)}</span>
+                {run.summary.skippedSiteCodes.length > 0 && <span className="block text-xs text-warn">건너뜀: {run.summary.skippedSiteCodes.join(', ')} — 시간 예산 초과, 남은 사이트만 다시 실행하세요</span>}
               </td>
               <td className={`${TD_CLASS} whitespace-nowrap`}>
                 <span className={`font-medium ${STATUS_TONE[run.status] ?? 'text-ink-2'}`}>{runStatusLabel(run.status)}</span>

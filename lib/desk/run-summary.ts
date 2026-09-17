@@ -18,6 +18,8 @@ export interface RunSummary {
   readonly verifiedFindings: number;
   readonly elapsedMs: number | null;
   readonly budgetExceeded: boolean;
+  /** 시간 예산을 넘겨 단계를 건너뛴 사이트 코드 (실행 이력에 그대로 남는다) */
+  readonly skippedSiteCodes: readonly string[];
 }
 
 const sum = (values: readonly number[]): number => values.reduce((total, value) => total + value, 0);
@@ -43,6 +45,7 @@ export function summarizeRunStats(stats: unknown): RunSummary {
     verifiedFindings: pick(verifications, 'verifiedFindings'),
     elapsedMs: asNumber(root.elapsedMs),
     budgetExceeded: root.budgetExceeded === true,
+    skippedSiteCodes: sites.filter((site) => asArray(site.skipped).length > 0).flatMap((site) => asString(site.siteCode) ?? []),
   };
 }
 
@@ -127,7 +130,8 @@ export function runProgressText(progress: RunProgress | null): string {
 
 /**
  * 실행이 끝내지 못한 사이트 id: 통계에 없거나 건너뛴 단계가 있는 사이트. '이어서 실행'의 대상이다.
- * (사이트는 순서대로 돌므로 시간 예산을 넘기면 뒤쪽 사이트가 통째로 남는다)
+ * (사이트를 하나씩 도는 중에 시간 예산을 넘기면 그 뒤 사이트가 통째로 남는다. 어느 사이트가 뒤로 가는지는
+ *  실행마다 돌아간다 — lib/analysis/run.ts rotateSites)
  */
 export function unfinishedSiteIds(scope: RunScope, stats: unknown): readonly number[] {
   const finished = new Set(

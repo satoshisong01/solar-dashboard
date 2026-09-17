@@ -46,12 +46,26 @@ describe('summarizeRunStats', () => {
       verifiedFindings: 1,
       elapsedMs: 43_147,
       budgetExceeded: false,
+      skippedSiteCodes: [],
     });
+  });
+
+  it('시간 예산을 넘겨 건너뛴 사이트 코드를 남긴다 (실행 이력에 그대로 보인다)', () => {
+    const stats = {
+      sites: [
+        { siteCode: 'SIM-A', skipped: [] },
+        { siteCode: 'GP-1', skipped: ['extract:H2BUF1/TANK1', 'kpi', 'detect', 'verify'] },
+        { siteCode: 'SIM-D', skipped: ['kpi', 'detect', 'verify'] },
+      ],
+      budgetExceeded: true,
+    };
+    expect(summarizeRunStats(stats).skippedSiteCodes).toEqual(['GP-1', 'SIM-D']);
+    expect(summarizeRunStats(stats).budgetExceeded).toBe(true);
   });
 
   it('실패 실행의 stats({ error })나 깨진 값은 0으로 읽는다', () => {
     const summary = summarizeRunStats({ error: '잠금' });
-    expect(summary).toMatchObject({ created: 0, insufficient: 0, insufficientDetectors: [], runErrors: 0, elapsedMs: null, budgetExceeded: false });
+    expect(summary).toMatchObject({ created: 0, insufficient: 0, insufficientDetectors: [], runErrors: 0, elapsedMs: null, budgetExceeded: false, skippedSiteCodes: [] });
     expect(summarizeRunStats('bad').created).toBe(0);
   });
 });
