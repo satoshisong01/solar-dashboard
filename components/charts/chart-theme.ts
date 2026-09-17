@@ -18,22 +18,17 @@ export interface ChartTheme {
   readonly series: readonly string[];
 }
 
-const DARK_QUERY = '(prefers-color-scheme: dark)';
+// 콘솔은 어두운 단일 테마다(app/globals.css). 서버 렌더에서는 토큰을 읽을 수 없어 null을 돌려주고,
+// 마운트 뒤 한 번 다시 읽는다.
+const noop = () => () => {};
+const isMounted = () => true;
+const isServer = () => false;
 
-function subscribe(onChange: () => void): () => void {
-  const media = window.matchMedia(DARK_QUERY);
-  media.addEventListener('change', onChange);
-  return () => media.removeEventListener('change', onChange);
-}
-
-const getScheme = () => (window.matchMedia(DARK_QUERY).matches ? 'dark' : 'light');
-const getServerScheme = () => 'server';
-
-/** app/globals.css의 디자인 토큰을 읽는다. 다크 모드로 바뀌면 다시 읽는다. 서버 렌더에서는 null */
+/** app/globals.css의 디자인 토큰을 읽는다. 서버 렌더에서는 null */
 export function useChartTheme(): ChartTheme | null {
-  const scheme = useSyncExternalStore(subscribe, getScheme, getServerScheme);
+  const mounted = useSyncExternalStore(noop, isMounted, isServer);
   return useMemo(() => {
-    if (scheme === 'server') return null;
+    if (!mounted) return null;
     const style = getComputedStyle(document.documentElement);
     const token = (name: string) => style.getPropertyValue(`--${name}`).trim();
     return {
@@ -46,13 +41,13 @@ export function useChartTheme(): ChartTheme | null {
       tones: {
         solar: [token('solar'), token('solar-edge')],
         hydrogen: [token('hydrogen'), token('hydrogen-edge')],
-        // 다크 모드의 ink-2는 앰버와 너무 가까워(검증 스크립트 ΔE < 15) muted를 쓴다
-        neutral: [token(scheme === 'dark' ? 'muted' : 'ink-2'), token('rule-strong')],
+        // 어두운 배경에서 ink-2보다 muted가 청록(--hydrogen)과 더 멀다 (ΔE 20.5 대 16.2)
+        neutral: [token('muted'), token('rule-strong')],
       },
       warn: token('warn'),
       crit: token('crit'),
       accent: token('accent'),
       series: [1, 2, 3, 4, 5, 6].map((i) => token(`chart-series-${i}`)),
     };
-  }, [scheme]);
+  }, [mounted]);
 }

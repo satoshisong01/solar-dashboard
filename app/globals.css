@@ -4,59 +4,70 @@
 /* 에이전트 작업 트리(.claude/worktrees)도 뺀다: 저장소 사본(docs 포함)이 들어 있어 같은 이유로 빌드가 깨진다. */
 @source not "../.claude";
 
-/* 디자인 토큰. 제안서(docs/renewal/hysol-desk-renewal-proposal.html)와 같은 계열. */
+/* 디자인 토큰.
+   콘솔은 관제실 화면처럼 어두운 단일 테마다. 운영자가 조도를 낮춘 상황실에서 오래 보는 화면이라
+   OS 설정(prefers-color-scheme)을 따라 밝은 테마로 바뀌지 않게 :root 하나로 고정한다.
+   종이로 나가는 코칭 리포트만 .print-root에서 밝은 값으로 되돌린다.
+
+   대비는 실제로 계산해 맞췄다 — 본문 글자 4.5:1 이상, 아이콘·입력 테두리 3:1 이상.
+   --rule은 표 격자선·패널 구분선이라 정보를 전달하지 않는다(WCAG 1.4.11 예외). 은은한 값을 쓰고,
+   3:1이 필요한 경계는 --rule-strong을 쓴다. */
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
 
-  --ground: #f2f5f4;
-  --surface: #ffffff;
-  --sunken: #e8eeec;
-  --ink: #13201c;
-  --ink-2: #33433e;
-  --muted: #5d6d68;
-  --rule: #d2dbd7;
-  --rule-strong: #7f8d88; /* 입력 테두리 등 3:1 이상이 필요한 경계 */
+  --ground: #05090f; /* 페이지 바탕 (순수 검정은 쓰지 않는다) */
+  --surface: #0e1825; /* 패널 — 바탕보다 한 단계 밝다 */
+  --sunken: #18232f; /* 패널 안의 오목한 면 (표 머리·타일) */
+  --field: #080f19; /* 입력 안쪽. 패널보다 어두워 눌린 칸으로 읽힌다 */
+  --ink: #e7f0f7;
+  --ink-2: #b4c6d4;
+  --muted: #8698a8;
+  --rule: #26343f; /* 은은한 구분선 (정보 전달 아님) */
+  --rule-strong: #5c7385; /* 입력 테두리 등 3:1 이상이 필요한 경계 */
 
-  --solar: #9a5c00;
-  --solar-fill: #f6d9a3;
-  --solar-edge: #d99a2b;
-  --hydrogen: #0c6674;
-  --hydrogen-fill: #cfe8ec;
-  --hydrogen-edge: #4aa3b1;
+  --solar: #f9a03c;
+  --solar-fill: #3a2610;
+  --solar-edge: #bd7a2d;
+  --hydrogen: #5fd0e0;
+  --hydrogen-fill: #0d2e38;
+  --hydrogen-edge: #2e8fa0;
 
-  --accent: #0c6674;
-  --accent-ink: #ffffff;
+  --accent: #4fd1e3;
+  --accent-ink: #04141a;
 
-  /* 시맨틱 상태색: 액센트와 별개로 쓴다 */
-  --ok: #2f6b3a;
-  --ok-fill: #dcefdf;
-  --warn: #7a5a00;
-  --warn-fill: #f5e7b5;
-  --crit: #a8321e;
-  --crit-fill: #f8ded7;
+  /* 시맨틱 상태색: 액센트와 별개로 쓴다. 계열(빨강·주황·초록)은 의미가 굳어 있어 그대로 두고
+     어두운 배경에서 읽히도록 밝기만 올렸다. 지도 마커 색(--map-*)과 같은 계열이다. */
+  --ok: #4ade80;
+  --ok-fill: #0e2c19;
+  --warn: #fbbf24;
+  --warn-fill: #34260a;
+  --crit: #ff6f5e;
+  --crit-fill: #3b1512;
 
-  /* 차트 범주형 계열 (고정 순서). 인접 쌍 색각 이상 ΔE ≥ 8·정상 시각 ΔE ≥ 15를 흰 표면·다크 표면에서 검증한 순서.
-     흰 표면 대비 3:1 미만 색(3·4·5번)이 있어 이 색을 쓰는 차트는 범례와 표를 함께 둔다. 상태색(ok·warn·crit)과 따로 쓴다. */
-  --chart-series-1: #2a78d6;
-  --chart-series-2: #eb6834;
-  --chart-series-3: #1baf7a;
-  --chart-series-4: #eda100;
-  --chart-series-5: #e87ba4;
-  --chart-series-6: #008300;
+  /* 차트 범주형 계열 (고정 순서). 인접 쌍 색각 이상 ΔE ≥ 8·정상 시각 ΔE ≥ 15를 어두운 표면에서 검증한 순서.
+     여섯 색 모두 --surface 대비 3:1 이상이다. 상태색(ok·warn·crit)과 따로 쓴다. */
+  --chart-series-1: #4d9fff;
+  --chart-series-2: #ff7a45;
+  --chart-series-3: #2fd6a3;
+  --chart-series-4: #f5c542;
+  --chart-series-5: #ff8fc0;
+  --chart-series-6: #9d8cff;
 
-  /* 공정도 흐름선 색 (lib/diagram/flow-kinds.ts). 도면 FCND-GP-PID-002 REV.2의 LINE LEGEND 색을 옮기되,
-     경보색(--crit)과 구분되지 않는 AC 적색만 보라로 바꿨다. 흐름선은 물질만 나타내고 상태는 나타내지 않는다 —
+  /* 공정도 흐름선 색 (lib/diagram/flow-kinds.ts). 도면 FCND-GP-PID-002 REV.2의 LINE LEGEND 계열(물=파랑,
+     회수수=강청, H₂=초록, O₂=청록, DC=앰버, 열=분홍)은 그대로 두고 어두운 배경 기준으로 명도·채도를 다시 골랐다.
+     경보색(--crit)과 구분되지 않는 AC 적색만 보라 계열로 바꿨다(기존 방침 유지).
+     전체 쌍 정상 시각 ΔE ≥ 16, 색각 이상 ΔE ≥ 8. 흐름선은 물질만 나타내고 상태는 나타내지 않는다 —
      상태는 설비 상자 테두리·배지로만 쓴다. 색과 선 모양(실선/파선) 둘 다로 구분되므로 흑백 인쇄에서도 읽힌다. */
-  --flow-water: #1d6fe0;
-  --flow-recycle: #2c7fa8;
-  --flow-h2: #0f7a44;
-  --flow-o2: #0c7a8c;
-  --flow-dc: #9a5c00;
-  --flow-ac: #6b4bb8;
-  --flow-heat: #b0315f;
+  --flow-water: #6f9cf5;
+  --flow-recycle: #86c2da;
+  --flow-h2: #4ecd89;
+  --flow-o2: #8aeee1;
+  --flow-dc: #f9a03c;
+  --flow-ac: #cc51dd;
+  --flow-heat: #d9708f;
 
-  /* 지도 마커 상태색 (lib/data/map-status.ts). 카카오 지도는 지도 스타일을 바꿀 수 없어 배경이 늘 밝으므로
-     밝은/어두운 테마에서 같은 색을 쓴다. 위에 올리는 글자·아이콘 색은 -on 토큰으로 3:1 이상을 지킨다.
+  /* 지도 마커 상태색 (lib/data/map-status.ts). 카카오 지도는 지도 스타일을 바꿀 수 없어 타일 배경이 늘 밝으므로
+     콘솔이 어두워져도 이 색은 그대로 둔다. 위에 올리는 글자·아이콘 색은 -on 토큰으로 3:1 이상을 지킨다.
      색만으로 구분하지 않는다: 마커 옆·목록에 늘 상태 글자를 함께 둔다. */
   --map-crit: #ef4444;
   --map-crit-on: #ffffff;
@@ -74,55 +85,11 @@
   --font-code: var(--font-plex-mono), ui-monospace, "SFMono-Regular", Consolas, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ground: #0d1412;
-    --surface: #141d1a;
-    --sunken: #1a2521;
-    --ink: #e3ebe7;
-    --ink-2: #c4d0cb;
-    --muted: #93a39d;
-    --rule: #28342f;
-    --rule-strong: #66766f;
-
-    --solar: #f0b54a;
-    --solar-fill: #3a2c12;
-    --solar-edge: #a8772a;
-    --hydrogen: #6cc6d3;
-    --hydrogen-fill: #10313a;
-    --hydrogen-edge: #2f7f8c;
-
-    --accent: #6cc6d3;
-    --accent-ink: #0d1412;
-
-    --ok: #8fcb98;
-    --ok-fill: #15301b;
-    --warn: #e3c565;
-    --warn-fill: #322a0e;
-    --crit: #f08a74;
-    --crit-fill: #3b1b15;
-
-    --chart-series-1: #3987e5;
-    --chart-series-2: #d95926;
-    --chart-series-3: #199e70;
-    --chart-series-4: #c98500;
-    --chart-series-5: #d55181;
-    --chart-series-6: #008300;
-
-    --flow-water: #7fb3f2;
-    --flow-recycle: #79bcd8;
-    --flow-h2: #5fc48e;
-    --flow-o2: #5cc3d6;
-    --flow-dc: #f0b54a;
-    --flow-ac: #b9a3ee;
-    --flow-heat: #ef8fae;
-  }
-}
-
 @theme inline {
   --color-ground: var(--ground);
   --color-surface: var(--surface);
   --color-sunken: var(--sunken);
+  --color-field: var(--field);
   --color-ink: var(--ink);
   --color-ink-2: var(--ink-2);
   --color-muted: var(--muted);
@@ -155,6 +122,13 @@
   --color-map-off: var(--map-off);
   --color-map-off-on: var(--map-off-on);
 
+  /* 패널이 바탕에서 떠 보이게 하는 그림자. 위쪽 안쪽 선 한 줄이 계기반의 베벨 느낌을 만든다 */
+  --shadow-panel: inset 0 1px 0 0 rgb(255 255 255 / 0.04), 0 10px 24px -18px rgb(0 0 0 / 0.9);
+  /* 선택·활성 상태의 미세한 발광 */
+  --shadow-glow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 14px -4px color-mix(in srgb, var(--accent) 55%, transparent);
+  /* 밝은 지도 타일 위에 뜨는 어두운 패널·라벨 */
+  --shadow-overlay: 0 2px 10px rgb(0 0 0 / 0.55), 0 0 0 1px rgb(0 0 0 / 0.25);
+
   --font-sans: var(--font-body);
   --font-mono: var(--font-code);
 }
@@ -162,6 +136,9 @@
 @layer base {
   body {
     background-color: var(--ground);
+    /* 관제 화면의 은은한 광원: 왼쪽 위에서 떨어지는 청록 빛. 단색 바탕이 평평해 보이지 않게만 쓴다 */
+    background-image: radial-gradient(1200px 600px at 12% -10%, color-mix(in srgb, var(--hydrogen) 7%, transparent), transparent 70%);
+    background-attachment: fixed;
     color: var(--ink);
     font-family: var(--font-body);
     word-break: keep-all;
@@ -171,6 +148,11 @@
   :focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: color-mix(in srgb, var(--accent) 35%, transparent);
+    color: var(--ink);
   }
 }
 
@@ -185,12 +167,14 @@
   }
 }
 
-/* 코칭 리포트 인쇄 화면 (/reports/[id]/print): 화면 테마와 상관없이 밝은 종이 색, A4 */
+/* 코칭 리포트 인쇄 화면 (/reports/[id]/print): 콘솔이 어두워도 여기만 종이 색(밝은 테마), A4.
+   이 화면 안에서 쓰는 토큰을 모두 되돌린다 — 하나라도 빠지면 종이에 어두운 면이 찍힌다. */
 .print-root {
   color-scheme: light;
   --ground: #f2f5f4;
   --surface: #ffffff;
   --sunken: #eef2f1;
+  --field: #ffffff;
   --ink: #13201c;
   --ink-2: #33433e;
   --muted: #5d6d68;
@@ -206,6 +190,7 @@
   --crit: #a8321e;
   --crit-fill: #f8ded7;
   background-color: var(--ground);
+  background-image: none;
   color: var(--ink);
 }
 
