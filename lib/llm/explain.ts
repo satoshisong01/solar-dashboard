@@ -3,6 +3,7 @@
 import type { EvidenceView } from '@/lib/desk/evidence-types';
 import type { PlainSummary } from '@/lib/desk/plain';
 import { subjectText } from '@/lib/desk/plain';
+import { SAFETY_DECISION_NOTICE } from '@/lib/desk/plain/outlook';
 import { effectDirection } from '@/lib/report/direction';
 import { buildPlainRequest, engineLines, parsePlainLines, PLAIN_PROMPT_VERSION, type ExplainFinding } from './prompt';
 import { PLAIN_LINE_KEYS, type LlmFailureReason, type LlmProvider, type PlainLines } from './types';
@@ -42,6 +43,23 @@ const fallback = (summary: PlainSummary, model: string | null, reason: LlmFailur
   validation: { ok: false, reason, detail, issues },
 });
 
+/**
+ * 엔진이 소유한 고정 안전 문구를 되돌려 놓는다.
+ * 모델이 '각 줄 두 문장 이내' 규칙에 맞추려고 마지막 문장을 버리면 그 줄이 통째로 검증에서 걸려,
+ * 정작 가장 급한 안전 발견사항만 AI 설명을 받지 못했다. 이 문구는 모델이 고쳐 쓸 문장이 아니라
+ * 엔진의 고정 문장이므로, 모델에게 다시 맡기지 않고 서버가 검증 직전에 붙인다 (남아 있으면 그대로 둔다).
+ */
+export function withSafetyNotice(lines: PlainLines, reference: PlainReference): PlainLines {
+  const restored = PLAIN_LINE_KEYS.flatMap((key) => {
+    const text = lines[key]?.trim();
+    const engineText = reference.lines[key];
+    if (text === undefined || text === '' || engineText === undefined) return [];
+    if (!engineText.includes(SAFETY_DECISION_NOTICE) || text.includes(SAFETY_DECISION_NOTICE)) return [];
+    return [[key, `${text} ${SAFETY_DECISION_NOTICE}`] as const];
+  });
+  return restored.length === 0 ? lines : { ...lines, ...Object.fromEntries(restored) };
+}
+
 /** 검증을 통과한 줄만 갈아 끼운다. 엔진이 만들지 않은 줄(null)은 그대로 null */
 function merge(summary: PlainSummary, lines: PlainLines): PlainSummary {
   const replaced = Object.fromEntries(PLAIN_LINE_KEYS.map((key) => [key, summary[key] === null ? null : (lines[key] ?? summary[key])]));
@@ -66,10 +84,12 @@ export async function explainFinding(input: ExplainInput, provider: LlmProvider 
   const outcome = await provider.complete(buildPlainRequest(finding, evidence, template));
   if (!outcome.ok) return fallback(template, provider.model, outcome.reason, outcome.detail);
 
-  const lines = parsePlainLines(outcome.text);
-  if (lines === null) return fallback(template, provider.model, 'bad_response', 'JSON 객체로 읽을 수 없습니다');
+  const parsed = parsePlainLines(outcome.text);
+  if (parsed === null) return fallback(template, provider.model, 'bad_response', 'JSON 객체로 읽을 수 없습니다');
 
-  const issues = validatePlainLines(lines, plainReferenceOf(finding, template));
+  const reference = plainReferenceOf(finding, template);
+  const lines = withSafetyNotice(parsed, reference);
+  const issues = validatePlainLines(lines, reference);
   if (issues.length > 0) return fallback(template, provider.model, 'rejected', `검증 ${issues.length}건 불일치`, issues);
 
   return { source: 'llm', summary: merge(template, lines), model: provider.model, promptVersion: PLAIN_PROMPT_VERSION, validation: { ok: true, reason: null, detail: '', issues: [] } };

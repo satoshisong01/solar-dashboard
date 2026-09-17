@@ -103,7 +103,7 @@ const templateOnly = (summary: DigestSummary, reason: LlmFailureReason, detail: 
 export async function getOrCreateDigest(db: Kysely<DB>, input: DigestStoreInput, provider: LlmProvider | null, regenerate = false): Promise<Digest> {
   const findingsHash = digestKeyOf(input.fingerprint, input.template);
   const stored = regenerate ? null : await readDigest(db, input.scopeKey, findingsHash);
-  if (stored && canReuseStored({ source: stored.source, reason: stored.validation.reason, createdAtMs: stored.createdAtMs }, Date.now())) return stored;
+  if (stored && canReuseStored({ source: stored.source, reason: stored.validation.reason, promptVersion: stored.promptVersion, createdAtMs: stored.createdAtMs }, Date.now(), DIGEST_PROMPT_VERSION)) return stored;
   // 덮어써야 하는가: '다시 생성'이거나, 기간이 지난 일시적 실패 행이 이미 있어 그 자리를 갈아 끼우는 경우
   const overwrite = regenerate || stored !== null;
   if (!input.enabled) return templateOnly(input.template, 'disabled', 'AI 설명을 쓰지 않는 설정입니다');

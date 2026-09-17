@@ -1,6 +1,7 @@
 // 생성 흐름 5가지 경로: 성공 · 검증 실패 · 타임아웃 · 429 · 키 없음. 실제 API는 부르지 않는다.
 import { describe, expect, it } from 'vitest';
 import { plainSummary } from '@/lib/desk/plain';
+import { SAFETY_DECISION_NOTICE } from '@/lib/desk/plain/outlook';
 import { explainFinding } from './explain';
 import { engineLines, PLAIN_PROMPT_VERSION } from './prompt';
 import { explainFindingOf, fakeProvider, jsonReply, llmCase } from './test-fixtures';
@@ -100,5 +101,57 @@ describe('explainFinding', () => {
     const result = await explainFinding(INPUT, fakeProvider({ ok: true, text: '```json\n' + JSON.stringify(lines) + '\n```' }));
 
     expect(result.source).toBe('llm');
+  });
+});
+
+// 안전 발견사항의 outlook은 고정 안전 문구로 끝나는 서너 문장이라, 모델이 '두 문장 이내' 규칙에 맞추려고
+// 마지막 문장을 버리면 가장 급한 건만 AI 설명을 받지 못했다 (운영 #7·#14가 그랬다).
+describe.each(['o2.purity_drift', 'prv.seat_leak'])('고정 안전 문구 (%s)', (detectorId) => {
+  const safetyCase = llmCase(detectorId);
+  const template = plainSummary(safetyCase.finding, safetyCase.evidence);
+  const input = { finding: explainFindingOf(safetyCase, 'safety'), evidence: safetyCase.evidence, template };
+  const safetyLines = engineLines(template);
+  const withoutNotice = (safetyLines.outlook ?? '').replace(SAFETY_DECISION_NOTICE, '').trim();
+
+  it('엔진 문장이 고정 안전 문구로 끝난다', () => {
+    expect(safetyLines.outlook).toContain(SAFETY_DECISION_NOTICE);
+    expect(withoutNotice).not.toContain(SAFETY_DECISION_NOTICE);
+  });
+
+  it('모델이 문구를 지워도 서버가 되돌려 붙이고 채택한다', async () => {
+    const provider = fakeProvider(jsonReply({ ...safetyLines, outlook: withoutNotice }));
+
+    const result = await explainFinding(input, provider);
+
+    expect(result.validation.issues).toEqual([]);
+    expect(result.source).toBe('llm');
+    expect(result.summary.outlook).toContain(SAFETY_DECISION_NOTICE);
+    expect(result.summary.outlook?.endsWith(SAFETY_DECISION_NOTICE)).toBe(true);
+  });
+
+  it('모델이 남긴 문구는 그대로 두고 두 번 붙이지 않는다', async () => {
+    const provider = fakeProvider(jsonReply(safetyLines));
+
+    const result = await explainFinding(input, provider);
+
+    expect(result.source).toBe('llm');
+    expect(result.summary.outlook?.split(SAFETY_DECISION_NOTICE)).toHaveLength(2);
+  });
+
+  it('문구를 되돌려도 다른 사실이 빠졌으면 거부한다', async () => {
+    const provider = fakeProvider(jsonReply({ ...safetyLines, outlook: '점검이 필요합니다.' }));
+
+    const result = await explainFinding(input, provider);
+
+    expect(result.source).toBe('template');
+    expect(result.validation.issues.map((issue) => issue.code)).toContain('missing_number');
+  });
+
+  it('프롬프트가 고정 안전 문구를 글자 그대로 알려 준다', async () => {
+    const provider = fakeProvider(jsonReply(safetyLines));
+
+    await explainFinding(input, provider);
+
+    expect(provider.requests[0]?.system).toContain(SAFETY_DECISION_NOTICE);
   });
 });

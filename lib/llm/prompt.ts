@@ -1,13 +1,14 @@
 // 프롬프트 만들기와 응답 읽기 (순수). 모델에 보내는 것은 구조화된 근거와 엔진이 이미 만든 문장뿐이다.
 // 보내지 않는 것: 원시 시계열(추세 점 좌표 포함)·계정 정보·키를 비롯한 비밀값.
 import { PLAYBOOKS } from '@/lib/analytics/playbooks';
+import { SAFETY_DECISION_NOTICE } from '@/lib/desk/plain/outlook';
 import type { EvidenceView } from '@/lib/desk/evidence-types';
 import type { PlainFinding, PlainSummary } from '@/lib/desk/plain';
 import { parseLines } from './parse';
 import { PLAIN_LINE_KEYS, type LlmRequest, type PlainLines } from './types';
 
 /** om.finding_explanation.prompt_version. 프롬프트를 고치면 올린다 */
-export const PLAIN_PROMPT_VERSION = 'plain@1';
+export const PLAIN_PROMPT_VERSION = 'plain@2';
 
 export const PLAIN_TEMPERATURE = 0.2;
 export const PLAIN_MAX_OUTPUT_TOKENS = 700;
@@ -27,9 +28,9 @@ const SYSTEM = [
   '2. 늘었다/줄었다, 커졌다/작아졌다 같은 방향을 바꾸지 마세요.',
   '3. 설비 이름과 코드, 사이트 이름은 engineSentences에 나온 그대로 씁니다.',
   '4. 원인을 단정하지 마세요. "~때문입니다", "원인은 ~입니다"라고 쓰지 말고, 확인해야 할 후보로만 쓰세요.',
-  '5. 안전을 보장하거나, 운전 정지 여부를 지시하거나, 법적·계약적 조언을 하지 마세요. 안전 관련 고정 문구가 있으면 글자 그대로 남기세요.',
+  `5. 안전을 보장하거나, 운전 정지 여부를 지시하거나, 법적·계약적 조언을 하지 마세요. 고정 안전 문구("${SAFETY_DECISION_NOTICE}")는 엔진이 소유합니다 — 지우거나 바꾸지 마세요.`,
   '6. 각 줄은 engineSentences의 같은 줄과 같은 내용이어야 합니다. 사실을 더하거나 빼지 마세요.',
-  '7. 전문 용어 대신 현장에서 쓰는 쉬운 말로, 각 줄 두 문장 이내로 짧게 씁니다.',
+  '7. 전문 용어 대신 현장에서 쓰는 쉬운 말로, 각 줄 두 문장 이내로 짧게 씁니다. 고정 안전 문구는 이 두 문장에 넣지 않습니다 — 그 문구를 빼려고 다른 사실을 버리지 마세요.',
   '',
   `출력은 JSON 객체 하나입니다. engineSentences에 있는 키(${PLAIN_LINE_KEYS.join(', ')} 중 주어진 것)만 넣고, 값은 다시 쓴 문장 문자열입니다. 다른 키·설명·코드블록을 넣지 마세요.`,
 ].join('\n');
