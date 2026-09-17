@@ -195,8 +195,7 @@ export async function regenerateDigestAction(prev: ActionState, formData: FormDa
   await requireAdmin();
   const { site } = parseInboxFilter({ site: String(formData.get('site') ?? '') });
   try {
-    const { rows } = await listInboxRows();
-    const { digest } = await buildDeskDigest(rows, site, true);
+    const { digest } = await buildDeskDigest(await listInboxRows(), site, true);
     revalidatePath('/desk');
     if (digest === null) return errorState(prev, '열린 발견사항이 없어 만들 요약이 없습니다.');
     if (digest.source === 'llm') return successState(prev, 'AI 종합 요약을 다시 만들었습니다.', null);

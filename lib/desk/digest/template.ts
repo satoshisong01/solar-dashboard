@@ -11,7 +11,9 @@ const listText = (counts: readonly DigestCount[]): string => counts.map((row) =>
 
 function headlineText(stats: DigestStats): string {
   const where = stats.siteLabel === null ? '' : `${stats.siteLabel} 발전소에서 `;
-  const first = `${where}지금 열려 있는 발견사항은 모두 ${stats.total}건입니다.`;
+  // 읽어 온 목록이 잘렸으면 '모두'라고 말하지 않는다 — 아래 네 줄이 모두 이 창 안에서 센 값이다
+  const scope = stats.truncatedAt === null ? '지금 열려 있는 발견사항은 모두' : `최근 탐지 ${stats.truncatedAt}건 안에서 열려 있는 발견사항은`;
+  const first = `${where}${scope} ${stats.total}건입니다.`;
   // 전부 새 건이면 건수를 두 번 쓰지 않는다 ('15건 중 15건'으로 읽히지 않게)
   if (stats.newCount === stats.total && stats.reopenedCount === 0) return `${first} 아직 하나도 분류하지 않았습니다.`;
   const parts = [

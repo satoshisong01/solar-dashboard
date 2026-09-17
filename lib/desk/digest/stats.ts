@@ -81,11 +81,13 @@ function groupsOf(items: readonly DigestItem[]): DigestGroup[] {
 /**
  * 열린 발견사항 집계. rows는 openFindingsFor가 고르고 정렬한 것이어야 한다
  * (top은 rows 순서를 그대로 쓴다 = 심각도×신뢰도 순).
+ * truncatedAt은 rows를 읽어 온 조회가 최근 탐지 N건에서 잘렸을 때 그 N이다 (안 잘렸으면 null).
  */
-export function buildDigestStats(rows: readonly InboxRow[], site: string | null): DigestStats {
+export function buildDigestStats(rows: readonly InboxRow[], site: string | null, truncatedAt: number | null = null): DigestStats {
   const items = rows.map(itemOf);
   return {
     site,
+    truncatedAt,
     siteLabel: site === null ? null : (rows[0]?.siteName ?? site),
     total: items.length,
     newCount: rows.filter((row) => row.status === 'new').length,

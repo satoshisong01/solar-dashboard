@@ -1,6 +1,7 @@
 import 'server-only';
 import { db } from '@/lib/db/kysely';
 import { buildDigestStats, digestFingerprint, digestTemplate, openFindingsFor, type DigestStats } from '@/lib/desk/digest';
+import { INBOX_LIMIT } from '@/lib/data/findings';
 import type { InboxRow } from '@/lib/desk/inbox';
 import { getGeminiProvider } from '@/lib/llm/gemini';
 import { aiEnabledFor, readAiSettings, type AiSettings } from '@/lib/ops/ai-settings';
@@ -25,14 +26,18 @@ const siteIdOf = async (siteCode: string): Promise<number | null> => {
   return row?.id ?? null;
 };
 
+/** 인박스가 읽어 온 발견사항 (listInboxRows 결과). truncated면 최근 탐지 INBOX_LIMIT건에서 잘린 것이다 */
+export type DigestSource = Readonly<{ rows: readonly InboxRow[]; truncated: boolean }>;
+
 /**
  * 분석 데스크 맨 위 종합 요약 한 벌: 저장된 문장이 있으면 그것을, 없으면 한 번 만들어 저장한다.
  * 어떤 실패에서도 엔진이 만든 틀 문장이 돌아온다 — 화면은 배지로만 출처를 구분한다.
- * rows는 인박스가 읽은 발견사항 전체이고, 열린 건·사이트 필터는 여기서 건다 (인박스 목록과 같은 규칙).
+ * inbox.rows는 인박스가 읽은 발견사항 전체이고, 열린 건·사이트 필터는 여기서 건다 (인박스 목록과 같은 규칙).
+ * 목록이 잘렸으면 그 사실을 stats에 실어 문장과 화면이 '창 안에서 센 값'이라고 말하게 한다.
  */
-export async function buildDeskDigest(rows: readonly InboxRow[], site: string | null, regenerate = false): Promise<DeskDigest> {
-  const open = openFindingsFor(rows, site);
-  const stats = buildDigestStats(open, site);
+export async function buildDeskDigest(inbox: DigestSource, site: string | null, regenerate = false): Promise<DeskDigest> {
+  const open = openFindingsFor(inbox.rows, site);
+  const stats = buildDigestStats(open, site, inbox.truncated ? INBOX_LIMIT : null);
   if (stats.total === 0) return { stats, digest: null };
 
   const provider = getGeminiProvider();

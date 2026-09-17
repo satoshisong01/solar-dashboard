@@ -5,10 +5,13 @@ import { assertTestDatabaseUrl } from '../support/test-env';
 const databaseUrl = assertTestDatabaseUrl(process.env.DATABASE_URL);
 
 // om은 공용 DB에서 이 프로젝트가 쓰는 유일한 스키마다: 도메인 테이블 + 인증(auth_*) + 마이그레이션 기록(pgmigrations).
+// 테이블을 만드는 마이그레이션을 더하면 이 명부에도 이름을 넣어야 한다 (넣지 않으면 아래 첫 테스트가 실패한다).
+// 명부를 손으로 적는 것은 의도한 것이다 — 마이그레이션에서 뽑아내면 "마이그레이션이 만든 것과 DB에 있는 것이 같다"는
+// 동어반복이 되어, 검토 없이 들어온 테이블을 잡지 못한다.
 const OM_TABLES = [
   'action_verification', 'ai_explanation_setting', 'analysis_run', 'asset', 'asset_class', 'asset_event', 'auth_account', 'auth_rate_limit',
   'auth_session', 'auth_user', 'auth_verification', 'detector_config', 'episode', 'event_log',
-  'finding', 'finding_evidence', 'finding_explanation', 'finding_transition', 'gateway', 'gateway_key', 'h2_delivery', 'ingest_batch', 'kpi_daily', 'm_1h',
+  'finding', 'finding_digest', 'finding_evidence', 'finding_explanation', 'finding_transition', 'gateway', 'gateway_key', 'h2_delivery', 'ingest_batch', 'kpi_daily', 'm_1h',
   'maintenance_action', 'market_daily', 'measurement', 'metric_def', 'pgmigrations', 'point', 'report', 'rollup_dirty',
   'site', 'site_energy_daily', 'unmapped_source',
 ];

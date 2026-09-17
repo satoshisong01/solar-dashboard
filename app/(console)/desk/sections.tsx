@@ -46,9 +46,9 @@ type DigestSectionProps = Readonly<{
 
 /** 맨 위 종합 요약: 인박스와 같은 발견사항을 같은 필터로 세고, 문장은 저장해 두었다가 묶음이 바뀔 때만 다시 만든다 */
 export async function DigestSection({ inbox, searchParams }: DigestSectionProps) {
-  const [{ rows }, query] = await Promise.all([inbox, searchParams]);
+  const [all, query] = await Promise.all([inbox, searchParams]);
   const { site } = parseInboxFilter({ site: firstParam(query.site) });
-  const [{ stats, digest }, lastRunMs] = await Promise.all([buildDeskDigest(rows, site), getLastRunFinishedMs()]);
+  const [{ stats, digest }, lastRunMs] = await Promise.all([buildDeskDigest(all, site), getLastRunFinishedMs()]);
   return <DigestCard stats={stats} summary={digest?.summary ?? null} source={digest?.source ?? 'template'} model={digest?.model ?? null} lastRunMs={lastRunMs} />;
 }
 

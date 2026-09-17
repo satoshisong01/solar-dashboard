@@ -44,6 +44,11 @@ export interface DigestGroup {
 export interface DigestStats {
   /** 사이트 필터가 걸려 있으면 그 사이트 코드 (전체면 null) */
   readonly site: string | null;
+  /**
+   * 읽어 온 발견사항이 최근 탐지 N건에서 잘렸다면 그 N (안 잘렸으면 null).
+   * 잘렸으면 아래 건수는 모두 '그 창 안에서 센 값'이라 문장도 화면도 그렇게 말해야 한다 — 인박스와 같은 절단이다.
+   */
+  readonly truncatedAt: number | null;
   /** 문장에서 부르는 사이트 이름 (필터가 없거나 이름을 모르면 null) */
   readonly siteLabel: string | null;
   readonly total: number;

@@ -8,7 +8,17 @@ import { formatKstDateTime } from '@/lib/format';
 const CARD_CLASS = 'flex min-w-0 flex-col gap-3 rounded-lg border border-accent/40 bg-hydrogen-fill/40 p-4 md:p-5';
 
 /** 이 요약이 어느 범위를 센 것인지 (사이트 필터가 걸려 있으면 그 사이트만) */
-const scopeText = (stats: DigestStats): string => (stats.site === null ? '열린 발견사항 전체' : `${stats.siteLabel ?? stats.site} 범위`);
+function scopeText(stats: DigestStats): string {
+  const where = stats.site === null ? '열린 발견사항' : `${stats.siteLabel ?? stats.site} 범위`;
+  // 목록이 잘렸으면 '전체'라고 하지 않는다 — 인박스 제목 옆에 적는 말과 같게 둔다
+  return stats.truncatedAt === null ? `${where} 전체` : `${where} · 최근 탐지 ${stats.truncatedAt}건 안`;
+}
+
+/** 읽어 온 목록이 잘렸으면 센 값이 그 창 안의 값임을 밝힌다 */
+function TruncatedNote({ stats }: Readonly<{ stats: DigestStats }>) {
+  if (stats.truncatedAt === null) return null;
+  return <p className="text-sm text-muted">최근 탐지 {stats.truncatedAt}건만 읽어 센 값입니다. 더 예전에 잡힌 발견사항은 이 요약과 아래 목록에 들어 있지 않습니다.</p>;
+}
 
 function DetailList({ group }: Readonly<{ group: DigestGroup }>) {
   return (
@@ -57,6 +67,7 @@ export function DigestCard({ stats, summary, source, model, lastRunMs }: DigestC
       <section aria-label="종합 요약" className={CARD_CLASS}>
         <h2 className="text-base font-semibold text-ink">종합 요약</h2>
         <p className="text-lg leading-snug font-medium text-pretty text-ink">지금은 확인할 이슈가 없습니다.</p>
+        <TruncatedNote stats={stats} />
         <p className="text-sm text-muted">{lastRunMs === null ? '아직 분석을 실행한 적이 없습니다. 아래에서 사이트와 기간을 골라 실행하세요.' : `마지막 분석 실행 ${formatKstDateTime(lastRunMs)} KST 기준입니다.`}</p>
       </section>
     );
@@ -79,6 +90,7 @@ export function DigestCard({ stats, summary, source, model, lastRunMs }: DigestC
           {line}
         </p>
       ))}
+      <TruncatedNote stats={stats} />
       <details className="group flex min-w-0 flex-col">
         <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 self-start rounded-md border border-rule-strong bg-sunken px-3 py-2 text-sm font-medium text-ink-2 hover:bg-rule [&::-webkit-details-marker]:hidden">
           <ChevronRight aria-hidden="true" className="size-4 transition-transform group-open:rotate-90" />

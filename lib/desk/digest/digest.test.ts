@@ -1,40 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { parseEffect } from '../effect';
-import type { InboxRow } from '../inbox';
+import { digestRow as row, DIGEST_ROWS as ROWS } from './test-fixtures';
 import { buildDigestStats, digestFingerprint, openFindingsFor } from './stats';
 import { digestLabels, digestTemplate } from './template';
-
-const row = (patch: Partial<InboxRow> & Pick<InboxRow, 'id'>): InboxRow => ({
-  siteCode: 'SIM-A',
-  siteName: '영암',
-  assetId: 10,
-  assetPath: 'SIM-A/ESS1/RACK01',
-  assetName: '랙 1',
-  classKey: 'ess.rack',
-  detectorId: 'ess.capacity_fade',
-  category: 'degradation',
-  severity: 3,
-  confidence: 0.8,
-  status: 'new',
-  title: '제목',
-  effect: parseEffect({ metric: 'capacity_fade_pct', value: -7.3, unit: '%' }),
-  firstDetectedMs: 1_000,
-  lastDetectedMs: 2_000,
-  detectionCount: 1,
-  previousFindingId: null,
-  ...patch,
-});
-
-/** 열린 건 5 (배터리 3·전해조 1·데이터 품질 1) + 닫힌 건 1 + 다른 사이트 1 */
-const ROWS: readonly InboxRow[] = [
-  row({ id: '1', severity: 5, confidence: 0.9 }),
-  row({ id: '2', severity: 3 }),
-  row({ id: '3', severity: 1, status: 'reopened' }),
-  row({ id: '4', severity: 4, classKey: 'h2.elz.stack', detectorId: 'el.voltage_rise', assetName: '전해 스택', assetPath: 'SIM-A/ELZ1/STACK1' }),
-  row({ id: '5', severity: 2, category: 'data_quality', detectorId: 'dq.gap_flatline' }),
-  row({ id: '6', severity: 5, status: 'dismissed' }),
-  row({ id: '7', severity: 4, siteCode: 'SIM-B', siteName: '새만금' }),
-];
 
 describe('openFindingsFor', () => {
   it('닫힌 건(기각·효과 확인)은 빼고 심각도×신뢰도 순으로 세운다', () => {
@@ -98,6 +65,13 @@ describe('digestTemplate', () => {
   it('전부 새 건이면 건수를 두 번 쓰지 않는다', () => {
     const allNew = buildDigestStats(openFindingsFor([row({ id: '1' }), row({ id: '2' })], null), null);
     expect(digestTemplate(allNew).headline).toBe('지금 열려 있는 발견사항은 모두 2건입니다. 아직 하나도 분류하지 않았습니다.');
+  });
+
+  it('읽어 온 목록이 잘렸으면 "모두 N건"이라고 하지 않고 센 창을 밝힌다', () => {
+    const cut = buildDigestStats(openFindingsFor(ROWS, null), null, 500);
+    expect(cut.truncatedAt).toBe(500);
+    expect(digestTemplate(cut).headline).toContain('최근 탐지 500건 안에서 열려 있는 발견사항은 6건입니다.');
+    expect(digestTemplate(cut).headline).not.toContain('모두');
   });
 
   it('계통이 하나뿐이면 나열하지 않는다', () => {
