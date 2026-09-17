@@ -1,7 +1,7 @@
 import { ArrowRight, CircleCheck, Radio, Tags } from 'lucide-react';
 import Link from 'next/link';
 import { EmptyNote, NUM_CLASS, Panel, TABLE_CLASS, TD_CLASS, TH_CLASS, TableScroll } from '@/components/ui/panel';
-import type { KpiValue } from '@/lib/data/energy';
+import type { EnergyKpiValue } from '@/lib/data/energy';
 import { GATEWAY_SILENCE_MS, type DataGaps, type MarketSummaryRow, type SiteEnergySummary } from '@/lib/data/today';
 import { formatAgo, formatDuration, formatNumber } from '@/lib/format';
 
@@ -53,7 +53,7 @@ export function DataGapsPanel({ gaps, nowMs }: Readonly<{ gaps: DataGaps; nowMs:
   );
 }
 
-function KpiCell({ kpi, digits = 0 }: Readonly<{ kpi: KpiValue; digits?: number }>) {
+function KpiCell({ kpi, digits = 0 }: Readonly<{ kpi: EnergyKpiValue; digits?: number }>) {
   if (!kpi.present) {
     return (
       <td className={`${TD_CLASS} ${NUM_CLASS} text-muted`}>
@@ -63,7 +63,13 @@ function KpiCell({ kpi, digits = 0 }: Readonly<{ kpi: KpiValue; digits?: number 
     );
   }
   if (kpi.value === null) return <td className={`${TD_CLASS} text-right text-xs whitespace-nowrap text-muted`}>데이터 없음</td>;
-  return <td className={`${TD_CLASS} ${NUM_CLASS} text-ink`}>{formatNumber(kpi.value, digits)}</td>;
+  return (
+    <td className={`${TD_CLASS} ${NUM_CLASS} text-ink`}>
+      {formatNumber(kpi.value, digits)}
+      {kpi.suspect && <span className="block text-xs font-sans text-warn">데이터 의심</span>}
+      {kpi.standby > 0 && <span className="block text-xs font-sans text-muted">대기 {formatNumber(kpi.standby, digits)}</span>}
+    </td>
+  );
 }
 
 const ENERGY_COLUMNS = [
@@ -80,7 +86,7 @@ export function EnergySummaryPanel({ rows }: Readonly<{ rows: readonly SiteEnerg
       {rows.length === 0 ? (
         <EmptyNote>등록된 사이트가 없습니다</EmptyNote>
       ) : (
-        <TableScroll label="사이트별 발전·수소 요약 표">
+        <TableScroll label="사이트별 발전·수소 요약 표" stickyFirst>
           <table className={TABLE_CLASS}>
             <thead>
               <tr>
@@ -116,6 +122,7 @@ export function EnergySummaryPanel({ rows }: Readonly<{ rows: readonly SiteEnerg
       {rows.length > 0 && (
         <p className="text-xs text-muted">
           PV·ESS·H₂는 누적 카운터 증가량, 연료전지는 시간 평균 출력 × 1시간의 합입니다. ‘—’는 해당 설비가 없다는 뜻입니다.
+          ‘데이터 의심’은 설비 정격으로 설명되지 않는 카운터 점프가 있어 그 구간을 더하지 않았다는 뜻이고, ‘대기’는 정지 중 소비라 발전량에 넣지 않은 값입니다.
         </p>
       )}
     </Panel>

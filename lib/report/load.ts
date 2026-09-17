@@ -1,7 +1,7 @@
 // 리포트 팩 입력 조회 (Kysely, I/O). 판단은 evidence-pack.ts·planner.ts(순수)가 한다.
 // 'server-only'를 넣지 않는다: integration 테스트에서도 쓴다. 호출 전 관리자 확인은 Server Action이 한다.
 import { sql, type Kysely } from 'kysely';
-import { ENERGY_KPI_KEYS, ENERGY_KPIS, computeEnergy, sumNullable, type HourBucket } from '@/lib/data/energy-calc';
+import { ENERGY_KPI_KEYS, ENERGY_KPIS, computeEnergy, ratedPerHour, sumNullable, type HourBucket } from '@/lib/data/energy-calc';
 import { ALLOC_VERSION, type SiteEnergyDay } from '@/lib/analytics/ledger/types';
 import { kstDayStart } from '@/lib/analytics/types';
 import { parseLedgerRow, type LedgerDbRow } from '@/lib/chain/parse';
@@ -100,7 +100,7 @@ async function loadEnergy(db: Kysely<DB>, siteId: number, window: { fromMs: numb
   const points = await db
     .selectFrom('om.point as p')
     .innerJoin('om.asset as a', 'a.id', 'p.asset_id')
-    .select(['p.id', 'a.class_key', 'p.metric_key'])
+    .select(['p.id', 'a.class_key', 'a.nameplate', 'p.metric_key'])
     .where('a.site_id', '=', siteId)
     .where((eb) => eb.or(ENERGY_KPI_KEYS.map((key) => eb.and([eb('a.class_key', '=', ENERGY_KPIS[key].classKey), eb('p.metric_key', '=', ENERGY_KPIS[key].metricKey)]))))
     .execute();
@@ -113,7 +113,11 @@ async function loadEnergy(db: Kysely<DB>, siteId: number, window: { fromMs: numb
   `.execute(db);
   const buckets = (pointId: number): HourBucket[] => rows.filter((r) => r.point_id === pointId).map((r) => ({ bucketMs: r.bucket_ms, first: r.v_first, last: r.v_last, avg: r.v_avg }));
   const valueOf = (key: (typeof ENERGY_KPI_KEYS)[number]) =>
-    sumNullable(points.filter((p) => p.class_key === ENERGY_KPIS[key].classKey && p.metric_key === ENERGY_KPIS[key].metricKey).map((p) => computeEnergy(ENERGY_KPIS[key].method, buckets(p.id), window)));
+    sumNullable(
+      points
+        .filter((p) => p.class_key === ENERGY_KPIS[key].classKey && p.metric_key === ENERGY_KPIS[key].metricKey)
+        .map((p) => computeEnergy(ENERGY_KPIS[key].method, buckets(p.id), window, ratedPerHour(p.nameplate, key)).value),
+    );
   return { pvKwh: valueOf('pvKwh'), essChargeKwh: valueOf('essChargeKwh'), essDischargeKwh: valueOf('essDischargeKwh'), h2Kg: valueOf('h2Kg'), fcKwh: valueOf('fcKwh') };
 }
 

@@ -5,7 +5,8 @@ import {
   ENERGY_KPIS,
   ENERGY_KPI_KEYS,
   computeEnergy,
-  sumNullable,
+  ratedPerHour,
+  sumEnergyResults,
   type EnergyKpiKey,
   type HourBucket,
 } from './energy-calc';
@@ -17,12 +18,22 @@ export interface KpiValue {
   readonly value: number | null;
 }
 
-export type EnergyValues = Readonly<Record<EnergyKpiKey, KpiValue>>;
+/** 발전·수소 KPI 값. 값에 넣지 않은 것(정격 밖 카운터 점프·대기 소비)을 함께 알린다 */
+export interface EnergyKpiValue extends KpiValue {
+  /** 설비 정격으로 설명되지 않는 카운터 점프를 빼고 더했다 — 화면은 '데이터 의심'으로 알린다 */
+  readonly suspect: boolean;
+  /** 값에 넣지 않은 정지 중 대기 소비 [kWh] */
+  readonly standby: number;
+}
+
+export type EnergyValues = Readonly<Record<EnergyKpiKey, EnergyKpiValue>>;
 
 interface KpiPoint {
   readonly pointId: number;
   readonly siteId: number;
   readonly kpi: EnergyKpiKey;
+  /** 설비 명판에서 읽은 시간당 최대 증가량 (카운터 점프 상한). 명판에 없으면 null */
+  readonly maxPerHour: number | null;
 }
 
 interface KpiPointsAndBuckets {
@@ -56,6 +67,7 @@ async function loadKpiPointsAndBuckets(
       'p.id',
       'a.site_id',
       'a.class_key',
+      'a.nameplate',
       'p.metric_key',
       sql<number | null>`(extract(epoch FROM b.bucket) * 1000)::float8`.as('bucket_ms'),
       'b.v_first',
@@ -79,7 +91,7 @@ async function loadKpiPointsAndBuckets(
       (key) => ENERGY_KPIS[key].classKey === row.class_key && ENERGY_KPIS[key].metricKey === row.metric_key,
     );
     if (kpi === undefined) continue;
-    points.set(row.id, { pointId: row.id, siteId: row.site_id, kpi });
+    points.set(row.id, { pointId: row.id, siteId: row.site_id, kpi, maxPerHour: ratedPerHour(row.nameplate, kpi) });
     if (row.bucket_ms === null) continue;
     const bucket: HourBucket = { bucketMs: row.bucket_ms, first: row.v_first, last: row.v_last, avg: row.v_avg };
     buckets.set(row.id, [...(buckets.get(row.id) ?? []), bucket]);
@@ -105,10 +117,10 @@ export async function getEnergyByWindows(
     siteIdsInResult.map((siteId) => {
       const sitePoints = points.filter((p) => p.siteId === siteId);
       const perWindow = windows.map((window) => {
-        const entries = ENERGY_KPI_KEYS.map((key): [EnergyKpiKey, KpiValue] => {
+        const entries = ENERGY_KPI_KEYS.map((key): [EnergyKpiKey, EnergyKpiValue] => {
           const kpiPoints = sitePoints.filter((p) => p.kpi === key);
-          const values = kpiPoints.map((p) => computeEnergy(ENERGY_KPIS[key].method, buckets.get(p.pointId) ?? [], window));
-          return [key, { present: kpiPoints.length > 0, value: sumNullable(values) }];
+          const result = sumEnergyResults(kpiPoints.map((p) => computeEnergy(ENERGY_KPIS[key].method, buckets.get(p.pointId) ?? [], window, p.maxPerHour)));
+          return [key, { present: kpiPoints.length > 0, ...result }];
         });
         return Object.fromEntries(entries) as EnergyValues;
       });
@@ -125,7 +137,7 @@ export interface SiteTodayKpis {
   readonly elzRunningRatio: KpiValue;
 }
 
-const EMPTY_ENERGY = Object.fromEntries(ENERGY_KPI_KEYS.map((key) => [key, { present: false, value: null }])) as EnergyValues;
+const EMPTY_ENERGY = Object.fromEntries(ENERGY_KPI_KEYS.map((key) => [key, { present: false, value: null, suspect: false, standby: 0 }])) as EnergyValues;
 
 /** 사이트 상세 KPI (오늘 KST 00:00 ~ now) */
 export async function getSiteTodayKpis(siteId: number, today: TimeWindow): Promise<SiteTodayKpis> {

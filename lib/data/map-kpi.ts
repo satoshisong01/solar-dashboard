@@ -107,7 +107,7 @@ export function hourlyCurve(method: EnergyKpiDef['method'], bucketsByPoint: read
   const points: CurvePoint[] = [];
   for (let hourMs = window.fromMs; hourMs < window.toMs; hourMs += HOUR_MS) {
     const hour: TimeWindow = { fromMs: hourMs, toMs: hourMs + HOUR_MS };
-    points.push({ hourMs, value: sumNullable(bucketsByPoint.map((buckets) => computeEnergy(method, buckets, hour))) });
+    points.push({ hourMs, value: sumNullable(bucketsByPoint.map((buckets) => computeEnergy(method, buckets, hour).value)) });
   }
   return points;
 }
