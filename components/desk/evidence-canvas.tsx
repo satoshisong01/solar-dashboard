@@ -47,6 +47,9 @@ function CapacityCanvas({ evidence, chargeTimeText }: Readonly<{ evidence: Capac
   );
 }
 
+/** 아직 렌더러가 없는 근거 형식에 나오는 글자. 탐지기를 더하고 화면을 빼먹으면 이 문구가 뜬다 (detector-coverage.test.ts가 막는다) */
+export const UNSUPPORTED_EVIDENCE_NOTE = '이 근거 형식은 화면에서 아직 보여 주지 않습니다';
+
 type CanvasProps = Readonly<{
   evidence: EvidenceView;
   chargeTimeText: string | null;
@@ -110,7 +113,7 @@ export function EvidenceCanvas({ evidence, chargeTimeText, assetLabel, siteCode,
     default:
       return (
         <Panel title="근거">
-          <EmptyNote>이 근거 형식은 화면에서 아직 보여 주지 않습니다</EmptyNote>
+          <EmptyNote>{UNSUPPORTED_EVIDENCE_NOTE}</EmptyNote>
         </Panel>
       );
   }

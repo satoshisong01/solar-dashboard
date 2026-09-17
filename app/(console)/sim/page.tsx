@@ -5,6 +5,7 @@ import { DetectionCurveChart } from '@/components/sim/detection-curve-chart';
 import { P3ReferencePanels, TankLeakCurvePanel } from '@/components/sim/p3-panels';
 import { DetectorScoresTable, GatesTable } from '@/components/sim/scorecard-tables';
 import { EmptyNote, Panel } from '@/components/ui/panel';
+import { GAPYEONG_DETECTORS, P2_DETECTORS, P3_DETECTORS } from '@/lib/analytics/detectors';
 import scorecardJson from '@/lib/analytics/scorecard.json';
 import { requireAdmin } from '@/lib/auth/dal';
 import { isSimConsoleEnabled } from '@/lib/data/sim-console';
@@ -36,7 +37,7 @@ export default async function SimPage() {
         <GatesTable gates={scorecard.gates} />
       </Panel>
 
-      <Panel title="탐지기별 성능" meta="P2 6종 · P3 8종 (설계 §5.3 탐지기 로드맵)">
+      <Panel title="탐지기별 성능" meta={`P2 ${P2_DETECTORS.length}종 · P3 ${P3_DETECTORS.length}종 · 가평 구성 ${GAPYEONG_DETECTORS.length}종 (설계 §5.3 탐지기 로드맵)`}>
         {scorecard.detectors.length === 0 ? <EmptyNote>스코어카드에 탐지기 결과가 없습니다</EmptyNote> : <DetectorScoresTable detectors={scorecard.detectors} />}
         {scorecard.notEvaluated.length > 0 && (
           <ul className="flex flex-col gap-1 text-xs text-ink-2">
