@@ -5,7 +5,7 @@ import { Breadcrumb } from '@/components/console/breadcrumb';
 import { PageHeader } from '@/components/console/page-header';
 import { DiagramAssetTable, DiagramTagTable, FlowLegend, OffDiagramFindings } from '@/components/diagram/diagram-panels';
 import { ProcessDiagram } from '@/components/diagram/process-diagram';
-import { EmptyNote, Panel } from '@/components/ui/panel';
+import { EmptyNote, Panel, TableScroll } from '@/components/ui/panel';
 import { requireAdmin } from '@/lib/auth/dal';
 import { decodeRouteParam } from '@/lib/data/range';
 import { getSiteDiagram } from '@/lib/data/site-diagram';
@@ -69,14 +69,12 @@ export default async function SiteDiagramPage({ params }: DiagramPageProps) {
               </span>
             }
           >
-            <div
-              role="region"
-              aria-label="공정도 그림 (가로로 넘어가면 스크롤됩니다)"
-              tabIndex={0}
-              className="-mx-4 overflow-x-auto px-4 md:-mx-5 md:px-5"
+            <TableScroll
+              label="공정도 그림 (가로로 넘어가면 스크롤됩니다)"
+              hint="그림을 옆으로 밀면 오른쪽 설비가 나옵니다 — 아래 '설비 목록' 표가 그림을 대신합니다"
             >
               <ProcessDiagram view={view} label={`${site.code} ${site.name} 공정흐름 계장도`} />
-            </div>
+            </TableScroll>
             <FlowLegend />
             <p className="text-xs text-muted">
               흐름선은 물질 종류만 나타냅니다. 상태는 설비 상자의 테두리와 배지로만 나타냅니다 — 바로 확인(빨강) · 주의(주황). 값은 계측

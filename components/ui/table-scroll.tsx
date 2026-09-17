@@ -10,6 +10,8 @@ type TableScrollProps = Readonly<{
    * 열이 많아 몇 화면씩 밀어야 하는 표에만 쓴다 — 무엇에 대한 행인지 잃지 않게.
    */
   stickyFirst?: boolean;
+  /** 넘칠 때 아래에 붙는 한 줄. 표가 아닌 것(공정도 등)에 쓸 때 바꾼다 */
+  hint?: string;
 }>;
 
 /**
@@ -17,7 +19,7 @@ type TableScrollProps = Readonly<{
  * relative: 표 안 sr-only(absolute) 요소가 페이지 폭을 넓히지 않게.
  * 실제로 넘칠 때만 오른쪽 끝 그림자와 안내 문구를 붙인다 — 밀 수 있다는 것이 보이지 않으면 휴대폰에서 나머지 열을 못 찾는다.
  */
-export function TableScroll({ children, label, stickyFirst = false }: TableScrollProps) {
+export function TableScroll({ children, label, stickyFirst = false, hint = '표를 옆으로 밀면 나머지 열이 나옵니다' }: TableScrollProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [overflow, setOverflow] = useState(false);
   const [atEnd, setAtEnd] = useState(true);
@@ -56,7 +58,7 @@ export function TableScroll({ children, label, stickyFirst = false }: TableScrol
       {overflow && !atEnd && (
         <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 -right-4 w-10 bg-linear-to-l from-surface to-transparent md:-right-5 lg:hidden" />
       )}
-      {overflow && <p className="mt-1 text-xs text-muted lg:hidden">표를 옆으로 밀면 나머지 열이 나옵니다</p>}
+      {overflow && <p className="mt-1 text-xs text-muted lg:hidden">{hint}</p>}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useSyncExternalStore } from 'react';
 import { EmptyNote } from '@/components/ui/panel';
 import { countMapLevels } from '@/lib/data/map-status';
 import type { FleetMapSite } from '@/lib/data/site-map-board';
@@ -13,6 +13,22 @@ import { KOREA_VIEW, SiteMapCanvas, type FitPadding, type MapView } from './site
 const FOCUS_LEVEL = 9;
 /** 지도 위에 뜬 패널과 마커 라벨이 겹치지 않을 여백(px). 왼쪽은 목록, 오른쪽은 상세 패널이 차지한다 */
 const FIT_PADDING: FitPadding = { top: 96, right: 360, bottom: 64, left: 320 };
+/** lg 미만: 패널이 지도 아래로 쌓이므로 마커 라벨이 잘리지 않을 만큼만 비운다 */
+const STACKED_PADDING: FitPadding = { top: 32, right: 32, bottom: 32, left: 32 };
+const OVERLAY_QUERY = '(min-width: 64rem)';
+
+/** 패널이 지도 위에 뜨는 폭인지 (lg 이상). 서버에서는 데스크톱으로 본다 — 지도는 어차피 화면에서만 그린다 */
+function useOverlayLayout(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      const query = window.matchMedia(OVERLAY_QUERY);
+      query.addEventListener('change', onChange);
+      return () => query.removeEventListener('change', onChange);
+    },
+    () => window.matchMedia(OVERLAY_QUERY).matches,
+    () => true,
+  );
+}
 const FALLBACK_LABEL = '목록에서 발전소 상태를 확인하세요.';
 
 /**
@@ -22,6 +38,7 @@ const FALLBACK_LABEL = '목록에서 발전소 상태를 확인하세요.';
 export function FleetMapBoard({ sites, nowMs }: Readonly<{ sites: readonly FleetMapSite[]; nowMs: number }>) {
   const [selectedCode, setSelectedCode] = useState<string | null>(sites[0]?.code ?? null);
   const [view, setView] = useState<MapView>(KOREA_VIEW);
+  const overlayLayout = useOverlayLayout();
 
   const selected = sites.find((site) => site.code === selectedCode) ?? sites[0] ?? null;
   const counts = countMapLevels(sites);
@@ -45,7 +62,7 @@ export function FleetMapBoard({ sites, nowMs }: Readonly<{ sites: readonly Fleet
         <SiteMapCanvas
           sites={sites}
           view={view}
-          padding={FIT_PADDING}
+          padding={overlayLayout ? FIT_PADDING : STACKED_PADDING}
           selectedCode={selected?.code ?? null}
           onSelect={setSelectedCode}
           nowMs={nowMs}

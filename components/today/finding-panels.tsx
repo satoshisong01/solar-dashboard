@@ -57,7 +57,9 @@ export function TopFindingsPanel({ rows, nowMs, limit }: Readonly<{ rows: readon
           {rows.map((row) => (
             <li key={row.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2 first:pt-0 last:pb-0">
               <FindingSeverityChip severity={row.severity} />
-              <div className="flex min-w-0 flex-1 flex-col">
+              {/* md 미만에서는 칩·효과·신뢰도·상태가 첫 줄에 모이고(order 0) 글 덩어리가 그 아래 한 줄을 통째로 쓴다(order 1).
+                  flex-1(basis 0)만 두면 좁은 폭에서 이 열이 16px까지 줄어 한글이 한 줄에 한 자씩 세로로 깨진다 */}
+              <div className="order-1 flex w-full min-w-0 flex-col md:order-none md:w-auto md:flex-1">
                 <Link href={`/desk/${row.id}`} className="font-medium text-ink hover:underline">
                   {row.title}
                 </Link>
