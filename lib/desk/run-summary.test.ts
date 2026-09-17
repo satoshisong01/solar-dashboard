@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatElapsedMs, parseRunScope, summarizeRunStats } from './run-summary';
+import { formatElapsedMs, parseRunProgress, parseRunScope, runProgressText, summarizeRunStats, unfinishedSiteIds } from './run-summary';
 
 describe('formatElapsedMs', () => {
   it('초 → 분·초 → 시간·분', () => {
@@ -67,5 +67,39 @@ describe('parseRunScope', () => {
     });
     expect(parseRunScope({ siteIds: [1], assetIds: [5, 'x'], from: 'bad' })).toEqual({ siteIds: [1], assetIds: [5], fromMs: null, toMs: null, verifyOnly: false });
     expect(parseRunScope({ siteIds: [1], mode: 'verify' }).verifyOnly).toBe(true);
+  });
+});
+
+describe('parseRunProgress · runProgressText', () => {
+  it('실행 중 stats.progress를 읽어 한 줄로 만든다', () => {
+    const progress = parseRunProgress({ progress: { siteCode: 'SIM-B', siteIndex: 2, siteCount: 4, stage: 'detect', atMs: 1_700_000_000_000 } });
+    expect(progress).toEqual({ siteCode: 'SIM-B', siteIndex: 2, siteCount: 4, stage: 'detect', atMs: 1_700_000_000_000 });
+    expect(runProgressText(progress)).toBe('SIM-B (2/4) · 탐지');
+  });
+
+  it('사이트가 하나면 번호를 붙이지 않고, 사이트 앞 단계는 단계만 쓴다', () => {
+    expect(runProgressText(parseRunProgress({ progress: { siteCode: 'SIM-A', siteIndex: 1, siteCount: 1, stage: 'verify' } }))).toBe('SIM-A · 조치 효과 검증');
+    expect(runProgressText(parseRunProgress({ progress: { siteCode: null, siteIndex: 0, siteCount: 2, stage: 'rollup' } }))).toBe('남은 롤업 처리');
+  });
+
+  it('진행 상황이 없거나(끝난 실행) 깨졌으면 null → 준비 중', () => {
+    expect(parseRunProgress({ sites: [] })).toBeNull();
+    expect(parseRunProgress('bad')).toBeNull();
+    expect(runProgressText(null)).toBe('준비 중');
+    expect(runProgressText(parseRunProgress({ progress: { stage: 'made_up' } }))).toBe('made_up');
+  });
+});
+
+describe('unfinishedSiteIds', () => {
+  const scope = parseRunScope({ siteIds: [1, 2, 3], from: '2026-05-17T17:00:00.000Z', to: '2026-09-14T17:00:00.000Z' });
+
+  it('건너뛴 단계가 있거나 통계에 아예 없는 사이트만 남긴다', () => {
+    const stats = { sites: [{ siteId: 1, skipped: [] }, { siteId: 2, skipped: ['kpi', 'detect', 'verify'] }] };
+    expect(unfinishedSiteIds(scope, stats)).toEqual([2, 3]);
+  });
+
+  it('모두 끝났으면 빈 배열, 통계가 깨졌으면 전부 남은 것으로 본다', () => {
+    expect(unfinishedSiteIds(scope, { sites: [{ siteId: 1, skipped: [] }, { siteId: 2, skipped: [] }, { siteId: 3, skipped: [] }] })).toEqual([]);
+    expect(unfinishedSiteIds(scope, { error: '잠금' })).toEqual([1, 2, 3]);
   });
 });

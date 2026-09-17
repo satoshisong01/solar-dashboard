@@ -76,6 +76,8 @@ export interface SiteRunContext {
   readonly deadline: number;
   readonly errors: RunError[];
   readonly log: (message: string) => void;
+  /** 단계가 시작될 때마다 부른다 (화면 진행 표시용). 실행을 막지 않도록 가볍게 구현한다 */
+  readonly onStage?: (stage: StageKey) => void;
   /** 저장된 에피소드로 조치 효과 검증만 한다 */
   readonly verifyOnly?: boolean;
 }
@@ -90,6 +92,7 @@ const overBudget = (ctx: SiteRunContext): boolean => ctx.now().getTime() > ctx.d
 function stageTimer(ctx: SiteRunContext) {
   const stages: Partial<Record<StageKey, number>> = {};
   const time = async <T>(stage: StageKey, work: () => Promise<T>): Promise<T> => {
+    ctx.onStage?.(stage);
     const started = ctx.now().getTime();
     try {
       return await work();

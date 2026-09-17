@@ -38,3 +38,29 @@ export async function failAbandonedRuns(db: Kysely<DB>, runId: string, siteIds: 
   `.execute(db);
   return Number(result.numAffectedRows ?? 0);
 }
+
+export interface BusyRun {
+  readonly runId: string;
+  /** 요청한 사이트 중 이 실행이 이미 잡고 있는 사이트 */
+  readonly siteIds: readonly number[];
+  readonly startedMs: number;
+}
+
+/**
+ * 화면이 실행을 시작하기 전에 쓰는 사전 검사: 아직 살아 있는 running 실행 중 요청한 사이트와 겹치는 첫 행.
+ * startedAfter(= 지금 − 시간 예산 × 2)보다 먼저 시작한 행은 중단된 실행으로 보고 막지 않는다 (failAbandonedRuns가 정리한다).
+ * 실제 직렬화는 withSiteLocks의 advisory 잠금이 하고, 이 검사는 사용자에게 곧바로 이유를 알려 주기 위한 것이다.
+ */
+export async function findBusyRun(db: Kysely<DB>, siteIds: readonly number[], startedAfter: Date): Promise<BusyRun | null> {
+  const { rows } = await sql<{ id: string; started_at: Date; site_ids: number[] }>`
+    SELECT r.id, r.started_at,
+      (SELECT array_agg(DISTINCT e.site_id::int) FROM jsonb_array_elements_text(r.scope -> 'siteIds') AS e(site_id) WHERE e.site_id::int = ANY(${[...siteIds]}::int4[])) AS site_ids
+    FROM om.analysis_run r
+    WHERE r.status = 'running' AND r.started_at >= ${startedAfter.toISOString()}::timestamptz
+      AND EXISTS (SELECT 1 FROM jsonb_array_elements_text(r.scope -> 'siteIds') AS e(site_id) WHERE e.site_id::int = ANY(${[...siteIds]}::int4[]))
+    ORDER BY r.started_at DESC, r.id DESC
+    LIMIT 1
+  `.execute(db);
+  const row = rows[0];
+  return row ? { runId: String(row.id), siteIds: [...(row.site_ids ?? [])], startedMs: row.started_at.getTime() } : null;
+}

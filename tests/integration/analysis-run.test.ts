@@ -2,9 +2,11 @@
 // 테스트는 순서대로 한 finding의 수명을 따라간다.
 import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { AnalysisBusyError, runAnalysis, type AnalysisRequest } from '@/lib/analysis/run';
+import { findBusyRun } from '@/lib/analysis/lock';
+import { ABANDONED_AFTER_MS, AnalysisBusyError, createAnalysisRun, executeAnalysisRun, progressWriter, runAnalysis, type AnalysisRequest, type PreparedRun } from '@/lib/analysis/run';
 import { dismissFinding, registerMaintenanceAction, reopenFinding, TransitionError, triageFinding } from '@/lib/analysis/transitions';
-import { ANALYSIS_BASE_MS, createAnalysisFixture, DAY_MS, dropAnalysisFixture, RATE_UV_PER_H, type AnalysisFixture } from '../support/analysis-fixture';
+import { parseRunProgress, parseRunScope, runProgressText, unfinishedSiteIds, type RunProgress } from '@/lib/desk/run-summary';
+import { ANALYSIS_BASE_MS, ANALYSIS_SITE, createAnalysisFixture, DAY_MS, dropAnalysisFixture, RATE_UV_PER_H, type AnalysisFixture } from '../support/analysis-fixture';
 import { createTestDb } from '../support/ingest-fixture';
 import { assertTestDatabaseUrl } from '../support/test-env';
 
@@ -140,4 +142,75 @@ describe('분석 실행 (hysol_test)', () => {
     const cleaned = await db.selectFrom('om.analysis_run').select(['status', 'error']).where('id', '=', stale.id).executeTakeFirstOrThrow();
     expect(cleaned.status).toBe('failed');
   }, 120_000);
+
+  // ── 화면에서의 실행: 만들기(응답) → 배경 처리(after) ────────────────────────────
+  describe('만들기와 실행하기 분리 (화면의 분석 실행)', () => {
+    const runRow = (runId: string) => db.selectFrom('om.analysis_run').select(['status', 'finished_at', 'scope', 'stats', 'error']).where('id', '=', runId).executeTakeFirstOrThrow();
+    /** 기다리지 않고 쓰는 진행 표시를 읽을 때까지 잠깐 기다린다 */
+    const waitForProgress = async (runId: string, tries = 40): Promise<RunProgress | null> => {
+      for (let i = 0; i < tries; i += 1) {
+        const progress = parseRunProgress((await runRow(runId)).stats);
+        if (progress !== null) return progress;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+      return null;
+    };
+
+    it('createAnalysisRun은 running 행만 만들고 곧바로 돌아온다 (화면은 여기서 응답한다)', async () => {
+      const started = Date.now();
+      const prepared = await createAnalysisRun(db, request(1), { now: () => at(DAYS + 1) });
+      expect(Date.now() - started).toBeLessThan(1_000);
+      expect(await runRow(prepared.runId)).toMatchObject({ status: 'running', finished_at: null, error: null });
+      expect(parseRunScope((await runRow(prepared.runId)).scope).siteIds).toEqual([fixture.siteId]);
+
+      // 계산은 응답 뒤에 이어진다: 같은 행을 그대로 끝낸다
+      const reported: RunProgress[] = [];
+      const result = await executeAnalysisRun(db, prepared, { now: () => at(DAYS + 1), onProgress: (progress) => reported.push(progress) });
+      expect(result).toMatchObject({ runId: prepared.runId, status: 'succeeded' });
+      expect(await runRow(prepared.runId)).toMatchObject({ status: 'succeeded' });
+      expect(reported.map((progress) => progress.stage)).toContain('rollup');
+      expect(reported.some((progress) => progress.siteCode === ANALYSIS_SITE && progress.stage === 'detect')).toBe(true);
+      expect(reported.every((progress) => progress.siteCount === 1)).toBe(true);
+    }, 120_000);
+
+    it('진행 표시는 실행 중인 행의 stats.progress에만 남고, 끝난 행에는 쓰지 않는다', async () => {
+      const prepared = await createAnalysisRun(db, request(1));
+      const write = progressWriter(db, prepared.runId);
+      write({ siteCode: ANALYSIS_SITE, siteIndex: 1, siteCount: 2, stage: 'detect', atMs: Date.now() });
+      expect(runProgressText(await waitForProgress(prepared.runId))).toBe(`${ANALYSIS_SITE} (1/2) · 탐지`);
+
+      await db.updateTable('om.analysis_run').set({ status: 'failed', finished_at: new Date(), error: '테스트가 끝냈습니다' }).where('id', '=', prepared.runId).execute();
+      write({ siteCode: ANALYSIS_SITE, siteIndex: 2, siteCount: 2, stage: 'verify', atMs: Date.now() + 10_000 });
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      expect(parseRunProgress((await runRow(prepared.runId)).stats)?.stage).toBe('detect');
+    }, 30_000);
+
+    it('중복 실행 차단: 살아 있는 running 행은 같은 사이트를 막고, 다른 사이트·오래된 행·끝난 행은 막지 않는다', async () => {
+      const prepared = await createAnalysisRun(db, request(1));
+      const alive = new Date(Date.now() - ABANDONED_AFTER_MS);
+      try {
+        expect(await findBusyRun(db, [fixture.siteId], alive)).toMatchObject({ runId: prepared.runId, siteIds: [fixture.siteId] });
+        expect(await findBusyRun(db, [32_001], alive)).toBeNull();
+        // 시간 예산 두 배가 지난 행은 중단된 실행으로 보고 막지 않는다 (다음 실행의 failAbandonedRuns가 정리한다)
+        expect(await findBusyRun(db, [fixture.siteId], new Date(Date.now() + 60_000))).toBeNull();
+      } finally {
+        await db.updateTable('om.analysis_run').set({ status: 'failed', finished_at: new Date(), error: '테스트가 끝냈습니다' }).where('id', '=', prepared.runId).execute();
+      }
+      expect(await findBusyRun(db, [fixture.siteId], alive)).toBeNull();
+    }, 30_000);
+
+    it("이어서 실행: 시간 예산을 넘긴 partial의 남은 사이트만 다시 돌리면 끝난다", async () => {
+      const prepared: PreparedRun = await createAnalysisRun(db, request(1), { now: () => at(DAYS + 2) });
+      const partial = await executeAnalysisRun(db, prepared, { now: () => at(DAYS + 2), timeBudgetMs: -1 });
+      expect(partial.status).toBe('partial');
+      const row = await runRow(partial.runId);
+      const scope = parseRunScope(row.scope);
+      expect(unfinishedSiteIds(scope, row.stats)).toEqual([fixture.siteId]);
+
+      const resumed = await runAnalysis(db, { siteIds: [...unfinishedSiteIds(scope, row.stats)], from: new Date(scope.fromMs ?? 0), to: new Date(scope.toMs ?? 0), requestedBy: ADMIN }, { now: () => at(DAYS + 3) });
+      expect(resumed.status).toBe('succeeded');
+      const resumedRow = await runRow(resumed.runId);
+      expect(unfinishedSiteIds(parseRunScope(resumedRow.scope), resumedRow.stats)).toEqual([]);
+    }, 120_000);
+  });
 });

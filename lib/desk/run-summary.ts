@@ -83,3 +83,61 @@ export function formatElapsedMs(ms: number | null): string {
   if (seconds < 3_600) return `${Math.floor(seconds / 60)}분 ${seconds % 60}초`;
   return `${Math.floor(seconds / 3_600)}시간 ${Math.floor((seconds % 3_600) / 60)}분`;
 }
+
+/**
+ * 실행 중 진행 상황 (om.analysis_run.stats.progress). 실행이 끝나면 stats가 최종 통계로 바뀌며 사라진다.
+ * 쓰는 쪽은 lib/analysis/run.ts, 읽는 쪽은 분석 데스크의 진행 표시다.
+ */
+export interface RunProgress {
+  readonly siteCode: string | null;
+  /** 1부터. 사이트별 실행에 들어가기 전이면 0 */
+  readonly siteIndex: number;
+  readonly siteCount: number;
+  readonly stage: string;
+  readonly atMs: number;
+}
+
+export function parseRunProgress(stats: unknown): RunProgress | null {
+  const row = asRecord(asRecord(stats).progress);
+  const stage = asString(row.stage);
+  if (stage === null) return null;
+  return { siteCode: asString(row.siteCode), siteIndex: asNumber(row.siteIndex) ?? 0, siteCount: asNumber(row.siteCount) ?? 0, stage, atMs: asNumber(row.atMs) ?? 0 };
+}
+
+const RUN_STAGE_LABELS: Readonly<Record<string, string>> = {
+  rollup: '남은 롤업 처리',
+  extract: '에피소드 추출',
+  kpi: '일 KPI',
+  aux: '보조 입력',
+  detect: '탐지',
+  ledger: '체인 원장',
+  findings: '발견사항 저장',
+  verify: '조치 효과 검증',
+};
+
+export const runStageLabel = (stage: string): string => RUN_STAGE_LABELS[stage] ?? stage;
+
+/** 진행 표시 한 줄: '준비 중' · '남은 롤업 처리' · 'SIM-B (2/4) · 탐지' */
+export function runProgressText(progress: RunProgress | null): string {
+  if (progress === null) return '준비 중';
+  const stage = runStageLabel(progress.stage);
+  if (progress.siteCode === null) return stage;
+  return `${progress.siteCode}${progress.siteCount > 1 ? ` (${progress.siteIndex}/${progress.siteCount})` : ''} · ${stage}`;
+}
+
+/**
+ * 실행이 끝내지 못한 사이트 id: 통계에 없거나 건너뛴 단계가 있는 사이트. '이어서 실행'의 대상이다.
+ * (사이트는 순서대로 돌므로 시간 예산을 넘기면 뒤쪽 사이트가 통째로 남는다)
+ */
+export function unfinishedSiteIds(scope: RunScope, stats: unknown): readonly number[] {
+  const finished = new Set(
+    asArray(asRecord(stats).sites)
+      .map(asRecord)
+      .filter((site) => asArray(site.skipped).length === 0)
+      .flatMap((site) => {
+        const id = asNumber(site.siteId);
+        return id === null ? [] : [id];
+      }),
+  );
+  return scope.siteIds.filter((id) => !finished.has(id));
+}
