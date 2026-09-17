@@ -372,3 +372,27 @@ npx node-pg-migrate create <이름> -j sql -m db/migrations --migration-filename
    - `require`는 인증서를 검증하지 않아 운영에는 쓰지 않습니다.
    - 되돌리기: `... tsx scripts/db-migrate.ts down [개수]` (기본 1개)
 4. `sim` 스키마 마이그레이션(`*_sim-eval-schema.sql`)은 시뮬레이터 평가용이라 앱이 참조하지 않지만, 적용 순서 검사 때문에 건너뛰지 말고 함께 적용합니다(빈 테이블만 생깁니다).
+
+## 배포 후 스모크 점검 (필수)
+
+**배포하고 나면 반드시 이 명령을 돌립니다.** 로컬에서만 확인하고 "배포 완료"라고 보고한 탓에 두 번 놓쳤습니다 — ① 빌드 캐시가 옛 CSS를 그대로 내보내 다크 테마가 반영되지 않았고, ② 코드는 배포됐는데 마이그레이션이 적용되지 않아 화면이 500을 냈습니다. 둘 다 이 명령이 잡습니다.
+
+```bash
+npm run deploy:check -- --url https://<운영 도메인> --env-file .env.rds.local --email <관리자 이메일> --password-file <비밀번호만 한 줄 적은 파일>
+```
+
+- `--env-file`: 운영 DB 접속 정보(`DATABASE_URL`·`DATABASE_SSL`[·`DATABASE_SSL_CA_PATH`]). 위 "운영 RDS에 마이그레이션 적용"에서 만든 파일을 그대로 씁니다.
+- 관리자 계정은 `--email` + `--password-file` 대신 env 파일의 `DEPLOY_CHECK_EMAIL`·`DEPLOY_CHECK_PASSWORD`로 줘도 됩니다. 비밀번호를 명령줄에 직접 적는 옵션은 두지 않았습니다 (셸 이력에 남습니다).
+- 운영 DB는 `SELECT`만 합니다. 비밀값(DB URL·비밀번호·세션 쿠키·API 키)은 출력하지 않습니다.
+- 결과를 표로 찍고, 하나라도 실패하면 종료 코드 1입니다.
+
+| 항목 | 보는 것 |
+| --- | --- |
+| 마이그레이션 정합 | `om.pgmigrations`와 `db/migrations` 파일 목록이 정확히 같은지 (빠진 것·여분) |
+| 비로그인 응답 | 화면은 `/login`으로 307, 콘솔 API는 401, 로그인 화면은 200 |
+| 관리자 로그인 | 실제로 로그인해 세션 쿠키를 받는지 (`BETTER_AUTH_*` 간접 확인) |
+| 주요 경로 응답 | 핵심 화면이 200이고 **본문에 그 화면 글자가 있는지** (스트리밍 도중 오류로 상태만 200인 경우까지 잡습니다). 사이트 코드·발견사항 id는 운영 DB에서 실제 값을 읽어 씁니다 |
+| 서빙 CSS 토큰 | 배포된 HTML이 부르는 CSS의 `:root` 토큰 값이 지금 `app/globals.css`와 같은지 (`--ground` 등 전부) |
+| 필수 환경변수 | 화면이 그려지는 것으로 필수 변수를, AI 설명 설정 화면 글자로 `GEMINI_API_KEY` 등록 여부를 간접 확인 |
+
+실패하면 고쳐서 다시 배포한 뒤 같은 명령을 다시 돌립니다. 확인할 경로와 표시 문구는 `lib/deploy/routes.ts`에 있습니다.
