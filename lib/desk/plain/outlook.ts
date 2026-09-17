@@ -100,6 +100,24 @@ function thermalOutlook(e: ThermalEvidence): string {
   return `최근 ${e.days.length}일 동안 ${formatNumber(derateH, 1)}시간을 줄여 돌면서 약 ${amount(lossKwh)} kWh를 못 만들었습니다.${shift}`;
 }
 
+/**
+ * 한계선까지 남은 여유를 말한다. 여유는 (한계 − 최근값)이라 이미 넘은 건은 음수로 온다 —
+ * 크기만 써서 '남았습니다'로 붙이면 안전 한계를 반대로 알리게 된다. 부호로 동사를 고른다.
+ */
+export function limitMarginText(margin: number, limit: number): string {
+  const line = `압축을 멈춰야 하는 선(${size(limit, 1)}%)`;
+  if (margin > 0) return `${line}까지 ${size(margin, 2)}%포인트 남았습니다.`;
+  if (margin < 0) return `${line}을 이미 ${size(margin, 2)}%포인트 넘었습니다.`;
+  return `${line}에 이미 닿았습니다.`;
+}
+
+/** UA 저하율은 성능이 오르면 음수로 온다 — 크기만 써서 '떨어졌습니다'로 붙이면 방향이 뒤집힌다 */
+export function uaChangeText(dropPct: number): string {
+  if (dropPct > 0) return `${size(dropPct)}% 떨어졌습니다`;
+  if (dropPct < 0) return `${size(dropPct)}% 올랐습니다`;
+  return '그대로입니다';
+}
+
 function gapyeongOutlook(e: GapyeongEvidence): string {
   switch (e.detectorId) {
     case 'prv.seat_leak': {
@@ -108,11 +126,11 @@ function gapyeongOutlook(e: GapyeongEvidence): string {
       return `밸브가 완전히 닫히지 않아 뒤쪽 압력이 계속 오릅니다. 연료전지 앞단 과압으로 이어질 수 있습니다.${leak}${holds} ${SAFETY_DECISION_NOTICE}`;
     }
     case 'hx.fouling': {
-      const ua = e.extra.uaDropPct === null ? '' : ` 열이 넘어가는 성능은 ${size(e.extra.uaDropPct)}% 떨어졌습니다.`;
+      const ua = e.extra.uaDropPct === null ? '' : ` 열이 넘어가는 성능은 ${uaChangeText(e.extra.uaDropPct)}.`;
       return `버려지는 열이 늘어 수전해 급수를 데우는 데 쓰는 몫이 줄어듭니다.${ua} 판을 씻거나 세정할 시점인지 확인하세요.`;
     }
     case 'o2.purity_drift': {
-      const margin = e.margin === null || e.limit === null ? '' : ` 압축을 멈춰야 하는 선(${size(e.limit, 1)}%)까지 ${size(e.margin, 2)}%포인트 남았습니다.`;
+      const margin = e.margin === null || e.limit === null ? '' : ` ${limitMarginText(e.margin, e.limit)}`;
       return `산소에 수소가 섞이는 양이 늘고 있습니다. 이 값이 한계를 넘으면 법으로 산소를 압축할 수 없습니다.${margin} ${SAFETY_DECISION_NOTICE}`;
     }
   }

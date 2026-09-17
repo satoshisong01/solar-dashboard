@@ -3,10 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { DETECTORS } from '@/lib/analytics/detectors';
 import { MS_PER_DAY } from '@/lib/analytics/types';
 import { plainSummary } from './index';
+import { limitMarginText, plainOutlook, uaChangeText } from './outlook';
 import { hasBatchim, severityAction, subjectText, withParticle } from './common';
 import { PLAIN_HEADLINE_DETECTORS, plainHeadline } from './headline';
 import { holdReasonOf } from './hold';
 import { plainCases, type PlainCase } from './test-fixtures';
+import type { GapyeongEvidence } from '../p3-evidence-types';
 
 const CASES = plainCases();
 const caseOf = (detectorId: string): PlainCase => {
@@ -161,5 +163,62 @@ describe('표현 규칙', () => {
       siteName: '영암 태양광·ESS',
     });
     expect(headline).toBe('인버터 4(INV04): 무언가 이상');
+  });
+});
+
+describe('한계선 여유·성능 변화의 부호', () => {
+  const gapyeong = (detectorId: 'hx.fouling' | 'o2.purity_drift', overrides: Partial<GapyeongEvidence>): GapyeongEvidence => ({
+    kind: 'gapyeong',
+    detectorId,
+    subject: '산소 중 수소 농도',
+    unit: 'vol%',
+    referenceCount: 14,
+    recentCount: 6,
+    referenceLevel: 1.06,
+    recentLevel: 1.54,
+    limit: 2,
+    limitLabel: '압축금지 한계',
+    margin: null,
+    extra: { alarmHolds: null, minAlarmHolds: null, leakNlPerMin: null, downstreamVolumeM3: null, uaDropPct: null, marginPctPoints: null },
+    points: [],
+    note: null,
+    checks: [],
+    ...overrides,
+  });
+
+  const outlookFor = (margin: number): string | null =>
+    plainOutlook(caseOf('o2.purity_drift').finding, gapyeong('o2.purity_drift', { margin }));
+
+  it('여유가 음수면 남았다고 하지 않고 넘었다고 말한다', () => {
+    const text = outlookFor(-0.6921) ?? '';
+    expect(text).toContain('압축을 멈춰야 하는 선(2%)을 이미 0.69%포인트 넘었습니다.');
+    expect(text).not.toContain('남았습니다');
+  });
+
+  it('여유가 0이면 이미 닿았다고 말한다', () => {
+    const text = outlookFor(0) ?? '';
+    expect(text).toContain('압축을 멈춰야 하는 선(2%)에 이미 닿았습니다.');
+    expect(text).not.toContain('남았습니다');
+    expect(text).not.toContain('넘었습니다');
+  });
+
+  it('여유가 양수일 때만 남았다고 말한다', () => {
+    const text = outlookFor(0.6921) ?? '';
+    expect(text).toContain('압축을 멈춰야 하는 선(2%)까지 0.69%포인트 남았습니다.');
+    expect(text).not.toContain('넘었습니다');
+  });
+
+  it('여유 문장은 부호마다 동사가 다르다', () => {
+    expect([limitMarginText(-0.69, 2), limitMarginText(0, 2), limitMarginText(0.69, 2)]).toEqual([
+      '압축을 멈춰야 하는 선(2%)을 이미 0.69%포인트 넘었습니다.',
+      '압축을 멈춰야 하는 선(2%)에 이미 닿았습니다.',
+      '압축을 멈춰야 하는 선(2%)까지 0.69%포인트 남았습니다.',
+    ]);
+  });
+
+  it('열교환 성능은 저하율이 음수면 올랐다고 말한다', () => {
+    expect([uaChangeText(45.2), uaChangeText(0), uaChangeText(-45.2)]).toEqual(['45.2% 떨어졌습니다', '그대로입니다', '45.2% 올랐습니다']);
+    const hx = caseOf('hx.fouling');
+    expect(plainOutlook(hx.finding, gapyeong('hx.fouling', { extra: { alarmHolds: null, minAlarmHolds: null, leakNlPerMin: null, downstreamVolumeM3: null, uaDropPct: -12.5, marginPctPoints: null } }))).toContain('12.5% 올랐습니다');
   });
 });
