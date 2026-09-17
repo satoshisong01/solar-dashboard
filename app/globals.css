@@ -200,6 +200,13 @@
 }
 
 @media print {
+  /* 페이지 캔버스(@page 여백 띠까지 포함한 종이 전체)는 오직 :root에서만 정해진다 — .print-root는 <main>이라 여기에 닿지 못한다.
+     :root가 dark로 남으면 Chromium이 캔버스를 #121212로 칠해서, '배경 그래픽'을 켜고 뽑은 PDF 모든 장에
+     12mm/14mm 폭 검은 액자(한 장의 약 19.8%)가 찍힌다. 종이에서는 밝은 색 구성으로 되돌리고 캔버스를 흰색으로 못 박는다. */
+  :root {
+    color-scheme: light;
+    background: #ffffff;
+  }
   body,
   .print-root {
     background: #ffffff !important;
