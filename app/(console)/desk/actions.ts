@@ -6,8 +6,11 @@ import { findBusyRun } from '@/lib/analysis/lock';
 import { ABANDONED_AFTER_MS, AnalysisBusyError, CONSOLE_TIME_BUDGET_MS, createAnalysisRun, executeAnalysisRun, progressWriter, type AnalysisRequest, type PreparedRun } from '@/lib/analysis/run';
 import { dismissFinding, reopenFinding, registerMaintenanceAction, TransitionError, triageFinding, type TransitionResult } from '@/lib/analysis/transitions';
 import { requireAdmin } from '@/lib/auth/dal';
+import { buildDeskDigest } from '@/lib/data/finding-digest';
+import { listInboxRows } from '@/lib/data/findings';
 import { db } from '@/lib/db/kysely';
 import { verificationMetricsFor } from '@/lib/desk/action-defaults';
+import { parseInboxFilter } from '@/lib/desk/inbox';
 import { parseRunScope, unfinishedSiteIds } from '@/lib/desk/run-summary';
 import { errorState, formValues, INVALID_FORM_MESSAGE, successState, type ActionState, type FormValues } from '@/lib/forms/action-state';
 import { parseActionForm, parseDismissForm, parseFindingIds, parseRunForm } from '@/lib/forms/desk';
@@ -181,5 +184,25 @@ export async function recordMaintenanceAction(prev: ActionState<ActionRecordData
     if (error instanceof TransitionError) return errorState(prev, error.message, { values });
     console.error('[desk/action] 조치 기록 실패:', error);
     return errorState(prev, '조치를 기록하지 못했습니다. 잠시 뒤 다시 시도하세요.', { values });
+  }
+}
+
+/**
+ * 종합 요약 다시 생성: 저장된 문장을 무시하고 한 번 더 만든다 (검증에 걸리면 틀 문장으로 되돌아간다).
+ * 지금 보고 있는 범위(사이트 필터)를 그대로 쓴다 — 화면에 보이는 건수와 문장이 어긋나지 않게.
+ */
+export async function regenerateDigestAction(prev: ActionState, formData: FormData): Promise<ActionState> {
+  await requireAdmin();
+  const { site } = parseInboxFilter({ site: String(formData.get('site') ?? '') });
+  try {
+    const { rows } = await listInboxRows();
+    const { digest } = await buildDeskDigest(rows, site, true);
+    revalidatePath('/desk');
+    if (digest === null) return errorState(prev, '열린 발견사항이 없어 만들 요약이 없습니다.');
+    if (digest.source === 'llm') return successState(prev, 'AI 종합 요약을 다시 만들었습니다.', null);
+    return errorState(prev, 'AI 설명을 쓸 수 없어 규칙 기반 요약을 그대로 둡니다. 설정에서 AI 설명이 켜져 있는지 확인하세요.');
+  } catch (error) {
+    console.error('[desk/digest] 다시 생성 실패:', error);
+    return errorState(prev, '종합 요약을 다시 만들지 못했습니다. 잠시 뒤 다시 시도하세요.');
   }
 }

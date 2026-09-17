@@ -1,5 +1,6 @@
-import { Hourglass, Sparkles } from 'lucide-react';
+import { Hourglass } from 'lucide-react';
 import type { PlainSummary } from '@/lib/desk/plain';
+import { AiSourceBadge, BADGE_CLASS } from '@/components/desk/ai-source-badge';
 import { RegenerateExplanation } from '@/components/desk/explanation-controls';
 import { TermLink } from '@/components/ui/term-link';
 import { severityAction } from '@/lib/desk/plain/common';
@@ -19,19 +20,6 @@ const rowsOf = (summary: PlainSummary): Row[] =>
         { label: '지금 할 일', text: summary.nextStep },
       ];
 
-const BADGE_CLASS = 'inline-flex items-center gap-1 rounded border border-rule-strong bg-sunken px-1.5 py-px text-xs font-medium text-ink-2';
-
-/** 문장을 누가 썼는지. 수치·판정은 어느 쪽이든 분석 엔진 값이다 */
-function SourceBadge({ source, model }: Readonly<{ source: 'llm' | 'template'; model: string | null }>) {
-  if (source !== 'llm') return <span className={BADGE_CLASS}>규칙 기반 요약</span>;
-  return (
-    <span className={BADGE_CLASS} title={model ?? undefined}>
-      <Sparkles aria-hidden="true" className="size-3" />
-      AI가 작성 · 수치는 분석 엔진 값
-    </span>
-  );
-}
-
 type PlainSummaryCardProps = Readonly<{ summary: PlainSummary; severity: number; findingId: string; source: 'llm' | 'template'; model: string | null }>;
 
 /** 발견사항 워크스페이스 맨 위 쉬운 요약 4줄. 수치는 아래 '자세히 보기'의 효과·근거와 같은 값이다 */
@@ -50,7 +38,7 @@ export function PlainSummaryCard({ summary, severity, findingId, source, model }
           ) : (
             <span className={BADGE_CLASS}>{severityAction(severity)}</span>
           )}
-          <SourceBadge source={source} model={model} />
+          <AiSourceBadge source={source} model={model} />
         </div>
         <RegenerateExplanation findingId={findingId} />
       </div>

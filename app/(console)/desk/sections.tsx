@@ -1,21 +1,25 @@
+import { DigestCard } from '@/components/desk/digest-card';
 import { InboxFilters } from '@/components/desk/inbox-filters';
 import { InboxWorkbench } from '@/components/desk/inbox-table';
 import { RunHistory } from '@/components/desk/run-history';
 import { RunPanel } from '@/components/desk/run-panel';
 import { EmptyNote, Panel } from '@/components/ui/panel';
 import { Skeleton, SkeletonPanel, SkeletonTable } from '@/components/ui/skeleton';
-import { getActiveRun, listRecentRuns, type RunFormOptions } from '@/lib/data/analysis-runs';
-import { INBOX_LIMIT, listInboxRows } from '@/lib/data/findings';
+import { getActiveRun, getLastRunFinishedMs, listRecentRuns, type RunFormOptions } from '@/lib/data/analysis-runs';
+import { buildDeskDigest } from '@/lib/data/finding-digest';
+import { INBOX_LIMIT, type listInboxRows } from '@/lib/data/findings';
 import { firstParam, type SearchParamValue } from '@/lib/data/range';
 import { applyInboxFilter, DEFAULT_INBOX_FILTER, parseInboxFilter, sortInbox } from '@/lib/desk/inbox';
 
 /**
  * 분석 데스크의 영역별 조회와 그 자리 골격.
- * 사이트 목록(getRunFormOptions)은 분석 실행과 인박스 필터가 함께 쓰므로 page.tsx에서 한 번만 시작하고
- * 기다리지 않은 Promise를 두 영역에 넘긴다 (조회는 한 번, 화면은 각자 채워진다).
+ * 사이트 목록(getRunFormOptions)과 발견사항 목록(listInboxRows)은 여러 영역이 함께 쓰므로 page.tsx에서 한 번만 시작하고
+ * 기다리지 않은 Promise를 각 영역에 넘긴다 (조회는 한 번, 화면은 각자 채워진다).
  */
 
 export const RUN_HISTORY_LIMIT = 10;
+
+type InboxRows = Awaited<ReturnType<typeof listInboxRows>>;
 
 export async function RunSection({ options }: Readonly<{ options: Promise<RunFormOptions> }>) {
   // 진행 중인 실행이 있으면 함께 넘긴다: 실행 중에 화면을 떠났다 돌아와도 진행 표시가 이어진다
@@ -35,14 +39,32 @@ export function RunHistorySkeleton() {
   return <SkeletonTable rows={4} />;
 }
 
+type DigestSectionProps = Readonly<{
+  inbox: Promise<InboxRows>;
+  searchParams: Promise<Record<string, SearchParamValue>>;
+}>;
+
+/** 맨 위 종합 요약: 인박스와 같은 발견사항을 같은 필터로 세고, 문장은 저장해 두었다가 묶음이 바뀔 때만 다시 만든다 */
+export async function DigestSection({ inbox, searchParams }: DigestSectionProps) {
+  const [{ rows }, query] = await Promise.all([inbox, searchParams]);
+  const { site } = parseInboxFilter({ site: firstParam(query.site) });
+  const [{ stats, digest }, lastRunMs] = await Promise.all([buildDeskDigest(rows, site), getLastRunFinishedMs()]);
+  return <DigestCard stats={stats} summary={digest?.summary ?? null} source={digest?.source ?? 'template'} model={digest?.model ?? null} lastRunMs={lastRunMs} />;
+}
+
+export function DigestSkeleton() {
+  return <Skeleton className="h-48" />;
+}
+
 type InboxSectionProps = Readonly<{
   options: Promise<RunFormOptions>;
+  inbox: Promise<InboxRows>;
   searchParams: Promise<Record<string, SearchParamValue>>;
 }>;
 
 /** 인박스는 건수를 제목 옆에 적으므로 Panel째로 이 경계 안에 둔다 */
-export async function InboxSection({ options, searchParams }: InboxSectionProps) {
-  const [resolved, query, inbox] = await Promise.all([options, searchParams, listInboxRows()]);
+export async function InboxSection({ options, inbox, searchParams }: InboxSectionProps) {
+  const [resolved, query, all] = await Promise.all([options, searchParams, inbox]);
   const filter = parseInboxFilter({
     site: firstParam(query.site),
     domain: firstParam(query.domain),
@@ -50,13 +72,13 @@ export async function InboxSection({ options, searchParams }: InboxSectionProps)
     severity: firstParam(query.severity),
     status: firstParam(query.status),
   });
-  const rows = sortInbox(applyInboxFilter(inbox.rows, filter));
+  const rows = sortInbox(applyInboxFilter(all.rows, filter));
   const filtered = JSON.stringify(filter) !== JSON.stringify(DEFAULT_INBOX_FILTER);
 
   return (
-    <Panel title="발견사항 인박스" meta={`${rows.length}건 · 심각도×신뢰도 순${inbox.truncated ? ` · 최근 탐지 ${INBOX_LIMIT}건 안에서` : ''}`}>
+    <Panel title="발견사항 인박스" meta={`${rows.length}건 · 심각도×신뢰도 순${all.truncated ? ` · 최근 탐지 ${INBOX_LIMIT}건 안에서` : ''}`}>
       <InboxFilters filter={filter} siteCodes={resolved.sites.map((site) => site.code)} />
-      {inbox.rows.length === 0 ? (
+      {all.rows.length === 0 ? (
         <EmptyNote>아직 발견사항이 없습니다. 위에서 사이트와 기간을 골라 분석을 실행하세요.</EmptyNote>
       ) : rows.length === 0 ? (
         <EmptyNote>{filtered ? '필터에 맞는 발견사항이 없습니다' : '열린 발견사항이 없습니다'}</EmptyNote>
