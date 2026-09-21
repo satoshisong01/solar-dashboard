@@ -36,9 +36,11 @@ export function MobileNav({ showSim }: Readonly<{ showSim: boolean }>) {
   }, []);
 
   // 화면이 바뀌면 닫는다. 포커스는 건드리지 않는다 — 이동 뒤 포커스는 라우터가 정한다.
-  useEffect(() => {
+  const [shownPathname, setShownPathname] = useState(pathname);
+  if (shownPathname !== pathname) {
+    setShownPathname(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   useEffect(() => {
     if (!open) return;
