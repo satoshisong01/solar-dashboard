@@ -7,7 +7,7 @@
 //   npm run sim:eval -- --runs 3,4,5,6,8,9,10,11,17   CI 축소(사이트 잡 51개): P2 스윕 3~5번 + P3 순번 1·3·4·5·6·12 — 게이트마다 기준 크기 이상 주입이 시드마다 남는다(REDUCED_RUNS)
 //   npm run sim:eval -- --cache .data/sim-eval        시뮬레이션·추출 결과를 저장해 탐지기 파라미터만 바꿔 다시 평가
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { availableParallelism } from 'node:os';
+import { availableParallelism, freemem } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { Kysely, PostgresDialect } from 'kysely';
@@ -106,6 +106,15 @@ function parseList(name: string, raw: string | undefined): number[] | null {
   return values;
 }
 
+// 워커 하나가 측정치를 전부 메모리에 올려 2GB 가까이 쓴다. 코어 수만 보고 띄우면 개발 PC가 스왑에 빠진다.
+// 그래서 코어 수와 남은 메모리 둘 다로 묶는다. 더 필요하면 --concurrency로 직접 올린다.
+const WORKER_MEMORY_BYTES = 2 * 1024 ** 3;
+
+function defaultConcurrency(): number {
+  const byMemory = Math.floor(freemem() / WORKER_MEMORY_BYTES);
+  return Math.max(1, Math.min(4, availableParallelism() - 1, byMemory));
+}
+
 function readConfig(): EvalConfig {
   const { values } = parseArgs({
     options: {
@@ -120,7 +129,7 @@ function readConfig(): EvalConfig {
   const seeds = parseList('seeds', values.seeds) ?? [...EVAL_PRESET.seeds];
   const runs = parseList('runs', values.runs);
   const partial = values.seeds !== undefined || runs !== null;
-  const concurrency = values.concurrency === undefined ? Math.max(1, Math.min(8, availableParallelism() - 1)) : Number(values.concurrency);
+  const concurrency = values.concurrency === undefined ? defaultConcurrency() : Number(values.concurrency);
   if (!Number.isSafeInteger(concurrency) || concurrency < 1 || concurrency > 32) throw new Error(`--concurrency는 1~32 정수여야 합니다 (받은 값: ${values.concurrency})`);
   return {
     seeds,
