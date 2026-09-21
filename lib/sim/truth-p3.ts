@@ -48,6 +48,7 @@ export const P3_PARAM_EXPECTATION: Readonly<Partial<Record<DegradationParam, P3E
   'elz.rectifierLossExtra': SEC_RISE,
   'elz.faradaicLoss': SEC_RISE,
   'elz.extraCellVoltageV': SEC_RISE,
+  'elz.purgeRateExtra': SEC_RISE,
   'meter.h2FlowGain': FLOW_DRIFT,
   'compressor.valveWear': COMPRESSOR,
   'compressor.sealLeakBar': SEAL_LEAK,

@@ -341,7 +341,9 @@ export const METRIC_DEFS: readonly MetricDef[] = [
   metric('fc.coolant.flow', '스택 냉각수 유량', 'volume_flow', 'L/min', G, 'avg', { hard: [-1, 10000] }),
   metric('blower.power', '공기 블로워 소비전력', 'power', 'kW', G, 'avg', { hard: [-1, 1000] }),
   metric('blower.flow', '공기 질량유량', 'mass_flow', 'kg/h', G, 'avg', { hard: [-1, 100000] }),
-  metric('purge.count', '애노드 퍼지 횟수(누적)', 'count', '', C, 'delta', { hard: [0, 1e9] }),
+  // 연료전지 애노드 퍼지와 전해조 수소측 퍼지(기액분리기 드레인·건조기 재생)가 함께 쓴다 — 같은 물리량이라 키를 나누지 않는다.
+  // 산소측은 횟수가 아니라 방출 질량(o2.vent.mass.total)으로 받는다 (research/pid/research-oxygen.json metrics).
+  metric('purge.count', '퍼지 횟수(누적)', 'count', '', C, 'delta', { hard: [0, 1e9] }),
 
   // 부산물 산소 (가평 P&ID). 탱크 압력·온도는 tank.pressure·tank.temp에 qualifier 'o2'로 붙이고,
   // 산소 중 수소(HTO)는 기존 h2.in.o2를 쓴다 — 같은 물리량에 새 키를 만들지 않는다.

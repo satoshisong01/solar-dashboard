@@ -62,6 +62,8 @@ export function electrolyzerPlant(options: ElectrolyzerSpecOptions = {}): readon
         ['o2.in.h2', 'OTH'],
         ['op.state', 'STATE'],
         ['start.count', 'STARTS'],
+        // 수소측 퍼지 카운터 (기액분리기 드레인 + 건조기 재생). el.sec_rise 퍼지 판별 체크가 일 증가분으로 읽는다
+        ['purge.count', 'PURGES'],
       ],
     },
     {

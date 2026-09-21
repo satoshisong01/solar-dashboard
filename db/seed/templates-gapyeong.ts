@@ -248,4 +248,8 @@ export const GAPYEONG_PLANNED_POINTS: readonly PlannedPointDef[] = [
   required(null, 'H2DLV1', 'h2.delivery.state', 5),
   required(null, 'H2DLV1', 'h2.delivery.ground', 5), // EIGA TB 51: 매 납품 접지 확인
   recommended('FT-502', 'H2DLV1', 'h2.vent.mass.total', 60),
+
+  // B.9 전해조 퍼지 카운터 — 비에너지 상승(el.sec_rise)의 원인이 퍼지 손실인지 가르는 유일한 신호다.
+  // 도면에 계기가 없고 계기를 새로 달 필요도 없다 — 전해조 PLC의 누적 카운터를 받으면 된다.
+  recommended(null, 'ELZ1', 'purge.count', 300),
 ];

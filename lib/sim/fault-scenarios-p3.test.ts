@@ -6,6 +6,7 @@ import { DAYS_PER_MONTH } from './fault-scenarios';
 import { resolveP3Fault, type ElzSecRiseMode, type P3FaultScenario } from './fault-scenarios-p3';
 import { MS_PER_DAY, MS_PER_HOUR } from './math';
 import { faradayEfficiency, NO_ELZ_FAULTS, operatingPoint } from './models/electrolyzer';
+import { DRYER_LOSS_FRACTION } from './plant-hydrogen';
 import { planScenarios } from './scenarios';
 import { electrolyzerParamsOf } from './site-params';
 
@@ -45,8 +46,8 @@ describe('resolveP3Fault — 저장·유량계', () => {
 describe('resolveP3Fault — 전해조 비에너지 경로 보정', () => {
   const sim = site('SIM-B');
   const params = electrolyzerParamsOf(sim);
-  /** 정격 전류·60 °C에서 설비 AC [kW] ÷ 수소 [kg/h] (고장 크기를 hook에서 꺼내 모델에 넣는다) */
-  const secAt = (mode: ElzSecRiseMode | null, pct: number): number => {
+  /** 정격 전류·60 °C에서 설비 AC [kW] ÷ 수소 [kg/h] (고장 크기를 hook에서 꺼내 모델에 넣는다). 퍼지 경로는 건조기 뒤라 여기 안 보인다 */
+  const secAt = (mode: 'rectifier' | 'faradaic' | 'stack' | null, pct: number): number => {
     const faults = { ...NO_ELZ_FAULTS };
     if (mode !== null) {
       const resolved = resolveP3Fault(sim, { kind: 'fault.elz_sec_rise', site: 'SIM-B', mode, pct, startDay: 0, rampDays: 0 }, ORIGIN);
@@ -61,6 +62,22 @@ describe('resolveP3Fault — 전해조 비에너지 경로 보정', () => {
 
   it.each(['rectifier', 'faradaic', 'stack'] as const)('%s 경로 6%: 기준점 비에너지가 정확히 6% 오른다', (mode) => {
     expect(secAt(mode, 6) / secAt(null, 0)).toBeCloseTo(1.06, 9);
+  });
+
+  it('purge 경로 6%: 건조기 재생 손실률이 퍼지 빈도와 같은 배율로 커져 제품 수소 기준 비에너지가 6% 오른다', () => {
+    const resolved = resolve({ kind: 'fault.elz_sec_rise', site: 'SIM-B', mode: 'purge', pct: 6, startDay: 0, rampDays: 0 });
+    const extra = resolved.hooks[0]?.value(ORIGIN, 0) ?? 0;
+    const lossAfter = DRYER_LOSS_FRACTION * (1 + extra);
+
+    expect(resolved.hooks[0]).toMatchObject({ param: 'elz.purgeRateExtra', asset: 'ELZ1/DRYER' });
+    expect((1 - DRYER_LOSS_FRACTION) / (1 - lossAfter)).toBeCloseTo(1.06, 12);
+    expect(lossAfter).toBeCloseTo(0.0849, 4); // 3% → 8.5%: 퍼지 빈도 약 2.8배
+    expect(extra).toBeCloseTo(1.8302, 4);
+  });
+
+  it('purge 경로는 15%까지만 받는다 (그 위는 건조기 재생 손실률이 현실 범위를 벗어난다)', () => {
+    expect(() => resolve({ kind: 'fault.elz_sec_rise', site: 'SIM-B', mode: 'purge', pct: 20, startDay: 0 })).toThrow('pct');
+    expect(() => resolve({ kind: 'fault.elz_sec_rise', site: 'SIM-B', mode: 'stack', pct: 20, startDay: 0 })).not.toThrow();
   });
 
   it('경로마다 다른 설비 hook·크기: 정류기(RECT1 추가 손실), 패러데이(스택 손실률), 셀 전압(스택 V, 6%면 약 0.1 V)', () => {

@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { median } from '@/lib/analytics/stats/robust';
 import { DAYS_PER_MONTH } from './fault-scenarios';
+import type { ElzSecRiseMode } from './fault-scenarios-p3';
 import { MS_PER_DAY, MS_PER_HOUR, MS_PER_MINUTE } from './math';
 import { blowerPowerKw, fuelCellParams } from './models/fuelcell';
 import { createPlant } from './plant';
@@ -50,8 +51,8 @@ describe('연료전지 블로워 — SIM-B 필터 막힘·교체 회복, 마모'
 
 describe('전해조 비에너지 상승·유량계 드리프트 — SIM-B', () => {
   const from = Date.parse('2026-05-01T00:00:00+09:00');
-  const keep: Keep = [['ELZ1', 'ac.power'], ['ELZ1', 'h2.flow.mass'], ['ELZ1', 'h2.in.o2'], ['ELZ1', 'op.state'], ['ELZ1/RECT1', 'rectifier.efficiency'], ['ELZ1/STACK1', 'cell.voltage.avg'], ['ELZ1/STACK1', 'stack.current']];
-  const faultOf = (mode: 'rectifier' | 'faradaic' | 'stack'): Scenario[] => [{ kind: 'fault.elz_sec_rise', site: 'SIM-B', mode, pct: 6, startDay: 0, rampDays: 0 }];
+  const keep: Keep = [['ELZ1', 'ac.power'], ['ELZ1', 'h2.flow.mass'], ['ELZ1', 'h2.in.o2'], ['ELZ1', 'op.state'], ['ELZ1', 'purge.count'], ['ELZ1/RECT1', 'rectifier.efficiency'], ['ELZ1/STACK1', 'cell.voltage.avg'], ['ELZ1/STACK1', 'stack.current']];
+  const faultOf = (mode: ElzSecRiseMode): Scenario[] => [{ kind: 'fault.elz_sec_rise', site: 'SIM-B', mode, pct: 6, startDay: 0, rampDays: 0 }];
   const nearRated = (views: readonly View[]) => views.filter((v) => v.value('ELZ1', 'op.state') === RUNNING && v.value('ELZ1', 'ac.power') >= 460 && v.value('ELZ1', 'h2.flow.mass') > 0);
   /** 정격 부근(설비 AC 460 kW 이상) 운전 스텝의 비에너지 [kWh/kg] */
   const sec = (views: readonly View[]) => sumOf(nearRated(views), 'ELZ1', 'ac.power') / sumOf(nearRated(views), 'ELZ1', 'h2.flow.mass');
@@ -71,6 +72,19 @@ describe('전해조 비에너지 상승·유량계 드리프트 — SIM-B', () =
     expect(meanOf(faradaic, 'ELZ1', 'h2.in.o2') / meanOf(base, 'ELZ1', 'h2.in.o2')).toBeGreaterThan(1.3);
     expect(meanOf(stack, 'ELZ1/STACK1', 'cell.voltage.avg') - meanOf(base, 'ELZ1/STACK1', 'cell.voltage.avg')).toBeGreaterThan(0.08);
     expect(Math.abs(meanOf(faradaic, 'ELZ1/RECT1', 'rectifier.efficiency') - meanOf(base, 'ELZ1/RECT1', 'rectifier.efficiency'))).toBeLessThan(0.2);
+  }, 120_000);
+
+  it('fault.elz_sec_rise purge 경로 6%: 퍼지 횟수가 30% 넘게 늘고 제품 수소가 줄어 비에너지가 오른다. 셀 전압·정류기 효율은 그대로다', () => {
+    const base = runSite('SIM-B', from, 6, [], keep);
+    const purge = runSite('SIM-B', from, 6, faultOf('purge'), keep);
+    const purgeCount = (views: readonly View[]) => (views.at(-1)?.value('ELZ1', 'purge.count') ?? 0) - (views[0]?.value('ELZ1', 'purge.count') ?? 0);
+
+    expect(purgeCount(base)).toBeGreaterThan(0);
+    expect(purgeCount(purge) / purgeCount(base)).toBeGreaterThan(1.3); // 판별 체크 기준 (purgeRisePct 30%)
+    expect((sec(purge) / sec(base) - 1) * 100).toBeGreaterThan(5);
+    expect((sec(purge) / sec(base) - 1) * 100).toBeLessThan(7);
+    expect(Math.abs(meanOf(purge, 'ELZ1/STACK1', 'cell.voltage.avg') - meanOf(base, 'ELZ1/STACK1', 'cell.voltage.avg'))).toBeLessThan(0.001);
+    expect(Math.abs(meanOf(purge, 'ELZ1/RECT1', 'rectifier.efficiency') - meanOf(base, 'ELZ1/RECT1', 'rectifier.efficiency'))).toBeLessThan(0.2);
   }, 120_000);
 
   it('fault.flowmeter_drift 월 +3%: 계량 유량만 늘고(약 한 달 뒤 +3%) 스택 전류는 그대로다', () => {

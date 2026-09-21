@@ -230,10 +230,11 @@ describe('GP-1 가평 실사이트', () => {
       expect(planned.periodS, key).toBeGreaterThan(0);
       seen.add(key);
     }
-    // 부록 B 40점 중 PT-202 스팬 재지정(기존 계기 사양 변경)을 미설치에서 뺀 39점.
+    // 부록 B 41점 중 PT-202 스팬 재지정(기존 계기 사양 변경)을 미설치에서 뺀 40점.
     // 한 계기가 여러 신호를 내면(적산열량계·질량유량계) 여러 줄이 된다.
     expect(gp.plannedPoints.filter((planned) => planned.necessity === 'required').length).toBe(37);
-    expect(gp.plannedPoints.filter((planned) => planned.necessity === 'recommended').length).toBe(15);
+    // 권장 15점 + 전해조 퍼지 카운터(B.9)
+    expect(gp.plannedPoints.filter((planned) => planned.necessity === 'recommended').length).toBe(16);
   });
 
   it('가상 사이트에는 신설 요청 포인트가 없다', () => {

@@ -8,7 +8,8 @@ import { levelRampHook, levelRampUntilHook, rateFromHook, type DegradationHook, 
 import { assetOfClass, DAYS_PER_MONTH, hookFor, requireRange, startMsOf } from './fault-scenarios';
 import { MS_PER_DAY, MS_PER_HOUR } from './math';
 import { solveIncreasing } from './models/common';
-import { operatingPoint } from './models/electrolyzer';
+import { NO_ELZ_FAULTS, operatingPoint } from './models/electrolyzer';
+import { DRYER_LOSS_FRACTION } from './plant-hydrogen';
 import { singleAsset } from './plant-types';
 import { electrolyzerParamsOf } from './site-params';
 
@@ -24,6 +25,8 @@ export const P3_FAULT_DEFAULTS = Object.freeze({
   rainHours: 6,
   /** 모듈 세척·필터 교체 시각 (KST) */
   maintenanceHour: 10,
+  /** 퍼지 경로 상한 [%] — 이 위로는 건조기 재생 손실률이 현실 범위(수 %)를 벗어난다 */
+  purgeModeMaxPct: 15,
   /** 전해조 비에너지 크기 보정 기준: 정격 전류·60 °C·열화 없음 */
   secReferenceTempC: 60,
 });
@@ -45,8 +48,11 @@ export interface FlowmeterDriftFault {
   readonly pctPerMonth: number;
   readonly startDay?: number;
 }
-export type ElzSecRiseMode = 'rectifier' | 'faradaic' | 'stack';
-/** 전해조 비에너지(kWh/kg) pct% 상승: 정류기 효율 저하 · 패러데이 효율 저하 · 셀 전압 상승 중 한 경로 (정격 전류 기준 보정) */
+export type ElzSecRiseMode = 'rectifier' | 'faradaic' | 'stack' | 'purge';
+/**
+ * 전해조 비에너지(kWh/kg) pct% 상승: 정류기 효율 저하 · 패러데이 효율 저하 · 셀 전압 상승 · 퍼지(건조기 재생) 빈도 상승 중 한 경로 (정격 전류 기준 보정).
+ * purge 경로는 재생 손실이 커져 같은 전력에 제품 수소가 주는 것이라 퍼지 카운터·패러데이 효율에만 보이고 셀 전압·정류기 효율은 그대로다.
+ */
 export interface ElzSecRiseFault {
   readonly kind: 'fault.elz_sec_rise';
   readonly site: string;
@@ -230,15 +236,21 @@ function calibrateSec(site: SiteDef, mode: ElzSecRiseMode, pct: number): SecCali
     }
     case 'stack': {
       const target = reference.totalAcKw * (1 + p);
-      const extraV = solveIncreasing((v) => operatingPoint(params, params.ratedCurrentA, tempC, 0, { rectifierLossExtra: 0, faradaicLoss: 0, extraCellVoltageV: v }).totalAcKw, target, 0, 1);
+      const extraV = solveIncreasing((v) => operatingPoint(params, params.ratedCurrentA, tempC, 0, { ...NO_ELZ_FAULTS, extraCellVoltageV: v }).totalAcKw, target, 0, 1);
       return { param: 'elz.extraCellVoltageV', faultAsset: singleAsset(site, 'h2.elz.stack'), magnitude: extraV, params: { extraCellVoltageMv: extraV * 1000, referenceCellVoltageV: reference.cellVoltageV } };
+    }
+    case 'purge': {
+      // 재생 손실률 L: 제품 수소 = 이론 생산 × (1 − L). (1 − L0) / (1 − L1) = 1 + p 가 되는 L1을 찾고, 빈도 배율은 L1 / L0 이다
+      const lossAfter = 1 - (1 - DRYER_LOSS_FRACTION) / (1 + p);
+      const extra = lossAfter / DRYER_LOSS_FRACTION - 1;
+      return { param: 'elz.purgeRateExtra', faultAsset: singleAsset(site, 'h2.elz.dryer'), magnitude: extra, params: { purgeRateExtra: extra, dryerLossFractionAfter: lossAfter } };
     }
   }
 }
 
 function resolveElzSecRise(site: SiteDef, fault: ElzSecRiseFault, originMs: number): ResolvedP3Fault {
-  if (!['rectifier', 'faradaic', 'stack'].includes(fault.mode)) throw new Error(`${fault.kind} mode는 rectifier | faradaic | stack: ${String(fault.mode)}`);
-  const pct = requireRange(fault.pct, `${fault.kind} pct`, 0, 50);
+  if (!['rectifier', 'faradaic', 'stack', 'purge'].includes(fault.mode)) throw new Error(`${fault.kind} mode는 rectifier | faradaic | stack | purge: ${String(fault.mode)}`);
+  const pct = requireRange(fault.pct, `${fault.kind} pct`, 0, fault.mode === 'purge' ? P3_FAULT_DEFAULTS.purgeModeMaxPct : 50);
   const startMs = startMsOf(originMs, fault.startDay, fault.kind);
   const rampDays = rampDaysOf(fault.rampDays, fault.kind);
   const calibration = calibrateSec(site, fault.mode, pct);

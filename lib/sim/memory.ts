@@ -106,7 +106,7 @@ export const P3_DETECTOR_METRICS: Readonly<Record<string, readonly string[]>> = 
   'h2.storage.tank': ['tank.pressure', 'tank.temp'],
   'h2.storage.bank': ['valve.open', 'h2.inventory'],
   'h2.compressor': ['compressor.power', 'compressor.suction.pressure', 'compressor.discharge.pressure', 'compressor.discharge.temp', 'compressor.leak.pressure', 'op.state', 'run.hours'],
-  'h2.elz': ['ac.power', 'h2.flow.mass', 'h2.mass.total', 'h2.in.o2', 'op.state'],
+  'h2.elz': ['ac.power', 'h2.flow.mass', 'h2.mass.total', 'h2.in.o2', 'purge.count', 'op.state'],
   'h2.elz.rectifier': ['ac.power', 'dc.power', 'rectifier.efficiency'],
   'h2.elz.stack': ['stack.voltage', 'stack.current', 'stack.temp', 'run.hours'],
   'fc.plant': ['fc.ac.power', 'fc.h2.consumption', 'h2.pressure', 'purge.count', 'op.state'],

@@ -26,6 +26,11 @@ const ELZ_HOURS_PER_DAY = 5;
 const FC_HOURS_PER_DAY = 4;
 /** TSA 건조기 재생 손실: 운전 중 제품 수소의 3% (재생 퍼지 2~5% 범위의 추정값) */
 export const DRYER_LOSS_FRACTION = 0.03;
+/**
+ * 퍼지(건조기 재생) 빈도가 오르면 재생 1회당 손실은 그대로라 손실률이 같은 비율로 커진다.
+ * 같은 전력에 제품 수소가 줄어 비에너지가 오르고, 퍼지 카운터도 같은 비율로 빨리 오른다 (el.sec_rise 퍼지 경로).
+ */
+const dryerLossFraction = (faults: ElectrolyzerFaults): number => Math.min(0.5, DRYER_LOSS_FRACTION * (1 + Math.max(0, faults.purgeRateExtra)));
 
 export interface HydrogenCodes {
   readonly elz: string;
@@ -114,6 +119,8 @@ export function createHydrogen(init: InitContext): HydrogenUnit | null {
     runHours: elzHours,
     starts: Math.round(init.daysInService),
     degradationV: DEGRADATION_PARAMS['elz.degradationUvPerH'].baseline * 1e-6 * elzHours, // 시작 전 이력은 기본값으로 추정
+    purges: Math.round(elzHours * 6), // 정격 근처 운전 기준 시간당 6회 [가정]
+    purgeChargeAs: 0,
     h2TotalKg: elzHours * 7.5,
     energyKwh: elzHours * 420,
   };
@@ -179,6 +186,7 @@ function electrolyzerFaultsAt(unit: HydrogenUnit, ctx: StepContext): Electrolyze
     rectifierLossExtra: degradation.value('elz.rectifierLossExtra', unit.codes.rectifier, tMs),
     faradaicLoss: degradation.value('elz.faradaicLoss', unit.codes.stack, tMs),
     extraCellVoltageV: degradation.value('elz.extraCellVoltageV', unit.codes.stack, tMs),
+    purgeRateExtra: degradation.value('elz.purgeRateExtra', unit.codes.dryer, tMs),
   };
 }
 
@@ -204,10 +212,11 @@ export function stepHydrogen(unit: HydrogenUnit, commands: { readonly elz: UnitC
     blowerFilterClog: degradation.value('blower.filterClog', unit.codes.blower, tMs),
     dtS,
   });
-  const productKgH = elz.h2ProductKg > 0 ? elz.h2KgPerH * (1 - DRYER_LOSS_FRACTION) : 0;
+  const dryerLoss = dryerLossFraction(elzFaults);
+  const productKgH = elz.h2ProductKg > 0 ? elz.h2KgPerH * (1 - dryerLoss) : 0;
   const storage = stepStorageUnit(unit.storage, { inflowKgH: productKgH, directInflowKgH: deliveryKgH, outflowKgH: fc.h2KgPerH, suctionBar: suctionBarOf(unit, ctx) }, ctx);
   const gain = degradation.value('meter.h2FlowGain', unit.codes.elz, tMs);
-  const meter: HydrogenMeter = { totalKg: unit.meter.totalKg + elz.h2ProductKg * (1 - DRYER_LOSS_FRACTION) * gain, gain };
+  const meter: HydrogenMeter = { totalKg: unit.meter.totalKg + elz.h2ProductKg * (1 - dryerLoss) * gain, gain };
   const next: HydrogenUnit = { ...unit, elz, elzFaults, meter, fc, storage };
   return {
     unit: next,
@@ -233,17 +242,19 @@ function electrolyzerReadings(unit: HydrogenUnit, ctx: StepContext): ReadingEntr
   const active = ELZ_ACTIVE.includes(mode);
   const pressurized = mode !== 'off';
   const cell = elz.cellVoltageV;
+  const dryerLoss = dryerLossFraction(unit.elzFaults);
   return [
     [codes.elz, {
       'ac.power': elz.totalAcKw,
       'ac.energy.total': elz.state.energyKwh,
-      'h2.flow.mass': mode === 'running' ? elz.h2KgPerH * (1 - DRYER_LOSS_FRACTION) * unit.meter.gain : 0,
+      'h2.flow.mass': mode === 'running' ? elz.h2KgPerH * (1 - dryerLoss) * unit.meter.gain : 0,
       'h2.mass.total': unit.meter.totalKg,
       'h2.pressure': pressurized ? elzParams.outletBar : 1.2,
       'h2.in.o2': active ? (0.12 + 0.1 / Math.max(load, 0.1)) * (1 + HTO_PER_FARADAIC_LOSS * unit.elzFaults.faradaicLoss) : 0,
       'o2.in.h2': active ? 40 + 60 / Math.max(load, 0.1) : 0,
       'op.state': opStateCode(mode),
       'start.count': elz.state.starts,
+      'purge.count': elz.state.purges,
     }],
     [codes.stack, {
       'stack.voltage': elz.stackVoltageV,

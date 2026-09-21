@@ -1,7 +1,8 @@
 // PEM 수전해 근사 모델 (순수 함수).
 // V_cell = E_rev(T, p) + b·ln(j/j0) + r(T)·j + δ·운전시간, 패러데이 수소, 정류기 부하 의존 효율,
 // 최소부하 20%, 기동(냉간·온간)·운전·정지(퍼지)·온간 대기 상태.
-// 비에너지(SEC) 상승 고장 경로(P3): 정류기 추가 손실 · 패러데이 효율 추가 손실 · 셀 전압 추가 상승 (ElectrolyzerFaults).
+// 수소측 퍼지 카운터: 기액분리기 드레인·건조기 재생을 합쳐 스택 전하량에 비례해 센다 (전기삼투 물 이동이 전류에 비례한다).
+// 비에너지(SEC) 상승 고장 경로(P3): 정류기 추가 손실 · 패러데이 효율 추가 손실 · 셀 전압 추가 상승 · 퍼지 빈도 상승 (ElectrolyzerFaults).
 import { clamp, lagToward, SECONDS_PER_HOUR } from '../math';
 import {
   converterLossKw,
@@ -33,6 +34,8 @@ export interface ElectrolyzerParams {
   readonly ohmicOhmCm2At60C: number;
   /** 수소 크로스오버 등가 전류밀도 → 패러데이 효율 손실 */
   readonly crossoverAcm2: number;
+  /** 퍼지 1회당 스택 전하량 [A·s] — 이만큼 흐를 때마다 수소측 퍼지 카운터가 1 오른다 */
+  readonly purgeChargeAs: number;
   readonly auxBaseKw: number;
   readonly auxLoadKw: number;
   readonly standbyAuxKw: number;
@@ -52,6 +55,10 @@ export interface ElectrolyzerState {
   readonly starts: number;
   /** 운전시간 열화로 누적된 셀당 전압 상승 [V] */
   readonly degradationV: number;
+  /** 누적 수소측 퍼지 횟수 */
+  readonly purges: number;
+  /** 다음 퍼지까지 쌓인 전하량 [A·s] */
+  readonly purgeChargeAs: number;
   readonly h2TotalKg: number;
   readonly energyKwh: number;
 }
@@ -70,9 +77,11 @@ export interface ElectrolyzerFaults {
   readonly faradaicLoss: number;
   /** 셀당 전압 추가 상승 [V] */
   readonly extraCellVoltageV: number;
+  /** 퍼지·건조기 재생 빈도 추가 비율 — 퍼지 횟수와 재생 손실이 함께 (1 + 값)배가 된다 */
+  readonly purgeRateExtra: number;
 }
 
-export const NO_ELZ_FAULTS: ElectrolyzerFaults = Object.freeze({ rectifierLossExtra: 0, faradaicLoss: 0, extraCellVoltageV: 0 });
+export const NO_ELZ_FAULTS: ElectrolyzerFaults = Object.freeze({ rectifierLossExtra: 0, faradaicLoss: 0, extraCellVoltageV: 0, purgeRateExtra: 0 });
 
 export interface ElectrolyzerInput {
   readonly command: ElectrolyzerCommand;
@@ -126,6 +135,8 @@ export function electrolyzerParams(stack: {
     exchangeCurrentAcm2: 1e-6,
     ohmicOhmCm2At60C: 0.15,
     crossoverAcm2: 0.0015,
+    // 정격 전류에서 10분에 1회 [가정] — 퍼지 주기 문헌값이 없어 보수적으로 잡았다 (부분부하에서는 전류에 비례해 뜸해진다)
+    purgeChargeAs: stack.ratedCurrentA * 600,
     auxBaseKw: 10,
     auxLoadKw: 20,
     standbyAuxKw: 6,
@@ -245,6 +256,8 @@ export function stepElectrolyzer(params: ElectrolyzerParams, state: Electrolyzer
   const { targetC, tauS } = targetTempC(moded.mode, loadFraction, input.ambientC);
   const energized = currentA > 0;
   const h2ProductKg = moded.mode === 'running' ? h2KgPerH * dtH : 0;
+  const purgeCharge = moded.purgeChargeAs + currentA * input.dtS * (1 + Math.max(0, faults.purgeRateExtra));
+  const newPurges = Math.floor(purgeCharge / params.purgeChargeAs);
 
   const nextState: ElectrolyzerState = {
     ...moded,
@@ -252,6 +265,8 @@ export function stepElectrolyzer(params: ElectrolyzerParams, state: Electrolyzer
     stackTempC: lagToward(moded.stackTempC, targetC, input.dtS, tauS),
     runHours: moded.runHours + (energized ? dtH : 0),
     degradationV: moded.degradationV + (energized ? Math.max(0, input.degradationUvPerH) * 1e-6 * dtH : 0),
+    purges: moded.purges + newPurges,
+    purgeChargeAs: purgeCharge - newPurges * params.purgeChargeAs,
     h2TotalKg: moded.h2TotalKg + h2ProductKg,
     energyKwh: moded.energyKwh + totalAcKw * dtH,
   };

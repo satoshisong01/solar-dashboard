@@ -38,6 +38,8 @@ export const DEGRADATION_PARAMS = Object.freeze({
   'elz.faradaicLoss': { classKey: 'h2.elz.stack', baseline: 0 },
   /** 셀당 전압 추가 상승 [V] (수준, 운전시간 열화와 별도) */
   'elz.extraCellVoltageV': { classKey: 'h2.elz.stack', baseline: 0 },
+  /** 수소측 퍼지·건조기 재생 빈도 추가 비율 [비율] — 퍼지 횟수와 재생 손실이 함께 (1 + 값)배 */
+  'elz.purgeRateExtra': { classKey: 'h2.elz.dryer', baseline: 0 },
   /** 전해조 수소 유량계 이득 [배] (1 = 정확, 1.02 = 2% 과대 계량) */
   'meter.h2FlowGain': { classKey: 'h2.elz', baseline: 1 },
   /** 압축기 밸브 마모 [비율] — 같은 압력비에서 비일(kJ/kg) × (1 + 값), 토출 온도 상승 */

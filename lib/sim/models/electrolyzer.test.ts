@@ -12,7 +12,7 @@ import {
 
 // SIM-B/C 명판: 셀 210, 550 cm², 1100 A, 설비 500 kW, 정류기 480 kW, 출구 30 bar
 const PARAMS = electrolyzerParams({ cellCount: 210, activeAreaCm2: 550, ratedCurrentA: 1_100, ratedAcKw: 500, rectifierRatedDcKw: 480, outletBar: 30 });
-const OFF: ElectrolyzerState = { mode: 'off', modeElapsedS: 0, startDurationS: 0, stackTempC: 20, runHours: 0, starts: 0, degradationV: 0, h2TotalKg: 0, energyKwh: 0 };
+const OFF: ElectrolyzerState = { mode: 'off', modeElapsedS: 0, startDurationS: 0, stackTempC: 20, runHours: 0, starts: 0, degradationV: 0, purges: 0, purgeChargeAs: 0, h2TotalKg: 0, energyKwh: 0 };
 
 function run(command: ElectrolyzerCommand, steps: number, dtS: number, degradationUvPerH = 0, from: ElectrolyzerState = OFF): ElectrolyzerStep[] {
   const results: ElectrolyzerStep[] = [];
