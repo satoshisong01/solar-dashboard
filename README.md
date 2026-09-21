@@ -396,3 +396,23 @@ npm run deploy:check -- --url https://<운영 도메인> --env-file .env.rds.loc
 | 필수 환경변수 | 화면이 그려지는 것으로 필수 변수를, AI 설명 설정 화면 글자로 `GEMINI_API_KEY` 등록 여부를 간접 확인 |
 
 실패하면 고쳐서 다시 배포한 뒤 같은 명령을 다시 돌립니다. 확인할 경로와 표시 문구는 `lib/deploy/routes.ts`에 있습니다.
+
+### 빌드 캐시 (Vercel)
+
+`vercel.json`에서 `VERCEL_FORCE_NO_BUILD_CACHE`를 뺐습니다(캐시 사용). 캐시를 꺼 둔 것은 위 ① "옛 CSS가 그대로 배포된" 사고 뒤의 임시 조치였는데, 그 사고는 이제 스모크 점검의 **서빙 CSS 토큰** 항목이 잡습니다 — 배포된 HTML이 부르는 스타일시트를 실제로 받아 `app/globals.css`의 `:root` 토큰 값과 하나씩 맞춰 보므로, 파일 이름(해시)이 그대로여도 값이 옛것이면 실패합니다. 잡을 장치가 생겼으니 캐시를 계속 꺼 두어 배포마다 전체 빌드를 다시 할 이유가 없습니다.
+
+**이 검사가 보지 못하는 것**: 첫 `:root` 블록의 토큰 값만 봅니다. 토큰을 건드리지 않은 CSS 변경(예: `.map-dark`처럼 규칙만 추가)은 토큰이 그대로라 통과합니다. 그런 배포에서는 서빙 중인 CSS에 그 규칙이 들어갔는지 직접 확인합니다.
+
+```bash
+url=https://<운영 도메인>
+sheet=$(curl -s "$url/login" | grep -o '/_next/static/[^"]*\.css' | head -1)
+curl -s "$url$sheet" | grep -c 'map-dark'   # 0이면 옛 CSS가 배포된 것
+```
+
+`app/globals.css`는 `app/layout.tsx`에서 부르므로 모든 화면이 같은 스타일시트를 씁니다 — `/login`에서 봐도 됩니다.
+
+캐시가 다시 말썽이면 되돌리는 길은 둘입니다. 한 번만 건너뛰려면 Vercel 대시보드에서 **Redeploy → Use existing Build Cache를 끄고** 다시 배포하고, 계속 끄려면 `vercel.json`에 다음을 되돌립니다.
+
+```json
+"build": { "env": { "VERCEL_FORCE_NO_BUILD_CACHE": "1" } }
+```
