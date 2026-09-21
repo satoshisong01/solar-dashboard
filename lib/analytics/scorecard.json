@@ -58,7 +58,7 @@
       ]
     },
     "p3": {
-      "runs": 12,
+      "runs": 13,
       "fault_start_day": 120,
       "sweeps": {
         "pvSoilingPctPerDay": [
@@ -125,6 +125,13 @@
           {
             "mode": "stack",
             "pct": 10
+          },
+          null,
+          null,
+          null,
+          {
+            "mode": "purge",
+            "pct": 10
           }
         ],
         "compressorValveWearPct": [
@@ -170,8 +177,8 @@
       }
     }
   },
-  "jobs": 105,
-  "elapsed_s": 3591.9,
+  "jobs": 108,
+  "elapsed_s": 4128.7,
   "reduced_runs": {
     "runs": [
       3,
@@ -196,7 +203,7 @@
       "fn": 6,
       "recall": 0.8,
       "precision": 1,
-      "asset_months": 3387.7,
+      "asset_months": 3454.1,
       "fp_per_asset_month": 0,
       "median_delay_days": 19.5,
       "magnitude_mae": 0.079,
@@ -340,7 +347,7 @@
         },
         {
           "site": "SIM-B",
-          "checkpoints": 5100,
+          "checkpoints": 5400,
           "insufficient": 0,
           "insufficient_ratio": 0,
           "summer_insufficient_ratio": 0,
@@ -379,7 +386,7 @@
       "fn": 0,
       "recall": 1,
       "precision": 1,
-      "asset_months": 3387.7,
+      "asset_months": 3454.1,
       "fp_per_asset_month": 0,
       "median_delay_days": 74,
       "magnitude_mae": null,
@@ -420,7 +427,7 @@
       "fn": 6,
       "recall": 0.5,
       "precision": 1,
-      "asset_months": 4417.3,
+      "asset_months": 4550.2,
       "fp_per_asset_month": 0,
       "median_delay_days": 5,
       "magnitude_mae": 0.065,
@@ -469,8 +476,8 @@
       "fn": 3,
       "recall": 0.75,
       "precision": 0.321,
-      "asset_months": 863.5,
-      "fp_per_asset_month": 0.022,
+      "asset_months": 896.7,
+      "fp_per_asset_month": 0.0212,
       "median_delay_days": 37,
       "magnitude_mae": 0.104,
       "min_detectable_magnitude": 10,
@@ -518,7 +525,7 @@
       "fn": 6,
       "recall": 0.5,
       "precision": 1,
-      "asset_months": 863.5,
+      "asset_months": 896.7,
       "fp_per_asset_month": 0,
       "median_delay_days": 25.5,
       "magnitude_mae": 1.02,
@@ -567,7 +574,7 @@
       "fn": 6,
       "recall": 0.833,
       "precision": 1,
-      "asset_months": 23049.7,
+      "asset_months": 23780.4,
       "fp_per_asset_month": 0,
       "median_delay_days": 0.8,
       "magnitude_mae": null,
@@ -603,15 +610,15 @@
     "el.sec_rise": {
       "detector": "el.sec_rise@1",
       "unit": "%",
-      "tp": 18,
+      "tp": 21,
       "fp": 0,
       "fn": 9,
-      "recall": 0.667,
+      "recall": 0.7,
       "precision": 1,
-      "asset_months": 863.5,
+      "asset_months": 896.7,
       "fp_per_asset_month": 0,
-      "median_delay_days": 61,
-      "magnitude_mae": 3.339,
+      "median_delay_days": 58,
+      "magnitude_mae": 3.375,
       "min_detectable_magnitude": 6,
       "curve": [
         {
@@ -632,11 +639,11 @@
         },
         {
           "magnitude": 10,
-          "injections": 9,
-          "detected": 9,
+          "injections": 12,
+          "detected": 12,
           "recall": 1,
-          "median_delay_days": 56,
-          "magnitude_mae": 4.292
+          "median_delay_days": 55.5,
+          "magnitude_mae": 4.117
         }
       ],
       "params_note": "운전 조건 bin을 전류밀도 → 설비 AC 전력(binBy ac_power, 50 kW)으로 변경. 재생전력 연계 전해조는 전력 설정값으로 운전해 정류기·스택 열화 시 같은 전력의 전류밀도가 낮아지고, 전류밀도 bin 기준이 고장 뒤 표본으로 새로 만들어져 상승이 가려졌다(정류기 10% 주입: 월 중앙 SEC 57.7 → 63.2 kWh/kg인데 finding 0). 전류 설정값 운전 설비는 binBy current_density로 되돌린다. 평가 프리셋에서 유량계 드리프트를 비에너지 스윕과 다른 순번(P3 10~12)으로 분리(드리프트가 계량 kg을 키워 kWh/kg 상승을 가림). 첫 전체 평가 5% 이상 재현율 0.5 → 이 스코어카드. 심각도 임계·CI 조건·break-in 1,000 h는 그대로."
@@ -649,8 +656,8 @@
       "fn": 0,
       "recall": 1,
       "precision": 0.8,
-      "asset_months": 863.5,
-      "fp_per_asset_month": 0.0035,
+      "asset_months": 896.7,
+      "fp_per_asset_month": 0.0033,
       "median_delay_days": 26.5,
       "magnitude_mae": null,
       "min_detectable_magnitude": 1,
@@ -694,12 +701,12 @@
       "detector": "tank.static_leak@1",
       "unit": "kg/일",
       "tp": 16,
-      "fp": 14,
+      "fp": 15,
       "fn": 11,
       "recall": 0.593,
-      "precision": 0.533,
-      "asset_months": 2756.7,
-      "fp_per_asset_month": 0.0051,
+      "precision": 0.516,
+      "asset_months": 2889.5,
+      "fp_per_asset_month": 0.0052,
       "median_delay_days": 5,
       "magnitude_mae": 0.034,
       "min_detectable_magnitude": 0.15,
@@ -787,8 +794,8 @@
       "fn": 10,
       "recall": 0.444,
       "precision": 0.533,
-      "asset_months": 863.5,
-      "fp_per_asset_month": 0.0081,
+      "asset_months": 896.7,
+      "fp_per_asset_month": 0.0078,
       "median_delay_days": 42,
       "magnitude_mae": 2.636,
       "min_detectable_magnitude": 10,
@@ -852,7 +859,7 @@
       "fn": 4,
       "recall": 0.778,
       "precision": 1,
-      "asset_months": 863.5,
+      "asset_months": 896.7,
       "fp_per_asset_month": 0,
       "median_delay_days": 50.5,
       "magnitude_mae": 5.094,
@@ -909,8 +916,8 @@
       "fn": 3,
       "recall": 0.75,
       "precision": 0.563,
-      "asset_months": 1162.5,
-      "fp_per_asset_month": 0.006,
+      "asset_months": 1195.7,
+      "fp_per_asset_month": 0.0059,
       "median_delay_days": 45,
       "magnitude_mae": null,
       "min_detectable_magnitude": 0.05,
@@ -958,8 +965,8 @@
       "fn": 2,
       "recall": 0.833,
       "precision": 0.185,
-      "asset_months": 3387.7,
-      "fp_per_asset_month": 0.013,
+      "asset_months": 3454.1,
+      "fp_per_asset_month": 0.0127,
       "median_delay_days": 54.5,
       "magnitude_mae": 11.63,
       "min_detectable_magnitude": 20,
@@ -1007,7 +1014,7 @@
       "fn": 0,
       "recall": 1,
       "precision": 1,
-      "asset_months": 4417.3,
+      "asset_months": 4550.2,
       "fp_per_asset_month": 0,
       "median_delay_days": 115,
       "magnitude_mae": null,
@@ -1158,8 +1165,8 @@
     },
     "pv_control_findings": 0,
     "el_sec_rise_path_support": {
-      "overall": 0.722,
-      "detected": 18,
+      "overall": 0.667,
+      "detected": 21,
       "by_mode": {
         "rectifier": {
           "detected": 6,
@@ -1174,8 +1181,8 @@
           "support_ratio": 1
         },
         "purge": {
-          "detected": 0,
-          "support_ratio": null
+          "detected": 3,
+          "support_ratio": 0.333
         }
       },
       "target": 0.7
@@ -1279,7 +1286,7 @@
     },
     {
       "id": "ess.capacity_fade.fp_per_asset_month",
-      "description": "ess.capacity_fade 오탐 [건/자산·월] (대조군 포함, 3387.7 자산·월, 정밀도 1)",
+      "description": "ess.capacity_fade 오탐 [건/자산·월] (대조군 포함, 3454.1 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1287,7 +1294,7 @@
     },
     {
       "id": "ess.cell_imbalance.fp_per_asset_month",
-      "description": "ess.cell_imbalance 오탐 [건/자산·월] (대조군 포함, 3387.7 자산·월, 정밀도 1)",
+      "description": "ess.cell_imbalance 오탐 [건/자산·월] (대조군 포함, 3454.1 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1295,7 +1302,7 @@
     },
     {
       "id": "pv.inverter_peer.fp_per_asset_month",
-      "description": "pv.inverter_peer 오탐 [건/자산·월] (대조군 포함, 4417.3 자산·월, 정밀도 1)",
+      "description": "pv.inverter_peer 오탐 [건/자산·월] (대조군 포함, 4550.2 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1303,15 +1310,15 @@
     },
     {
       "id": "el.voltage_rise.fp_per_asset_month",
-      "description": "el.voltage_rise 오탐 [건/자산·월] (대조군 포함, 863.5 자산·월, 정밀도 0.321)",
-      "value": 0.022,
+      "description": "el.voltage_rise 오탐 [건/자산·월] (대조군 포함, 896.7 자산·월, 정밀도 0.321)",
+      "value": 0.0212,
       "comparator": "<=",
       "threshold": 0.1,
       "pass": true
     },
     {
       "id": "fc.voltage_decay.fp_per_asset_month",
-      "description": "fc.voltage_decay 오탐 [건/자산·월] (대조군 포함, 863.5 자산·월, 정밀도 1)",
+      "description": "fc.voltage_decay 오탐 [건/자산·월] (대조군 포함, 896.7 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1319,7 +1326,7 @@
     },
     {
       "id": "dq.gap_flatline.fp_per_asset_month",
-      "description": "dq.gap_flatline 오탐 [건/자산·월] (대조군 포함, 23049.7 자산·월, 정밀도 1)",
+      "description": "dq.gap_flatline 오탐 [건/자산·월] (대조군 포함, 23780.4 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1327,7 +1334,7 @@
     },
     {
       "id": "el.sec_rise.fp_per_asset_month",
-      "description": "el.sec_rise 오탐 [건/자산·월] (대조군 포함, 863.5 자산·월, 정밀도 1)",
+      "description": "el.sec_rise 오탐 [건/자산·월] (대조군 포함, 896.7 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1335,31 +1342,31 @@
     },
     {
       "id": "h2chain.mass_balance_gap.fp_per_asset_month",
-      "description": "h2chain.mass_balance_gap 오탐 [건/자산·월] (대조군 포함, 863.5 자산·월, 정밀도 0.8)",
-      "value": 0.0035,
+      "description": "h2chain.mass_balance_gap 오탐 [건/자산·월] (대조군 포함, 896.7 자산·월, 정밀도 0.8)",
+      "value": 0.0033,
       "comparator": "<=",
       "threshold": 0.1,
       "pass": true
     },
     {
       "id": "tank.static_leak.fp_per_asset_month",
-      "description": "tank.static_leak 오탐 [건/자산·월] (대조군 포함, 2756.7 자산·월, 정밀도 0.533)",
-      "value": 0.0051,
+      "description": "tank.static_leak 오탐 [건/자산·월] (대조군 포함, 2889.5 자산·월, 정밀도 0.516)",
+      "value": 0.0052,
       "comparator": "<=",
       "threshold": 0.02,
       "pass": true
     },
     {
       "id": "comp.sec_rise.fp_per_asset_month",
-      "description": "comp.sec_rise 오탐 [건/자산·월] (대조군 포함, 863.5 자산·월, 정밀도 0.533)",
-      "value": 0.0081,
+      "description": "comp.sec_rise 오탐 [건/자산·월] (대조군 포함, 896.7 자산·월, 정밀도 0.533)",
+      "value": 0.0078,
       "comparator": "<=",
       "threshold": 0.1,
       "pass": true
     },
     {
       "id": "fc.blower_wear.fp_per_asset_month",
-      "description": "fc.blower_wear 오탐 [건/자산·월] (대조군 포함, 863.5 자산·월, 정밀도 1)",
+      "description": "fc.blower_wear 오탐 [건/자산·월] (대조군 포함, 896.7 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1367,23 +1374,23 @@
     },
     {
       "id": "pv.soiling_rate.fp_per_asset_month",
-      "description": "pv.soiling_rate 오탐 [건/자산·월] (대조군 포함, 1162.5 자산·월, 정밀도 0.563)",
-      "value": 0.006,
+      "description": "pv.soiling_rate 오탐 [건/자산·월] (대조군 포함, 1195.7 자산·월, 정밀도 0.563)",
+      "value": 0.0059,
       "comparator": "<=",
       "threshold": 0.1,
       "pass": true
     },
     {
       "id": "ess.resistance_growth.fp_per_asset_month",
-      "description": "ess.resistance_growth 오탐 [건/자산·월] (대조군 포함, 3387.7 자산·월, 정밀도 0.185)",
-      "value": 0.013,
+      "description": "ess.resistance_growth 오탐 [건/자산·월] (대조군 포함, 3454.1 자산·월, 정밀도 0.185)",
+      "value": 0.0127,
       "comparator": "<=",
       "threshold": 0.1,
       "pass": true
     },
     {
       "id": "inv.thermal_derating.fp_per_asset_month",
-      "description": "inv.thermal_derating 오탐 [건/자산·월] (대조군 포함, 4417.3 자산·월, 정밀도 1)",
+      "description": "inv.thermal_derating 오탐 [건/자산·월] (대조군 포함, 4550.2 자산·월, 정밀도 1)",
       "value": 0,
       "comparator": "<=",
       "threshold": 0.1,
@@ -1487,7 +1494,7 @@
     },
     {
       "id": "el.sec_rise.recall_5pct",
-      "description": "el.sec_rise 비에너지 5% 이상(정류기·패러데이·스택 경로) 재현율 (주입 18건)",
+      "description": "el.sec_rise 비에너지 5% 이상(정류기·패러데이·스택·퍼지 경로) 재현율 (주입 21건)",
       "value": 1,
       "comparator": ">=",
       "threshold": 0.8,

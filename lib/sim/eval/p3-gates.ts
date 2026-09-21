@@ -52,7 +52,7 @@ function referenceGates(jobs: readonly SiteJobResult[]): GateResult[] {
   const fan = scoreAtLeast(jobs, 'inv.thermal_derating', 0);
   const drift = scoreAtLeast(jobs, 'h2chain.mass_balance_gap', 3, { filter: ofKind('fault.flowmeter_drift') });
   return [
-    gate('el.sec_rise.recall_5pct', `el.sec_rise 비에너지 5% 이상(정류기·패러데이·스택 경로) 재현율 (주입 ${secRise.injections}건)`, secRise.recall, '>=', REFERENCE_RECALL),
+    gate('el.sec_rise.recall_5pct', `el.sec_rise 비에너지 5% 이상(정류기·패러데이·스택·퍼지 경로) 재현율 (주입 ${secRise.injections}건)`, secRise.recall, '>=', REFERENCE_RECALL),
     gate('comp.sec_rise.recall_valve_10pct', `comp.sec_rise 밸브 마모 10% 이상 재현율 (주입 ${valve.injections}건)`, valve.recall, '>=', REFERENCE_RECALL),
     gate('fc.blower_wear.recall_20pct', `fc.blower_wear 블로워 비전력 +20% 이상(필터 막힘 20% 이상·마모 누적 20% 이상) 재현율 (주입 ${blower.injections}건)`, blower.recall, '>=', REFERENCE_RECALL),
     gate('pv.soiling_rate.recall_0_1pct_day', `pv.soiling_rate 오염 0.1%/일 이상 재현율 (주입 ${soiling.injections}건)`, soiling.recall, '>=', REFERENCE_RECALL),

@@ -1,7 +1,7 @@
 // 시뮬레이터 스코어카드 P3 참고 지표(scorecard.json p3, 게이트 아님) 읽기와 탐지기 단계 표시. 순수 모듈.
 //   healthy_mass_balance          대조군 SIM-C 일별 물질수지 |잔차율| 분포 (원장 완결성 0.9 이상인 날)
 //   pv_control_findings           PV 대조군(출력제어·흐린 주·비 오는 주) 구간 PV 탐지기 finding 수
-//   el_sec_rise_path_support      주입 경로별 판별 체크 지지 비율 (정류기·패러데이·스택)
+//   el_sec_rise_path_support      주입 경로별 판별 체크 지지 비율 (정류기·패러데이·스택·퍼지)
 //   tank_leak_mass_balance_share  누설 0.2 kg/일 이상 주입 중 물질수지 finding이 함께 난 비율
 //   fan_failure_delays            냉각팬 고장 시작일(계절)별 탐지 지연
 import { asArray, asNumber, asRecord } from './json-read';
