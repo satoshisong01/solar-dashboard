@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated_at": "2026-09-17",
+  "generated_at": "2026-09-21",
   "mode": "memory",
   "preset": {
     "from": "2025-10-01T00:00:00+09:00",
@@ -171,7 +171,7 @@
     }
   },
   "jobs": 105,
-  "elapsed_s": 1402,
+  "elapsed_s": 3591.9,
   "reduced_runs": {
     "runs": [
       3,
@@ -1172,6 +1172,10 @@
         "stack": {
           "detected": 6,
           "support_ratio": 1
+        },
+        "purge": {
+          "detected": 0,
+          "support_ratio": null
         }
       },
       "target": 0.7
