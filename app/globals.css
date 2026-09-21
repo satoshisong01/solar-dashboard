@@ -66,8 +66,9 @@
   --flow-ac: #cc51dd;
   --flow-heat: #d9708f;
 
-  /* 지도 마커 상태색 (lib/data/map-status.ts). 카카오 지도는 지도 스타일을 바꿀 수 없어 타일 배경이 늘 밝으므로
-     콘솔이 어두워져도 이 색은 그대로 둔다. 위에 올리는 글자·아이콘 색은 -on 토큰으로 3:1 이상을 지킨다.
+  /* 지도 마커 상태색 (lib/data/map-status.ts). 타일을 어둡게 깔아도(.map-dark) 마커는 필터 밖이라
+     이 색이 화면에 그대로 나간다 — 의미가 굳은 계열이므로 값도 그대로 둔다.
+     위에 올리는 글자·아이콘 색은 -on 토큰으로 3:1 이상을 지킨다.
      색만으로 구분하지 않는다: 마커 옆·목록에 늘 상태 글자를 함께 둔다. */
   --map-crit: #ef4444;
   --map-crit-on: #ffffff;
@@ -126,7 +127,7 @@
   --shadow-panel: inset 0 1px 0 0 rgb(255 255 255 / 0.04), 0 10px 24px -18px rgb(0 0 0 / 0.9);
   /* 선택·활성 상태의 미세한 발광 */
   --shadow-glow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 14px -4px color-mix(in srgb, var(--accent) 55%, transparent);
-  /* 밝은 지도 타일 위에 뜨는 어두운 패널·라벨 */
+  /* 지도 위에 뜨는 패널·라벨 (타일과 분리돼 보이게 하는 그림자) */
   --shadow-overlay: 0 2px 10px rgb(0 0 0 / 0.55), 0 0 0 1px rgb(0 0 0 / 0.25);
 
   --font-sans: var(--font-body);
@@ -184,6 +185,33 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* 카카오 지도 타일 어둡게 (components/map/site-map-canvas.tsx가 지도 칸에 붙인다).
+   콘솔은 다크 한 겹인데 지도만 밝은 판으로 떠서 조도를 낮춘 상황실에서 눈부시다.
+   카카오에는 지도 색을 바꾸는 API가 없다 — MapTypeId는 일반·스카이뷰·하이브리드뿐이고,
+   색을 정하려면 Tileset으로 우리 타일 서버를 붙여야 한다. 그래서 타일 칸에만 CSS 필터를 건다.
+   마커·라벨(CustomOverlay)은 타일 칸의 형제라 필터가 닿지 않는다 — 상태색(빨강·주황·초록)과
+   라벨 대비가 그대로다. 되돌리는 필터를 겹치지 않으니 색이 미세하게 틀어질 일도 없다
+   (invert는 정확히 되돌지만 hue-rotate는 두 번 걸면 원래 색으로 돌아오지 않는다). */
+.map-dark {
+  /* 타일이 아직 안 온 자리에 카카오가 까는 밝은 격자 배경. 인라인 style이라 !important가 필요하다 */
+  background-image: none !important;
+  background-color: var(--field) !important;
+}
+
+/* 타일 칸 = 타일 <img>를 직계 자식으로 둔 칸. 카카오가 클래스를 주지 않아 구조로 찾는다.
+   invert(1)로 종이 같은 밝기를 뒤집고, hue-rotate(180deg)로 그때 돌아간 색상을 제자리에 돌려놓는다
+   (바다는 파랑, 숲은 초록으로 남는다). 카카오가 구조를 바꾸면 규칙이 어긋나 지도가 도로 밝아질 뿐,
+   마커가 뒤집히지는 않는다. */
+.map-dark div:has(> img) {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* 왼쪽 아래 축척·카카오 로고 막대는 검은 글자·검은 로고라 어두워진 지도에서 읽히지 않는다.
+   카카오가 어두운 지도에 쓰는 흰 로고와 같아지도록 이 막대만 명암을 뒤집는다. */
+.map-dark > div:has(> div > a) {
+  filter: invert(1);
 }
 
 @media (prefers-reduced-motion: reduce) {

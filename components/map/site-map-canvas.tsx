@@ -134,7 +134,8 @@ function LoadedMap({ appKey, sites, view, padding, selectedCode, onSelect, nowMs
   if (loading) return <Skeleton className="size-full" />;
 
   return (
-    <KakaoMap center={view.center} level={view.level} isPanto className="size-full">
+    // map-dark: 타일만 어둡게 그린다 (app/globals.css). 마커·라벨은 필터 밖이라 상태색이 그대로다
+    <KakaoMap center={view.center} level={view.level} isPanto className="size-full map-dark">
       <FitToSites sites={sites} padding={padding} />
       <LabelOverlap sites={sites} pinnedCode={selectedCode} onChange={updateHidden} />
       {sites.map((site) => {
