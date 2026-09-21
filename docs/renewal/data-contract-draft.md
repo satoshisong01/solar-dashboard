@@ -536,7 +536,7 @@
 | `inv.thermal_derating` | `pv.inverter_thermal_derating` | `pv.inverter` | `pv.inverter`, `wx.station` | `ac.power` 300, `heatsink.temp` 300, `ac.power.limit` 300 (인버터) · `ambient.temp` 300 (`wx.station`) | — | 30일 |
 | `pv.soiling_rate` | `pv.soiling` | (사이트 전체) | `pv.plant`, `pv.inverter`, `wx.station` | `ac.power` 300, `ac.power.limit` 300, `op.state` 300 (`pv.inverter`) · `poa.irradiance` 300, `module.temp` 300 (`wx.station`) | `ghi.irradiance` 300 (`wx.station`) | 30일 |
 | `el.voltage_rise` | `el.stack_voltage_degradation` | `h2.elz.stack` | `h2.elz.stack` | `stack.current` 60, `stack.voltage` 60, `stack.temp` 300, `run.hours` 300 (스택) | — | 30일 |
-| `el.sec_rise` | `el.system_efficiency_loss` | `h2.elz.stack` | `h2.elz.stack` | `stack.current` 60, `stack.voltage` 60, `stack.temp` 300, `run.hours` 300 (스택) · `h2.flow.mass` 300, `ac.power` 300 (상위 `h2.elz`) | `rectifier.efficiency` 300 (형제 `h2.elz.rectifier`) · `purge.count` 300 (스택 또는 상위 `h2.elz`, **카탈로그에 없음**) | 45일 |
+| `el.sec_rise` | `el.system_efficiency_loss` | `h2.elz.stack` | `h2.elz.stack` | `stack.current` 60, `stack.voltage` 60, `stack.temp` 300, `run.hours` 300 (스택) · `h2.flow.mass` 300, `ac.power` 300 (상위 `h2.elz`) | `rectifier.efficiency` 300 (형제 `h2.elz.rectifier`) · `purge.count` 300 (상위 `h2.elz`, 2026-09-21 카탈로그에 추가) | 45일 |
 | `h2chain.mass_balance_gap` | `h2chain.mass_balance_gap` | (사이트 전체) | `h2.elz`, `h2.storage.tank`, `fc.plant` | `h2.flow.mass` 300 (`h2.elz`) · `fc.h2.consumption` 300 (`fc.plant`) · `tank.pressure` 300, `tank.temp` 300 (`h2.storage.tank`) | `h2.mass.total` 300 (`h2.elz`) · `purge.count` 300 (`fc.plant`) | 21일 |
 | `tank.static_leak` | `h2.storage_leak` | `h2.storage.tank` | `h2.storage.tank` | `tank.pressure` 300, `tank.temp` 300 (용기) · `valve.open` 300 (상위 `h2.storage.bank`, 한정자 `inlet`·`outlet`) · `compressor.power` 300 (`h2.compressor`) · `fc.h2.consumption` 300 (`fc.plant`) | `h2.pressure` 300 (`fc.plant`, 하류 공급 압력) | 14일 |
 | `comp.sec_rise` | `comp.efficiency_loss` | `h2.compressor` | `h2.compressor` | `compressor.power` 300, `compressor.suction.pressure` 300, `compressor.discharge.pressure` 300 (압축기) · `h2.flow.mass` 300 (`h2.elz`) · `ambient.temp` 300 (`wx.station`) | `compressor.discharge.temp` 300, `compressor.leak.pressure` 300, `vibration.rms` 300, `run.hours` 300 (압축기) | 45일 |
@@ -595,6 +595,7 @@
 | `ess.pcs` | `ac.power` (kW, 방전 +, 충전 −) | 체인 원장 ESS 충방전 흐름 | 원장 흐름에서 빠짐 | `ess_pcs.pcs_ac_active_power` (must) |
 | `grid.meter` | `ac.power` (kW, 송전 +, 수전 −) | 체인 원장 계통 수전·송전, 전해조 계통전력 비율 | 원장 흐름에서 빠짐 | 본문은 15분 적산량(`grid_interconnection.export_energy` must, `aux_import_energy` should)만 있고 순시 전력 행 없음 |
 | `fc.plant` | `fc.ac.power` (kW) | 체인 원장 연료전지 공급·kg/MWh·P2P, 연료전지 정상운전 에피소드 | 연료전지 KPI 없음 | `fuel_cell_system.net_ac_power` (must) |
+| `h2.elz` | `purge.count` (누적, 수소측) | `el.sec_rise` 판별 체크 ⑤ 퍼지 횟수 증가(1시간 롤업 → 일 증가분) | 체크 '데이터없음' — 비에너지 상승의 원인이 퍼지 손실인지 가를 수 없다 | 본문에 없음 (전해조 PLC 누적 카운터) |
 | `fc.plant` | `purge.count` (누적) | 체인 원장 배출 추정(`kgPerPurge` > 0일 때만), 물질수지 판별 체크 ③ | 배출 추정 0, 체크 '데이터없음' | `fc_anode_subsystem.purge_valve_state` (should, 이벤트) |
 | `fc.plant` | `h2.pressure` (bar, 연료전지 공급 압력) | `tank.static_leak` 판별 체크 ③ 밸브 통과 누설(하류 압력 상승) | 체크 '데이터없음' | `fuel_cell_system.h2_inlet_pressure` (must) |
 | `fc.plant` | `start.count` | 연료전지 기동 에피소드(`fc.start`) 기동 횟수 증가량 | 해당 특징값이 비어 있음 | `fuel_cell_system.start_count` (must) |
@@ -609,7 +610,7 @@
 | `om.market_daily` | `smp_land` | `pv.soiling_rate` 권고 문장의 손실 금액 | "가격 데이터 없음" | 본문 밖 (수기·CSV 입력) |
 | 조치·설비 이벤트 | 세척 조치, `asset_event`(필터 교체·세척 note) | `pv.soiling_rate` 복원 시점, `fc.blower_wear` 판별 체크 ① 필터 막힘 | 복원은 PI 급상승으로만, 필터 체크 '데이터없음' | 본문 밖 (정비 이력 직접 기록·CSV) |
 
-2026-09-16 기준으로 퍼지 횟수(`el.sec_rise`)와 같은 뱅크 다른 용기 압력 교차값(`tank.static_leak`)은 분석 실행기가 넣는다. 다만 전해조 퍼지 카운터(`purge.count`)는 카탈로그에 없어 전해조 퍼지 체크는 여전히 '데이터없음'이고, 준비도에서는 ELZ1/STACK1의 권장 메트릭 누락으로 보인다. 시드 사이트에서 일부러 매핑하지 않은 압축기 진동(`vibration.rms`)도 같은 방식으로 COMP1에 권장 누락으로 보인다.
+2026-09-16 기준으로 퍼지 횟수(`el.sec_rise`)와 같은 뱅크 다른 용기 압력 교차값(`tank.static_leak`)은 분석 실행기가 넣는다. **2026-09-21에 전해조 퍼지 카운터(`purge.count`)를 카탈로그·가상 사이트 포인트에 추가했다** — 가상 사이트는 시뮬레이터가 값을 내므로 퍼지 체크가 실제로 지지·반박을 내고, 실사이트 GP-1은 계기가 없어 [부록 B.9](#b9-전해조-퍼지-카운터-1점)의 요청 항목으로 둔다(준비도에 '미설치'). 시드 사이트에서 일부러 매핑하지 않은 압축기 진동(`vibration.rms`)은 그대로 COMP1에 권장 누락으로 보인다.
 
 ### A.5 탐지에 쓰는 명판 값
 
@@ -638,12 +639,12 @@
 
 ---
 
-## 부록 B. 가평 P&ID 반영 — 벤더·설계사에 추가 요청할 포인트 (40점)
+## 부록 B. 가평 P&ID 반영 — 벤더·설계사에 추가 요청할 포인트 (41점)
 
 2026-09-16 추가. 근거: [`research/pid/`](./research/pid/) 조사 5건(출처 119건), 공백 정리 [`research/pid/README.md`](./research/pid/README.md), 구현 제안서 [`pid-gapyeong-plan.md`](./pid-gapyeong-plan.md).
 **본문(§태양광~§연료전지, 부록 A)은 고치지 않았다.** 이 부록은 가평 도면(FCND-GP-PID-002 REV.2)이 새로 드러낸 5개 영역 — 부산물 산소·폐열회수·수처리 상세·감압 구간·외부 수소 반입 — 에만 해당한다.
 
-**도면 계장 태그는 10점뿐이다**(PT-201·202·401, FT-101·201·301, TT-301·302·303, LT-101). 아래 40점은 그 위에 더해 요청할 것이다.
+**도면 계장 태그는 10점뿐이다**(PT-201·202·401, FT-101·201·301, TT-301·302·303, LT-101). 아래 41점은 그 위에 더해 요청할 것이다.
 - **필수**: 없으면 해당 영역의 판정 자체가 성립하지 않는다(재고 환산 불가, 판별 불가, 법 준수 확인 불가).
 - **권장**: 없어도 탐지는 되지만 판별 체크가 '데이터없음'이 되어 오탐이 는다.
 - **요청 시점**: 계기 신설은 설계 단계에서만 싸다. **REV.3 확정 전에** 보내야 한다.
@@ -657,7 +658,8 @@
 | B.3 수처리 | 10 | 7 | 3 | 물수지 폐합, 소모품 상태 기반 관리 |
 | B.4 감압·버퍼 | 7 | 4 | 3 | 수소 재고 환산, 조정기 시트 누설 판정 |
 | B.5 외부 수소 반입 | 7 | 6 | 1 | **물질수지 식 자체가 성립하지 않는다** |
-| **합계** | **40** | **29** | **11** | |
+| B.9 전해조 퍼지 카운터 | 1 | 0 | 1 | 비에너지 상승의 원인이 퍼지 손실인지 판별 |
+| **합계** | **41** | **29** | **12** | |
 
 ### B.1 부산물 산소 (9점)
 
@@ -776,3 +778,16 @@
 - 본문 §수소저장 `h2_valve_train`(수소 공급 밸브·레귤레이터 계통)은 밸브 계통을 다루지만 **조절 품질 지표(락업·드룹·리플)가 없다**. B.4가 그 공백을 채운다.
 - **부산물 산소와 외부 수소 반입은 본문에 항목 자체가 없다.** B.1·B.5가 신규다.
 - 부록 A(탐지 준비도 기준 필수·권장 포인트)는 **기존 탐지기 14종** 기준이다. 새 탐지기 6종의 준비도 행은 탐지기 구현 시점에 A.2 표에 더한다.
+
+### B.9 전해조 퍼지 카운터 (1점)
+
+2026-09-21 추가. 앞의 B.1~B.5와 달리 **새 계기를 달 필요가 없다** — 전해조 PLC가 이미 세고 있는 누적 카운터를 태그로 내보내 달라는 요청이다.
+
+| # | 태그(제안) | 계측 대상 | 메트릭 키 | 단위 | 주기 | 정확도·범위 요구 | 구분 | 왜 |
+|---|---|---|---|---|---|---|---|---|
+| B9-1 | — | 수소측 퍼지 횟수 (기액분리기 드레인 + 건조기 재생) | `purge.count` (`ELZ1`) | 회(누적) | 300 s | 단조 증가 누적값, 리셋 시점 기록 | 권장 | `el.sec_rise` 판별 체크 ⑤의 유일한 입력. 없으면 비에너지가 올랐을 때 **퍼지 손실 때문인지 아닌지를 가를 방법이 없다** |
+
+- **왜 횟수인가**: 퍼지 1회당 방출량은 배관 체적·절차로 정해져 거의 일정하다. 횟수의 일 증가분 중앙값이 기준 대비 30% 이상 늘면 체크가 '지지'다(`purgeRisePct`).
+- **왜 수소측만인가**: 산소측 방출은 연속 벤트라서 횟수가 아니라 질량(`o2.vent.mass.total`, [B.1](#b1-부산물-산소-9점) 계열)으로 받는다. 수소측 퍼지만 제품 수소를 잃어 비에너지를 올린다.
+- **한정자를 두지 않는다**: 같은 물리량이라 연료전지 애노드 퍼지(`FC1`)와 같은 `purge.count` 키를 쓰고, 설비로 구분한다. 산소측 카운터가 나중에 생기면 그때 한정자 `o2`로 나눈다.
+- **받을 때 확인할 것**: ① 카운터가 리셋되는 조건(정비·PLC 재기동)과 그 시각을 남기는지 — 줄어든 날은 분석이 0으로 본다. ② 퍼지에 기액분리기 드레인·건조기 재생 중 무엇이 들어 있는지(둘 다면 그대로 좋고, 따로면 합계와 함께 받는다). ③ 퍼지 1회당 방출량 실측값 — 있으면 수소 원장의 `vented_est`를 추정이 아닌 값으로 바꿀 수 있다.
