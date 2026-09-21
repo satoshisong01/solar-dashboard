@@ -66,7 +66,7 @@ export function parseScorecardP3(raw: unknown): ScorecardP3View {
   };
 }
 
-const PATH_LABELS: Readonly<Record<string, string>> = { rectifier: '정류기 효율 경로', faradaic: '패러데이 효율 경로', stack: '스택 전압 경로' };
+const PATH_LABELS: Readonly<Record<string, string>> = { rectifier: '정류기 효율 경로', faradaic: '패러데이 효율 경로', stack: '스택 전압 경로', purge: '퍼지 빈도 경로' };
 export const pathLabel = (mode: string): string => PATH_LABELS[mode] ?? mode;
 
 /** 날짜(epoch ms) → KST 월 기준 계절 */

@@ -92,7 +92,7 @@ export function p3Gates(jobs: readonly SiteJobResult[], scores: readonly Detecto
   ];
 }
 
-const SEC_PATH_CHECK: Readonly<Record<string, string>> = { rectifier: 'rectifier_efficiency', faradaic: 'faraday_efficiency', stack: 'stack_voltage' };
+const SEC_PATH_CHECK: Readonly<Record<string, string>> = { rectifier: 'rectifier_efficiency', faradaic: 'faraday_efficiency', stack: 'stack_voltage', purge: 'purge_count' };
 
 /** el.sec_rise 탐지된 주입 중 마지막 탐지의 판별 체크가 주입 경로를 '지지'한 비율 (게이트 아님, 목표 ≥ 0.7) */
 export function secPathSupport(jobs: readonly SiteJobResult[]) {

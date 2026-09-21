@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createRng } from '@/lib/sim/rng';
 import type { ElSteadyEpisode } from '../episodes/stack-episodes';
+import { counterDailyDeltas } from '../pipeline/load-plans';
 import { MS_PER_DAY, MS_PER_HOUR } from '../types';
 import { EL_SEC_RISE_DEFAULTS, elSecRise, type ElSecRiseInput } from './el-sec-rise';
 import { H2_KG_PER_AMP_HOUR_PER_CELL } from './hydrogen-eos';
@@ -96,6 +97,29 @@ describe('el.sec_rise@1', () => {
     const rising = Array.from({ length: DAYS }, (_, day) => ({ ts: DAY0 + day * MS_PER_DAY, value: day < DAYS - 30 ? 10 : 15 }));
     expect(purgeOf(input({ risePct: 6, seed: 2 }, { purgeCounts: rising }))).toBe('supports');
     expect(purgeOf(input({ risePct: 6, seed: 2 }))).toBe('no_data');
+  });
+
+  it('로더 경로: 전해조 누적 퍼지 카운터의 1시간 롤업을 일 증가분으로 바꾸면 퍼지 체크가 지지·반박을 낸다', () => {
+    // 시뮬레이터 전해조와 같은 규칙(lib/sim/models/electrolyzer.ts): 퍼지는 스택 전하량에 비례한다 — 정격 운전 5시간이면 하루 30회.
+    // 퍼지 경로 고장은 빈도를 배로 올린다 (비에너지 6% 상승 = 2.83배, fault-scenarios-p3.ts calibrateSec).
+    const PER_HOUR = 6;
+    const counterHours = (factor: number) => {
+      let cumulative = 4_000; // 준공 후 누적 카운터
+      return Array.from({ length: DAYS }, (_, day) => Array.from({ length: 5 }, (_, h) => {
+        const perHour = PER_HOUR * (day >= DAYS - 30 ? factor : 1);
+        const first = cumulative;
+        cumulative += perHour;
+        return { hourStart: DAY0 + day * MS_PER_DAY + h * MS_PER_HOUR, nGood: 12, first, last: cumulative };
+      })).flat();
+    };
+    const purgeOf = (factor: number) => {
+      const result = elSecRise.detect(input({ risePct: 6, seed: 2 }, { purgeCounts: counterDailyDeltas(counterHours(factor)) }), ctx());
+      const checks = result.status === 'ok' ? ((result.findings[0]?.evidence.checks ?? []) as { id: string; status: string; measured: Record<string, number> }[]) : [];
+      return checks.find((c) => c.id === 'purge_count');
+    };
+
+    expect(purgeOf(1)).toMatchObject({ status: 'refutes', measured: { ref_per_day: 30, recent_per_day: 30, change_pct: 0 } });
+    expect(purgeOf(2.83)).toMatchObject({ status: 'supports', measured: { ref_per_day: 30, recent_per_day: 84.9, change_pct: 183 } });
   });
 
   it('셀 전압이 함께 오르면 스택 열화 동반(category degradation), 패러데이 효율 저하도 지지', () => {

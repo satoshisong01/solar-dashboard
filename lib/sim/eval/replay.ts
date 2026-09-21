@@ -37,7 +37,7 @@ export interface PreparedJob {
 }
 
 /** 준비 결과 형식 버전 (캐시 키에 넣는다: 형식이 바뀌면 예전 캐시를 쓰지 않는다) */
-export const PREPARED_JOB_FORMAT = 3;
+export const PREPARED_JOB_FORMAT = 4;
 
 export interface EvaluateOptions {
   /** 첫 점검일 (기준선 세션이 쌓일 시간) */
