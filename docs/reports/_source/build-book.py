@@ -11,7 +11,7 @@ from pathlib import Path
 R = Path(sys.argv[1]).resolve()
 OUT = Path(sys.argv[2])
 REPO = R.parents[2]  # <repo>/docs/renewal/research -> <repo>
-META = {"title": "태양광·수소 발전 데이터 수집·AI 분석 예상안", "company": "주식회사 퍼스트씨앤디", "date": "2026. 09. 17"}
+META = {"title": "태양광·수소 발전 데이터 수집·AI 분석 예상안", "company": "주식회사 퍼스트씨앤디", "date": "2026. 09. 22"}
 
 DOMAINS = [
     ("pv", "태양광"), ("ess", "ESS"), ("system", "연계·계통"),
@@ -224,7 +224,7 @@ sheets = []
 sheets.append({
     "name": "안내", "title": "이 워크북 읽는 법",
     "description": "실제 원시데이터가 없는 상태에서 업계 표준·공공기관·제조사 자료를 근거로 만든 예상안입니다. 수치는 출처 기준이며 설비 사양이 정해지면 다시 확인해야 합니다. "
-                   "제2판(2026-09-17)에서 실제 사업 도면(가평 2MW 청정수소발전 P&ID, FCND-GP-PID-002 REV.2) 적용 결과를 더했습니다. 초판 2026-09-14.",
+                   "제2판(2026-09-17)에서 실제 사업 도면(가평 2MW 청정수소발전 P&ID, FCND-GP-PID-002 REV.2) 적용 결과를 더했고, 제3판(2026-09-22)에서 전해조 퍼지 카운터를 신설 요청 목록에 더했습니다. 초판 2026-09-14.",
     "columns": cols([("시트", 22, None), ("내용", 90, None)]),
     "rows": [
         ["요약", "시트별 항목 수를 수식으로 집계"],
