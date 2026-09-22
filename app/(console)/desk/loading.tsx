@@ -1,20 +1,6 @@
-import { SkeletonHeader, SkeletonPanel, SkeletonStatus } from '@/components/ui/skeleton';
-import { DigestSkeleton, InboxSkeleton, RunHistorySkeleton, RunSkeleton } from './sections';
+import { ScreenLoading } from '@/components/ui/loading';
 
-/** 분석 데스크 골격. 영역 골격은 page.tsx의 Suspense fallback과 같은 것을 쓴다 (sections.tsx) */
-export default function DeskLoading() {
-  return (
-    <>
-      <SkeletonStatus />
-      <SkeletonHeader guide />
-      <DigestSkeleton />
-      <SkeletonPanel titleClassName="w-24">
-        <RunSkeleton />
-      </SkeletonPanel>
-      <SkeletonPanel titleClassName="w-36">
-        <RunHistorySkeleton />
-      </SkeletonPanel>
-      <InboxSkeleton />
-    </>
-  );
+/** 화면을 불러오는 동안 스피너만 보여 준다 (components/ui/loading.tsx) */
+export default function Loading() {
+  return <ScreenLoading />;
 }

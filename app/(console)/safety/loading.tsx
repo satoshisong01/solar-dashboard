@@ -1,21 +1,6 @@
-import { Skeleton, SkeletonHeader, SkeletonPanel, SkeletonStatus, SkeletonTable } from '@/components/ui/skeleton';
+import { ScreenLoading } from '@/components/ui/loading';
 
-/** 안전 화면 골격: 안전감시 공백 · 미확인 안전 이벤트 · 확인 이력 */
-export default function SafetyLoading() {
-  return (
-    <>
-      <SkeletonStatus />
-      <SkeletonHeader guide />
-      <Skeleton className="h-16" />
-      <SkeletonPanel titleClassName="w-32">
-        <SkeletonTable rows={3} />
-      </SkeletonPanel>
-      <SkeletonPanel titleClassName="w-40">
-        <SkeletonTable rows={5} />
-      </SkeletonPanel>
-      <SkeletonPanel titleClassName="w-24">
-        <SkeletonTable rows={5} />
-      </SkeletonPanel>
-    </>
-  );
+/** 화면을 불러오는 동안 스피너만 보여 준다 (components/ui/loading.tsx) */
+export default function Loading() {
+  return <ScreenLoading />;
 }

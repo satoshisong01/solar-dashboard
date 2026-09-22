@@ -1,27 +1,12 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import { SkeletonSpinner } from '@/components/ui/skeleton';
+import { SectionLoading } from '@/components/ui/loading';
 import { PageHeader } from '@/components/console/page-header';
 import { SCREEN_GUIDES } from '@/lib/desk/plain/guides';
 import { requireAdmin } from '@/lib/auth/dal';
 import { requestTimeMs } from '@/lib/data/time';
 import { formatKstDateTime } from '@/lib/format';
-import {
-  CountersSection,
-  CountersSkeleton,
-  DataGapsSection,
-  DataGapsSkeleton,
-  EnergySection,
-  EnergySkeleton,
-  RevenueSection,
-  RevenueSkeleton,
-  SafetySection,
-  SafetySkeleton,
-  SiteMapSection,
-  SiteMapSkeleton,
-  TopFindingsSection,
-  TopFindingsSkeleton,
-} from './sections';
+import { CountersSection, DataGapsSection, EnergySection, RevenueSection, SafetySection, SiteMapSection, TopFindingsSection,  } from './sections';
 
 export const metadata: Metadata = { title: '대시보드' };
 
@@ -34,27 +19,27 @@ export default async function DashboardPage() {
     <>
       <PageHeader title="대시보드" purpose="출근 후 5분 안에 할 일과 밤사이 변화 파악" guide={SCREEN_GUIDES.dashboard} />
       <p className="-mt-3 text-xs text-muted">기준 시각 {formatKstDateTime(nowMs)} KST</p>
-      <Suspense fallback={<><SkeletonSpinner /><SafetySkeleton /></>}>
+      <Suspense fallback={<SectionLoading />}>
         <SafetySection />
       </Suspense>
-      <Suspense fallback={<><SkeletonSpinner /><CountersSkeleton /></>}>
+      <Suspense fallback={<SectionLoading />}>
         <CountersSection nowMs={nowMs} />
       </Suspense>
-      <Suspense fallback={<><SkeletonSpinner /><SiteMapSkeleton /></>}>
+      <Suspense fallback={<SectionLoading />}>
         <SiteMapSection nowMs={nowMs} />
       </Suspense>
-      <Suspense fallback={<><SkeletonSpinner /><TopFindingsSkeleton /></>}>
+      <Suspense fallback={<SectionLoading />}>
         <TopFindingsSection nowMs={nowMs} />
       </Suspense>
       <div className="grid gap-6 lg:grid-cols-2">
-        <Suspense fallback={<><SkeletonSpinner /><DataGapsSkeleton /></>}>
+        <Suspense fallback={<SectionLoading />}>
           <DataGapsSection nowMs={nowMs} />
         </Suspense>
-        <Suspense fallback={<><SkeletonSpinner /><RevenueSkeleton /></>}>
+        <Suspense fallback={<SectionLoading />}>
           <RevenueSection nowMs={nowMs} />
         </Suspense>
       </div>
-      <Suspense fallback={<><SkeletonSpinner /><EnergySkeleton /></>}>
+      <Suspense fallback={<SectionLoading />}>
         <EnergySection nowMs={nowMs} />
       </Suspense>
     </>

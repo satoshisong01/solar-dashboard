@@ -3,12 +3,12 @@ import { Suspense } from 'react';
 import { PageHeader } from '@/components/console/page-header';
 import { SCREEN_GUIDES } from '@/lib/desk/plain/guides';
 import { Panel } from '@/components/ui/panel';
-import { SkeletonSpinner } from '@/components/ui/skeleton';
+import { SectionLoading } from '@/components/ui/loading';
 import { requireAdmin } from '@/lib/auth/dal';
 import { getRunFormOptions } from '@/lib/data/analysis-runs';
 import { listInboxRows } from '@/lib/data/findings';
 import type { SearchParamValue } from '@/lib/data/range';
-import { DigestSection, DigestSkeleton, InboxSection, InboxSkeleton, RunHistorySection, RunHistorySkeleton, RUN_HISTORY_LIMIT, RunSection, RunSkeleton } from './sections';
+import { DigestSection, InboxSection, RunHistorySection, RUN_HISTORY_LIMIT, RunSection } from './sections';
 
 export const metadata: Metadata = { title: '분석 데스크' };
 
@@ -29,24 +29,24 @@ export default async function DeskPage({ searchParams }: DeskPageProps) {
     <>
       <PageHeader title="분석 데스크" purpose="분석을 실행하고 발견사항(finding)을 분류한 뒤 근거 확인·원인 판별·권고 작성" guide={SCREEN_GUIDES.desk} />
 
-      <Suspense fallback={<><SkeletonSpinner /><DigestSkeleton /></>}>
+      <Suspense fallback={<SectionLoading />}>
         <DigestSection inbox={inbox} searchParams={searchParams} />
       </Suspense>
 
       <Panel title="분석 실행" meta="수동 실행 · 결과는 발견사항으로만 저장">
-        <Suspense fallback={<><SkeletonSpinner /><RunSkeleton /></>}>
+        <Suspense fallback={<SectionLoading />}>
           <RunSection options={options} />
         </Suspense>
       </Panel>
 
       <Panel title="최근 분석 실행" meta={`최근 ${RUN_HISTORY_LIMIT}건`}>
-        <Suspense fallback={<><SkeletonSpinner /><RunHistorySkeleton /></>}>
+        <Suspense fallback={<SectionLoading />}>
           <RunHistorySection />
         </Suspense>
       </Panel>
 
       <section id="inbox" className="scroll-mt-20">
-        <Suspense fallback={<><SkeletonSpinner /><InboxSkeleton /></>}>
+        <Suspense fallback={<SectionLoading />}>
           <InboxSection options={options} inbox={inbox} searchParams={searchParams} />
         </Suspense>
       </section>

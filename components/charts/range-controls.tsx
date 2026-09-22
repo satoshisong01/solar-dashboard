@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useId, useState, useTransition, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
-import { SkeletonSpinner } from '@/components/ui/skeleton';
+import { LoadingBadge } from '@/components/ui/loading';
 import {
   RANGE_PRESETS,
   RANGE_PRESET_KEYS,
@@ -50,7 +50,7 @@ export function RangeControls({ basePath, pointIds, selection, fromMs, toMs }: R
 
   return (
     <div className="flex flex-col gap-3">
-      {navigating && <SkeletonSpinner />}
+      {navigating && <LoadingBadge />}
       <div className="flex flex-wrap items-center gap-2" role="group" aria-label="기간">
         {RANGE_PRESET_KEYS.map((preset) => (
           <Link

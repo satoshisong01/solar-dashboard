@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CustomOverlayMap, Map as KakaoMap, useKakaoLoader, useMap } from 'react-kakao-maps-sdk';
-import { Skeleton } from '@/components/ui/skeleton';
+import { SectionLoading } from '@/components/ui/loading';
 import type { SiteMapStatus } from '@/lib/data/site-map';
 import { hiddenLabels } from './label-overlap';
 import { mapKeyOf } from './map-key';
@@ -131,7 +131,7 @@ function LoadedMap({ appKey, sites, view, padding, selectedCode, onSelect, nowMs
       </div>
     );
   }
-  if (loading) return <Skeleton className="size-full" />;
+  if (loading) return <SectionLoading className="size-full" />;
 
   return (
     // map-dark: 타일만 어둡게 그린다 (app/globals.css). 마커·라벨은 필터 밖이라 상태색이 그대로다

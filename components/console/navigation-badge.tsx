@@ -2,7 +2,7 @@
 
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { SkeletonSpinner } from '@/components/ui/skeleton';
+import { LoadingBadge } from '@/components/ui/loading';
 
 /** 이동이 끝나지 않아도 이만큼 지나면 배지를 내린다 (클릭이 이동으로 이어지지 않은 경우 계속 떠 있지 않게) */
 const GIVE_UP_MS = 20_000;
@@ -49,8 +49,24 @@ export function NavigationBadge() {
       setTarget(`${url.pathname}${url.search}`);
     }
 
+    // 필터·기간 폼은 GET 제출이라 문서 전체가 다시 로드된다 (서버 액션 폼은 제출 버튼이 직접 스피너를 낸다)
+    function onSubmit(event: SubmitEvent) {
+      if (event.defaultPrevented) return;
+      const form = event.target;
+      if (!(form instanceof HTMLFormElement) || form.method.toLowerCase() !== 'get') return;
+
+      const url = new URL(form.action, window.location.href);
+      if (url.origin !== window.location.origin) return;
+      const query = new URLSearchParams(new FormData(form) as unknown as Record<string, string>).toString();
+      setTarget(query === '' ? url.pathname : `${url.pathname}?${query}`);
+    }
+
     document.addEventListener('click', onClick, { capture: true });
-    return () => document.removeEventListener('click', onClick, { capture: true });
+    document.addEventListener('submit', onSubmit, { capture: true });
+    return () => {
+      document.removeEventListener('click', onClick, { capture: true });
+      document.removeEventListener('submit', onSubmit, { capture: true });
+    };
   }, []);
 
   // 이동이 취소되거나 실패해도 배지가 남지 않게 한다
@@ -60,5 +76,5 @@ export function NavigationBadge() {
     return () => clearTimeout(timer);
   }, [pending]);
 
-  return pending ? <SkeletonSpinner /> : null;
+  return pending ? <LoadingBadge /> : null;
 }

@@ -6,7 +6,7 @@ import { buildViewSearch, type RangeSelection } from '@/lib/data/range';
 import { SERIES_LIMITS } from '@/lib/data/series-types';
 import { fitsAxes } from './series-window';
 import { CHECK_CLASS } from '@/components/ui/form-styles';
-import { SkeletonSpinner } from '@/components/ui/skeleton';
+import { LoadingBadge } from '@/components/ui/loading';
 
 export interface PickablePoint {
   readonly id: number;
@@ -51,7 +51,7 @@ export function PointPicker({ points, selectedIds, basePath, selection }: PointP
 
   return (
     <fieldset className="flex flex-col gap-2">
-      {navigating && <SkeletonSpinner />}
+      {navigating && <LoadingBadge />}
       <legend className="mb-1 text-xs text-muted">
         차트에 표시할 포인트 ({selectedIds.length}/{SERIES_LIMITS.maxPointIds}, 단위는 2개까지)
       </legend>

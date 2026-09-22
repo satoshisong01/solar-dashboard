@@ -1,6 +1,5 @@
 import { FleetMatrix } from '@/components/fleet/fleet-matrix';
 import { FleetView } from '@/components/fleet/fleet-view';
-import { Skeleton, SkeletonTable } from '@/components/ui/skeleton';
 import { getFleetMatrix } from '@/lib/data/fleet';
 import { getFleetMapSites } from '@/lib/data/site-map-board';
 
@@ -12,13 +11,4 @@ import { getFleetMapSites } from '@/lib/data/site-map-board';
 export async function FleetBoardSection({ nowMs }: Readonly<{ nowMs: number }>) {
   const [rows, mapBoard] = await Promise.all([getFleetMatrix(nowMs), getFleetMapSites(nowMs)]);
   return <FleetView matrix={<FleetMatrix rows={rows} />} sites={mapBoard.sites} nowMs={nowMs} />;
-}
-
-export function FleetBoardSkeleton() {
-  return (
-    <div className="flex flex-col gap-4">
-      <Skeleton className="h-11 w-48" />
-      <SkeletonTable rows={5} />
-    </div>
-  );
 }

@@ -3,7 +3,7 @@
 import { ChevronRight, Link2, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { blockReason, useSelectionNavigator } from '@/components/charts/point-picker';
-import { SkeletonSpinner } from '@/components/ui/skeleton';
+import { LoadingBadge } from '@/components/ui/loading';
 import type { RangeSelection } from '@/lib/data/range';
 import { SERIES_LIMITS } from '@/lib/data/series-types';
 import { explorePointLabel, visibleTree, type ExploreAsset, type ExplorePoint, type VisibleNode } from './explore-filter';
@@ -95,7 +95,7 @@ export function ExplorePicker({ assets, points, metrics, selectedIds, selection 
 
   return (
     <div className="flex flex-col gap-4">
-      {navigating && <SkeletonSpinner />}
+      {navigating && <LoadingBadge />}
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm text-ink-2">

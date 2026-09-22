@@ -1,14 +1,6 @@
-import { SkeletonHeader, SkeletonPanel, SkeletonStatus, SkeletonTable } from '@/components/ui/skeleton';
+import { ScreenLoading } from '@/components/ui/loading';
 
-/** 사이트 목록 골격 */
-export default function SitesLoading() {
-  return (
-    <>
-      <SkeletonStatus />
-      <SkeletonHeader guide />
-      <SkeletonPanel titleClassName="w-28">
-        <SkeletonTable rows={5} />
-      </SkeletonPanel>
-    </>
-  );
+/** 화면을 불러오는 동안 스피너만 보여 준다 (components/ui/loading.tsx) */
+export default function Loading() {
+  return <ScreenLoading />;
 }
