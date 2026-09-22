@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import { PageHeader } from '@/components/console/page-header';
 import { SCREEN_GUIDES } from '@/lib/desk/plain/guides';
 import { Panel } from '@/components/ui/panel';
+import { SkeletonSpinner } from '@/components/ui/skeleton';
 import { requireAdmin } from '@/lib/auth/dal';
 import { FLEET_THRESHOLDS, LEDGER_RESIDUAL_RULES } from '@/lib/data/fleet-status';
 import { requestTimeMs } from '@/lib/data/time';
@@ -20,7 +21,7 @@ export default async function FleetPage() {
     <>
       <PageHeader title="플릿" purpose="여러 사이트를 도메인별 건강 상태로 관망" guide={SCREEN_GUIDES.fleet} />
       <Panel title="사이트 × 도메인 상태" meta={`기준 시각 ${formatKstDateTime(nowMs)} KST`}>
-        <Suspense fallback={<FleetBoardSkeleton />}>
+        <Suspense fallback={<><SkeletonSpinner /><FleetBoardSkeleton /></>}>
           <FleetBoardSection nowMs={nowMs} />
         </Suspense>
         <details className="text-xs text-muted">

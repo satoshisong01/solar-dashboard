@@ -71,6 +71,24 @@ for (const screen of SLOW_SCREENS) {
   });
 }
 
+test('화면을 기다리는 동안 눈에 보이는 진행 배지가 뜬다 (회색 칸만으로는 빈 화면과 구별되지 않는다)', async ({ page }) => {
+  await page.route('**/*', async (route: Route) => {
+    if (route.request().headers()[PREFETCH_HEADER] === '1') return route.abort();
+    if (new URL(route.request().url()).pathname === '/settings/detectors') await new Promise((resolve) => setTimeout(resolve, 1500));
+    return route.continue();
+  });
+  await page.goto('/settings/admins');
+
+  const badge = page.getByText('불러오는 중', { exact: true });
+  await expect(badge).toHaveCount(0);
+
+  await page.getByRole('link', { name: '탐지기', exact: true }).click();
+  await expect(badge).toBeVisible();
+
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('설정');
+  await expect(badge).toHaveCount(0);
+});
+
 test('prefetch가 없을 때 메뉴를 누르면 그 항목에 대기 표시(aria-busy)가 붙고 다시 눌리지 않는다', async ({ page }) => {
   // prefetch를 막고 본 요청을 늦춰, 클릭 뒤 실제로 서버를 기다리는 상황을 만든다
   await page.route('**/*', async (route: Route) => {

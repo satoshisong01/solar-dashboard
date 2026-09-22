@@ -1,7 +1,8 @@
 // E2E 공용 상수. playwright.config.ts, globalSetup, 테스트가 함께 쓴다.
 import { TEST_ENV_FILE, readTestEnvFile } from '../support/test-env';
 
-export const E2E_PORT = 3100;
+/** 기본 3100. 같은 PC의 다른 프로젝트가 쓰고 있으면 E2E_PORT로 바꾼다 (충돌하면 webServer가 EADDRINUSE로 죽는다) */
+export const E2E_PORT = Number(process.env.E2E_PORT ?? 3100);
 export const E2E_BASE_URL = `http://localhost:${E2E_PORT}`;
 export const ADMIN_STORAGE_STATE = 'tests/e2e/.auth/admin.json';
 export const E2E_ADMIN_EMAIL = 'e2e-admin@hysol.local';

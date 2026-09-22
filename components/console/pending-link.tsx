@@ -2,6 +2,7 @@
 
 import Link, { useLinkStatus } from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
+import { SkeletonSpinner } from '@/components/ui/skeleton';
 
 /** <Link> 안에서만 쓸 수 있다 (useLinkStatus 규칙). 이동이 시작되면 항목 아래에 진행 막대를 그리고 상위에 알린다.
  * 자리를 차지하지 않게 absolute로 둔다 — 막대가 생겨도 글자나 다른 항목이 밀리지 않는다. */
@@ -14,7 +15,14 @@ function PendingBar({ onPendingChange }: Readonly<{ onPendingChange: (pending: b
   }, [pending, onPendingChange]);
 
   if (!pending) return null;
-  return <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 rounded-b-md bg-accent motion-safe:animate-pulse" />;
+  return (
+    <>
+      <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 rounded-b-md bg-accent motion-safe:animate-pulse" />
+      {/* 같은 경계 안에서 형제 화면으로 옮길 때(설정 탭 등)는 React 트랜지션이 loading.tsx 골격을 띄우지 않는다.
+          그래서 화면이 멈춘 것처럼 보인다 — 여기서 같은 진행 배지를 대신 띄운다. */}
+      <SkeletonSpinner />
+    </>
+  );
 }
 
 type PendingLinkProps = Readonly<{
@@ -27,7 +35,7 @@ type PendingLinkProps = Readonly<{
 
 /**
  * 메뉴·탭 링크. 누른 뒤 이동이 끝날 때까지 그 항목에 진행 막대와 aria-busy를 두고 다시 눌리지 않게 막는다.
- * 목적지 화면의 골격(loading.tsx)은 이와 별개로 바로 뜬다 — 이 표시는 골격이 뜨기 전 공백을 메운다.
+ * 목적지 화면의 골격(loading.tsx)이 뜨는 경우에는 배지가 같은 자리에 겹쳐 하나로 보인다.
  */
 export function PendingLink({ href, className, current, children }: PendingLinkProps) {
   const [pending, setPending] = useState(false);

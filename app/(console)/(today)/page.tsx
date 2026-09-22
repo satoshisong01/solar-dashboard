@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
+import { SkeletonSpinner } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/console/page-header';
 import { SCREEN_GUIDES } from '@/lib/desk/plain/guides';
 import { requireAdmin } from '@/lib/auth/dal';
@@ -33,27 +34,27 @@ export default async function DashboardPage() {
     <>
       <PageHeader title="대시보드" purpose="출근 후 5분 안에 할 일과 밤사이 변화 파악" guide={SCREEN_GUIDES.dashboard} />
       <p className="-mt-3 text-xs text-muted">기준 시각 {formatKstDateTime(nowMs)} KST</p>
-      <Suspense fallback={<SafetySkeleton />}>
+      <Suspense fallback={<><SkeletonSpinner /><SafetySkeleton /></>}>
         <SafetySection />
       </Suspense>
-      <Suspense fallback={<CountersSkeleton />}>
+      <Suspense fallback={<><SkeletonSpinner /><CountersSkeleton /></>}>
         <CountersSection nowMs={nowMs} />
       </Suspense>
-      <Suspense fallback={<SiteMapSkeleton />}>
+      <Suspense fallback={<><SkeletonSpinner /><SiteMapSkeleton /></>}>
         <SiteMapSection nowMs={nowMs} />
       </Suspense>
-      <Suspense fallback={<TopFindingsSkeleton />}>
+      <Suspense fallback={<><SkeletonSpinner /><TopFindingsSkeleton /></>}>
         <TopFindingsSection nowMs={nowMs} />
       </Suspense>
       <div className="grid gap-6 lg:grid-cols-2">
-        <Suspense fallback={<DataGapsSkeleton />}>
+        <Suspense fallback={<><SkeletonSpinner /><DataGapsSkeleton /></>}>
           <DataGapsSection nowMs={nowMs} />
         </Suspense>
-        <Suspense fallback={<RevenueSkeleton />}>
+        <Suspense fallback={<><SkeletonSpinner /><RevenueSkeleton /></>}>
           <RevenueSection nowMs={nowMs} />
         </Suspense>
       </div>
-      <Suspense fallback={<EnergySkeleton />}>
+      <Suspense fallback={<><SkeletonSpinner /><EnergySkeleton /></>}>
         <EnergySection nowMs={nowMs} />
       </Suspense>
     </>

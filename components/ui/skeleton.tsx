@@ -1,3 +1,4 @@
+import { LoaderCircle } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 /** 로딩 자리. 스크린리더에는 loading.tsx의 상태 문구만 읽힌다 */
@@ -73,11 +74,30 @@ export function SkeletonCards({ count = 4, className = 'grid-cols-2 lg:grid-cols
   );
 }
 
-/** loading.tsx 맨 위에 한 번 둔다. 골격은 aria-hidden이라 이 문구만 읽힌다 */
+/**
+ * 불러오는 중이라는 것을 눈으로 알리는 배지. 골격(회색 칸)만으로는 '비어 있는 화면'과 구별되지 않는다.
+ * position:fixed라 흐름에서 빠져 레이아웃을 밀지 않고, 내용이 들어와 사라져도 아래가 튀지 않는다.
+ * 여러 영역이 동시에 대기해도 같은 자리에 겹쳐 하나로 보인다 — 그래서 읽히는 문구는 SkeletonStatus만 낸다.
+ */
+export function SkeletonSpinner({ label = '불러오는 중' }: Readonly<{ label?: string }>) {
+  return (
+    <div aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-18 z-20 flex justify-center lg:pl-60">
+      <span className="inline-flex items-center gap-2 rounded-full border border-rule bg-surface/95 px-3 py-1.5 text-sm font-medium text-ink-2 shadow-panel backdrop-blur-md">
+        <LoaderCircle className="size-4 text-accent motion-safe:animate-spin" />
+        {label}
+      </span>
+    </div>
+  );
+}
+
+/** loading.tsx 맨 위에 한 번 둔다. 보이는 배지와 스크린리더 문구를 함께 낸다 (골격 칸은 aria-hidden이다) */
 export function SkeletonStatus() {
   return (
-    <p role="status" className="sr-only">
-      화면을 불러오는 중입니다
-    </p>
+    <>
+      <p role="status" className="sr-only">
+        화면을 불러오는 중입니다
+      </p>
+      <SkeletonSpinner />
+    </>
   );
 }
