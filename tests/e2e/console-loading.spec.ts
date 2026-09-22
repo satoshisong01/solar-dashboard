@@ -89,6 +89,38 @@ test('화면을 기다리는 동안 눈에 보이는 진행 배지가 뜬다 (�
   await expect(badge).toHaveCount(0);
 });
 
+test('표의 링크로 다른 화면에 갈 때도 배지가 뜬다 (경계를 넘는 이동)', async ({ page }) => {
+  await page.route('**/*', async (route: Route) => {
+    if (route.request().headers()[PREFETCH_HEADER] === '1') return route.abort();
+    if (new URL(route.request().url()).pathname.startsWith('/sites/')) await new Promise((resolve) => setTimeout(resolve, 1500));
+    return route.continue();
+  });
+  await page.goto('/sites');
+
+  const badge = page.getByText('불러오는 중', { exact: true });
+  await expect(badge).toHaveCount(0);
+
+  await page.getByRole('link', { name: /SIM-B/ }).first().click();
+  await expect(badge).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1 })).not.toHaveText('사이트');
+});
+
+test('같은 화면에서 쿼리만 바꿔도 배지가 뜬다 (골격이 뜨지 않는 이동)', async ({ page }) => {
+  await page.route('**/*', async (route: Route) => {
+    if (route.request().headers()[PREFETCH_HEADER] === '1') return route.abort();
+    const url = new URL(route.request().url());
+    if (url.pathname === '/explore' && url.search !== '') await new Promise((resolve) => setTimeout(resolve, 1500));
+    return route.continue();
+  });
+  await page.goto('/explore');
+
+  const badge = page.getByText('불러오는 중', { exact: true });
+  await expect(badge).toHaveCount(0);
+
+  await page.getByRole('group', { name: '기간' }).getByRole('link', { name: '7일' }).click();
+  await expect(badge).toBeVisible();
+});
+
 test('prefetch가 없을 때 메뉴를 누르면 그 항목에 대기 표시(aria-busy)가 붙고 다시 눌리지 않는다', async ({ page }) => {
   // prefetch를 막고 본 요청을 늦춰, 클릭 뒤 실제로 서버를 기다리는 상황을 만든다
   await page.route('**/*', async (route: Route) => {

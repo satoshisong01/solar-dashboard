@@ -2,7 +2,6 @@
 
 import Link, { useLinkStatus } from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
-import { SkeletonSpinner } from '@/components/ui/skeleton';
 
 /** <Link> 안에서만 쓸 수 있다 (useLinkStatus 규칙). 이동이 시작되면 항목 아래에 진행 막대를 그리고 상위에 알린다.
  * 자리를 차지하지 않게 absolute로 둔다 — 막대가 생겨도 글자나 다른 항목이 밀리지 않는다. */
@@ -15,14 +14,8 @@ function PendingBar({ onPendingChange }: Readonly<{ onPendingChange: (pending: b
   }, [pending, onPendingChange]);
 
   if (!pending) return null;
-  return (
-    <>
-      <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 rounded-b-md bg-accent motion-safe:animate-pulse" />
-      {/* 같은 경계 안에서 형제 화면으로 옮길 때(설정 탭 등)는 React 트랜지션이 loading.tsx 골격을 띄우지 않는다.
-          그래서 화면이 멈춘 것처럼 보인다 — 여기서 같은 진행 배지를 대신 띄운다. */}
-      <SkeletonSpinner />
-    </>
-  );
+  // 진행 배지는 NavigationBadge가 화면에 하나만 띄운다. 여기서는 '어느 항목을 눌렀는지'만 표시한다.
+  return <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 rounded-b-md bg-accent motion-safe:animate-pulse" />;
 }
 
 type PendingLinkProps = Readonly<{

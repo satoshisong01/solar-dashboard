@@ -252,6 +252,26 @@
   color: var(--ink);
 }
 
+/* 이동이 금방 끝나면 진행 배지가 깜빡이기만 해서 오히려 거슬린다.
+   Next 문서 권장대로 처음엔 투명하게 두고 150ms 뒤에 나타낸다 — 그보다 빨리 끝나면 아예 안 보인다. */
+.loading-badge {
+  opacity: 0;
+  animation: loading-badge-in 160ms ease 150ms forwards;
+}
+
+@keyframes loading-badge-in {
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* 지연은 그대로 두고 서서히 나타나는 동작만 없앤다 */
+  .loading-badge {
+    animation-duration: 1ms;
+  }
+}
+
 @page {
   size: A4;
   margin: 14mm 12mm;

@@ -82,7 +82,7 @@ export function SkeletonCards({ count = 4, className = 'grid-cols-2 lg:grid-cols
 export function SkeletonSpinner({ label = '불러오는 중' }: Readonly<{ label?: string }>) {
   return (
     <div aria-hidden="true" className="pointer-events-none fixed inset-x-0 top-18 z-20 flex justify-center lg:pl-60">
-      <span className="inline-flex items-center gap-2 rounded-full border border-rule bg-surface/95 px-3 py-1.5 text-sm font-medium text-ink-2 shadow-panel backdrop-blur-md">
+      <span className="loading-badge inline-flex items-center gap-2 rounded-full border border-rule bg-surface/95 px-3 py-1.5 text-sm font-medium text-ink-2 shadow-panel backdrop-blur-md">
         <LoaderCircle className="size-4 text-accent motion-safe:animate-spin" />
         {label}
       </span>

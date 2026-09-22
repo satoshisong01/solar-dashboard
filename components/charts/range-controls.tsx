@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useId, useState, type FormEvent } from 'react';
+import { useId, useState, useTransition, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
+import { SkeletonSpinner } from '@/components/ui/skeleton';
 import {
   RANGE_PRESETS,
   RANGE_PRESET_KEYS,
@@ -30,6 +31,7 @@ const PRESET_CLASS =
 /** 기간 선택: 24시간 · 7일 · 30일(링크) + 사용자 지정(KST 시각 입력). 상태는 URL 쿼리에 둔다 */
 export function RangeControls({ basePath, pointIds, selection, fromMs, toMs }: RangeControlsProps) {
   const router = useRouter();
+  const [navigating, startNavigation] = useTransition();
   const formId = useId();
   const [customOpen, setCustomOpen] = useState(selection.kind === 'custom');
   const [error, setError] = useState<string | null>(null);
@@ -43,11 +45,12 @@ export function RangeControls({ basePath, pointIds, selection, fromMs, toMs }: R
     if (from >= to) return setError('끝 시각은 시작 시각보다 뒤여야 합니다.');
     if (to - from > SERIES_LIMITS.maxSpanMs) return setError('기간은 366일 이하로 지정하세요.');
     setError(null);
-    router.push(`${basePath}?${buildViewSearch(pointIds, { kind: 'custom', fromMs: from, toMs: to })}`, { scroll: false });
+    startNavigation(() => router.push(`${basePath}?${buildViewSearch(pointIds, { kind: 'custom', fromMs: from, toMs: to })}`, { scroll: false }));
   }
 
   return (
     <div className="flex flex-col gap-3">
+      {navigating && <SkeletonSpinner />}
       <div className="flex flex-wrap items-center gap-2" role="group" aria-label="기간">
         {RANGE_PRESET_KEYS.map((preset) => (
           <Link

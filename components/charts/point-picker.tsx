@@ -1,10 +1,12 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useTransition } from 'react';
 import { buildViewSearch, type RangeSelection } from '@/lib/data/range';
 import { SERIES_LIMITS } from '@/lib/data/series-types';
 import { fitsAxes } from './series-window';
 import { CHECK_CLASS } from '@/components/ui/form-styles';
+import { SkeletonSpinner } from '@/components/ui/skeleton';
 
 export interface PickablePoint {
   readonly id: number;
@@ -14,10 +16,14 @@ export interface PickablePoint {
 
 type SelectionUrl = Readonly<{ basePath: string; selection: RangeSelection }>;
 
-/** 선택을 바꾼 URL. 선택은 URL 쿼리(points=)에 두고 서버가 다시 그린다 */
+/** 선택을 바꾼 URL. 선택은 URL 쿼리(points=)에 두고 서버가 다시 그린다.
+ * 같은 화면 안에서 쿼리만 바뀌어 loading.tsx 골격이 뜨지 않는다 — 진행 상태를 함께 돌려줘 부르는 쪽이 배지를 띄운다. */
 export function useSelectionNavigator({ basePath, selection }: SelectionUrl) {
   const router = useRouter();
-  return (pointIds: readonly number[]) => router.replace(`${basePath}?${buildViewSearch(pointIds, selection)}`, { scroll: false });
+  const [navigating, startNavigation] = useTransition();
+  const navigate = (pointIds: readonly number[]) =>
+    startNavigation(() => router.replace(`${basePath}?${buildViewSearch(pointIds, selection)}`, { scroll: false }));
+  return { navigate, navigating };
 }
 
 /** 선택할 수 없는 이유. 없으면 null */
@@ -36,7 +42,7 @@ type PointPickerProps = SelectionUrl &
 
 /** 자산 상세의 차트 포인트 선택 (최대 8개, 단위 2개) */
 export function PointPicker({ points, selectedIds, basePath, selection }: PointPickerProps) {
-  const navigate = useSelectionNavigator({ basePath, selection });
+  const { navigate, navigating } = useSelectionNavigator({ basePath, selection });
   const selected = points.filter((point) => selectedIds.includes(point.id));
 
   function toggle(point: PickablePoint, checked: boolean) {
@@ -45,6 +51,7 @@ export function PointPicker({ points, selectedIds, basePath, selection }: PointP
 
   return (
     <fieldset className="flex flex-col gap-2">
+      {navigating && <SkeletonSpinner />}
       <legend className="mb-1 text-xs text-muted">
         차트에 표시할 포인트 ({selectedIds.length}/{SERIES_LIMITS.maxPointIds}, 단위는 2개까지)
       </legend>

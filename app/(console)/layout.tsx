@@ -1,3 +1,5 @@
+import { Suspense } from 'react';
+import { NavigationBadge } from '@/components/console/navigation-badge';
 import { Sidebar } from '@/components/console/sidebar';
 import { TopBar } from '@/components/console/top-bar';
 import { requireAdmin } from '@/lib/auth/dal';
@@ -18,6 +20,10 @@ export default async function ConsoleLayout({ children }: Readonly<{ children: R
       <div className="lg:grid lg:grid-cols-[15rem_minmax(0,1fr)]">
         <Sidebar showSim={showSim} />
         <div className="flex min-h-dvh min-w-0 flex-col">
+          {/* useSearchParams를 쓰므로 Suspense로 감싼다 (정적 렌더 시 경계가 필요하다) */}
+          <Suspense fallback={null}>
+            <NavigationBadge />
+          </Suspense>
           <TopBar email={user.email} showSim={showSim} />
           <main id="main" className="flex w-full max-w-5xl flex-1 flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
             {children}

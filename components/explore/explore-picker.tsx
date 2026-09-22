@@ -3,6 +3,7 @@
 import { ChevronRight, Link2, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { blockReason, useSelectionNavigator } from '@/components/charts/point-picker';
+import { SkeletonSpinner } from '@/components/ui/skeleton';
 import type { RangeSelection } from '@/lib/data/range';
 import { SERIES_LIMITS } from '@/lib/data/series-types';
 import { explorePointLabel, visibleTree, type ExploreAsset, type ExplorePoint, type VisibleNode } from './explore-filter';
@@ -72,7 +73,7 @@ function AssetBranch(props: Readonly<{ node: VisibleNode; filtering: boolean; se
 
 /** 탐색기: 사이트·설비 트리 + 메트릭 필터로 포인트를 최대 8개 고른다. 선택·기간은 URL에 두어 링크로 공유한다 */
 export function ExplorePicker({ assets, points, metrics, selectedIds, selection }: ExplorePickerProps) {
-  const navigate = useSelectionNavigator({ basePath: '/explore', selection });
+  const { navigate, navigating } = useSelectionNavigator({ basePath: '/explore', selection });
   const [metricKey, setMetricKey] = useState('');
   const [text, setText] = useState('');
   const [copy, setCopy] = useState<CopyState>('idle');
@@ -94,6 +95,7 @@ export function ExplorePicker({ assets, points, metrics, selectedIds, selection 
 
   return (
     <div className="flex flex-col gap-4">
+      {navigating && <SkeletonSpinner />}
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="text-sm text-ink-2">
